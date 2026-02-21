@@ -119,3 +119,44 @@
   difficulty: hard
   entities: [PAYMENT]
   tests_conflict_detection: true
+
+# ── Adversarial questions: hallucination traps ──
+
+- id: Q21
+  question: "What is the customer return/refund policy?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: hard
+  entities: []
+  adversarial: true
+
+- id: Q22
+  question: "What GDPR or CCPA compliance rules apply to customer data deletion?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: hard
+  entities: [CUSTOMER]
+  adversarial: true
+
+# ── Adversarial questions: low-salience edge cases ──
+
+- id: Q23
+  question: "What happens to seasonal products at end of season?"
+  expected: "auto-deactivated, reactivation requires manual review by merchandising"
+  difficulty: hard
+  entities: [PRODUCT]
+  adversarial: true
+
+- id: Q24
+  question: "What is the UK address format standard used for normalisation?"
+  expected: "Royal Mail"
+  difficulty: hard
+  entities: []
+  adversarial: true
+
+# ── Adversarial: cross-entity negation inference ──
+
+- id: Q25
+  question: "Can a PAYMENT exist without an associated ORDER?"
+  expected: "No, order_id is mandatory (PAYMENT belongs to ORDER)"
+  difficulty: hard
+  entities: [PAYMENT, ORDER]
+  adversarial: true

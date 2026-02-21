@@ -15,6 +15,7 @@ from .metrics.conflict import measure_conflicts
 from .metrics.fidelity import load_questions, measure_fidelity
 from .baselines.raw_stuffing import prepare_raw_context
 from .baselines.naive_summary import prepare_naive_context
+from .baselines.llm_summary import prepare_llm_summary
 from .baselines.hand_authored import prepare_hand_context
 
 
@@ -123,6 +124,30 @@ def run_eval(
             naive_result["fidelity"] = fidelity.score
             naive_result["fidelity_details"] = fidelity.to_dict()
         results["baselines"]["naive_summary"] = naive_result
+
+    # ── LLM summary baseline ──
+    if "llm_summary" in config.baselines and api_key:
+        raw_text = prepare_raw_context(corpus_dir)
+        llm_text = prepare_llm_summary(
+            raw_text, ctx_tokens,
+            model=eval_model, api_key=api_key, provider=provider,
+        )
+        llm_tokens = count_tokens(llm_text)
+        llm_cost = estimate_cost(llm_tokens, model=eval_model)
+        llm_result: dict[str, Any] = {
+            "tokens": llm_tokens,
+            "ratio": f"{source_tokens / llm_tokens:.1f}x" if llm_tokens > 0 else "N/A",
+            "cost": llm_cost.to_dict()["cost_per_query"],
+            "summary_preview": llm_text[:200] + "..." if len(llm_text) > 200 else llm_text,
+        }
+        if config.run_fidelity:
+            fidelity = measure_fidelity(
+                questions, llm_text,
+                model=eval_model, api_key=api_key, provider=provider,
+            )
+            llm_result["fidelity"] = fidelity.score
+            llm_result["fidelity_details"] = fidelity.to_dict()
+        results["baselines"]["llm_summary"] = llm_result
 
     # ── Hand-authored baseline ──
     if "hand" in config.baselines:

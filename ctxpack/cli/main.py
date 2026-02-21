@@ -238,7 +238,10 @@ def _cmd_eval(args: argparse.Namespace) -> int:
         ratio = data.get("ratio", "?")
         cost = data.get("cost", "?")
         fidelity = data.get("fidelity", "N/A")
-        print(f"  {name:20s}  tokens={tokens:>6}  ratio={ratio:>6}  cost={cost}  fidelity={fidelity}")
+        details = data.get("fidelity_details", {})
+        llm_judge = details.get("llm_judge_score", "")
+        judge_str = f"  judge={llm_judge}" if llm_judge != "" else ""
+        print(f"  {name:20s}  tokens={tokens:>6}  ratio={ratio:>6}  cost={cost}  fidelity={fidelity}{judge_str}")
 
     if "conflict_detection" in results:
         cd = results["conflict_detection"]

@@ -14,7 +14,7 @@ class EvalConfig:
         os.path.dirname(os.path.abspath(__file__)), "golden_set"
     )
     baselines: list[str] = field(
-        default_factory=lambda: ["raw", "naive", "hand"]
+        default_factory=lambda: ["raw", "naive", "llm_summary", "hand"]
     )
     run_fidelity: bool = True
     run_latency: bool = False
