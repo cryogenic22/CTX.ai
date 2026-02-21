@@ -4,14 +4,21 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "ctxpack"
-version = "0.1.0"
-description = "Deterministic parser for the .ctx context compression format"
+version = "0.2.0"
+description = "MP3 for LLM context — multi-resolution compression codec for domain knowledge"
 readme = "README.md"
-license = "MIT"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
 dependencies = []
 authors = [
-    {name = "Kapil Pant", email = "kapil@synaptyx.com"},
+    {name = "Kapil Pant", email = "kapilpant@gmail.com"},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Topic :: Text Processing :: General",
 ]
 
 [project.scripts]
