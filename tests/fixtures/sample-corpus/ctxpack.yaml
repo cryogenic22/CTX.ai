@@ -1,0 +1,25 @@
+domain: customer-data-platform
+scope: entity-resolution-rules
+author: data-engineering-team
+
+include:
+  - "entities/*.yaml"
+  - "rules/*.yaml"
+  - "docs/*.md"
+
+exclude:
+  - "*.bak"
+
+entity_aliases:
+  CUSTOMER:
+    - client
+    - buyer
+    - patron
+  ORDER:
+    - purchase
+    - transaction
+
+golden_sources:
+  CUSTOMER: "CRM (Salesforce)"
+  ORDER: "OMS (OrderHub)"
+  PRODUCT: "PIM (Akeneo)"

@@ -1,0 +1,105 @@
+# CTXPACK-SPEC v1.0 PEG Grammar
+# Defines the parseable scaffolding (Tier 1) of the .ctx format
+# Body content within values (Tier 2) is not formally constrained
+#
+# Reference: spec/CTXPACK-SPEC.md, Section 12
+# License: CC-BY-SA 4.0
+
+# ─── Top-level ───
+
+CTXFile         <- Header BlankLine Body EOF
+
+# ─── Header ───
+
+Header          <- StatusLine (Newline HeaderLine)*
+StatusLine      <- Magic SP VersionTag SP LayerTag (SP StatusField)*
+Magic           <- '§CTX' / '$CTX'
+VersionTag      <- 'v' Digit+ '.' Digit+
+LayerTag        <- 'L' [0-3] / 'MANIFEST'
+StatusField     <- Key ':' Value
+
+HeaderLine      <- Key ':' Value
+Key             <- [A-Za-z_] [A-Za-z0-9_-]*
+Value           <- (!Newline .)+
+
+# ─── Body ───
+
+Body            <- (Section / BodyLine / BlankLine)*
+Section         <- SectionMarker Newline (BodyLine / BlankLine)*
+SectionMarker   <- Indent? SectionSigil SectionName (SP SectionSubtitle)*
+SectionSigil    <- '±' / '##'
+SectionName     <- [A-Z] [A-Z0-9_-]*
+SectionSubtitle <- (!Newline !SectionSigil .)+
+
+BodyLine        <- !SectionMarker !BlankLine Indent? LineContent Newline
+LineContent     <- KeyValueLine / ListLine / QuotedBlock / PlainLine
+
+# ─── Key-Value ───
+
+KeyValueLine    <- Key ':' Value
+# Note: first ':' splits key from value; subsequent ':' in value are literal
+
+# ─── Lists ───
+
+ListLine        <- InlineList / NumberedItem / SequenceList
+InlineList      <- '[' ListItem (',' ListItem)* ']'
+ListItem        <- (!(',' / ']') .)+
+NumberedItem    <- Digit+ '.' (!Newline .)+
+SequenceList    <- Key '[' Newline (SP+ ListItem ',' Newline)* SP+ ListItem Newline? ']'
+
+# ─── Operators ───
+
+Operator        <- Arrow / Negation / Conjunction / Disjunction
+                 / Sequence / WeakAssoc / Emphasis / Warning
+                 / SectionSigil / FormatMagic / CrossRef
+                 / Equivalence / Conflict / Uncertainty / Approx
+
+Arrow           <- '→' / '->'
+Negation        <- '¬' / '!'
+Conjunction     <- '+'
+Disjunction     <- '|'
+Sequence        <- '>>'
+WeakAssoc       <- '~>'
+Emphasis        <- '★' / '***'
+Warning         <- '⚠' / 'WARN:'
+FormatMagic     <- '§' / '$CTX'
+CrossRef        <- '@' [A-Za-z_] [A-Za-z0-9_./-]*
+Equivalence     <- '≡' / '==='
+Conflict        <- '⊥' / 'CONFLICT:'
+Uncertainty     <- '?'
+Approx          <- '~'
+
+# ─── Quoting ───
+
+QuotedBlock     <- TripleBacktick (!TripleBacktick .)* TripleBacktick
+TripleBacktick  <- '```'
+InlineQuote     <- '`' (!'`' .)* '`'
+
+# ─── Cross-references ───
+
+InternalRef     <- '@' SectionName ('/' SectionName)*
+ExternalRef     <- '@' Filename ('#' SectionName ('/' SectionName)*)?
+NamespaceDef    <- '@DEF' SP NSPrefix ':=' Filename
+NSPrefix        <- [a-z] [a-z0-9-]*
+Filename        <- [A-Za-z0-9_-]+ '.' [A-Za-z0-9.]+ ('.ctx')?
+
+# ─── Provenance ───
+
+ProvenanceLine  <- 'SRC:' ProvenanceRef
+ProvenanceRef   <- FilePath ('#' LineRange)?
+                 / GitRef
+                 / URL
+FilePath        <- [A-Za-z0-9_./-]+
+LineRange       <- 'L' Digit+ '-L' Digit+
+GitRef          <- 'git:' [a-f0-9]+ ':' FilePath
+URL             <- 'https://' (!Newline .)+
+
+# ─── Primitives ───
+
+PlainLine       <- (!Newline .)+
+SP              <- ' '+
+Indent          <- '  '+
+Newline         <- '\r'? '\n'
+BlankLine       <- SP? Newline
+Digit           <- [0-9]
+EOF             <- !.

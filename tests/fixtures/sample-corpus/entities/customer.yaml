@@ -1,0 +1,58 @@
+entity: CUSTOMER
+description: Core customer entity for the data platform
+aliases:
+  - client
+  - buyer
+
+golden_source: "CRM (Salesforce)"
+
+identifier:
+  name: customer_id
+  type: UUID
+  immutable: true
+
+match_rules:
+  - field: email
+    method: exact match
+    options:
+      case-insensitive: true
+      trim-whitespace: true
+  - field: phone
+    method: normalise
+    options:
+      format: "E.164"
+  - field: name+address
+    method: fuzzy match
+    options:
+      algorithm: "Jaro-Winkler>0.92"
+
+pii:
+  - name
+  - email
+  - phone
+  - address
+pii_classification: RESTRICTED
+
+retention:
+  active: indefinite
+  churned:
+    months: 36
+    action: anonymise
+
+status:
+  - active
+  - inactive
+  - churned
+  - deleted
+
+tier:
+  - bronze
+  - silver
+  - gold
+  - platinum
+
+communication_preferences:
+  - email
+  - sms
+  - push
+  - postal

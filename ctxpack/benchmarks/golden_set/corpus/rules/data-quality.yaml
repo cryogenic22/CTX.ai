@@ -1,0 +1,21 @@
+rules:
+  null_policy:
+    customer_id: never-null
+    order_id: never-null
+    email: never-null-for-active
+    phone: nullable
+
+  freshness:
+    customer-data: max-24h-stale
+    inventory: max-5min-stale
+    orders: real-time
+
+  dedup:
+    batch: "daily (customer entity resolution)"
+    realtime: "on new registration"
+
+  anomaly:
+    - condition: "order value > $10000"
+      action: flag-for-review
+    - condition: "order value > $50000"
+      action: auto-hold+alert

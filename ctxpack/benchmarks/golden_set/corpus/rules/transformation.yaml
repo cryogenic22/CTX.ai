@@ -1,0 +1,17 @@
+rules:
+  timezone:
+    storage: UTC
+    display: customer-locale
+
+  currency:
+    storage: "original + USD equivalent"
+    rate: "daily ECB rate"
+
+  address:
+    normalisation: "SmartyStreets API"
+    format_us: USPS
+    format_uk: Royal-Mail
+
+  name:
+    normalisation: none
+    note: "preserve original case and diacritics (cultural sensitivity)"

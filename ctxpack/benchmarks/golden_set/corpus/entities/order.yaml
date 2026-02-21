@@ -1,0 +1,35 @@
+entity: ORDER
+description: Order entity representing customer purchases
+
+identifier:
+  name: order_id
+  type: UUID
+  immutable: true
+
+belongs_to:
+  entity: CUSTOMER
+  field: customer_id
+  mandatory: true
+
+status_flow:
+  - draft
+  - submitted
+  - processing
+  - shipped
+  - delivered
+
+immutable_after: "submitted (no edits to line items after submission)"
+
+financial_fields:
+  fields:
+    - subtotal
+    - tax
+    - shipping_cost
+    - total
+  type: "DECIMAL(19,4)"
+
+retention:
+  active: indefinite
+  completed:
+    months: 84
+    action: archive

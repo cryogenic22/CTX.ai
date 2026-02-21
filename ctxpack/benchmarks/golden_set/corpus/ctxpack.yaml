@@ -1,0 +1,24 @@
+domain: customer-data-platform
+scope: entity-resolution-and-data-quality
+author: data-engineering-team
+
+entity_aliases:
+  CUSTOMER:
+    - client
+    - buyer
+    - patron
+  ORDER:
+    - purchase
+    - transaction
+  PRODUCT:
+    - item
+    - SKU
+  PAYMENT:
+    - transaction
+    - charge
+
+golden_sources:
+  CUSTOMER: "CRM (Salesforce)"
+  ORDER: "OMS (OrderHub)"
+  PRODUCT: "PIM (Akeneo)"
+  PAYMENT: "Payment Gateway (Stripe)"

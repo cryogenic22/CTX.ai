@@ -1,0 +1,32 @@
+entity: PAYMENT
+description: Payment and financial transaction entity
+
+identifier:
+  name: payment_id
+  type: UUID
+  immutable: true
+
+belongs_to:
+  entity: ORDER
+  field: order_id
+  mandatory: true
+
+methods:
+  - credit_card
+  - debit_card
+  - bank_transfer
+  - digital_wallet
+
+currency_handling:
+  storage: original + USD equivalent
+  exchange_rate: "daily ECB rate"
+
+pii:
+  - card_number
+  - bank_account
+pii_classification: HIGHLY-RESTRICTED
+
+retention:
+  all:
+    months: 84
+    action: archive

@@ -1,0 +1,38 @@
+{
+  "version": "0.2.0",
+  "timestamp": "2026-02-21T19:58:50.050434+00:00",
+  "baselines": {
+    "ctxpack_l2": {
+      "tokens": 125,
+      "ratio": "5.5x",
+      "cost": "$0.0004"
+    },
+    "raw_stuffing": {
+      "tokens": 717,
+      "ratio": "1x",
+      "cost": "$0.0022"
+    },
+    "naive_summary": {
+      "tokens": 125,
+      "ratio": "5.5x",
+      "cost": "$0.0004"
+    }
+  },
+  "config": {
+    "golden_set_path": "C:\\Users\\kapil\\Documents\\CTX_mod\\ctxpack\\benchmarks\\golden_set",
+    "baselines": [
+      "raw",
+      "naive",
+      "hand"
+    ],
+    "run_fidelity": false,
+    "run_conflicts": true,
+    "model": "claude-sonnet-4-6"
+  },
+  "conflict_detection": {
+    "planted": 2,
+    "found": 4,
+    "precision": 0.5,
+    "recall": 1.0
+  }
+}

@@ -1,0 +1,46 @@
+§CTX v1.0 L2 DOMAIN:ctxpack-spec
+COMPRESSED:2026-02-21
+SOURCE_TOKENS:~4500
+CTX_TOKENS:~600
+SCOPE:context-protocol-section
+SOURCE:spec/CTXPACK-SPEC.md#Section-14
+RATIO:~7.5x
+PROVENANCE:L0→L2
+
+±HYDRATION-RULES ★DECODER-SIDE-OF-CODEC
+L3:ALWAYS-injected(unconditional,every-query)
+L2:RELEVANT-domains+entities(matched-by-query-intent)
+L1:SELECTIVE-active-focus-sections-only
+L0:ON-DEMAND(tool-call¬pre-injection)
+MINIMUM-VIABLE:L3-alone→self-contained+useful
+
+±POSITION-OPTIMIZATION lost-in-middle-mitigation(Liu-2023)
+PROBLEM:LLMs-attend-disproportionately-to-START+END→middle-content-underweighted
+STRATEGY:high-salience(★,⚠,L3)→START+END|medium-salience(L2-detail)→MIDDLE
+SCORING:`position_priority(section)=w_layer×layer_score+w_flag×flag_score+w_order×(1/order_index)`
+LAYER-SCORES:[L3:1.0,L2:0.6,L1:0.3]
+FLAG-SCORES:[★:0.5,⚠:0.8,none:0.0]
+WEIGHTS:default(w_layer:0.4,w_flag:0.3,w_order:0.3)→tunable
+
+±CHUNKING-RULES
+ATOMIC-UNIT:section(never-split-across-chunks)
+OVERFLOW:drop-lowest-salience-sections(bottom-of-file-first)
+L3:non-droppable(always-injected-in-full)
+
+±MCP-TOOLS
+ctx/read:read-file|sections(filtered) INPUT:[path(required),sections(optional),layer(optional)]
+ctx/hydrate:query-adaptive-assembly-from-ctxpack INPUT:[path(required),query(required),budget(optional)]
+ctx/manifest:list-layers+sizes INPUT:[path(required)]
+ctx/diff:semantic-diff(entity+assertion-level) INPUT:[path_a(required),path_b(required)]
+
+±INJECTION-FORMAT
+WRAPPER:`<ctx domain="..." layer="..." sections="...">content</ctx>`
+RULES:domain=DOMAIN-header|multiple-blocks-per-message-allowed|XML-distinguishes-ctx-from-other-content
+
+±HYDRATION-PIPELINE
+1.PARSE-QUERY→extract-entities+operation-intent
+2.MATCH-MANIFEST→identify-relevant-domains(entity-overlap)
+3.LOAD:L3(always)→score-L2(entity-overlap)→score-L1(specificity-match)
+4.ASSEMBLE:merge-within-token-budget→drop-lowest-salience-if-over
+5.POSITION-OPTIMIZE:apply-scoring→place-high-priority→START+END
+6.INJECT:wrap-in-`<ctx>`-tags→insert-into-message
