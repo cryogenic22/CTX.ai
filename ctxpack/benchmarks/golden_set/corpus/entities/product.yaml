@@ -1,5 +1,5 @@
 entity: PRODUCT
-description: Product catalog entity
+description: Product catalog entity, one per merchant
 
 identifier:
   name: sku

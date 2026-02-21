@@ -455,6 +455,8 @@ def _extract_single_entity(data: dict[str, Any], source: IRSource) -> IREntity:
     fields: list[IRField] = []
     annotations: dict[str, str] = {}
 
+    description = str(data.get("description", ""))
+
     for key, val in data.items():
         if key == "entity":
             continue
@@ -463,10 +465,10 @@ def _extract_single_entity(data: dict[str, Any], source: IRSource) -> IREntity:
                 aliases = [str(a) for a in val]
             continue
         if key == "description":
-            annotations["description"] = str(val)
+            annotations["description"] = description
             continue
 
-        compressed = _compress_entity_field(key, val)
+        compressed = _compress_entity_field(key, val, description=description)
         fields.append(
             IRField(
                 key=compressed[0],
@@ -488,7 +490,7 @@ def _extract_single_entity(data: dict[str, Any], source: IRSource) -> IREntity:
 # ── Field Compression Rules ──
 
 
-def _compress_entity_field(key: str, val: Any) -> tuple[str, str]:
+def _compress_entity_field(key: str, val: Any, *, description: str = "") -> tuple[str, str]:
     """Compress a YAML entity field to L2 key:value notation.
 
     Returns (compressed_key, compressed_value).
@@ -501,7 +503,7 @@ def _compress_entity_field(key: str, val: Any) -> tuple[str, str]:
 
     # identifier → IDENTIFIER:name(type,flags)
     if norm_key == "identifier":
-        return "IDENTIFIER", _compress_identifier(val)
+        return "IDENTIFIER", _compress_identifier(val, description=description)
 
     # match_rules → MATCH-RULES:[field:method(options),...]
     if norm_key == "match_rules":
@@ -541,14 +543,23 @@ def _compress_entity_field(key: str, val: Any) -> tuple[str, str]:
     return compressed_key, compressed_val
 
 
-def _compress_identifier(val: Any) -> str:
+def _compress_identifier(val: Any, *, description: str = "") -> str:
     if isinstance(val, dict):
         name = val.get("name", val.get("field", ""))
         typ = val.get("type", "")
         flags = []
         for flag_key in ("immutable", "unique", "required"):
             if val.get(flag_key):
-                flags.append(flag_key)
+                # Enrich "unique" with scope from description if available
+                if flag_key == "unique" and description:
+                    scope = _extract_scope(description, flag_key)
+                    flags.append(scope if scope else flag_key)
+                else:
+                    flags.append(flag_key)
+        # Also include explicit scope/unique_per fields
+        scope_val = val.get("scope", val.get("unique_per", ""))
+        if scope_val and "unique" not in str(flags):
+            flags.append(f"unique-per-{_hyphenate(str(scope_val))}")
         parts = [str(typ)] + flags if typ else flags
         if parts:
             return f"{name}({','.join(parts)})"
@@ -556,6 +567,30 @@ def _compress_identifier(val: Any) -> str:
     if isinstance(val, str):
         return val
     return str(val)
+
+
+def _extract_scope(description: str, flag: str) -> str:
+    """Try to extract a scope qualifier for a flag from entity description.
+
+    E.g. "Product catalog entity" + "unique" → "unique-per-merchant"
+    if description mentions merchant/tenant/org scope.
+    """
+    desc_lower = description.lower()
+    scope_markers = {
+        "per merchant": "unique-per-merchant",
+        "per-merchant": "unique-per-merchant",
+        "per tenant": "unique-per-tenant",
+        "per-tenant": "unique-per-tenant",
+        "per organization": "unique-per-org",
+        "per org": "unique-per-org",
+        "per store": "unique-per-store",
+        "per region": "unique-per-region",
+        "per account": "unique-per-account",
+    }
+    for marker, result in scope_markers.items():
+        if marker in desc_lower:
+            return result
+    return ""
 
 
 def _compress_match_rules(val: Any) -> str:
