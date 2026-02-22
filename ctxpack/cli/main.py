@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import os
 import sys
 
 from ..core.errors import DiagnosticLevel, ParseError
@@ -79,6 +80,15 @@ def main(argv: list[str] | None = None) -> int:
     p_eval.add_argument("--output", help="Output directory for results")
     p_eval.add_argument("--version", default="0.2.0", help="Version tag for results")
 
+    # scaling
+    p_scale = sub.add_parser("scaling", help="Run scaling curve experiment")
+    p_scale.add_argument("--skip-fidelity", action="store_true",
+                         help="Skip fidelity testing (compression-only)")
+    p_scale.add_argument("--max-questions", type=int, default=30,
+                         help="Max questions per scale (controls API cost)")
+    p_scale.add_argument("--regenerate", action="store_true",
+                         help="Regenerate scaling corpora")
+
     args = ap.parse_args(argv)
 
     try:
@@ -92,6 +102,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_pack(args)
         elif args.command == "eval":
             return _cmd_eval(args)
+        elif args.command == "scaling":
+            return _cmd_scaling(args)
     except ParseError as e:
         print(f"Parse error: {e}", file=sys.stderr)
         return 1
@@ -248,6 +260,34 @@ def _cmd_eval(args: argparse.Namespace) -> int:
         print(f"\n  Conflict detection: planted={cd['planted']} found={cd['found']} "
               f"P={cd['precision']} R={cd['recall']}")
 
+    return 0
+
+
+def _cmd_scaling(args: argparse.Namespace) -> int:
+    from ..benchmarks.scaling.scaling_runner import (
+        run_scaling_eval,
+        save_scaling_results,
+        print_scaling_summary,
+    )
+
+    base_dir = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "..", "benchmarks", "scaling",
+    )
+
+    print("Running scaling curve experiment...")
+    results = run_scaling_eval(
+        base_dir,
+        max_questions_per_scale=args.max_questions,
+        regenerate=args.regenerate,
+        skip_fidelity=args.skip_fidelity,
+    )
+
+    output_path = os.path.join(base_dir, "results", "scaling_curve.json")
+    save_scaling_results(results, output_path)
+    print(f"\nResults saved: {output_path}")
+
+    print_scaling_summary(results)
     return 0
 
 
