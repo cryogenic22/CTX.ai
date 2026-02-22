@@ -1,0 +1,3594 @@
+- id: Q001
+  question: "What is the ORDER status flow?"
+  expected: "draft -> submitted -> processing -> shipped -> delivered"
+  difficulty: medium
+  entities: [ORDER]
+
+- id: Q002
+  question: "After which status can ORDER line items no longer be edited?"
+  expected: "submitted"
+  difficulty: medium
+  entities: [ORDER]
+
+- id: Q003
+  question: "What decimal precision should be used for ORDER financial fields?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ORDER]
+
+- id: Q004
+  question: "What entity does ORDER belong to?"
+  expected: "CUSTOMER (via customer_id)"
+  difficulty: easy
+  entities: [ORDER]
+
+- id: Q005
+  question: "What precision should ACCOUNT balances use?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ACCOUNT]
+
+- id: Q006
+  question: "Can ACCOUNT balances go negative?"
+  expected: "No, negative balances are not allowed"
+  difficulty: medium
+  entities: [ACCOUNT]
+
+- id: Q007
+  question: "What is the golden source for ACCOUNT?"
+  expected: "Core Banking (Temenos)"
+  difficulty: easy
+  entities: [ACCOUNT]
+
+- id: Q008
+  question: "What is the PII classification for PAYMENT card numbers?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PAYMENT]
+
+- id: Q009
+  question: "Can a PAYMENT exist without an associated ORDER?"
+  expected: "No, order_id is mandatory (PAYMENT belongs to ORDER)"
+  difficulty: hard
+  entities: [PAYMENT]
+
+- id: Q010
+  question: "What is the SHIPMENT status flow?"
+  expected: "label-created -> picked-up -> in-transit -> out-for-delivery -> delivered"
+  difficulty: medium
+  entities: [SHIPMENT]
+
+- id: Q011
+  question: "What is the golden source for SHIPMENT data?"
+  expected: "TMS (ShipStation)"
+  difficulty: easy
+  entities: [SHIPMENT]
+
+- id: Q012
+  question: "How long are delivered SHIPMENT records retained?"
+  expected: "24 months then archived"
+  difficulty: medium
+  entities: [SHIPMENT]
+
+- id: Q013
+  question: "What is the SKU identifier type for PRODUCT?"
+  expected: "string, unique per merchant"
+  difficulty: easy
+  entities: [PRODUCT]
+
+- id: Q014
+  question: "How is PRODUCT inventory data synced?"
+  expected: "Real-time via warehouse API (webhook + 5min poll fallback)"
+  difficulty: medium
+  entities: [PRODUCT]
+
+- id: Q015
+  question: "What is the identifier for PROVIDER?"
+  expected: "NPI (string, unique)"
+  difficulty: easy
+  entities: [PROVIDER]
+
+- id: Q016
+  question: "What are the credential statuses for PROVIDER?"
+  expected: "active, suspended, expired, revoked"
+  difficulty: medium
+  entities: [PROVIDER]
+
+- id: Q017
+  question: "What is the capacity alert threshold for WAREHOUSE?"
+  expected: "90% of max pallets"
+  difficulty: medium
+  entities: [WAREHOUSE]
+
+- id: Q018
+  question: "What zones does a WAREHOUSE have?"
+  expected: "receiving, storage, picking, packing, shipping"
+  difficulty: easy
+  entities: [WAREHOUSE]
+
+- id: Q019
+  question: "What is the daily transaction limit for TRANSACTION?"
+  expected: "$1,000,000"
+  difficulty: medium
+  entities: [TRANSACTION]
+
+- id: Q020
+  question: "What fraud velocity check applies to TRANSACTION?"
+  expected: "max 10 transactions per hour"
+  difficulty: medium
+  entities: [TRANSACTION]
+
+- id: Q021
+  question: "What is the TRANSACTION status flow?"
+  expected: "initiated -> pending -> cleared -> settled"
+  difficulty: medium
+  entities: [TRANSACTION]
+
+- id: Q022
+  question: "What is the CAMPAIGN status flow?"
+  expected: "draft -> scheduled -> active -> paused -> completed"
+  difficulty: medium
+  entities: [CAMPAIGN]
+
+- id: Q023
+  question: "Above what amount does CAMPAIGN budget require approval?"
+  expected: "$25,000"
+  difficulty: medium
+  entities: [CAMPAIGN]
+
+- id: Q024
+  question: "What scoring model is used for LEAD?"
+  expected: "BANT"
+  difficulty: easy
+  entities: [LEAD]
+
+- id: Q025
+  question: "What is the MQL threshold for LEAD?"
+  expected: "score of 60"
+  difficulty: medium
+  entities: [LEAD]
+
+- id: Q026
+  question: "What is the golden source for LEAD?"
+  expected: "CRM (HubSpot)"
+  difficulty: easy
+  entities: [LEAD]
+
+- id: Q027
+  question: "What is the budget approval threshold for DEPARTMENT?"
+  expected: "$50,000"
+  difficulty: medium
+  entities: [DEPARTMENT]
+
+- id: Q028
+  question: "What happens when DEPARTMENT exceeds budget?"
+  expected: "escalate to VP"
+  difficulty: medium
+  entities: [DEPARTMENT]
+
+- id: Q029
+  question: "What is the golden source for PATIENT data?"
+  expected: "EHR (Epic)"
+  difficulty: easy
+  entities: [PATIENT]
+
+- id: Q030
+  question: "What PII classification applies to PATIENT data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PATIENT]
+
+- id: Q031
+  question: "How long are deceased PATIENT records retained?"
+  expected: "120 months (10 years) then archived"
+  difficulty: medium
+  entities: [PATIENT]
+
+- id: Q032
+  question: "What matching algorithm is used for name+dob in PATIENT?"
+  expected: "Soundex with threshold > 0.85"
+  difficulty: medium
+  entities: [PATIENT]
+
+- id: Q033
+  question: "What is the golden source for EMPLOYEE data?"
+  expected: "HRIS (Workday)"
+  difficulty: easy
+  entities: [EMPLOYEE]
+
+- id: Q034
+  question: "What PII classification applies to EMPLOYEE salary data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [EMPLOYEE]
+
+- id: Q035
+  question: "What happens to terminated EMPLOYEE data after 84 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [EMPLOYEE]
+
+- id: Q036
+  question: "What is the golden source for CUSTOMER data?"
+  expected: "CRM (Salesforce)"
+  difficulty: easy
+  entities: [CUSTOMER]
+
+- id: Q037
+  question: "What type is the customer_id field?"
+  expected: "UUID"
+  difficulty: easy
+  entities: [CUSTOMER]
+
+- id: Q038
+  question: "Is the customer_id field mutable?"
+  expected: "No, it is immutable"
+  difficulty: easy
+  entities: [CUSTOMER]
+
+- id: Q039
+  question: "What matching algorithm is used for name+address in CUSTOMER?"
+  expected: "Jaro-Winkler with threshold > 0.92"
+  difficulty: medium
+  entities: [CUSTOMER]
+
+- id: Q040
+  question: "What PII classification level applies to CUSTOMER email?"
+  expected: "RESTRICTED"
+  difficulty: medium
+  entities: [CUSTOMER]
+
+- id: Q041
+  question: "What happens to churned CUSTOMER data after 36 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [CUSTOMER]
+
+- id: Q042
+  question: "What is the ORDER_V1 status flow?"
+  expected: "draft -> submitted -> processing -> shipped -> delivered"
+  difficulty: medium
+  entities: [ORDER_V1]
+
+- id: Q043
+  question: "After which status can ORDER_V1 line items no longer be edited?"
+  expected: "submitted"
+  difficulty: medium
+  entities: [ORDER_V1]
+
+- id: Q044
+  question: "What decimal precision should be used for ORDER_V1 financial fields?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ORDER_V1]
+
+- id: Q045
+  question: "What entity does ORDER_V1 belong to?"
+  expected: "CUSTOMER (via customer_id)"
+  difficulty: easy
+  entities: [ORDER_V1]
+
+- id: Q046
+  question: "What precision should ACCOUNT_V1 balances use?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ACCOUNT_V1]
+
+- id: Q047
+  question: "Can ACCOUNT_V1 balances go negative?"
+  expected: "No, negative balances are not allowed"
+  difficulty: medium
+  entities: [ACCOUNT_V1]
+
+- id: Q048
+  question: "What is the golden source for ACCOUNT_V1?"
+  expected: "Core Banking (Temenos)"
+  difficulty: easy
+  entities: [ACCOUNT_V1]
+
+- id: Q049
+  question: "What is the PII classification for PAYMENT_V1 card numbers?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PAYMENT_V1]
+
+- id: Q050
+  question: "Can a PAYMENT_V1 exist without an associated ORDER?"
+  expected: "No, order_id is mandatory (PAYMENT_V1 belongs to ORDER)"
+  difficulty: hard
+  entities: [PAYMENT_V1]
+
+- id: Q051
+  question: "What is the SHIPMENT_V1 status flow?"
+  expected: "label-created -> picked-up -> in-transit -> out-for-delivery -> delivered"
+  difficulty: medium
+  entities: [SHIPMENT_V1]
+
+- id: Q052
+  question: "What is the golden source for SHIPMENT_V1 data?"
+  expected: "TMS (ShipStation)"
+  difficulty: easy
+  entities: [SHIPMENT_V1]
+
+- id: Q053
+  question: "How long are delivered SHIPMENT_V1 records retained?"
+  expected: "24 months then archived"
+  difficulty: medium
+  entities: [SHIPMENT_V1]
+
+- id: Q054
+  question: "What is the SKU identifier type for PRODUCT_V1?"
+  expected: "string, unique per merchant"
+  difficulty: easy
+  entities: [PRODUCT_V1]
+
+- id: Q055
+  question: "How is PRODUCT_V1 inventory data synced?"
+  expected: "Real-time via warehouse API (webhook + 5min poll fallback)"
+  difficulty: medium
+  entities: [PRODUCT_V1]
+
+- id: Q056
+  question: "What is the identifier for PROVIDER_V1?"
+  expected: "NPI (string, unique)"
+  difficulty: easy
+  entities: [PROVIDER_V1]
+
+- id: Q057
+  question: "What are the credential statuses for PROVIDER_V1?"
+  expected: "active, suspended, expired, revoked"
+  difficulty: medium
+  entities: [PROVIDER_V1]
+
+- id: Q058
+  question: "What is the capacity alert threshold for WAREHOUSE_V1?"
+  expected: "90% of max pallets"
+  difficulty: medium
+  entities: [WAREHOUSE_V1]
+
+- id: Q059
+  question: "What zones does a WAREHOUSE_V1 have?"
+  expected: "receiving, storage, picking, packing, shipping"
+  difficulty: easy
+  entities: [WAREHOUSE_V1]
+
+- id: Q060
+  question: "What is the daily transaction limit for TRANSACTION_V1?"
+  expected: "$1,000,000"
+  difficulty: medium
+  entities: [TRANSACTION_V1]
+
+- id: Q061
+  question: "What fraud velocity check applies to TRANSACTION_V1?"
+  expected: "max 10 transactions per hour"
+  difficulty: medium
+  entities: [TRANSACTION_V1]
+
+- id: Q062
+  question: "What is the TRANSACTION_V1 status flow?"
+  expected: "initiated -> pending -> cleared -> settled"
+  difficulty: medium
+  entities: [TRANSACTION_V1]
+
+- id: Q063
+  question: "What is the CAMPAIGN_V1 status flow?"
+  expected: "draft -> scheduled -> active -> paused -> completed"
+  difficulty: medium
+  entities: [CAMPAIGN_V1]
+
+- id: Q064
+  question: "Above what amount does CAMPAIGN_V1 budget require approval?"
+  expected: "$25,000"
+  difficulty: medium
+  entities: [CAMPAIGN_V1]
+
+- id: Q065
+  question: "What scoring model is used for LEAD_V1?"
+  expected: "BANT"
+  difficulty: easy
+  entities: [LEAD_V1]
+
+- id: Q066
+  question: "What is the MQL threshold for LEAD_V1?"
+  expected: "score of 60"
+  difficulty: medium
+  entities: [LEAD_V1]
+
+- id: Q067
+  question: "What is the golden source for LEAD_V1?"
+  expected: "CRM (HubSpot)"
+  difficulty: easy
+  entities: [LEAD_V1]
+
+- id: Q068
+  question: "What is the budget approval threshold for DEPARTMENT_V1?"
+  expected: "$50,000"
+  difficulty: medium
+  entities: [DEPARTMENT_V1]
+
+- id: Q069
+  question: "What happens when DEPARTMENT_V1 exceeds budget?"
+  expected: "escalate to VP"
+  difficulty: medium
+  entities: [DEPARTMENT_V1]
+
+- id: Q070
+  question: "What is the golden source for PATIENT_V1 data?"
+  expected: "EHR (Epic)"
+  difficulty: easy
+  entities: [PATIENT_V1]
+
+- id: Q071
+  question: "What PII classification applies to PATIENT_V1 data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PATIENT_V1]
+
+- id: Q072
+  question: "How long are deceased PATIENT_V1 records retained?"
+  expected: "120 months (10 years) then archived"
+  difficulty: medium
+  entities: [PATIENT_V1]
+
+- id: Q073
+  question: "What matching algorithm is used for name+dob in PATIENT_V1?"
+  expected: "Soundex with threshold > 0.85"
+  difficulty: medium
+  entities: [PATIENT_V1]
+
+- id: Q074
+  question: "What is the golden source for EMPLOYEE_V1 data?"
+  expected: "HRIS (Workday)"
+  difficulty: easy
+  entities: [EMPLOYEE_V1]
+
+- id: Q075
+  question: "What PII classification applies to EMPLOYEE_V1 salary data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [EMPLOYEE_V1]
+
+- id: Q076
+  question: "What happens to terminated EMPLOYEE_V1 data after 84 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [EMPLOYEE_V1]
+
+- id: Q077
+  question: "What is the golden source for CUSTOMER_V1 data?"
+  expected: "CRM (Salesforce)"
+  difficulty: easy
+  entities: [CUSTOMER_V1]
+
+- id: Q078
+  question: "What type is the customer_id_v1 field?"
+  expected: "UUID"
+  difficulty: easy
+  entities: [CUSTOMER_V1]
+
+- id: Q079
+  question: "Is the customer_id_v1 field mutable?"
+  expected: "No, it is immutable"
+  difficulty: easy
+  entities: [CUSTOMER_V1]
+
+- id: Q080
+  question: "What matching algorithm is used for name+address in CUSTOMER_V1?"
+  expected: "Jaro-Winkler with threshold > 0.92"
+  difficulty: medium
+  entities: [CUSTOMER_V1]
+
+- id: Q081
+  question: "What PII classification level applies to CUSTOMER_V1 email?"
+  expected: "RESTRICTED"
+  difficulty: medium
+  entities: [CUSTOMER_V1]
+
+- id: Q082
+  question: "What happens to churned CUSTOMER_V1 data after 36 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [CUSTOMER_V1]
+
+- id: Q083
+  question: "What is the ORDER_V2 status flow?"
+  expected: "draft -> submitted -> processing -> shipped -> delivered"
+  difficulty: medium
+  entities: [ORDER_V2]
+
+- id: Q084
+  question: "After which status can ORDER_V2 line items no longer be edited?"
+  expected: "submitted"
+  difficulty: medium
+  entities: [ORDER_V2]
+
+- id: Q085
+  question: "What decimal precision should be used for ORDER_V2 financial fields?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ORDER_V2]
+
+- id: Q086
+  question: "What entity does ORDER_V2 belong to?"
+  expected: "CUSTOMER (via customer_id)"
+  difficulty: easy
+  entities: [ORDER_V2]
+
+- id: Q087
+  question: "What precision should ACCOUNT_V2 balances use?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ACCOUNT_V2]
+
+- id: Q088
+  question: "Can ACCOUNT_V2 balances go negative?"
+  expected: "No, negative balances are not allowed"
+  difficulty: medium
+  entities: [ACCOUNT_V2]
+
+- id: Q089
+  question: "What is the golden source for ACCOUNT_V2?"
+  expected: "Core Banking (Temenos)"
+  difficulty: easy
+  entities: [ACCOUNT_V2]
+
+- id: Q090
+  question: "What is the PII classification for PAYMENT_V2 card numbers?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PAYMENT_V2]
+
+- id: Q091
+  question: "Can a PAYMENT_V2 exist without an associated ORDER?"
+  expected: "No, order_id is mandatory (PAYMENT_V2 belongs to ORDER)"
+  difficulty: hard
+  entities: [PAYMENT_V2]
+
+- id: Q092
+  question: "What is the SHIPMENT_V2 status flow?"
+  expected: "label-created -> picked-up -> in-transit -> out-for-delivery -> delivered"
+  difficulty: medium
+  entities: [SHIPMENT_V2]
+
+- id: Q093
+  question: "What is the golden source for SHIPMENT_V2 data?"
+  expected: "TMS (ShipStation)"
+  difficulty: easy
+  entities: [SHIPMENT_V2]
+
+- id: Q094
+  question: "How long are delivered SHIPMENT_V2 records retained?"
+  expected: "24 months then archived"
+  difficulty: medium
+  entities: [SHIPMENT_V2]
+
+- id: Q095
+  question: "What is the SKU identifier type for PRODUCT_V2?"
+  expected: "string, unique per merchant"
+  difficulty: easy
+  entities: [PRODUCT_V2]
+
+- id: Q096
+  question: "How is PRODUCT_V2 inventory data synced?"
+  expected: "Real-time via warehouse API (webhook + 5min poll fallback)"
+  difficulty: medium
+  entities: [PRODUCT_V2]
+
+- id: Q097
+  question: "What is the identifier for PROVIDER_V2?"
+  expected: "NPI (string, unique)"
+  difficulty: easy
+  entities: [PROVIDER_V2]
+
+- id: Q098
+  question: "What are the credential statuses for PROVIDER_V2?"
+  expected: "active, suspended, expired, revoked"
+  difficulty: medium
+  entities: [PROVIDER_V2]
+
+- id: Q099
+  question: "What is the capacity alert threshold for WAREHOUSE_V2?"
+  expected: "90% of max pallets"
+  difficulty: medium
+  entities: [WAREHOUSE_V2]
+
+- id: Q100
+  question: "What zones does a WAREHOUSE_V2 have?"
+  expected: "receiving, storage, picking, packing, shipping"
+  difficulty: easy
+  entities: [WAREHOUSE_V2]
+
+- id: Q101
+  question: "What is the daily transaction limit for TRANSACTION_V2?"
+  expected: "$1,000,000"
+  difficulty: medium
+  entities: [TRANSACTION_V2]
+
+- id: Q102
+  question: "What fraud velocity check applies to TRANSACTION_V2?"
+  expected: "max 10 transactions per hour"
+  difficulty: medium
+  entities: [TRANSACTION_V2]
+
+- id: Q103
+  question: "What is the TRANSACTION_V2 status flow?"
+  expected: "initiated -> pending -> cleared -> settled"
+  difficulty: medium
+  entities: [TRANSACTION_V2]
+
+- id: Q104
+  question: "What is the CAMPAIGN_V2 status flow?"
+  expected: "draft -> scheduled -> active -> paused -> completed"
+  difficulty: medium
+  entities: [CAMPAIGN_V2]
+
+- id: Q105
+  question: "Above what amount does CAMPAIGN_V2 budget require approval?"
+  expected: "$25,000"
+  difficulty: medium
+  entities: [CAMPAIGN_V2]
+
+- id: Q106
+  question: "What scoring model is used for LEAD_V2?"
+  expected: "BANT"
+  difficulty: easy
+  entities: [LEAD_V2]
+
+- id: Q107
+  question: "What is the MQL threshold for LEAD_V2?"
+  expected: "score of 60"
+  difficulty: medium
+  entities: [LEAD_V2]
+
+- id: Q108
+  question: "What is the golden source for LEAD_V2?"
+  expected: "CRM (HubSpot)"
+  difficulty: easy
+  entities: [LEAD_V2]
+
+- id: Q109
+  question: "What is the budget approval threshold for DEPARTMENT_V2?"
+  expected: "$50,000"
+  difficulty: medium
+  entities: [DEPARTMENT_V2]
+
+- id: Q110
+  question: "What happens when DEPARTMENT_V2 exceeds budget?"
+  expected: "escalate to VP"
+  difficulty: medium
+  entities: [DEPARTMENT_V2]
+
+- id: Q111
+  question: "What is the golden source for PATIENT_V2 data?"
+  expected: "EHR (Epic)"
+  difficulty: easy
+  entities: [PATIENT_V2]
+
+- id: Q112
+  question: "What PII classification applies to PATIENT_V2 data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PATIENT_V2]
+
+- id: Q113
+  question: "How long are deceased PATIENT_V2 records retained?"
+  expected: "120 months (10 years) then archived"
+  difficulty: medium
+  entities: [PATIENT_V2]
+
+- id: Q114
+  question: "What matching algorithm is used for name+dob in PATIENT_V2?"
+  expected: "Soundex with threshold > 0.85"
+  difficulty: medium
+  entities: [PATIENT_V2]
+
+- id: Q115
+  question: "What is the golden source for EMPLOYEE_V2 data?"
+  expected: "HRIS (Workday)"
+  difficulty: easy
+  entities: [EMPLOYEE_V2]
+
+- id: Q116
+  question: "What PII classification applies to EMPLOYEE_V2 salary data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [EMPLOYEE_V2]
+
+- id: Q117
+  question: "What happens to terminated EMPLOYEE_V2 data after 84 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [EMPLOYEE_V2]
+
+- id: Q118
+  question: "What is the golden source for CUSTOMER_V2 data?"
+  expected: "CRM (Salesforce)"
+  difficulty: easy
+  entities: [CUSTOMER_V2]
+
+- id: Q119
+  question: "What type is the customer_id_v2 field?"
+  expected: "UUID"
+  difficulty: easy
+  entities: [CUSTOMER_V2]
+
+- id: Q120
+  question: "Is the customer_id_v2 field mutable?"
+  expected: "No, it is immutable"
+  difficulty: easy
+  entities: [CUSTOMER_V2]
+
+- id: Q121
+  question: "What matching algorithm is used for name+address in CUSTOMER_V2?"
+  expected: "Jaro-Winkler with threshold > 0.92"
+  difficulty: medium
+  entities: [CUSTOMER_V2]
+
+- id: Q122
+  question: "What PII classification level applies to CUSTOMER_V2 email?"
+  expected: "RESTRICTED"
+  difficulty: medium
+  entities: [CUSTOMER_V2]
+
+- id: Q123
+  question: "What happens to churned CUSTOMER_V2 data after 36 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [CUSTOMER_V2]
+
+- id: Q124
+  question: "What is the ORDER_V3 status flow?"
+  expected: "draft -> submitted -> processing -> shipped -> delivered"
+  difficulty: medium
+  entities: [ORDER_V3]
+
+- id: Q125
+  question: "After which status can ORDER_V3 line items no longer be edited?"
+  expected: "submitted"
+  difficulty: medium
+  entities: [ORDER_V3]
+
+- id: Q126
+  question: "What decimal precision should be used for ORDER_V3 financial fields?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ORDER_V3]
+
+- id: Q127
+  question: "What entity does ORDER_V3 belong to?"
+  expected: "CUSTOMER (via customer_id)"
+  difficulty: easy
+  entities: [ORDER_V3]
+
+- id: Q128
+  question: "What precision should ACCOUNT_V3 balances use?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ACCOUNT_V3]
+
+- id: Q129
+  question: "Can ACCOUNT_V3 balances go negative?"
+  expected: "No, negative balances are not allowed"
+  difficulty: medium
+  entities: [ACCOUNT_V3]
+
+- id: Q130
+  question: "What is the golden source for ACCOUNT_V3?"
+  expected: "Core Banking (Temenos)"
+  difficulty: easy
+  entities: [ACCOUNT_V3]
+
+- id: Q131
+  question: "What is the PII classification for PAYMENT_V3 card numbers?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PAYMENT_V3]
+
+- id: Q132
+  question: "Can a PAYMENT_V3 exist without an associated ORDER?"
+  expected: "No, order_id is mandatory (PAYMENT_V3 belongs to ORDER)"
+  difficulty: hard
+  entities: [PAYMENT_V3]
+
+- id: Q133
+  question: "What is the SHIPMENT_V3 status flow?"
+  expected: "label-created -> picked-up -> in-transit -> out-for-delivery -> delivered"
+  difficulty: medium
+  entities: [SHIPMENT_V3]
+
+- id: Q134
+  question: "What is the golden source for SHIPMENT_V3 data?"
+  expected: "TMS (ShipStation)"
+  difficulty: easy
+  entities: [SHIPMENT_V3]
+
+- id: Q135
+  question: "How long are delivered SHIPMENT_V3 records retained?"
+  expected: "24 months then archived"
+  difficulty: medium
+  entities: [SHIPMENT_V3]
+
+- id: Q136
+  question: "What is the SKU identifier type for PRODUCT_V3?"
+  expected: "string, unique per merchant"
+  difficulty: easy
+  entities: [PRODUCT_V3]
+
+- id: Q137
+  question: "How is PRODUCT_V3 inventory data synced?"
+  expected: "Real-time via warehouse API (webhook + 5min poll fallback)"
+  difficulty: medium
+  entities: [PRODUCT_V3]
+
+- id: Q138
+  question: "What is the identifier for PROVIDER_V3?"
+  expected: "NPI (string, unique)"
+  difficulty: easy
+  entities: [PROVIDER_V3]
+
+- id: Q139
+  question: "What are the credential statuses for PROVIDER_V3?"
+  expected: "active, suspended, expired, revoked"
+  difficulty: medium
+  entities: [PROVIDER_V3]
+
+- id: Q140
+  question: "What is the capacity alert threshold for WAREHOUSE_V3?"
+  expected: "90% of max pallets"
+  difficulty: medium
+  entities: [WAREHOUSE_V3]
+
+- id: Q141
+  question: "What zones does a WAREHOUSE_V3 have?"
+  expected: "receiving, storage, picking, packing, shipping"
+  difficulty: easy
+  entities: [WAREHOUSE_V3]
+
+- id: Q142
+  question: "What is the daily transaction limit for TRANSACTION_V3?"
+  expected: "$1,000,000"
+  difficulty: medium
+  entities: [TRANSACTION_V3]
+
+- id: Q143
+  question: "What fraud velocity check applies to TRANSACTION_V3?"
+  expected: "max 10 transactions per hour"
+  difficulty: medium
+  entities: [TRANSACTION_V3]
+
+- id: Q144
+  question: "What is the TRANSACTION_V3 status flow?"
+  expected: "initiated -> pending -> cleared -> settled"
+  difficulty: medium
+  entities: [TRANSACTION_V3]
+
+- id: Q145
+  question: "What is the CAMPAIGN_V3 status flow?"
+  expected: "draft -> scheduled -> active -> paused -> completed"
+  difficulty: medium
+  entities: [CAMPAIGN_V3]
+
+- id: Q146
+  question: "Above what amount does CAMPAIGN_V3 budget require approval?"
+  expected: "$25,000"
+  difficulty: medium
+  entities: [CAMPAIGN_V3]
+
+- id: Q147
+  question: "What scoring model is used for LEAD_V3?"
+  expected: "BANT"
+  difficulty: easy
+  entities: [LEAD_V3]
+
+- id: Q148
+  question: "What is the MQL threshold for LEAD_V3?"
+  expected: "score of 60"
+  difficulty: medium
+  entities: [LEAD_V3]
+
+- id: Q149
+  question: "What is the golden source for LEAD_V3?"
+  expected: "CRM (HubSpot)"
+  difficulty: easy
+  entities: [LEAD_V3]
+
+- id: Q150
+  question: "What is the budget approval threshold for DEPARTMENT_V3?"
+  expected: "$50,000"
+  difficulty: medium
+  entities: [DEPARTMENT_V3]
+
+- id: Q151
+  question: "What happens when DEPARTMENT_V3 exceeds budget?"
+  expected: "escalate to VP"
+  difficulty: medium
+  entities: [DEPARTMENT_V3]
+
+- id: Q152
+  question: "What is the golden source for PATIENT_V3 data?"
+  expected: "EHR (Epic)"
+  difficulty: easy
+  entities: [PATIENT_V3]
+
+- id: Q153
+  question: "What PII classification applies to PATIENT_V3 data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PATIENT_V3]
+
+- id: Q154
+  question: "How long are deceased PATIENT_V3 records retained?"
+  expected: "120 months (10 years) then archived"
+  difficulty: medium
+  entities: [PATIENT_V3]
+
+- id: Q155
+  question: "What matching algorithm is used for name+dob in PATIENT_V3?"
+  expected: "Soundex with threshold > 0.85"
+  difficulty: medium
+  entities: [PATIENT_V3]
+
+- id: Q156
+  question: "What is the golden source for EMPLOYEE_V3 data?"
+  expected: "HRIS (Workday)"
+  difficulty: easy
+  entities: [EMPLOYEE_V3]
+
+- id: Q157
+  question: "What PII classification applies to EMPLOYEE_V3 salary data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [EMPLOYEE_V3]
+
+- id: Q158
+  question: "What happens to terminated EMPLOYEE_V3 data after 84 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [EMPLOYEE_V3]
+
+- id: Q159
+  question: "What is the golden source for CUSTOMER_V3 data?"
+  expected: "CRM (Salesforce)"
+  difficulty: easy
+  entities: [CUSTOMER_V3]
+
+- id: Q160
+  question: "What type is the customer_id_v3 field?"
+  expected: "UUID"
+  difficulty: easy
+  entities: [CUSTOMER_V3]
+
+- id: Q161
+  question: "Is the customer_id_v3 field mutable?"
+  expected: "No, it is immutable"
+  difficulty: easy
+  entities: [CUSTOMER_V3]
+
+- id: Q162
+  question: "What matching algorithm is used for name+address in CUSTOMER_V3?"
+  expected: "Jaro-Winkler with threshold > 0.92"
+  difficulty: medium
+  entities: [CUSTOMER_V3]
+
+- id: Q163
+  question: "What PII classification level applies to CUSTOMER_V3 email?"
+  expected: "RESTRICTED"
+  difficulty: medium
+  entities: [CUSTOMER_V3]
+
+- id: Q164
+  question: "What happens to churned CUSTOMER_V3 data after 36 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [CUSTOMER_V3]
+
+- id: Q165
+  question: "What is the ORDER_V4 status flow?"
+  expected: "draft -> submitted -> processing -> shipped -> delivered"
+  difficulty: medium
+  entities: [ORDER_V4]
+
+- id: Q166
+  question: "After which status can ORDER_V4 line items no longer be edited?"
+  expected: "submitted"
+  difficulty: medium
+  entities: [ORDER_V4]
+
+- id: Q167
+  question: "What decimal precision should be used for ORDER_V4 financial fields?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ORDER_V4]
+
+- id: Q168
+  question: "What entity does ORDER_V4 belong to?"
+  expected: "CUSTOMER (via customer_id)"
+  difficulty: easy
+  entities: [ORDER_V4]
+
+- id: Q169
+  question: "What precision should ACCOUNT_V4 balances use?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ACCOUNT_V4]
+
+- id: Q170
+  question: "Can ACCOUNT_V4 balances go negative?"
+  expected: "No, negative balances are not allowed"
+  difficulty: medium
+  entities: [ACCOUNT_V4]
+
+- id: Q171
+  question: "What is the golden source for ACCOUNT_V4?"
+  expected: "Core Banking (Temenos)"
+  difficulty: easy
+  entities: [ACCOUNT_V4]
+
+- id: Q172
+  question: "What is the PII classification for PAYMENT_V4 card numbers?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PAYMENT_V4]
+
+- id: Q173
+  question: "Can a PAYMENT_V4 exist without an associated ORDER?"
+  expected: "No, order_id is mandatory (PAYMENT_V4 belongs to ORDER)"
+  difficulty: hard
+  entities: [PAYMENT_V4]
+
+- id: Q174
+  question: "What is the SHIPMENT_V4 status flow?"
+  expected: "label-created -> picked-up -> in-transit -> out-for-delivery -> delivered"
+  difficulty: medium
+  entities: [SHIPMENT_V4]
+
+- id: Q175
+  question: "What is the golden source for SHIPMENT_V4 data?"
+  expected: "TMS (ShipStation)"
+  difficulty: easy
+  entities: [SHIPMENT_V4]
+
+- id: Q176
+  question: "How long are delivered SHIPMENT_V4 records retained?"
+  expected: "24 months then archived"
+  difficulty: medium
+  entities: [SHIPMENT_V4]
+
+- id: Q177
+  question: "What is the SKU identifier type for PRODUCT_V4?"
+  expected: "string, unique per merchant"
+  difficulty: easy
+  entities: [PRODUCT_V4]
+
+- id: Q178
+  question: "How is PRODUCT_V4 inventory data synced?"
+  expected: "Real-time via warehouse API (webhook + 5min poll fallback)"
+  difficulty: medium
+  entities: [PRODUCT_V4]
+
+- id: Q179
+  question: "What is the identifier for PROVIDER_V4?"
+  expected: "NPI (string, unique)"
+  difficulty: easy
+  entities: [PROVIDER_V4]
+
+- id: Q180
+  question: "What are the credential statuses for PROVIDER_V4?"
+  expected: "active, suspended, expired, revoked"
+  difficulty: medium
+  entities: [PROVIDER_V4]
+
+- id: Q181
+  question: "What is the capacity alert threshold for WAREHOUSE_V4?"
+  expected: "90% of max pallets"
+  difficulty: medium
+  entities: [WAREHOUSE_V4]
+
+- id: Q182
+  question: "What zones does a WAREHOUSE_V4 have?"
+  expected: "receiving, storage, picking, packing, shipping"
+  difficulty: easy
+  entities: [WAREHOUSE_V4]
+
+- id: Q183
+  question: "What is the daily transaction limit for TRANSACTION_V4?"
+  expected: "$1,000,000"
+  difficulty: medium
+  entities: [TRANSACTION_V4]
+
+- id: Q184
+  question: "What fraud velocity check applies to TRANSACTION_V4?"
+  expected: "max 10 transactions per hour"
+  difficulty: medium
+  entities: [TRANSACTION_V4]
+
+- id: Q185
+  question: "What is the TRANSACTION_V4 status flow?"
+  expected: "initiated -> pending -> cleared -> settled"
+  difficulty: medium
+  entities: [TRANSACTION_V4]
+
+- id: Q186
+  question: "What is the CAMPAIGN_V4 status flow?"
+  expected: "draft -> scheduled -> active -> paused -> completed"
+  difficulty: medium
+  entities: [CAMPAIGN_V4]
+
+- id: Q187
+  question: "Above what amount does CAMPAIGN_V4 budget require approval?"
+  expected: "$25,000"
+  difficulty: medium
+  entities: [CAMPAIGN_V4]
+
+- id: Q188
+  question: "What scoring model is used for LEAD_V4?"
+  expected: "BANT"
+  difficulty: easy
+  entities: [LEAD_V4]
+
+- id: Q189
+  question: "What is the MQL threshold for LEAD_V4?"
+  expected: "score of 60"
+  difficulty: medium
+  entities: [LEAD_V4]
+
+- id: Q190
+  question: "What is the golden source for LEAD_V4?"
+  expected: "CRM (HubSpot)"
+  difficulty: easy
+  entities: [LEAD_V4]
+
+- id: Q191
+  question: "What is the budget approval threshold for DEPARTMENT_V4?"
+  expected: "$50,000"
+  difficulty: medium
+  entities: [DEPARTMENT_V4]
+
+- id: Q192
+  question: "What happens when DEPARTMENT_V4 exceeds budget?"
+  expected: "escalate to VP"
+  difficulty: medium
+  entities: [DEPARTMENT_V4]
+
+- id: Q193
+  question: "What is the golden source for PATIENT_V4 data?"
+  expected: "EHR (Epic)"
+  difficulty: easy
+  entities: [PATIENT_V4]
+
+- id: Q194
+  question: "What PII classification applies to PATIENT_V4 data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PATIENT_V4]
+
+- id: Q195
+  question: "How long are deceased PATIENT_V4 records retained?"
+  expected: "120 months (10 years) then archived"
+  difficulty: medium
+  entities: [PATIENT_V4]
+
+- id: Q196
+  question: "What matching algorithm is used for name+dob in PATIENT_V4?"
+  expected: "Soundex with threshold > 0.85"
+  difficulty: medium
+  entities: [PATIENT_V4]
+
+- id: Q197
+  question: "What is the golden source for EMPLOYEE_V4 data?"
+  expected: "HRIS (Workday)"
+  difficulty: easy
+  entities: [EMPLOYEE_V4]
+
+- id: Q198
+  question: "What PII classification applies to EMPLOYEE_V4 salary data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [EMPLOYEE_V4]
+
+- id: Q199
+  question: "What happens to terminated EMPLOYEE_V4 data after 84 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [EMPLOYEE_V4]
+
+- id: Q200
+  question: "What is the golden source for CUSTOMER_V4 data?"
+  expected: "CRM (Salesforce)"
+  difficulty: easy
+  entities: [CUSTOMER_V4]
+
+- id: Q201
+  question: "What type is the customer_id_v4 field?"
+  expected: "UUID"
+  difficulty: easy
+  entities: [CUSTOMER_V4]
+
+- id: Q202
+  question: "Is the customer_id_v4 field mutable?"
+  expected: "No, it is immutable"
+  difficulty: easy
+  entities: [CUSTOMER_V4]
+
+- id: Q203
+  question: "What matching algorithm is used for name+address in CUSTOMER_V4?"
+  expected: "Jaro-Winkler with threshold > 0.92"
+  difficulty: medium
+  entities: [CUSTOMER_V4]
+
+- id: Q204
+  question: "What PII classification level applies to CUSTOMER_V4 email?"
+  expected: "RESTRICTED"
+  difficulty: medium
+  entities: [CUSTOMER_V4]
+
+- id: Q205
+  question: "What happens to churned CUSTOMER_V4 data after 36 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [CUSTOMER_V4]
+
+- id: Q206
+  question: "What is the ORDER_V5 status flow?"
+  expected: "draft -> submitted -> processing -> shipped -> delivered"
+  difficulty: medium
+  entities: [ORDER_V5]
+
+- id: Q207
+  question: "After which status can ORDER_V5 line items no longer be edited?"
+  expected: "submitted"
+  difficulty: medium
+  entities: [ORDER_V5]
+
+- id: Q208
+  question: "What decimal precision should be used for ORDER_V5 financial fields?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ORDER_V5]
+
+- id: Q209
+  question: "What entity does ORDER_V5 belong to?"
+  expected: "CUSTOMER (via customer_id)"
+  difficulty: easy
+  entities: [ORDER_V5]
+
+- id: Q210
+  question: "What precision should ACCOUNT_V5 balances use?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ACCOUNT_V5]
+
+- id: Q211
+  question: "Can ACCOUNT_V5 balances go negative?"
+  expected: "No, negative balances are not allowed"
+  difficulty: medium
+  entities: [ACCOUNT_V5]
+
+- id: Q212
+  question: "What is the golden source for ACCOUNT_V5?"
+  expected: "Core Banking (Temenos)"
+  difficulty: easy
+  entities: [ACCOUNT_V5]
+
+- id: Q213
+  question: "What is the PII classification for PAYMENT_V5 card numbers?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PAYMENT_V5]
+
+- id: Q214
+  question: "Can a PAYMENT_V5 exist without an associated ORDER?"
+  expected: "No, order_id is mandatory (PAYMENT_V5 belongs to ORDER)"
+  difficulty: hard
+  entities: [PAYMENT_V5]
+
+- id: Q215
+  question: "What is the SHIPMENT_V5 status flow?"
+  expected: "label-created -> picked-up -> in-transit -> out-for-delivery -> delivered"
+  difficulty: medium
+  entities: [SHIPMENT_V5]
+
+- id: Q216
+  question: "What is the golden source for SHIPMENT_V5 data?"
+  expected: "TMS (ShipStation)"
+  difficulty: easy
+  entities: [SHIPMENT_V5]
+
+- id: Q217
+  question: "How long are delivered SHIPMENT_V5 records retained?"
+  expected: "24 months then archived"
+  difficulty: medium
+  entities: [SHIPMENT_V5]
+
+- id: Q218
+  question: "What is the SKU identifier type for PRODUCT_V5?"
+  expected: "string, unique per merchant"
+  difficulty: easy
+  entities: [PRODUCT_V5]
+
+- id: Q219
+  question: "How is PRODUCT_V5 inventory data synced?"
+  expected: "Real-time via warehouse API (webhook + 5min poll fallback)"
+  difficulty: medium
+  entities: [PRODUCT_V5]
+
+- id: Q220
+  question: "What is the identifier for PROVIDER_V5?"
+  expected: "NPI (string, unique)"
+  difficulty: easy
+  entities: [PROVIDER_V5]
+
+- id: Q221
+  question: "What are the credential statuses for PROVIDER_V5?"
+  expected: "active, suspended, expired, revoked"
+  difficulty: medium
+  entities: [PROVIDER_V5]
+
+- id: Q222
+  question: "What is the capacity alert threshold for WAREHOUSE_V5?"
+  expected: "90% of max pallets"
+  difficulty: medium
+  entities: [WAREHOUSE_V5]
+
+- id: Q223
+  question: "What zones does a WAREHOUSE_V5 have?"
+  expected: "receiving, storage, picking, packing, shipping"
+  difficulty: easy
+  entities: [WAREHOUSE_V5]
+
+- id: Q224
+  question: "What is the daily transaction limit for TRANSACTION_V5?"
+  expected: "$1,000,000"
+  difficulty: medium
+  entities: [TRANSACTION_V5]
+
+- id: Q225
+  question: "What fraud velocity check applies to TRANSACTION_V5?"
+  expected: "max 10 transactions per hour"
+  difficulty: medium
+  entities: [TRANSACTION_V5]
+
+- id: Q226
+  question: "What is the TRANSACTION_V5 status flow?"
+  expected: "initiated -> pending -> cleared -> settled"
+  difficulty: medium
+  entities: [TRANSACTION_V5]
+
+- id: Q227
+  question: "What is the CAMPAIGN_V5 status flow?"
+  expected: "draft -> scheduled -> active -> paused -> completed"
+  difficulty: medium
+  entities: [CAMPAIGN_V5]
+
+- id: Q228
+  question: "Above what amount does CAMPAIGN_V5 budget require approval?"
+  expected: "$25,000"
+  difficulty: medium
+  entities: [CAMPAIGN_V5]
+
+- id: Q229
+  question: "What scoring model is used for LEAD_V5?"
+  expected: "BANT"
+  difficulty: easy
+  entities: [LEAD_V5]
+
+- id: Q230
+  question: "What is the MQL threshold for LEAD_V5?"
+  expected: "score of 60"
+  difficulty: medium
+  entities: [LEAD_V5]
+
+- id: Q231
+  question: "What is the golden source for LEAD_V5?"
+  expected: "CRM (HubSpot)"
+  difficulty: easy
+  entities: [LEAD_V5]
+
+- id: Q232
+  question: "What is the budget approval threshold for DEPARTMENT_V5?"
+  expected: "$50,000"
+  difficulty: medium
+  entities: [DEPARTMENT_V5]
+
+- id: Q233
+  question: "What happens when DEPARTMENT_V5 exceeds budget?"
+  expected: "escalate to VP"
+  difficulty: medium
+  entities: [DEPARTMENT_V5]
+
+- id: Q234
+  question: "What is the golden source for PATIENT_V5 data?"
+  expected: "EHR (Epic)"
+  difficulty: easy
+  entities: [PATIENT_V5]
+
+- id: Q235
+  question: "What PII classification applies to PATIENT_V5 data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PATIENT_V5]
+
+- id: Q236
+  question: "How long are deceased PATIENT_V5 records retained?"
+  expected: "120 months (10 years) then archived"
+  difficulty: medium
+  entities: [PATIENT_V5]
+
+- id: Q237
+  question: "What matching algorithm is used for name+dob in PATIENT_V5?"
+  expected: "Soundex with threshold > 0.85"
+  difficulty: medium
+  entities: [PATIENT_V5]
+
+- id: Q238
+  question: "What is the golden source for EMPLOYEE_V5 data?"
+  expected: "HRIS (Workday)"
+  difficulty: easy
+  entities: [EMPLOYEE_V5]
+
+- id: Q239
+  question: "What PII classification applies to EMPLOYEE_V5 salary data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [EMPLOYEE_V5]
+
+- id: Q240
+  question: "What happens to terminated EMPLOYEE_V5 data after 84 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [EMPLOYEE_V5]
+
+- id: Q241
+  question: "What is the golden source for CUSTOMER_V5 data?"
+  expected: "CRM (Salesforce)"
+  difficulty: easy
+  entities: [CUSTOMER_V5]
+
+- id: Q242
+  question: "What type is the customer_id_v5 field?"
+  expected: "UUID"
+  difficulty: easy
+  entities: [CUSTOMER_V5]
+
+- id: Q243
+  question: "Is the customer_id_v5 field mutable?"
+  expected: "No, it is immutable"
+  difficulty: easy
+  entities: [CUSTOMER_V5]
+
+- id: Q244
+  question: "What matching algorithm is used for name+address in CUSTOMER_V5?"
+  expected: "Jaro-Winkler with threshold > 0.92"
+  difficulty: medium
+  entities: [CUSTOMER_V5]
+
+- id: Q245
+  question: "What PII classification level applies to CUSTOMER_V5 email?"
+  expected: "RESTRICTED"
+  difficulty: medium
+  entities: [CUSTOMER_V5]
+
+- id: Q246
+  question: "What happens to churned CUSTOMER_V5 data after 36 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [CUSTOMER_V5]
+
+- id: Q247
+  question: "What is the ORDER_V6 status flow?"
+  expected: "draft -> submitted -> processing -> shipped -> delivered"
+  difficulty: medium
+  entities: [ORDER_V6]
+
+- id: Q248
+  question: "After which status can ORDER_V6 line items no longer be edited?"
+  expected: "submitted"
+  difficulty: medium
+  entities: [ORDER_V6]
+
+- id: Q249
+  question: "What decimal precision should be used for ORDER_V6 financial fields?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ORDER_V6]
+
+- id: Q250
+  question: "What entity does ORDER_V6 belong to?"
+  expected: "CUSTOMER (via customer_id)"
+  difficulty: easy
+  entities: [ORDER_V6]
+
+- id: Q251
+  question: "What precision should ACCOUNT_V6 balances use?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ACCOUNT_V6]
+
+- id: Q252
+  question: "Can ACCOUNT_V6 balances go negative?"
+  expected: "No, negative balances are not allowed"
+  difficulty: medium
+  entities: [ACCOUNT_V6]
+
+- id: Q253
+  question: "What is the golden source for ACCOUNT_V6?"
+  expected: "Core Banking (Temenos)"
+  difficulty: easy
+  entities: [ACCOUNT_V6]
+
+- id: Q254
+  question: "What is the PII classification for PAYMENT_V6 card numbers?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PAYMENT_V6]
+
+- id: Q255
+  question: "Can a PAYMENT_V6 exist without an associated ORDER?"
+  expected: "No, order_id is mandatory (PAYMENT_V6 belongs to ORDER)"
+  difficulty: hard
+  entities: [PAYMENT_V6]
+
+- id: Q256
+  question: "What is the SHIPMENT_V6 status flow?"
+  expected: "label-created -> picked-up -> in-transit -> out-for-delivery -> delivered"
+  difficulty: medium
+  entities: [SHIPMENT_V6]
+
+- id: Q257
+  question: "What is the golden source for SHIPMENT_V6 data?"
+  expected: "TMS (ShipStation)"
+  difficulty: easy
+  entities: [SHIPMENT_V6]
+
+- id: Q258
+  question: "How long are delivered SHIPMENT_V6 records retained?"
+  expected: "24 months then archived"
+  difficulty: medium
+  entities: [SHIPMENT_V6]
+
+- id: Q259
+  question: "What is the SKU identifier type for PRODUCT_V6?"
+  expected: "string, unique per merchant"
+  difficulty: easy
+  entities: [PRODUCT_V6]
+
+- id: Q260
+  question: "How is PRODUCT_V6 inventory data synced?"
+  expected: "Real-time via warehouse API (webhook + 5min poll fallback)"
+  difficulty: medium
+  entities: [PRODUCT_V6]
+
+- id: Q261
+  question: "What is the identifier for PROVIDER_V6?"
+  expected: "NPI (string, unique)"
+  difficulty: easy
+  entities: [PROVIDER_V6]
+
+- id: Q262
+  question: "What are the credential statuses for PROVIDER_V6?"
+  expected: "active, suspended, expired, revoked"
+  difficulty: medium
+  entities: [PROVIDER_V6]
+
+- id: Q263
+  question: "What is the capacity alert threshold for WAREHOUSE_V6?"
+  expected: "90% of max pallets"
+  difficulty: medium
+  entities: [WAREHOUSE_V6]
+
+- id: Q264
+  question: "What zones does a WAREHOUSE_V6 have?"
+  expected: "receiving, storage, picking, packing, shipping"
+  difficulty: easy
+  entities: [WAREHOUSE_V6]
+
+- id: Q265
+  question: "What is the daily transaction limit for TRANSACTION_V6?"
+  expected: "$1,000,000"
+  difficulty: medium
+  entities: [TRANSACTION_V6]
+
+- id: Q266
+  question: "What fraud velocity check applies to TRANSACTION_V6?"
+  expected: "max 10 transactions per hour"
+  difficulty: medium
+  entities: [TRANSACTION_V6]
+
+- id: Q267
+  question: "What is the TRANSACTION_V6 status flow?"
+  expected: "initiated -> pending -> cleared -> settled"
+  difficulty: medium
+  entities: [TRANSACTION_V6]
+
+- id: Q268
+  question: "What is the CAMPAIGN_V6 status flow?"
+  expected: "draft -> scheduled -> active -> paused -> completed"
+  difficulty: medium
+  entities: [CAMPAIGN_V6]
+
+- id: Q269
+  question: "Above what amount does CAMPAIGN_V6 budget require approval?"
+  expected: "$25,000"
+  difficulty: medium
+  entities: [CAMPAIGN_V6]
+
+- id: Q270
+  question: "What scoring model is used for LEAD_V6?"
+  expected: "BANT"
+  difficulty: easy
+  entities: [LEAD_V6]
+
+- id: Q271
+  question: "What is the MQL threshold for LEAD_V6?"
+  expected: "score of 60"
+  difficulty: medium
+  entities: [LEAD_V6]
+
+- id: Q272
+  question: "What is the golden source for LEAD_V6?"
+  expected: "CRM (HubSpot)"
+  difficulty: easy
+  entities: [LEAD_V6]
+
+- id: Q273
+  question: "What is the budget approval threshold for DEPARTMENT_V6?"
+  expected: "$50,000"
+  difficulty: medium
+  entities: [DEPARTMENT_V6]
+
+- id: Q274
+  question: "What happens when DEPARTMENT_V6 exceeds budget?"
+  expected: "escalate to VP"
+  difficulty: medium
+  entities: [DEPARTMENT_V6]
+
+- id: Q275
+  question: "What is the golden source for PATIENT_V6 data?"
+  expected: "EHR (Epic)"
+  difficulty: easy
+  entities: [PATIENT_V6]
+
+- id: Q276
+  question: "What PII classification applies to PATIENT_V6 data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PATIENT_V6]
+
+- id: Q277
+  question: "How long are deceased PATIENT_V6 records retained?"
+  expected: "120 months (10 years) then archived"
+  difficulty: medium
+  entities: [PATIENT_V6]
+
+- id: Q278
+  question: "What matching algorithm is used for name+dob in PATIENT_V6?"
+  expected: "Soundex with threshold > 0.85"
+  difficulty: medium
+  entities: [PATIENT_V6]
+
+- id: Q279
+  question: "What is the golden source for EMPLOYEE_V6 data?"
+  expected: "HRIS (Workday)"
+  difficulty: easy
+  entities: [EMPLOYEE_V6]
+
+- id: Q280
+  question: "What PII classification applies to EMPLOYEE_V6 salary data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [EMPLOYEE_V6]
+
+- id: Q281
+  question: "What happens to terminated EMPLOYEE_V6 data after 84 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [EMPLOYEE_V6]
+
+- id: Q282
+  question: "What is the golden source for CUSTOMER_V6 data?"
+  expected: "CRM (Salesforce)"
+  difficulty: easy
+  entities: [CUSTOMER_V6]
+
+- id: Q283
+  question: "What type is the customer_id_v6 field?"
+  expected: "UUID"
+  difficulty: easy
+  entities: [CUSTOMER_V6]
+
+- id: Q284
+  question: "Is the customer_id_v6 field mutable?"
+  expected: "No, it is immutable"
+  difficulty: easy
+  entities: [CUSTOMER_V6]
+
+- id: Q285
+  question: "What matching algorithm is used for name+address in CUSTOMER_V6?"
+  expected: "Jaro-Winkler with threshold > 0.92"
+  difficulty: medium
+  entities: [CUSTOMER_V6]
+
+- id: Q286
+  question: "What PII classification level applies to CUSTOMER_V6 email?"
+  expected: "RESTRICTED"
+  difficulty: medium
+  entities: [CUSTOMER_V6]
+
+- id: Q287
+  question: "What happens to churned CUSTOMER_V6 data after 36 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [CUSTOMER_V6]
+
+- id: Q288
+  question: "What is the ORDER_V7 status flow?"
+  expected: "draft -> submitted -> processing -> shipped -> delivered"
+  difficulty: medium
+  entities: [ORDER_V7]
+
+- id: Q289
+  question: "After which status can ORDER_V7 line items no longer be edited?"
+  expected: "submitted"
+  difficulty: medium
+  entities: [ORDER_V7]
+
+- id: Q290
+  question: "What decimal precision should be used for ORDER_V7 financial fields?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ORDER_V7]
+
+- id: Q291
+  question: "What entity does ORDER_V7 belong to?"
+  expected: "CUSTOMER (via customer_id)"
+  difficulty: easy
+  entities: [ORDER_V7]
+
+- id: Q292
+  question: "What precision should ACCOUNT_V7 balances use?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ACCOUNT_V7]
+
+- id: Q293
+  question: "Can ACCOUNT_V7 balances go negative?"
+  expected: "No, negative balances are not allowed"
+  difficulty: medium
+  entities: [ACCOUNT_V7]
+
+- id: Q294
+  question: "What is the golden source for ACCOUNT_V7?"
+  expected: "Core Banking (Temenos)"
+  difficulty: easy
+  entities: [ACCOUNT_V7]
+
+- id: Q295
+  question: "What is the PII classification for PAYMENT_V7 card numbers?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PAYMENT_V7]
+
+- id: Q296
+  question: "Can a PAYMENT_V7 exist without an associated ORDER?"
+  expected: "No, order_id is mandatory (PAYMENT_V7 belongs to ORDER)"
+  difficulty: hard
+  entities: [PAYMENT_V7]
+
+- id: Q297
+  question: "What is the SHIPMENT_V7 status flow?"
+  expected: "label-created -> picked-up -> in-transit -> out-for-delivery -> delivered"
+  difficulty: medium
+  entities: [SHIPMENT_V7]
+
+- id: Q298
+  question: "What is the golden source for SHIPMENT_V7 data?"
+  expected: "TMS (ShipStation)"
+  difficulty: easy
+  entities: [SHIPMENT_V7]
+
+- id: Q299
+  question: "How long are delivered SHIPMENT_V7 records retained?"
+  expected: "24 months then archived"
+  difficulty: medium
+  entities: [SHIPMENT_V7]
+
+- id: Q300
+  question: "What is the SKU identifier type for PRODUCT_V7?"
+  expected: "string, unique per merchant"
+  difficulty: easy
+  entities: [PRODUCT_V7]
+
+- id: Q301
+  question: "How is PRODUCT_V7 inventory data synced?"
+  expected: "Real-time via warehouse API (webhook + 5min poll fallback)"
+  difficulty: medium
+  entities: [PRODUCT_V7]
+
+- id: Q302
+  question: "What is the identifier for PROVIDER_V7?"
+  expected: "NPI (string, unique)"
+  difficulty: easy
+  entities: [PROVIDER_V7]
+
+- id: Q303
+  question: "What are the credential statuses for PROVIDER_V7?"
+  expected: "active, suspended, expired, revoked"
+  difficulty: medium
+  entities: [PROVIDER_V7]
+
+- id: Q304
+  question: "What is the capacity alert threshold for WAREHOUSE_V7?"
+  expected: "90% of max pallets"
+  difficulty: medium
+  entities: [WAREHOUSE_V7]
+
+- id: Q305
+  question: "What zones does a WAREHOUSE_V7 have?"
+  expected: "receiving, storage, picking, packing, shipping"
+  difficulty: easy
+  entities: [WAREHOUSE_V7]
+
+- id: Q306
+  question: "What is the daily transaction limit for TRANSACTION_V7?"
+  expected: "$1,000,000"
+  difficulty: medium
+  entities: [TRANSACTION_V7]
+
+- id: Q307
+  question: "What fraud velocity check applies to TRANSACTION_V7?"
+  expected: "max 10 transactions per hour"
+  difficulty: medium
+  entities: [TRANSACTION_V7]
+
+- id: Q308
+  question: "What is the TRANSACTION_V7 status flow?"
+  expected: "initiated -> pending -> cleared -> settled"
+  difficulty: medium
+  entities: [TRANSACTION_V7]
+
+- id: Q309
+  question: "What is the CAMPAIGN_V7 status flow?"
+  expected: "draft -> scheduled -> active -> paused -> completed"
+  difficulty: medium
+  entities: [CAMPAIGN_V7]
+
+- id: Q310
+  question: "Above what amount does CAMPAIGN_V7 budget require approval?"
+  expected: "$25,000"
+  difficulty: medium
+  entities: [CAMPAIGN_V7]
+
+- id: Q311
+  question: "What scoring model is used for LEAD_V7?"
+  expected: "BANT"
+  difficulty: easy
+  entities: [LEAD_V7]
+
+- id: Q312
+  question: "What is the MQL threshold for LEAD_V7?"
+  expected: "score of 60"
+  difficulty: medium
+  entities: [LEAD_V7]
+
+- id: Q313
+  question: "What is the golden source for LEAD_V7?"
+  expected: "CRM (HubSpot)"
+  difficulty: easy
+  entities: [LEAD_V7]
+
+- id: Q314
+  question: "What is the budget approval threshold for DEPARTMENT_V7?"
+  expected: "$50,000"
+  difficulty: medium
+  entities: [DEPARTMENT_V7]
+
+- id: Q315
+  question: "What happens when DEPARTMENT_V7 exceeds budget?"
+  expected: "escalate to VP"
+  difficulty: medium
+  entities: [DEPARTMENT_V7]
+
+- id: Q316
+  question: "What is the golden source for PATIENT_V7 data?"
+  expected: "EHR (Epic)"
+  difficulty: easy
+  entities: [PATIENT_V7]
+
+- id: Q317
+  question: "What PII classification applies to PATIENT_V7 data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PATIENT_V7]
+
+- id: Q318
+  question: "How long are deceased PATIENT_V7 records retained?"
+  expected: "120 months (10 years) then archived"
+  difficulty: medium
+  entities: [PATIENT_V7]
+
+- id: Q319
+  question: "What matching algorithm is used for name+dob in PATIENT_V7?"
+  expected: "Soundex with threshold > 0.85"
+  difficulty: medium
+  entities: [PATIENT_V7]
+
+- id: Q320
+  question: "What is the golden source for EMPLOYEE_V7 data?"
+  expected: "HRIS (Workday)"
+  difficulty: easy
+  entities: [EMPLOYEE_V7]
+
+- id: Q321
+  question: "What PII classification applies to EMPLOYEE_V7 salary data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [EMPLOYEE_V7]
+
+- id: Q322
+  question: "What happens to terminated EMPLOYEE_V7 data after 84 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [EMPLOYEE_V7]
+
+- id: Q323
+  question: "What is the golden source for CUSTOMER_V7 data?"
+  expected: "CRM (Salesforce)"
+  difficulty: easy
+  entities: [CUSTOMER_V7]
+
+- id: Q324
+  question: "What type is the customer_id_v7 field?"
+  expected: "UUID"
+  difficulty: easy
+  entities: [CUSTOMER_V7]
+
+- id: Q325
+  question: "Is the customer_id_v7 field mutable?"
+  expected: "No, it is immutable"
+  difficulty: easy
+  entities: [CUSTOMER_V7]
+
+- id: Q326
+  question: "What matching algorithm is used for name+address in CUSTOMER_V7?"
+  expected: "Jaro-Winkler with threshold > 0.92"
+  difficulty: medium
+  entities: [CUSTOMER_V7]
+
+- id: Q327
+  question: "What PII classification level applies to CUSTOMER_V7 email?"
+  expected: "RESTRICTED"
+  difficulty: medium
+  entities: [CUSTOMER_V7]
+
+- id: Q328
+  question: "What happens to churned CUSTOMER_V7 data after 36 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [CUSTOMER_V7]
+
+- id: Q329
+  question: "What is the ORDER_V8 status flow?"
+  expected: "draft -> submitted -> processing -> shipped -> delivered"
+  difficulty: medium
+  entities: [ORDER_V8]
+
+- id: Q330
+  question: "After which status can ORDER_V8 line items no longer be edited?"
+  expected: "submitted"
+  difficulty: medium
+  entities: [ORDER_V8]
+
+- id: Q331
+  question: "What decimal precision should be used for ORDER_V8 financial fields?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ORDER_V8]
+
+- id: Q332
+  question: "What entity does ORDER_V8 belong to?"
+  expected: "CUSTOMER (via customer_id)"
+  difficulty: easy
+  entities: [ORDER_V8]
+
+- id: Q333
+  question: "What precision should ACCOUNT_V8 balances use?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ACCOUNT_V8]
+
+- id: Q334
+  question: "Can ACCOUNT_V8 balances go negative?"
+  expected: "No, negative balances are not allowed"
+  difficulty: medium
+  entities: [ACCOUNT_V8]
+
+- id: Q335
+  question: "What is the golden source for ACCOUNT_V8?"
+  expected: "Core Banking (Temenos)"
+  difficulty: easy
+  entities: [ACCOUNT_V8]
+
+- id: Q336
+  question: "What is the PII classification for PAYMENT_V8 card numbers?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PAYMENT_V8]
+
+- id: Q337
+  question: "Can a PAYMENT_V8 exist without an associated ORDER?"
+  expected: "No, order_id is mandatory (PAYMENT_V8 belongs to ORDER)"
+  difficulty: hard
+  entities: [PAYMENT_V8]
+
+- id: Q338
+  question: "What is the SHIPMENT_V8 status flow?"
+  expected: "label-created -> picked-up -> in-transit -> out-for-delivery -> delivered"
+  difficulty: medium
+  entities: [SHIPMENT_V8]
+
+- id: Q339
+  question: "What is the golden source for SHIPMENT_V8 data?"
+  expected: "TMS (ShipStation)"
+  difficulty: easy
+  entities: [SHIPMENT_V8]
+
+- id: Q340
+  question: "How long are delivered SHIPMENT_V8 records retained?"
+  expected: "24 months then archived"
+  difficulty: medium
+  entities: [SHIPMENT_V8]
+
+- id: Q341
+  question: "What is the SKU identifier type for PRODUCT_V8?"
+  expected: "string, unique per merchant"
+  difficulty: easy
+  entities: [PRODUCT_V8]
+
+- id: Q342
+  question: "How is PRODUCT_V8 inventory data synced?"
+  expected: "Real-time via warehouse API (webhook + 5min poll fallback)"
+  difficulty: medium
+  entities: [PRODUCT_V8]
+
+- id: Q343
+  question: "What is the identifier for PROVIDER_V8?"
+  expected: "NPI (string, unique)"
+  difficulty: easy
+  entities: [PROVIDER_V8]
+
+- id: Q344
+  question: "What are the credential statuses for PROVIDER_V8?"
+  expected: "active, suspended, expired, revoked"
+  difficulty: medium
+  entities: [PROVIDER_V8]
+
+- id: Q345
+  question: "What is the capacity alert threshold for WAREHOUSE_V8?"
+  expected: "90% of max pallets"
+  difficulty: medium
+  entities: [WAREHOUSE_V8]
+
+- id: Q346
+  question: "What zones does a WAREHOUSE_V8 have?"
+  expected: "receiving, storage, picking, packing, shipping"
+  difficulty: easy
+  entities: [WAREHOUSE_V8]
+
+- id: Q347
+  question: "What is the daily transaction limit for TRANSACTION_V8?"
+  expected: "$1,000,000"
+  difficulty: medium
+  entities: [TRANSACTION_V8]
+
+- id: Q348
+  question: "What fraud velocity check applies to TRANSACTION_V8?"
+  expected: "max 10 transactions per hour"
+  difficulty: medium
+  entities: [TRANSACTION_V8]
+
+- id: Q349
+  question: "What is the TRANSACTION_V8 status flow?"
+  expected: "initiated -> pending -> cleared -> settled"
+  difficulty: medium
+  entities: [TRANSACTION_V8]
+
+- id: Q350
+  question: "What is the CAMPAIGN_V8 status flow?"
+  expected: "draft -> scheduled -> active -> paused -> completed"
+  difficulty: medium
+  entities: [CAMPAIGN_V8]
+
+- id: Q351
+  question: "Above what amount does CAMPAIGN_V8 budget require approval?"
+  expected: "$25,000"
+  difficulty: medium
+  entities: [CAMPAIGN_V8]
+
+- id: Q352
+  question: "What scoring model is used for LEAD_V8?"
+  expected: "BANT"
+  difficulty: easy
+  entities: [LEAD_V8]
+
+- id: Q353
+  question: "What is the MQL threshold for LEAD_V8?"
+  expected: "score of 60"
+  difficulty: medium
+  entities: [LEAD_V8]
+
+- id: Q354
+  question: "What is the golden source for LEAD_V8?"
+  expected: "CRM (HubSpot)"
+  difficulty: easy
+  entities: [LEAD_V8]
+
+- id: Q355
+  question: "What is the budget approval threshold for DEPARTMENT_V8?"
+  expected: "$50,000"
+  difficulty: medium
+  entities: [DEPARTMENT_V8]
+
+- id: Q356
+  question: "What happens when DEPARTMENT_V8 exceeds budget?"
+  expected: "escalate to VP"
+  difficulty: medium
+  entities: [DEPARTMENT_V8]
+
+- id: Q357
+  question: "What is the golden source for PATIENT_V8 data?"
+  expected: "EHR (Epic)"
+  difficulty: easy
+  entities: [PATIENT_V8]
+
+- id: Q358
+  question: "What PII classification applies to PATIENT_V8 data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PATIENT_V8]
+
+- id: Q359
+  question: "How long are deceased PATIENT_V8 records retained?"
+  expected: "120 months (10 years) then archived"
+  difficulty: medium
+  entities: [PATIENT_V8]
+
+- id: Q360
+  question: "What matching algorithm is used for name+dob in PATIENT_V8?"
+  expected: "Soundex with threshold > 0.85"
+  difficulty: medium
+  entities: [PATIENT_V8]
+
+- id: Q361
+  question: "What is the golden source for EMPLOYEE_V8 data?"
+  expected: "HRIS (Workday)"
+  difficulty: easy
+  entities: [EMPLOYEE_V8]
+
+- id: Q362
+  question: "What PII classification applies to EMPLOYEE_V8 salary data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [EMPLOYEE_V8]
+
+- id: Q363
+  question: "What happens to terminated EMPLOYEE_V8 data after 84 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [EMPLOYEE_V8]
+
+- id: Q364
+  question: "What is the golden source for CUSTOMER_V8 data?"
+  expected: "CRM (Salesforce)"
+  difficulty: easy
+  entities: [CUSTOMER_V8]
+
+- id: Q365
+  question: "What type is the customer_id_v8 field?"
+  expected: "UUID"
+  difficulty: easy
+  entities: [CUSTOMER_V8]
+
+- id: Q366
+  question: "Is the customer_id_v8 field mutable?"
+  expected: "No, it is immutable"
+  difficulty: easy
+  entities: [CUSTOMER_V8]
+
+- id: Q367
+  question: "What matching algorithm is used for name+address in CUSTOMER_V8?"
+  expected: "Jaro-Winkler with threshold > 0.92"
+  difficulty: medium
+  entities: [CUSTOMER_V8]
+
+- id: Q368
+  question: "What PII classification level applies to CUSTOMER_V8 email?"
+  expected: "RESTRICTED"
+  difficulty: medium
+  entities: [CUSTOMER_V8]
+
+- id: Q369
+  question: "What happens to churned CUSTOMER_V8 data after 36 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [CUSTOMER_V8]
+
+- id: Q370
+  question: "What is the ORDER_V9 status flow?"
+  expected: "draft -> submitted -> processing -> shipped -> delivered"
+  difficulty: medium
+  entities: [ORDER_V9]
+
+- id: Q371
+  question: "After which status can ORDER_V9 line items no longer be edited?"
+  expected: "submitted"
+  difficulty: medium
+  entities: [ORDER_V9]
+
+- id: Q372
+  question: "What decimal precision should be used for ORDER_V9 financial fields?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ORDER_V9]
+
+- id: Q373
+  question: "What entity does ORDER_V9 belong to?"
+  expected: "CUSTOMER (via customer_id)"
+  difficulty: easy
+  entities: [ORDER_V9]
+
+- id: Q374
+  question: "What precision should ACCOUNT_V9 balances use?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ACCOUNT_V9]
+
+- id: Q375
+  question: "Can ACCOUNT_V9 balances go negative?"
+  expected: "No, negative balances are not allowed"
+  difficulty: medium
+  entities: [ACCOUNT_V9]
+
+- id: Q376
+  question: "What is the golden source for ACCOUNT_V9?"
+  expected: "Core Banking (Temenos)"
+  difficulty: easy
+  entities: [ACCOUNT_V9]
+
+- id: Q377
+  question: "What is the PII classification for PAYMENT_V9 card numbers?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PAYMENT_V9]
+
+- id: Q378
+  question: "Can a PAYMENT_V9 exist without an associated ORDER?"
+  expected: "No, order_id is mandatory (PAYMENT_V9 belongs to ORDER)"
+  difficulty: hard
+  entities: [PAYMENT_V9]
+
+- id: Q379
+  question: "What is the SHIPMENT_V9 status flow?"
+  expected: "label-created -> picked-up -> in-transit -> out-for-delivery -> delivered"
+  difficulty: medium
+  entities: [SHIPMENT_V9]
+
+- id: Q380
+  question: "What is the golden source for SHIPMENT_V9 data?"
+  expected: "TMS (ShipStation)"
+  difficulty: easy
+  entities: [SHIPMENT_V9]
+
+- id: Q381
+  question: "How long are delivered SHIPMENT_V9 records retained?"
+  expected: "24 months then archived"
+  difficulty: medium
+  entities: [SHIPMENT_V9]
+
+- id: Q382
+  question: "What is the SKU identifier type for PRODUCT_V9?"
+  expected: "string, unique per merchant"
+  difficulty: easy
+  entities: [PRODUCT_V9]
+
+- id: Q383
+  question: "How is PRODUCT_V9 inventory data synced?"
+  expected: "Real-time via warehouse API (webhook + 5min poll fallback)"
+  difficulty: medium
+  entities: [PRODUCT_V9]
+
+- id: Q384
+  question: "What is the identifier for PROVIDER_V9?"
+  expected: "NPI (string, unique)"
+  difficulty: easy
+  entities: [PROVIDER_V9]
+
+- id: Q385
+  question: "What are the credential statuses for PROVIDER_V9?"
+  expected: "active, suspended, expired, revoked"
+  difficulty: medium
+  entities: [PROVIDER_V9]
+
+- id: Q386
+  question: "What is the capacity alert threshold for WAREHOUSE_V9?"
+  expected: "90% of max pallets"
+  difficulty: medium
+  entities: [WAREHOUSE_V9]
+
+- id: Q387
+  question: "What zones does a WAREHOUSE_V9 have?"
+  expected: "receiving, storage, picking, packing, shipping"
+  difficulty: easy
+  entities: [WAREHOUSE_V9]
+
+- id: Q388
+  question: "What is the daily transaction limit for TRANSACTION_V9?"
+  expected: "$1,000,000"
+  difficulty: medium
+  entities: [TRANSACTION_V9]
+
+- id: Q389
+  question: "What fraud velocity check applies to TRANSACTION_V9?"
+  expected: "max 10 transactions per hour"
+  difficulty: medium
+  entities: [TRANSACTION_V9]
+
+- id: Q390
+  question: "What is the TRANSACTION_V9 status flow?"
+  expected: "initiated -> pending -> cleared -> settled"
+  difficulty: medium
+  entities: [TRANSACTION_V9]
+
+- id: Q391
+  question: "What is the CAMPAIGN_V9 status flow?"
+  expected: "draft -> scheduled -> active -> paused -> completed"
+  difficulty: medium
+  entities: [CAMPAIGN_V9]
+
+- id: Q392
+  question: "Above what amount does CAMPAIGN_V9 budget require approval?"
+  expected: "$25,000"
+  difficulty: medium
+  entities: [CAMPAIGN_V9]
+
+- id: Q393
+  question: "What scoring model is used for LEAD_V9?"
+  expected: "BANT"
+  difficulty: easy
+  entities: [LEAD_V9]
+
+- id: Q394
+  question: "What is the MQL threshold for LEAD_V9?"
+  expected: "score of 60"
+  difficulty: medium
+  entities: [LEAD_V9]
+
+- id: Q395
+  question: "What is the golden source for LEAD_V9?"
+  expected: "CRM (HubSpot)"
+  difficulty: easy
+  entities: [LEAD_V9]
+
+- id: Q396
+  question: "What is the budget approval threshold for DEPARTMENT_V9?"
+  expected: "$50,000"
+  difficulty: medium
+  entities: [DEPARTMENT_V9]
+
+- id: Q397
+  question: "What happens when DEPARTMENT_V9 exceeds budget?"
+  expected: "escalate to VP"
+  difficulty: medium
+  entities: [DEPARTMENT_V9]
+
+- id: Q398
+  question: "What is the golden source for PATIENT_V9 data?"
+  expected: "EHR (Epic)"
+  difficulty: easy
+  entities: [PATIENT_V9]
+
+- id: Q399
+  question: "What PII classification applies to PATIENT_V9 data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PATIENT_V9]
+
+- id: Q400
+  question: "How long are deceased PATIENT_V9 records retained?"
+  expected: "120 months (10 years) then archived"
+  difficulty: medium
+  entities: [PATIENT_V9]
+
+- id: Q401
+  question: "What matching algorithm is used for name+dob in PATIENT_V9?"
+  expected: "Soundex with threshold > 0.85"
+  difficulty: medium
+  entities: [PATIENT_V9]
+
+- id: Q402
+  question: "What is the golden source for EMPLOYEE_V9 data?"
+  expected: "HRIS (Workday)"
+  difficulty: easy
+  entities: [EMPLOYEE_V9]
+
+- id: Q403
+  question: "What PII classification applies to EMPLOYEE_V9 salary data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [EMPLOYEE_V9]
+
+- id: Q404
+  question: "What happens to terminated EMPLOYEE_V9 data after 84 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [EMPLOYEE_V9]
+
+- id: Q405
+  question: "What is the golden source for CUSTOMER_V9 data?"
+  expected: "CRM (Salesforce)"
+  difficulty: easy
+  entities: [CUSTOMER_V9]
+
+- id: Q406
+  question: "What type is the customer_id_v9 field?"
+  expected: "UUID"
+  difficulty: easy
+  entities: [CUSTOMER_V9]
+
+- id: Q407
+  question: "Is the customer_id_v9 field mutable?"
+  expected: "No, it is immutable"
+  difficulty: easy
+  entities: [CUSTOMER_V9]
+
+- id: Q408
+  question: "What matching algorithm is used for name+address in CUSTOMER_V9?"
+  expected: "Jaro-Winkler with threshold > 0.92"
+  difficulty: medium
+  entities: [CUSTOMER_V9]
+
+- id: Q409
+  question: "What PII classification level applies to CUSTOMER_V9 email?"
+  expected: "RESTRICTED"
+  difficulty: medium
+  entities: [CUSTOMER_V9]
+
+- id: Q410
+  question: "What happens to churned CUSTOMER_V9 data after 36 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [CUSTOMER_V9]
+
+- id: Q411
+  question: "What is the ORDER_V10 status flow?"
+  expected: "draft -> submitted -> processing -> shipped -> delivered"
+  difficulty: medium
+  entities: [ORDER_V10]
+
+- id: Q412
+  question: "After which status can ORDER_V10 line items no longer be edited?"
+  expected: "submitted"
+  difficulty: medium
+  entities: [ORDER_V10]
+
+- id: Q413
+  question: "What decimal precision should be used for ORDER_V10 financial fields?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ORDER_V10]
+
+- id: Q414
+  question: "What entity does ORDER_V10 belong to?"
+  expected: "CUSTOMER (via customer_id)"
+  difficulty: easy
+  entities: [ORDER_V10]
+
+- id: Q415
+  question: "What precision should ACCOUNT_V10 balances use?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ACCOUNT_V10]
+
+- id: Q416
+  question: "Can ACCOUNT_V10 balances go negative?"
+  expected: "No, negative balances are not allowed"
+  difficulty: medium
+  entities: [ACCOUNT_V10]
+
+- id: Q417
+  question: "What is the golden source for ACCOUNT_V10?"
+  expected: "Core Banking (Temenos)"
+  difficulty: easy
+  entities: [ACCOUNT_V10]
+
+- id: Q418
+  question: "What is the PII classification for PAYMENT_V10 card numbers?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PAYMENT_V10]
+
+- id: Q419
+  question: "Can a PAYMENT_V10 exist without an associated ORDER?"
+  expected: "No, order_id is mandatory (PAYMENT_V10 belongs to ORDER)"
+  difficulty: hard
+  entities: [PAYMENT_V10]
+
+- id: Q420
+  question: "What is the SHIPMENT_V10 status flow?"
+  expected: "label-created -> picked-up -> in-transit -> out-for-delivery -> delivered"
+  difficulty: medium
+  entities: [SHIPMENT_V10]
+
+- id: Q421
+  question: "What is the golden source for SHIPMENT_V10 data?"
+  expected: "TMS (ShipStation)"
+  difficulty: easy
+  entities: [SHIPMENT_V10]
+
+- id: Q422
+  question: "How long are delivered SHIPMENT_V10 records retained?"
+  expected: "24 months then archived"
+  difficulty: medium
+  entities: [SHIPMENT_V10]
+
+- id: Q423
+  question: "What is the SKU identifier type for PRODUCT_V10?"
+  expected: "string, unique per merchant"
+  difficulty: easy
+  entities: [PRODUCT_V10]
+
+- id: Q424
+  question: "How is PRODUCT_V10 inventory data synced?"
+  expected: "Real-time via warehouse API (webhook + 5min poll fallback)"
+  difficulty: medium
+  entities: [PRODUCT_V10]
+
+- id: Q425
+  question: "What is the identifier for PROVIDER_V10?"
+  expected: "NPI (string, unique)"
+  difficulty: easy
+  entities: [PROVIDER_V10]
+
+- id: Q426
+  question: "What are the credential statuses for PROVIDER_V10?"
+  expected: "active, suspended, expired, revoked"
+  difficulty: medium
+  entities: [PROVIDER_V10]
+
+- id: Q427
+  question: "What is the capacity alert threshold for WAREHOUSE_V10?"
+  expected: "90% of max pallets"
+  difficulty: medium
+  entities: [WAREHOUSE_V10]
+
+- id: Q428
+  question: "What zones does a WAREHOUSE_V10 have?"
+  expected: "receiving, storage, picking, packing, shipping"
+  difficulty: easy
+  entities: [WAREHOUSE_V10]
+
+- id: Q429
+  question: "What is the daily transaction limit for TRANSACTION_V10?"
+  expected: "$1,000,000"
+  difficulty: medium
+  entities: [TRANSACTION_V10]
+
+- id: Q430
+  question: "What fraud velocity check applies to TRANSACTION_V10?"
+  expected: "max 10 transactions per hour"
+  difficulty: medium
+  entities: [TRANSACTION_V10]
+
+- id: Q431
+  question: "What is the TRANSACTION_V10 status flow?"
+  expected: "initiated -> pending -> cleared -> settled"
+  difficulty: medium
+  entities: [TRANSACTION_V10]
+
+- id: Q432
+  question: "What is the CAMPAIGN_V10 status flow?"
+  expected: "draft -> scheduled -> active -> paused -> completed"
+  difficulty: medium
+  entities: [CAMPAIGN_V10]
+
+- id: Q433
+  question: "Above what amount does CAMPAIGN_V10 budget require approval?"
+  expected: "$25,000"
+  difficulty: medium
+  entities: [CAMPAIGN_V10]
+
+- id: Q434
+  question: "What scoring model is used for LEAD_V10?"
+  expected: "BANT"
+  difficulty: easy
+  entities: [LEAD_V10]
+
+- id: Q435
+  question: "What is the MQL threshold for LEAD_V10?"
+  expected: "score of 60"
+  difficulty: medium
+  entities: [LEAD_V10]
+
+- id: Q436
+  question: "What is the golden source for LEAD_V10?"
+  expected: "CRM (HubSpot)"
+  difficulty: easy
+  entities: [LEAD_V10]
+
+- id: Q437
+  question: "What is the budget approval threshold for DEPARTMENT_V10?"
+  expected: "$50,000"
+  difficulty: medium
+  entities: [DEPARTMENT_V10]
+
+- id: Q438
+  question: "What happens when DEPARTMENT_V10 exceeds budget?"
+  expected: "escalate to VP"
+  difficulty: medium
+  entities: [DEPARTMENT_V10]
+
+- id: Q439
+  question: "What is the golden source for PATIENT_V10 data?"
+  expected: "EHR (Epic)"
+  difficulty: easy
+  entities: [PATIENT_V10]
+
+- id: Q440
+  question: "What PII classification applies to PATIENT_V10 data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PATIENT_V10]
+
+- id: Q441
+  question: "How long are deceased PATIENT_V10 records retained?"
+  expected: "120 months (10 years) then archived"
+  difficulty: medium
+  entities: [PATIENT_V10]
+
+- id: Q442
+  question: "What matching algorithm is used for name+dob in PATIENT_V10?"
+  expected: "Soundex with threshold > 0.85"
+  difficulty: medium
+  entities: [PATIENT_V10]
+
+- id: Q443
+  question: "What is the golden source for EMPLOYEE_V10 data?"
+  expected: "HRIS (Workday)"
+  difficulty: easy
+  entities: [EMPLOYEE_V10]
+
+- id: Q444
+  question: "What PII classification applies to EMPLOYEE_V10 salary data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [EMPLOYEE_V10]
+
+- id: Q445
+  question: "What happens to terminated EMPLOYEE_V10 data after 84 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [EMPLOYEE_V10]
+
+- id: Q446
+  question: "What is the golden source for CUSTOMER_V10 data?"
+  expected: "CRM (Salesforce)"
+  difficulty: easy
+  entities: [CUSTOMER_V10]
+
+- id: Q447
+  question: "What type is the customer_id_v10 field?"
+  expected: "UUID"
+  difficulty: easy
+  entities: [CUSTOMER_V10]
+
+- id: Q448
+  question: "Is the customer_id_v10 field mutable?"
+  expected: "No, it is immutable"
+  difficulty: easy
+  entities: [CUSTOMER_V10]
+
+- id: Q449
+  question: "What matching algorithm is used for name+address in CUSTOMER_V10?"
+  expected: "Jaro-Winkler with threshold > 0.92"
+  difficulty: medium
+  entities: [CUSTOMER_V10]
+
+- id: Q450
+  question: "What PII classification level applies to CUSTOMER_V10 email?"
+  expected: "RESTRICTED"
+  difficulty: medium
+  entities: [CUSTOMER_V10]
+
+- id: Q451
+  question: "What happens to churned CUSTOMER_V10 data after 36 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [CUSTOMER_V10]
+
+- id: Q452
+  question: "What is the ORDER_V11 status flow?"
+  expected: "draft -> submitted -> processing -> shipped -> delivered"
+  difficulty: medium
+  entities: [ORDER_V11]
+
+- id: Q453
+  question: "After which status can ORDER_V11 line items no longer be edited?"
+  expected: "submitted"
+  difficulty: medium
+  entities: [ORDER_V11]
+
+- id: Q454
+  question: "What decimal precision should be used for ORDER_V11 financial fields?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ORDER_V11]
+
+- id: Q455
+  question: "What entity does ORDER_V11 belong to?"
+  expected: "CUSTOMER (via customer_id)"
+  difficulty: easy
+  entities: [ORDER_V11]
+
+- id: Q456
+  question: "What precision should ACCOUNT_V11 balances use?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ACCOUNT_V11]
+
+- id: Q457
+  question: "Can ACCOUNT_V11 balances go negative?"
+  expected: "No, negative balances are not allowed"
+  difficulty: medium
+  entities: [ACCOUNT_V11]
+
+- id: Q458
+  question: "What is the golden source for ACCOUNT_V11?"
+  expected: "Core Banking (Temenos)"
+  difficulty: easy
+  entities: [ACCOUNT_V11]
+
+- id: Q459
+  question: "What is the PII classification for PAYMENT_V11 card numbers?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PAYMENT_V11]
+
+- id: Q460
+  question: "Can a PAYMENT_V11 exist without an associated ORDER?"
+  expected: "No, order_id is mandatory (PAYMENT_V11 belongs to ORDER)"
+  difficulty: hard
+  entities: [PAYMENT_V11]
+
+- id: Q461
+  question: "What is the SHIPMENT_V11 status flow?"
+  expected: "label-created -> picked-up -> in-transit -> out-for-delivery -> delivered"
+  difficulty: medium
+  entities: [SHIPMENT_V11]
+
+- id: Q462
+  question: "What is the golden source for SHIPMENT_V11 data?"
+  expected: "TMS (ShipStation)"
+  difficulty: easy
+  entities: [SHIPMENT_V11]
+
+- id: Q463
+  question: "How long are delivered SHIPMENT_V11 records retained?"
+  expected: "24 months then archived"
+  difficulty: medium
+  entities: [SHIPMENT_V11]
+
+- id: Q464
+  question: "What is the SKU identifier type for PRODUCT_V11?"
+  expected: "string, unique per merchant"
+  difficulty: easy
+  entities: [PRODUCT_V11]
+
+- id: Q465
+  question: "How is PRODUCT_V11 inventory data synced?"
+  expected: "Real-time via warehouse API (webhook + 5min poll fallback)"
+  difficulty: medium
+  entities: [PRODUCT_V11]
+
+- id: Q466
+  question: "What is the identifier for PROVIDER_V11?"
+  expected: "NPI (string, unique)"
+  difficulty: easy
+  entities: [PROVIDER_V11]
+
+- id: Q467
+  question: "What are the credential statuses for PROVIDER_V11?"
+  expected: "active, suspended, expired, revoked"
+  difficulty: medium
+  entities: [PROVIDER_V11]
+
+- id: Q468
+  question: "What is the capacity alert threshold for WAREHOUSE_V11?"
+  expected: "90% of max pallets"
+  difficulty: medium
+  entities: [WAREHOUSE_V11]
+
+- id: Q469
+  question: "What zones does a WAREHOUSE_V11 have?"
+  expected: "receiving, storage, picking, packing, shipping"
+  difficulty: easy
+  entities: [WAREHOUSE_V11]
+
+- id: Q470
+  question: "What is the daily transaction limit for TRANSACTION_V11?"
+  expected: "$1,000,000"
+  difficulty: medium
+  entities: [TRANSACTION_V11]
+
+- id: Q471
+  question: "What fraud velocity check applies to TRANSACTION_V11?"
+  expected: "max 10 transactions per hour"
+  difficulty: medium
+  entities: [TRANSACTION_V11]
+
+- id: Q472
+  question: "What is the TRANSACTION_V11 status flow?"
+  expected: "initiated -> pending -> cleared -> settled"
+  difficulty: medium
+  entities: [TRANSACTION_V11]
+
+- id: Q473
+  question: "What is the CAMPAIGN_V11 status flow?"
+  expected: "draft -> scheduled -> active -> paused -> completed"
+  difficulty: medium
+  entities: [CAMPAIGN_V11]
+
+- id: Q474
+  question: "Above what amount does CAMPAIGN_V11 budget require approval?"
+  expected: "$25,000"
+  difficulty: medium
+  entities: [CAMPAIGN_V11]
+
+- id: Q475
+  question: "What scoring model is used for LEAD_V11?"
+  expected: "BANT"
+  difficulty: easy
+  entities: [LEAD_V11]
+
+- id: Q476
+  question: "What is the MQL threshold for LEAD_V11?"
+  expected: "score of 60"
+  difficulty: medium
+  entities: [LEAD_V11]
+
+- id: Q477
+  question: "What is the golden source for LEAD_V11?"
+  expected: "CRM (HubSpot)"
+  difficulty: easy
+  entities: [LEAD_V11]
+
+- id: Q478
+  question: "What is the budget approval threshold for DEPARTMENT_V11?"
+  expected: "$50,000"
+  difficulty: medium
+  entities: [DEPARTMENT_V11]
+
+- id: Q479
+  question: "What happens when DEPARTMENT_V11 exceeds budget?"
+  expected: "escalate to VP"
+  difficulty: medium
+  entities: [DEPARTMENT_V11]
+
+- id: Q480
+  question: "What is the golden source for PATIENT_V11 data?"
+  expected: "EHR (Epic)"
+  difficulty: easy
+  entities: [PATIENT_V11]
+
+- id: Q481
+  question: "What PII classification applies to PATIENT_V11 data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PATIENT_V11]
+
+- id: Q482
+  question: "How long are deceased PATIENT_V11 records retained?"
+  expected: "120 months (10 years) then archived"
+  difficulty: medium
+  entities: [PATIENT_V11]
+
+- id: Q483
+  question: "What matching algorithm is used for name+dob in PATIENT_V11?"
+  expected: "Soundex with threshold > 0.85"
+  difficulty: medium
+  entities: [PATIENT_V11]
+
+- id: Q484
+  question: "What is the golden source for EMPLOYEE_V11 data?"
+  expected: "HRIS (Workday)"
+  difficulty: easy
+  entities: [EMPLOYEE_V11]
+
+- id: Q485
+  question: "What PII classification applies to EMPLOYEE_V11 salary data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [EMPLOYEE_V11]
+
+- id: Q486
+  question: "What happens to terminated EMPLOYEE_V11 data after 84 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [EMPLOYEE_V11]
+
+- id: Q487
+  question: "What is the golden source for CUSTOMER_V11 data?"
+  expected: "CRM (Salesforce)"
+  difficulty: easy
+  entities: [CUSTOMER_V11]
+
+- id: Q488
+  question: "What type is the customer_id_v11 field?"
+  expected: "UUID"
+  difficulty: easy
+  entities: [CUSTOMER_V11]
+
+- id: Q489
+  question: "Is the customer_id_v11 field mutable?"
+  expected: "No, it is immutable"
+  difficulty: easy
+  entities: [CUSTOMER_V11]
+
+- id: Q490
+  question: "What matching algorithm is used for name+address in CUSTOMER_V11?"
+  expected: "Jaro-Winkler with threshold > 0.92"
+  difficulty: medium
+  entities: [CUSTOMER_V11]
+
+- id: Q491
+  question: "What PII classification level applies to CUSTOMER_V11 email?"
+  expected: "RESTRICTED"
+  difficulty: medium
+  entities: [CUSTOMER_V11]
+
+- id: Q492
+  question: "What happens to churned CUSTOMER_V11 data after 36 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [CUSTOMER_V11]
+
+- id: Q493
+  question: "What is the ORDER_V12 status flow?"
+  expected: "draft -> submitted -> processing -> shipped -> delivered"
+  difficulty: medium
+  entities: [ORDER_V12]
+
+- id: Q494
+  question: "After which status can ORDER_V12 line items no longer be edited?"
+  expected: "submitted"
+  difficulty: medium
+  entities: [ORDER_V12]
+
+- id: Q495
+  question: "What decimal precision should be used for ORDER_V12 financial fields?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ORDER_V12]
+
+- id: Q496
+  question: "What entity does ORDER_V12 belong to?"
+  expected: "CUSTOMER (via customer_id)"
+  difficulty: easy
+  entities: [ORDER_V12]
+
+- id: Q497
+  question: "What precision should ACCOUNT_V12 balances use?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ACCOUNT_V12]
+
+- id: Q498
+  question: "Can ACCOUNT_V12 balances go negative?"
+  expected: "No, negative balances are not allowed"
+  difficulty: medium
+  entities: [ACCOUNT_V12]
+
+- id: Q499
+  question: "What is the golden source for ACCOUNT_V12?"
+  expected: "Core Banking (Temenos)"
+  difficulty: easy
+  entities: [ACCOUNT_V12]
+
+- id: Q500
+  question: "What is the PII classification for PAYMENT_V12 card numbers?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PAYMENT_V12]
+
+- id: Q501
+  question: "Can a PAYMENT_V12 exist without an associated ORDER?"
+  expected: "No, order_id is mandatory (PAYMENT_V12 belongs to ORDER)"
+  difficulty: hard
+  entities: [PAYMENT_V12]
+
+- id: Q502
+  question: "What is the SHIPMENT_V12 status flow?"
+  expected: "label-created -> picked-up -> in-transit -> out-for-delivery -> delivered"
+  difficulty: medium
+  entities: [SHIPMENT_V12]
+
+- id: Q503
+  question: "What is the golden source for SHIPMENT_V12 data?"
+  expected: "TMS (ShipStation)"
+  difficulty: easy
+  entities: [SHIPMENT_V12]
+
+- id: Q504
+  question: "How long are delivered SHIPMENT_V12 records retained?"
+  expected: "24 months then archived"
+  difficulty: medium
+  entities: [SHIPMENT_V12]
+
+- id: Q505
+  question: "What is the SKU identifier type for PRODUCT_V12?"
+  expected: "string, unique per merchant"
+  difficulty: easy
+  entities: [PRODUCT_V12]
+
+- id: Q506
+  question: "How is PRODUCT_V12 inventory data synced?"
+  expected: "Real-time via warehouse API (webhook + 5min poll fallback)"
+  difficulty: medium
+  entities: [PRODUCT_V12]
+
+- id: Q507
+  question: "What is the identifier for PROVIDER_V12?"
+  expected: "NPI (string, unique)"
+  difficulty: easy
+  entities: [PROVIDER_V12]
+
+- id: Q508
+  question: "What are the credential statuses for PROVIDER_V12?"
+  expected: "active, suspended, expired, revoked"
+  difficulty: medium
+  entities: [PROVIDER_V12]
+
+- id: Q509
+  question: "What is the capacity alert threshold for WAREHOUSE_V12?"
+  expected: "90% of max pallets"
+  difficulty: medium
+  entities: [WAREHOUSE_V12]
+
+- id: Q510
+  question: "What zones does a WAREHOUSE_V12 have?"
+  expected: "receiving, storage, picking, packing, shipping"
+  difficulty: easy
+  entities: [WAREHOUSE_V12]
+
+- id: Q511
+  question: "What is the daily transaction limit for TRANSACTION_V12?"
+  expected: "$1,000,000"
+  difficulty: medium
+  entities: [TRANSACTION_V12]
+
+- id: Q512
+  question: "What fraud velocity check applies to TRANSACTION_V12?"
+  expected: "max 10 transactions per hour"
+  difficulty: medium
+  entities: [TRANSACTION_V12]
+
+- id: Q513
+  question: "What is the TRANSACTION_V12 status flow?"
+  expected: "initiated -> pending -> cleared -> settled"
+  difficulty: medium
+  entities: [TRANSACTION_V12]
+
+- id: Q514
+  question: "What is the CAMPAIGN_V12 status flow?"
+  expected: "draft -> scheduled -> active -> paused -> completed"
+  difficulty: medium
+  entities: [CAMPAIGN_V12]
+
+- id: Q515
+  question: "Above what amount does CAMPAIGN_V12 budget require approval?"
+  expected: "$25,000"
+  difficulty: medium
+  entities: [CAMPAIGN_V12]
+
+- id: Q516
+  question: "What scoring model is used for LEAD_V12?"
+  expected: "BANT"
+  difficulty: easy
+  entities: [LEAD_V12]
+
+- id: Q517
+  question: "What is the MQL threshold for LEAD_V12?"
+  expected: "score of 60"
+  difficulty: medium
+  entities: [LEAD_V12]
+
+- id: Q518
+  question: "What is the golden source for LEAD_V12?"
+  expected: "CRM (HubSpot)"
+  difficulty: easy
+  entities: [LEAD_V12]
+
+- id: Q519
+  question: "What is the budget approval threshold for DEPARTMENT_V12?"
+  expected: "$50,000"
+  difficulty: medium
+  entities: [DEPARTMENT_V12]
+
+- id: Q520
+  question: "What happens when DEPARTMENT_V12 exceeds budget?"
+  expected: "escalate to VP"
+  difficulty: medium
+  entities: [DEPARTMENT_V12]
+
+- id: Q521
+  question: "What is the golden source for PATIENT_V12 data?"
+  expected: "EHR (Epic)"
+  difficulty: easy
+  entities: [PATIENT_V12]
+
+- id: Q522
+  question: "What PII classification applies to PATIENT_V12 data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PATIENT_V12]
+
+- id: Q523
+  question: "How long are deceased PATIENT_V12 records retained?"
+  expected: "120 months (10 years) then archived"
+  difficulty: medium
+  entities: [PATIENT_V12]
+
+- id: Q524
+  question: "What matching algorithm is used for name+dob in PATIENT_V12?"
+  expected: "Soundex with threshold > 0.85"
+  difficulty: medium
+  entities: [PATIENT_V12]
+
+- id: Q525
+  question: "What is the golden source for EMPLOYEE_V12 data?"
+  expected: "HRIS (Workday)"
+  difficulty: easy
+  entities: [EMPLOYEE_V12]
+
+- id: Q526
+  question: "What PII classification applies to EMPLOYEE_V12 salary data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [EMPLOYEE_V12]
+
+- id: Q527
+  question: "What happens to terminated EMPLOYEE_V12 data after 84 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [EMPLOYEE_V12]
+
+- id: Q528
+  question: "What is the golden source for CUSTOMER_V12 data?"
+  expected: "CRM (Salesforce)"
+  difficulty: easy
+  entities: [CUSTOMER_V12]
+
+- id: Q529
+  question: "What type is the customer_id_v12 field?"
+  expected: "UUID"
+  difficulty: easy
+  entities: [CUSTOMER_V12]
+
+- id: Q530
+  question: "Is the customer_id_v12 field mutable?"
+  expected: "No, it is immutable"
+  difficulty: easy
+  entities: [CUSTOMER_V12]
+
+- id: Q531
+  question: "What matching algorithm is used for name+address in CUSTOMER_V12?"
+  expected: "Jaro-Winkler with threshold > 0.92"
+  difficulty: medium
+  entities: [CUSTOMER_V12]
+
+- id: Q532
+  question: "What PII classification level applies to CUSTOMER_V12 email?"
+  expected: "RESTRICTED"
+  difficulty: medium
+  entities: [CUSTOMER_V12]
+
+- id: Q533
+  question: "What happens to churned CUSTOMER_V12 data after 36 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [CUSTOMER_V12]
+
+- id: Q534
+  question: "What is the ORDER_V13 status flow?"
+  expected: "draft -> submitted -> processing -> shipped -> delivered"
+  difficulty: medium
+  entities: [ORDER_V13]
+
+- id: Q535
+  question: "After which status can ORDER_V13 line items no longer be edited?"
+  expected: "submitted"
+  difficulty: medium
+  entities: [ORDER_V13]
+
+- id: Q536
+  question: "What decimal precision should be used for ORDER_V13 financial fields?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ORDER_V13]
+
+- id: Q537
+  question: "What entity does ORDER_V13 belong to?"
+  expected: "CUSTOMER (via customer_id)"
+  difficulty: easy
+  entities: [ORDER_V13]
+
+- id: Q538
+  question: "What precision should ACCOUNT_V13 balances use?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ACCOUNT_V13]
+
+- id: Q539
+  question: "Can ACCOUNT_V13 balances go negative?"
+  expected: "No, negative balances are not allowed"
+  difficulty: medium
+  entities: [ACCOUNT_V13]
+
+- id: Q540
+  question: "What is the golden source for ACCOUNT_V13?"
+  expected: "Core Banking (Temenos)"
+  difficulty: easy
+  entities: [ACCOUNT_V13]
+
+- id: Q541
+  question: "What is the PII classification for PAYMENT_V13 card numbers?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PAYMENT_V13]
+
+- id: Q542
+  question: "Can a PAYMENT_V13 exist without an associated ORDER?"
+  expected: "No, order_id is mandatory (PAYMENT_V13 belongs to ORDER)"
+  difficulty: hard
+  entities: [PAYMENT_V13]
+
+- id: Q543
+  question: "What is the SHIPMENT_V13 status flow?"
+  expected: "label-created -> picked-up -> in-transit -> out-for-delivery -> delivered"
+  difficulty: medium
+  entities: [SHIPMENT_V13]
+
+- id: Q544
+  question: "What is the golden source for SHIPMENT_V13 data?"
+  expected: "TMS (ShipStation)"
+  difficulty: easy
+  entities: [SHIPMENT_V13]
+
+- id: Q545
+  question: "How long are delivered SHIPMENT_V13 records retained?"
+  expected: "24 months then archived"
+  difficulty: medium
+  entities: [SHIPMENT_V13]
+
+- id: Q546
+  question: "What is the SKU identifier type for PRODUCT_V13?"
+  expected: "string, unique per merchant"
+  difficulty: easy
+  entities: [PRODUCT_V13]
+
+- id: Q547
+  question: "How is PRODUCT_V13 inventory data synced?"
+  expected: "Real-time via warehouse API (webhook + 5min poll fallback)"
+  difficulty: medium
+  entities: [PRODUCT_V13]
+
+- id: Q548
+  question: "What is the identifier for PROVIDER_V13?"
+  expected: "NPI (string, unique)"
+  difficulty: easy
+  entities: [PROVIDER_V13]
+
+- id: Q549
+  question: "What are the credential statuses for PROVIDER_V13?"
+  expected: "active, suspended, expired, revoked"
+  difficulty: medium
+  entities: [PROVIDER_V13]
+
+- id: Q550
+  question: "What is the capacity alert threshold for WAREHOUSE_V13?"
+  expected: "90% of max pallets"
+  difficulty: medium
+  entities: [WAREHOUSE_V13]
+
+- id: Q551
+  question: "What zones does a WAREHOUSE_V13 have?"
+  expected: "receiving, storage, picking, packing, shipping"
+  difficulty: easy
+  entities: [WAREHOUSE_V13]
+
+- id: Q552
+  question: "What is the daily transaction limit for TRANSACTION_V13?"
+  expected: "$1,000,000"
+  difficulty: medium
+  entities: [TRANSACTION_V13]
+
+- id: Q553
+  question: "What fraud velocity check applies to TRANSACTION_V13?"
+  expected: "max 10 transactions per hour"
+  difficulty: medium
+  entities: [TRANSACTION_V13]
+
+- id: Q554
+  question: "What is the TRANSACTION_V13 status flow?"
+  expected: "initiated -> pending -> cleared -> settled"
+  difficulty: medium
+  entities: [TRANSACTION_V13]
+
+- id: Q555
+  question: "What is the CAMPAIGN_V13 status flow?"
+  expected: "draft -> scheduled -> active -> paused -> completed"
+  difficulty: medium
+  entities: [CAMPAIGN_V13]
+
+- id: Q556
+  question: "Above what amount does CAMPAIGN_V13 budget require approval?"
+  expected: "$25,000"
+  difficulty: medium
+  entities: [CAMPAIGN_V13]
+
+- id: Q557
+  question: "What scoring model is used for LEAD_V13?"
+  expected: "BANT"
+  difficulty: easy
+  entities: [LEAD_V13]
+
+- id: Q558
+  question: "What is the MQL threshold for LEAD_V13?"
+  expected: "score of 60"
+  difficulty: medium
+  entities: [LEAD_V13]
+
+- id: Q559
+  question: "What is the golden source for LEAD_V13?"
+  expected: "CRM (HubSpot)"
+  difficulty: easy
+  entities: [LEAD_V13]
+
+- id: Q560
+  question: "What is the budget approval threshold for DEPARTMENT_V13?"
+  expected: "$50,000"
+  difficulty: medium
+  entities: [DEPARTMENT_V13]
+
+- id: Q561
+  question: "What happens when DEPARTMENT_V13 exceeds budget?"
+  expected: "escalate to VP"
+  difficulty: medium
+  entities: [DEPARTMENT_V13]
+
+- id: Q562
+  question: "What is the golden source for PATIENT_V13 data?"
+  expected: "EHR (Epic)"
+  difficulty: easy
+  entities: [PATIENT_V13]
+
+- id: Q563
+  question: "What PII classification applies to PATIENT_V13 data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PATIENT_V13]
+
+- id: Q564
+  question: "How long are deceased PATIENT_V13 records retained?"
+  expected: "120 months (10 years) then archived"
+  difficulty: medium
+  entities: [PATIENT_V13]
+
+- id: Q565
+  question: "What matching algorithm is used for name+dob in PATIENT_V13?"
+  expected: "Soundex with threshold > 0.85"
+  difficulty: medium
+  entities: [PATIENT_V13]
+
+- id: Q566
+  question: "What is the golden source for EMPLOYEE_V13 data?"
+  expected: "HRIS (Workday)"
+  difficulty: easy
+  entities: [EMPLOYEE_V13]
+
+- id: Q567
+  question: "What PII classification applies to EMPLOYEE_V13 salary data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [EMPLOYEE_V13]
+
+- id: Q568
+  question: "What happens to terminated EMPLOYEE_V13 data after 84 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [EMPLOYEE_V13]
+
+- id: Q569
+  question: "What is the golden source for CUSTOMER_V13 data?"
+  expected: "CRM (Salesforce)"
+  difficulty: easy
+  entities: [CUSTOMER_V13]
+
+- id: Q570
+  question: "What type is the customer_id_v13 field?"
+  expected: "UUID"
+  difficulty: easy
+  entities: [CUSTOMER_V13]
+
+- id: Q571
+  question: "Is the customer_id_v13 field mutable?"
+  expected: "No, it is immutable"
+  difficulty: easy
+  entities: [CUSTOMER_V13]
+
+- id: Q572
+  question: "What matching algorithm is used for name+address in CUSTOMER_V13?"
+  expected: "Jaro-Winkler with threshold > 0.92"
+  difficulty: medium
+  entities: [CUSTOMER_V13]
+
+- id: Q573
+  question: "What PII classification level applies to CUSTOMER_V13 email?"
+  expected: "RESTRICTED"
+  difficulty: medium
+  entities: [CUSTOMER_V13]
+
+- id: Q574
+  question: "What happens to churned CUSTOMER_V13 data after 36 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [CUSTOMER_V13]
+
+- id: Q575
+  question: "What is the ORDER_V14 status flow?"
+  expected: "draft -> submitted -> processing -> shipped -> delivered"
+  difficulty: medium
+  entities: [ORDER_V14]
+
+- id: Q576
+  question: "After which status can ORDER_V14 line items no longer be edited?"
+  expected: "submitted"
+  difficulty: medium
+  entities: [ORDER_V14]
+
+- id: Q577
+  question: "What decimal precision should be used for ORDER_V14 financial fields?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ORDER_V14]
+
+- id: Q578
+  question: "What entity does ORDER_V14 belong to?"
+  expected: "CUSTOMER (via customer_id)"
+  difficulty: easy
+  entities: [ORDER_V14]
+
+- id: Q579
+  question: "What precision should ACCOUNT_V14 balances use?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ACCOUNT_V14]
+
+- id: Q580
+  question: "Can ACCOUNT_V14 balances go negative?"
+  expected: "No, negative balances are not allowed"
+  difficulty: medium
+  entities: [ACCOUNT_V14]
+
+- id: Q581
+  question: "What is the golden source for ACCOUNT_V14?"
+  expected: "Core Banking (Temenos)"
+  difficulty: easy
+  entities: [ACCOUNT_V14]
+
+- id: Q582
+  question: "What is the PII classification for PAYMENT_V14 card numbers?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PAYMENT_V14]
+
+- id: Q583
+  question: "Can a PAYMENT_V14 exist without an associated ORDER?"
+  expected: "No, order_id is mandatory (PAYMENT_V14 belongs to ORDER)"
+  difficulty: hard
+  entities: [PAYMENT_V14]
+
+- id: Q584
+  question: "What is the SHIPMENT_V14 status flow?"
+  expected: "label-created -> picked-up -> in-transit -> out-for-delivery -> delivered"
+  difficulty: medium
+  entities: [SHIPMENT_V14]
+
+- id: Q585
+  question: "What is the golden source for SHIPMENT_V14 data?"
+  expected: "TMS (ShipStation)"
+  difficulty: easy
+  entities: [SHIPMENT_V14]
+
+- id: Q586
+  question: "How long are delivered SHIPMENT_V14 records retained?"
+  expected: "24 months then archived"
+  difficulty: medium
+  entities: [SHIPMENT_V14]
+
+- id: Q587
+  question: "What is the maximum staleness allowed for inventory data?"
+  expected: "5 minutes"
+  difficulty: medium
+  entities: []
+
+- id: Q588
+  question: "What happens when a transaction exceeds $50,000?"
+  expected: "auto-hold and alert"
+  difficulty: medium
+  entities: []
+
+- id: Q589
+  question: "How are timestamps stored and displayed?"
+  expected: "Stored in UTC, displayed in customer locale"
+  difficulty: easy
+  entities: []
+
+- id: Q590
+  question: "What is the UK address format standard used for normalisation?"
+  expected: "Royal Mail"
+  difficulty: hard
+  entities: []
+
+- id: Q591
+  question: "How are US addresses normalised?"
+  expected: "Via SmartyStreets API, USPS format"
+  difficulty: medium
+  entities: []
+
+- id: Q592
+  question: "What is the customer return/refund policy?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: hard
+  entities: []
+  adversarial: true
+
+- id: Q593
+  question: "What GDPR or CCPA compliance rules apply to data deletion?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: hard
+  entities: []
+  adversarial: true
+
+- id: Q594
+  question: "What is the disaster recovery procedure?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: hard
+  entities: []
+  adversarial: true
+
+- id: Q595
+  question: "What machine learning models are used for classification?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: hard
+  entities: []
+  adversarial: true
+
+- id: Q596
+  question: "What is the SLA for API response time?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: hard
+  entities: []
+  adversarial: true
+
+- id: Q597
+  question: "Are there any conflicting retention policies?"
+  expected: "Yes - ORDER says 36 months for churned, regulatory requires 7 years for financial records"
+  difficulty: hard
+  entities: [ORDER]
+  tests_conflict_detection: true
+
+- id: Q598
+  question: "What is the minimum retention period for financial transaction data?"
+  expected: "7 years (regulatory requirement)"
+  difficulty: hard
+  entities: []
+  tests_conflict_detection: true

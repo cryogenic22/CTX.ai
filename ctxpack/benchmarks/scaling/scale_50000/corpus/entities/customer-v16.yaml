@@ -1,0 +1,43 @@
+entity: CUSTOMER_V16
+description: Customer master entity, one per account (variant 16)
+
+aliases:
+  - client
+  - buyer
+
+golden_source: CRM (Salesforce)
+
+identifier:
+  name: customer_id_v16
+  type: UUID
+  immutable: true
+
+match_rules:
+  - field: email
+    method: exact match
+    options:
+      case_sensitive: False
+      trim: True
+  - field: phone
+    method: normalise
+    options:
+      format: E.164
+  - field: name+address
+    method: fuzzy match
+    options:
+      algorithm: Jaro-Winkler
+      threshold: 0.92
+      review: manual
+
+pii:
+  - name
+  - email
+  - phone
+  - address
+pii_classification: RESTRICTED
+
+retention:
+  active: indefinite
+  churned:
+    months: 36
+    action: anonymise

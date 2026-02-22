@@ -1,0 +1,40 @@
+entity: LEAD_V31
+description: Sales lead entity, one per prospect interaction (variant 31)
+
+aliases:
+  - prospect
+  - opportunity
+
+golden_source: CRM (HubSpot)
+
+identifier:
+  name: lead_id_v31
+  type: UUID
+  immutable: true
+
+belongs_to:
+  entity: CAMPAIGN
+  field: campaign_id
+  mandatory: false
+
+status_flow:
+  - new
+  - contacted
+  - qualified
+  - proposal
+  - negotiation
+  - closed-won
+terminal_states:
+  - closed-lost
+  - disqualified
+
+scoring:
+  model: BANT
+  threshold_mql: 60
+  threshold_sql: 80
+
+retention:
+  active: indefinite
+  closed-lost:
+    months: 24
+    action: anonymise

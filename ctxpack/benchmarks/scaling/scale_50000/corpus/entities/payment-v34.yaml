@@ -1,0 +1,38 @@
+entity: PAYMENT_V34
+description: Payment transaction entity (variant 34)
+
+aliases:
+  - charge
+  - settlement
+
+golden_source: Payment Gateway (Stripe)
+
+identifier:
+  name: payment_id_v34
+  type: UUID
+  immutable: true
+
+belongs_to:
+  entity: ORDER
+  field: order_id
+  mandatory: true
+
+pii:
+  - card_number
+  - bank_account
+pii_classification: HIGHLY-RESTRICTED
+
+methods:
+  - credit_card
+  - debit_card
+  - bank_transfer
+  - digital_wallet
+
+currency_handling:
+  storage: original + USD equivalent
+  exchange_rate: daily ECB rate
+
+retention:
+  all:
+    months: 84
+    action: archive

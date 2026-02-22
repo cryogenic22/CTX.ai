@@ -1,0 +1,39 @@
+entity: PATIENT_V28
+description: Patient demographic entity, one per healthcare system (variant 28)
+
+aliases:
+  - subject
+  - enrollee
+
+golden_source: EHR (Epic)
+
+identifier:
+  name: mrn_v28
+  type: string
+  unique: true
+
+match_rules:
+  - field: ssn_last4+dob
+    method: exact match
+    options:
+      both_required: True
+  - field: name+dob
+    method: fuzzy match
+    options:
+      algorithm: Soundex
+      threshold: 0.85
+
+pii:
+  - name
+  - ssn
+  - dob
+  - address
+  - phone
+  - insurance_id
+pii_classification: HIGHLY-RESTRICTED
+
+retention:
+  active: indefinite
+  deceased:
+    months: 120
+    action: archive

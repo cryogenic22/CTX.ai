@@ -1,0 +1,34 @@
+entity: EMPLOYEE_V16
+description: Employee master entity, one per organization (variant 16)
+
+aliases:
+  - staff
+  - worker
+  - team-member
+
+golden_source: HRIS (Workday)
+
+identifier:
+  name: employee_id_v16
+  type: string
+  unique: true
+
+pii:
+  - name
+  - ssn
+  - dob
+  - salary
+  - bank_details
+pii_classification: HIGHLY-RESTRICTED
+
+employment_status:
+  - active
+  - on-leave
+  - terminated
+  - retired
+
+retention:
+  active: indefinite
+  terminated:
+    months: 84
+    action: anonymise

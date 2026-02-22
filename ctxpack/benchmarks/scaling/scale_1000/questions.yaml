@@ -1,0 +1,288 @@
+- id: Q001
+  question: "What is the daily transaction limit for TRANSACTION?"
+  expected: "$1,000,000"
+  difficulty: medium
+  entities: [TRANSACTION]
+
+- id: Q002
+  question: "What fraud velocity check applies to TRANSACTION?"
+  expected: "max 10 transactions per hour"
+  difficulty: medium
+  entities: [TRANSACTION]
+
+- id: Q003
+  question: "What is the TRANSACTION status flow?"
+  expected: "initiated -> pending -> cleared -> settled"
+  difficulty: medium
+  entities: [TRANSACTION]
+
+- id: Q004
+  question: "What is the golden source for EMPLOYEE data?"
+  expected: "HRIS (Workday)"
+  difficulty: easy
+  entities: [EMPLOYEE]
+
+- id: Q005
+  question: "What PII classification applies to EMPLOYEE salary data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [EMPLOYEE]
+
+- id: Q006
+  question: "What happens to terminated EMPLOYEE data after 84 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [EMPLOYEE]
+
+- id: Q007
+  question: "What precision should ACCOUNT balances use?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ACCOUNT]
+
+- id: Q008
+  question: "Can ACCOUNT balances go negative?"
+  expected: "No, negative balances are not allowed"
+  difficulty: medium
+  entities: [ACCOUNT]
+
+- id: Q009
+  question: "What is the golden source for ACCOUNT?"
+  expected: "Core Banking (Temenos)"
+  difficulty: easy
+  entities: [ACCOUNT]
+
+- id: Q010
+  question: "What is the golden source for PATIENT data?"
+  expected: "EHR (Epic)"
+  difficulty: easy
+  entities: [PATIENT]
+
+- id: Q011
+  question: "What PII classification applies to PATIENT data?"
+  expected: "HIGHLY-RESTRICTED"
+  difficulty: medium
+  entities: [PATIENT]
+
+- id: Q012
+  question: "How long are deceased PATIENT records retained?"
+  expected: "120 months (10 years) then archived"
+  difficulty: medium
+  entities: [PATIENT]
+
+- id: Q013
+  question: "What matching algorithm is used for name+dob in PATIENT?"
+  expected: "Soundex with threshold > 0.85"
+  difficulty: medium
+  entities: [PATIENT]
+
+- id: Q014
+  question: "What is the ORDER status flow?"
+  expected: "draft -> submitted -> processing -> shipped -> delivered"
+  difficulty: medium
+  entities: [ORDER]
+
+- id: Q015
+  question: "After which status can ORDER line items no longer be edited?"
+  expected: "submitted"
+  difficulty: medium
+  entities: [ORDER]
+
+- id: Q016
+  question: "What decimal precision should be used for ORDER financial fields?"
+  expected: "DECIMAL(19,4)"
+  difficulty: easy
+  entities: [ORDER]
+
+- id: Q017
+  question: "What entity does ORDER belong to?"
+  expected: "CUSTOMER (via customer_id)"
+  difficulty: easy
+  entities: [ORDER]
+
+- id: Q018
+  question: "What is the CAMPAIGN status flow?"
+  expected: "draft -> scheduled -> active -> paused -> completed"
+  difficulty: medium
+  entities: [CAMPAIGN]
+
+- id: Q019
+  question: "Above what amount does CAMPAIGN budget require approval?"
+  expected: "$25,000"
+  difficulty: medium
+  entities: [CAMPAIGN]
+
+- id: Q020
+  question: "What scoring model is used for LEAD?"
+  expected: "BANT"
+  difficulty: easy
+  entities: [LEAD]
+
+- id: Q021
+  question: "What is the MQL threshold for LEAD?"
+  expected: "score of 60"
+  difficulty: medium
+  entities: [LEAD]
+
+- id: Q022
+  question: "What is the golden source for LEAD?"
+  expected: "CRM (HubSpot)"
+  difficulty: easy
+  entities: [LEAD]
+
+- id: Q023
+  question: "What is the identifier for PROVIDER?"
+  expected: "NPI (string, unique)"
+  difficulty: easy
+  entities: [PROVIDER]
+
+- id: Q024
+  question: "What are the credential statuses for PROVIDER?"
+  expected: "active, suspended, expired, revoked"
+  difficulty: medium
+  entities: [PROVIDER]
+
+- id: Q025
+  question: "What is the SHIPMENT status flow?"
+  expected: "label-created -> picked-up -> in-transit -> out-for-delivery -> delivered"
+  difficulty: medium
+  entities: [SHIPMENT]
+
+- id: Q026
+  question: "What is the golden source for SHIPMENT data?"
+  expected: "TMS (ShipStation)"
+  difficulty: easy
+  entities: [SHIPMENT]
+
+- id: Q027
+  question: "How long are delivered SHIPMENT records retained?"
+  expected: "24 months then archived"
+  difficulty: medium
+  entities: [SHIPMENT]
+
+- id: Q028
+  question: "What is the budget approval threshold for DEPARTMENT?"
+  expected: "$50,000"
+  difficulty: medium
+  entities: [DEPARTMENT]
+
+- id: Q029
+  question: "What happens when DEPARTMENT exceeds budget?"
+  expected: "escalate to VP"
+  difficulty: medium
+  entities: [DEPARTMENT]
+
+- id: Q030
+  question: "What is the golden source for CUSTOMER data?"
+  expected: "CRM (Salesforce)"
+  difficulty: easy
+  entities: [CUSTOMER]
+
+- id: Q031
+  question: "What type is the customer_id field?"
+  expected: "UUID"
+  difficulty: easy
+  entities: [CUSTOMER]
+
+- id: Q032
+  question: "Is the customer_id field mutable?"
+  expected: "No, it is immutable"
+  difficulty: easy
+  entities: [CUSTOMER]
+
+- id: Q033
+  question: "What matching algorithm is used for name+address in CUSTOMER?"
+  expected: "Jaro-Winkler with threshold > 0.92"
+  difficulty: medium
+  entities: [CUSTOMER]
+
+- id: Q034
+  question: "What PII classification level applies to CUSTOMER email?"
+  expected: "RESTRICTED"
+  difficulty: medium
+  entities: [CUSTOMER]
+
+- id: Q035
+  question: "What happens to churned CUSTOMER data after 36 months?"
+  expected: "anonymise"
+  difficulty: medium
+  entities: [CUSTOMER]
+
+- id: Q036
+  question: "What is the maximum staleness allowed for inventory data?"
+  expected: "5 minutes"
+  difficulty: medium
+  entities: []
+
+- id: Q037
+  question: "What happens when a transaction exceeds $50,000?"
+  expected: "auto-hold and alert"
+  difficulty: medium
+  entities: []
+
+- id: Q038
+  question: "How are timestamps stored and displayed?"
+  expected: "Stored in UTC, displayed in customer locale"
+  difficulty: easy
+  entities: []
+
+- id: Q039
+  question: "What is the UK address format standard used for normalisation?"
+  expected: "Royal Mail"
+  difficulty: hard
+  entities: []
+
+- id: Q040
+  question: "How are US addresses normalised?"
+  expected: "Via SmartyStreets API, USPS format"
+  difficulty: medium
+  entities: []
+
+- id: Q041
+  question: "What is the customer return/refund policy?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: hard
+  entities: []
+  adversarial: true
+
+- id: Q042
+  question: "What GDPR or CCPA compliance rules apply to data deletion?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: hard
+  entities: []
+  adversarial: true
+
+- id: Q043
+  question: "What is the disaster recovery procedure?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: hard
+  entities: []
+  adversarial: true
+
+- id: Q044
+  question: "What machine learning models are used for classification?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: hard
+  entities: []
+  adversarial: true
+
+- id: Q045
+  question: "What is the SLA for API response time?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: hard
+  entities: []
+  adversarial: true
+
+- id: Q046
+  question: "Are there any conflicting retention policies?"
+  expected: "Yes - TRANSACTION says 36 months for churned, regulatory requires 7 years for financial records"
+  difficulty: hard
+  entities: [TRANSACTION]
+  tests_conflict_detection: true
+
+- id: Q047
+  question: "What is the minimum retention period for financial transaction data?"
+  expected: "7 years (regulatory requirement)"
+  difficulty: hard
+  entities: []
+  tests_conflict_detection: true

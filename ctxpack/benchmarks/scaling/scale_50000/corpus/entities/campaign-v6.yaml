@@ -1,0 +1,40 @@
+entity: CAMPAIGN_V6
+description: Marketing campaign entity (variant 6)
+
+aliases:
+  - promotion
+  - initiative
+
+golden_source: MAP (Marketo)
+
+identifier:
+  name: campaign_id_v6
+  type: UUID
+  immutable: true
+
+status_flow:
+  - draft
+  - scheduled
+  - active
+  - paused
+  - completed
+terminal_states:
+  - cancelled
+
+channels:
+  - email
+  - social
+  - paid-search
+  - display
+  - direct-mail
+
+budget:
+  currency: USD
+  precision: DECIMAL(12,2)
+  approval_required_above: 25000
+
+retention:
+  active: indefinite
+  completed:
+    months: 60
+    action: archive

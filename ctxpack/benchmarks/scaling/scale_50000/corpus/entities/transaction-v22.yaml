@@ -1,0 +1,43 @@
+entity: TRANSACTION_V22
+description: Financial transaction entity (variant 22)
+
+aliases:
+  - transfer
+  - movement
+
+golden_source: Payment Processor (FIS)
+
+identifier:
+  name: txn_id_v22
+  type: UUID
+  immutable: true
+
+belongs_to:
+  entity: ACCOUNT
+  field: account_number
+  mandatory: true
+
+status_flow:
+  - initiated
+  - pending
+  - cleared
+  - settled
+terminal_states:
+  - reversed
+  - failed
+
+amount_rules:
+  precision: DECIMAL(19,4)
+  min: 0.01
+  max_single: 250000
+  daily_limit: 1000000
+
+fraud_checks:
+  velocity: max 10 txns per hour
+  geo: flag if >500km from last txn
+  amount: flag if >$10000
+
+retention:
+  all:
+    months: 84
+    action: archive

@@ -224,11 +224,44 @@ def run_scaling_eval(
 
 
 def save_scaling_results(results: dict[str, Any], output_path: str) -> str:
-    """Save scaling results to JSON."""
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    """Save scaling results to JSON. Also saves timestamped raw log."""
+    results_dir = os.path.dirname(output_path)
+    os.makedirs(results_dir, exist_ok=True)
+
+    # Determine model label
+    model = results.get("model", "unknown").replace("/", "-").replace(" ", "-")
+
+    # Save model-labeled results
+    base, ext = os.path.splitext(output_path)
+    labeled_path = f"{base}-{model}{ext}"
+    with open(labeled_path, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2)
+
+    # Save generic (latest) copy
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
-    return output_path
+
+    # Save timestamped raw log for provenance
+    logs_dir = os.path.join(results_dir, "logs")
+    os.makedirs(logs_dir, exist_ok=True)
+    timestamp = results.get("timestamp", datetime.datetime.now(datetime.timezone.utc).isoformat())
+    ts_safe = timestamp.replace(":", "-").replace("+", "p")[:19]
+    log_entry = {
+        "log_type": "scaling_run",
+        "timestamp": timestamp,
+        "model": model,
+        "provenance": {
+            "tool": "ctxpack scaling",
+            "run_by": "automated",
+            "platform": os.name,
+        },
+        "results": results,
+    }
+    log_path = os.path.join(logs_dir, f"{ts_safe}_{model}.json")
+    with open(log_path, "w", encoding="utf-8") as f:
+        json.dump(log_entry, f, indent=2)
+
+    return labeled_path
 
 
 def print_scaling_summary(results: dict[str, Any]) -> None:

@@ -1,0 +1,39 @@
+entity: SHIPMENT_V32
+description: Shipment tracking entity, one per carrier booking (variant 32)
+
+aliases:
+  - delivery
+  - consignment
+
+golden_source: TMS (ShipStation)
+
+identifier:
+  name: tracking_number_v32
+  type: string
+  unique: true
+
+belongs_to:
+  entity: ORDER
+  field: order_id
+  mandatory: true
+
+status_flow:
+  - label-created
+  - picked-up
+  - in-transit
+  - out-for-delivery
+  - delivered
+terminal_states:
+  - returned-to-sender
+  - lost
+
+carrier_fields:
+  carrier: string
+  service_level: string
+  estimated_delivery: datetime
+
+retention:
+  active: indefinite
+  delivered:
+    months: 24
+    action: archive

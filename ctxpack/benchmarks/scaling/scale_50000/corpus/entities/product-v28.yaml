@@ -1,0 +1,35 @@
+entity: PRODUCT_V28
+description: Product catalog entity, one per merchant (variant 28)
+
+aliases:
+  - item
+  - SKU
+
+golden_source: PIM (Akeneo)
+
+identifier:
+  name: sku_v28
+  type: string
+  unique: true
+
+catalog_status:
+  - active
+  - discontinued
+  - seasonal
+  - pre-order
+
+price_rules:
+  base: merchant-sets-base-price
+  platform_applies:
+    - promotions
+    - bulk-discounts
+    - regional-pricing
+
+inventory:
+  sync: real-time
+  source: warehouse-API
+  method: webhook + 5min poll fallback
+
+known_issues:
+  - SKU format inconsistency across merchants
+  - Normalisation pipeline required

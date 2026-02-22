@@ -1,0 +1,27 @@
+# data-quality rules
+
+null_policies:
+  - field: {id_field}
+    policy: never-null
+  - field: email
+    policy: never-null-for-active
+  - field: phone
+    policy: nullable
+
+freshness:
+  - data: customer-data
+    max_stale: 24 hours
+  - data: inventory
+    max_stale: 5 minutes
+  - data: transactions
+    max_stale: real-time
+
+dedup:
+  batch: daily
+  realtime: on-new-registration
+
+anomaly_detection:
+  - condition: amount > $10,000
+    action: flag for review
+  - condition: amount > $50,000
+    action: auto-hold + alert

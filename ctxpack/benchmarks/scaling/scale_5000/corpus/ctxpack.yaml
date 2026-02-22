@@ -1,0 +1,222 @@
+domain: scaling-test-5000
+scope: multi-domain-eval
+author: ctxpack-scaling-generator
+
+entity_aliases:
+  PROVIDER:
+    - HCP
+    - physician
+    - clinician
+  PATIENT:
+    - subject
+    - enrollee
+  WAREHOUSE:
+    - facility
+    - distribution-center
+    - DC
+  SHIPMENT:
+    - delivery
+    - consignment
+  EMPLOYEE:
+    - staff
+    - worker
+    - team-member
+  TRANSACTION:
+    - transfer
+    - movement
+  LEAD:
+    - prospect
+    - opportunity
+  ORDER:
+    - purchase
+    - transaction
+  PRODUCT:
+    - item
+    - SKU
+  CUSTOMER:
+    - client
+    - buyer
+  ACCOUNT:
+    - deposit-account
+    - ledger
+  DEPARTMENT:
+    - team
+    - division
+    - business-unit
+  CAMPAIGN:
+    - promotion
+    - initiative
+  PAYMENT:
+    - charge
+    - settlement
+  PROVIDER_V1:
+    - HCP
+    - physician
+    - clinician
+  PATIENT_V1:
+    - subject
+    - enrollee
+  WAREHOUSE_V1:
+    - facility
+    - distribution-center
+    - DC
+  SHIPMENT_V1:
+    - delivery
+    - consignment
+  EMPLOYEE_V1:
+    - staff
+    - worker
+    - team-member
+  TRANSACTION_V1:
+    - transfer
+    - movement
+  LEAD_V1:
+    - prospect
+    - opportunity
+  ORDER_V1:
+    - purchase
+    - transaction
+  PRODUCT_V1:
+    - item
+    - SKU
+  CUSTOMER_V1:
+    - client
+    - buyer
+  ACCOUNT_V1:
+    - deposit-account
+    - ledger
+  DEPARTMENT_V1:
+    - team
+    - division
+    - business-unit
+  CAMPAIGN_V1:
+    - promotion
+    - initiative
+  PAYMENT_V1:
+    - charge
+    - settlement
+  PROVIDER_V2:
+    - HCP
+    - physician
+    - clinician
+  PATIENT_V2:
+    - subject
+    - enrollee
+  WAREHOUSE_V2:
+    - facility
+    - distribution-center
+    - DC
+  SHIPMENT_V2:
+    - delivery
+    - consignment
+  EMPLOYEE_V2:
+    - staff
+    - worker
+    - team-member
+  TRANSACTION_V2:
+    - transfer
+    - movement
+  LEAD_V2:
+    - prospect
+    - opportunity
+  ORDER_V2:
+    - purchase
+    - transaction
+  PRODUCT_V2:
+    - item
+    - SKU
+  CUSTOMER_V2:
+    - client
+    - buyer
+  ACCOUNT_V2:
+    - deposit-account
+    - ledger
+  DEPARTMENT_V2:
+    - team
+    - division
+    - business-unit
+  CAMPAIGN_V2:
+    - promotion
+    - initiative
+  PAYMENT_V2:
+    - charge
+    - settlement
+  PROVIDER_V3:
+    - HCP
+    - physician
+    - clinician
+  PATIENT_V3:
+    - subject
+    - enrollee
+  WAREHOUSE_V3:
+    - facility
+    - distribution-center
+    - DC
+  SHIPMENT_V3:
+    - delivery
+    - consignment
+  EMPLOYEE_V3:
+    - staff
+    - worker
+    - team-member
+  TRANSACTION_V3:
+    - transfer
+    - movement
+  LEAD_V3:
+    - prospect
+    - opportunity
+  ORDER_V3:
+    - purchase
+    - transaction
+
+golden_sources:
+  PROVIDER: Credentialing (CAQH)
+  PATIENT: EHR (Epic)
+  WAREHOUSE: WMS (Manhattan Associates)
+  SHIPMENT: TMS (ShipStation)
+  EMPLOYEE: HRIS (Workday)
+  TRANSACTION: Payment Processor (FIS)
+  LEAD: CRM (HubSpot)
+  ORDER: OMS (OrderHub)
+  PRODUCT: PIM (Akeneo)
+  CUSTOMER: CRM (Salesforce)
+  ACCOUNT: Core Banking (Temenos)
+  DEPARTMENT: Org Chart (Workday)
+  CAMPAIGN: MAP (Marketo)
+  PAYMENT: Payment Gateway (Stripe)
+  PROVIDER_V1: Credentialing (CAQH)
+  PATIENT_V1: EHR (Epic)
+  WAREHOUSE_V1: WMS (Manhattan Associates)
+  SHIPMENT_V1: TMS (ShipStation)
+  EMPLOYEE_V1: HRIS (Workday)
+  TRANSACTION_V1: Payment Processor (FIS)
+  LEAD_V1: CRM (HubSpot)
+  ORDER_V1: OMS (OrderHub)
+  PRODUCT_V1: PIM (Akeneo)
+  CUSTOMER_V1: CRM (Salesforce)
+  ACCOUNT_V1: Core Banking (Temenos)
+  DEPARTMENT_V1: Org Chart (Workday)
+  CAMPAIGN_V1: MAP (Marketo)
+  PAYMENT_V1: Payment Gateway (Stripe)
+  PROVIDER_V2: Credentialing (CAQH)
+  PATIENT_V2: EHR (Epic)
+  WAREHOUSE_V2: WMS (Manhattan Associates)
+  SHIPMENT_V2: TMS (ShipStation)
+  EMPLOYEE_V2: HRIS (Workday)
+  TRANSACTION_V2: Payment Processor (FIS)
+  LEAD_V2: CRM (HubSpot)
+  ORDER_V2: OMS (OrderHub)
+  PRODUCT_V2: PIM (Akeneo)
+  CUSTOMER_V2: CRM (Salesforce)
+  ACCOUNT_V2: Core Banking (Temenos)
+  DEPARTMENT_V2: Org Chart (Workday)
+  CAMPAIGN_V2: MAP (Marketo)
+  PAYMENT_V2: Payment Gateway (Stripe)
+  PROVIDER_V3: Credentialing (CAQH)
+  PATIENT_V3: EHR (Epic)
+  WAREHOUSE_V3: WMS (Manhattan Associates)
+  SHIPMENT_V3: TMS (ShipStation)
+  EMPLOYEE_V3: HRIS (Workday)
+  TRANSACTION_V3: Payment Processor (FIS)
+  LEAD_V3: CRM (HubSpot)
+  ORDER_V3: OMS (OrderHub)

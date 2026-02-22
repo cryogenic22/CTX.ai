@@ -39,18 +39,6 @@ def run_eval(
     load_dotenv()
 
     corpus_dir = os.path.join(config.golden_set_path, "corpus")
-    results: dict[str, Any] = {
-        "version": version,
-        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "baselines": {},
-        "config": {
-            "golden_set_path": config.golden_set_path,
-            "baselines": config.baselines,
-            "run_fidelity": config.run_fidelity,
-            "run_conflicts": config.run_conflicts,
-            "model": config.model,
-        },
-    }
 
     # Source token count
     source_tokens = count_corpus_tokens(corpus_dir)
@@ -68,6 +56,20 @@ def run_eval(
     if not config.run_fidelity:
         api_key = ""
     eval_model = config.model or detected_model
+
+    results: dict[str, Any] = {
+        "version": version,
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "baselines": {},
+        "config": {
+            "golden_set_path": config.golden_set_path,
+            "baselines": config.baselines,
+            "run_fidelity": config.run_fidelity,
+            "run_conflicts": config.run_conflicts,
+            "model": eval_model,
+            "provider": provider,
+        },
+    }
 
     # ── ctxpack L2 baseline ──
     ctx_compression = measure_compression(source_tokens, ctx_text)
@@ -200,11 +202,63 @@ def run_eval(
 
 
 def save_results(results: dict[str, Any], config: EvalConfig) -> str:
-    """Save results to JSON file and return the path."""
+    """Save results to JSON file and return the path.
+
+    Also saves a timestamped raw log in logs/ for provenance.
+    """
     os.makedirs(config.output_dir, exist_ok=True)
+
+    # Determine model label for filename
+    model_label = _model_label(results)
     version = results.get("version", "unknown")
-    filename = f"v{version}.json"
+
+    # Save canonical results (model-labeled)
+    filename = f"v{version}-{model_label}.json"
     path = os.path.join(config.output_dir, filename)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
+
+    # Also save as generic v{version}.json (latest run)
+    generic_path = os.path.join(config.output_dir, f"v{version}.json")
+    with open(generic_path, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2)
+
+    # Save timestamped raw log for provenance
+    _save_raw_log(results, config.output_dir, model_label)
+
     return path
+
+
+def _model_label(results: dict[str, Any]) -> str:
+    """Extract a filesystem-safe model label from results."""
+    model = results.get("config", {}).get("model", "unknown")
+    # e.g. "claude-sonnet-4-6" or "gpt-4o"
+    return model.replace("/", "-").replace(" ", "-")
+
+
+def _save_raw_log(results: dict[str, Any], output_dir: str, model_label: str) -> str:
+    """Save a timestamped raw log with full provenance metadata."""
+    logs_dir = os.path.join(output_dir, "logs")
+    os.makedirs(logs_dir, exist_ok=True)
+
+    timestamp = results.get("timestamp", datetime.datetime.now(datetime.timezone.utc).isoformat())
+    # Make filesystem-safe timestamp
+    ts_safe = timestamp.replace(":", "-").replace("+", "p")[:19]
+
+    log_entry = {
+        "log_type": "eval_run",
+        "timestamp": timestamp,
+        "model": model_label,
+        "provenance": {
+            "tool": "ctxpack eval",
+            "version": results.get("version", "unknown"),
+            "run_by": "automated",
+            "platform": os.name,
+        },
+        "results": results,
+    }
+
+    log_path = os.path.join(logs_dir, f"{ts_safe}_{model_label}.json")
+    with open(log_path, "w", encoding="utf-8") as f:
+        json.dump(log_entry, f, indent=2)
+    return log_path

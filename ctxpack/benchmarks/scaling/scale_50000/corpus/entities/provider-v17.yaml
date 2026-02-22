@@ -1,0 +1,38 @@
+entity: PROVIDER_V17
+description: Healthcare provider entity, one per NPI (variant 17)
+
+aliases:
+  - HCP
+  - physician
+  - clinician
+
+golden_source: Credentialing (CAQH)
+
+identifier:
+  name: npi_v17
+  type: string
+  unique: true
+
+credential_status:
+  - active
+  - suspended
+  - expired
+  - revoked
+
+specialties:
+  - primary-care
+  - cardiology
+  - oncology
+  - neurology
+  - pediatrics
+
+affiliation:
+  entity: FACILITY
+  field: facility_id
+  mandatory: false
+
+retention:
+  active: indefinite
+  revoked:
+    months: 84
+    action: archive

@@ -1,0 +1,40 @@
+entity: ACCOUNT_V5
+description: Financial account entity, one per customer per type (variant 5)
+
+aliases:
+  - deposit-account
+  - ledger
+
+golden_source: Core Banking (Temenos)
+
+identifier:
+  name: account_number_v5
+  type: string
+  unique: true
+
+belongs_to:
+  entity: CUSTOMER
+  field: customer_id
+  mandatory: true
+
+pii:
+  - account_number
+  - routing_number
+pii_classification: HIGHLY-RESTRICTED
+
+account_types:
+  - checking
+  - savings
+  - money-market
+  - CD
+
+balance_rules:
+  precision: DECIMAL(19,4)
+  currency: USD
+  negative_allowed: false
+
+retention:
+  active: indefinite
+  closed:
+    months: 84
+    action: archive

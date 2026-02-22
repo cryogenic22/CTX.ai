@@ -1,0 +1,16 @@
+# transformation rules
+
+timezone:
+  storage: UTC
+  display: customer-locale
+
+currency:
+  storage: original + USD equivalent
+  rate: daily ECB
+
+address_normalization:
+  api: SmartyStreets
+  format_us: USPS
+  format_uk: Royal-Mail
+
+name_normalization: none - preserve original case and diacritics

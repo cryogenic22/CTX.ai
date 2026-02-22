@@ -1,0 +1,29 @@
+entity: DEPARTMENT_V15
+description: Organizational department entity (variant 15)
+
+aliases:
+  - team
+  - division
+  - business-unit
+
+golden_source: Org Chart (Workday)
+
+identifier:
+  name: dept_code_v15
+  type: string
+  unique: true
+
+hierarchy:
+  parent: department
+  max_depth: 5
+
+budget_rules:
+  fiscal_year: calendar
+  approval_threshold: 50000
+  over_budget_action: escalate to VP
+
+retention:
+  active: indefinite
+  dissolved:
+    months: 36
+    action: archive

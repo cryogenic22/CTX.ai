@@ -1,0 +1,201 @@
+{
+  "log_type": "scaling_run",
+  "timestamp": "2026-02-22T15:15:11.138554+00:00",
+  "model": "gpt-4o",
+  "provenance": {
+    "tool": "ctxpack scaling",
+    "run_by": "automated",
+    "platform": "nt"
+  },
+  "results": {
+    "experiment": "scaling_curve",
+    "timestamp": "2026-02-22T15:15:11.138554+00:00",
+    "model": "gpt-4o",
+    "max_questions_per_scale": 25,
+    "scales": [
+      {
+        "name": "golden_set",
+        "source_tokens": 690,
+        "ctx_tokens": 124,
+        "compression_ratio": 5.56,
+        "entity_count": 20,
+        "question_count": 25,
+        "baselines": {
+          "ctxpack_l2": {
+            "tokens": 124,
+            "ratio": "5.6x",
+            "cost": "$0.0004",
+            "fidelity": 0.84,
+            "llm_judge_score": 0.92
+          },
+          "raw_stuffing": {
+            "tokens": 720,
+            "ratio": "1x",
+            "cost": "$0.0022",
+            "fidelity": 0.76,
+            "llm_judge_score": 0.8
+          },
+          "naive_truncation": {
+            "tokens": 124,
+            "ratio": "5.6x",
+            "cost": "$0.0004",
+            "fidelity": 0.2,
+            "llm_judge_score": 0.32
+          },
+          "llm_summary": {
+            "tokens": 112,
+            "ratio": "6.2x",
+            "cost": "$0.0003",
+            "fidelity": 0.2,
+            "llm_judge_score": 0.44
+          }
+        }
+      },
+      {
+        "name": "scale_1000",
+        "source_tokens": 1202,
+        "ctx_tokens": 171,
+        "compression_ratio": 7.03,
+        "entity_count": 27,
+        "question_count": 24,
+        "baselines": {
+          "ctxpack_l2": {
+            "tokens": 171,
+            "ratio": "7.0x",
+            "cost": "$0.0005",
+            "fidelity": 0.5416666666666666,
+            "llm_judge_score": 0.8333333333333334
+          },
+          "raw_stuffing": {
+            "tokens": 1253,
+            "ratio": "1x",
+            "cost": "$0.0038",
+            "fidelity": 0.7916666666666666,
+            "llm_judge_score": 0.875
+          },
+          "naive_truncation": {
+            "tokens": 171,
+            "ratio": "7.0x",
+            "cost": "$0.0005",
+            "fidelity": 0.20833333333333334,
+            "llm_judge_score": 0.4583333333333333
+          },
+          "llm_summary": {
+            "tokens": 163,
+            "ratio": "7.4x",
+            "cost": "$0.0005",
+            "fidelity": 0.08333333333333333,
+            "llm_judge_score": 0.5
+          }
+        }
+      },
+      {
+        "name": "scale_5000",
+        "source_tokens": 4098,
+        "ctx_tokens": 518,
+        "compression_ratio": 7.91,
+        "entity_count": 66,
+        "question_count": 24,
+        "baselines": {
+          "ctxpack_l2": {
+            "tokens": 518,
+            "ratio": "7.9x",
+            "cost": "$0.0016",
+            "fidelity": 0.5,
+            "llm_judge_score": 0.625
+          },
+          "raw_stuffing": {
+            "tokens": 4266,
+            "ratio": "1x",
+            "cost": "$0.0128",
+            "fidelity": 0.7916666666666666,
+            "llm_judge_score": 0.875
+          },
+          "naive_truncation": {
+            "tokens": 518,
+            "ratio": "7.9x",
+            "cost": "$0.0016",
+            "fidelity": 0.20833333333333334,
+            "llm_judge_score": 0.3333333333333333
+          },
+          "llm_summary": {
+            "tokens": 231,
+            "ratio": "17.7x",
+            "cost": "$0.0007",
+            "fidelity": 0.08333333333333333,
+            "llm_judge_score": 0.25
+          }
+        }
+      },
+      {
+        "name": "scale_20000",
+        "source_tokens": 15244,
+        "ctx_tokens": 1861,
+        "compression_ratio": 8.19,
+        "entity_count": 216,
+        "question_count": 25,
+        "baselines": {
+          "ctxpack_l2": {
+            "tokens": 1861,
+            "ratio": "8.2x",
+            "cost": "$0.0056",
+            "fidelity": 0.4,
+            "llm_judge_score": 0.52
+          },
+          "raw_stuffing": {
+            "tokens": 15862,
+            "ratio": "1x",
+            "cost": "$0.0476",
+            "fidelity": 0.8,
+            "llm_judge_score": 0.8
+          },
+          "naive_truncation": {
+            "tokens": 1861,
+            "ratio": "8.2x",
+            "cost": "$0.0056",
+            "fidelity": 0.16,
+            "llm_judge_score": 0.32
+          },
+          "llm_summary": {
+            "tokens": 232,
+            "ratio": "65.7x",
+            "cost": "$0.0007",
+            "fidelity": 0.12,
+            "llm_judge_score": 0.44
+          }
+        }
+      },
+      {
+        "name": "scale_50000",
+        "source_tokens": 37411,
+        "ctx_tokens": 4520,
+        "compression_ratio": 8.28,
+        "entity_count": 514,
+        "question_count": 25,
+        "baselines": {
+          "ctxpack_l2": {
+            "tokens": 4520,
+            "ratio": "8.3x",
+            "cost": "$0.0136",
+            "fidelity": 0.24,
+            "llm_judge_score": 0.52
+          },
+          "raw_stuffing": {
+            "tokens": 38923,
+            "ratio": "1x",
+            "cost": "$0.1168",
+            "fidelity": 0.4,
+            "llm_judge_score": 0.6
+          },
+          "naive_truncation": {
+            "tokens": 4520,
+            "ratio": "8.3x",
+            "cost": "$0.0136",
+            "fidelity": 0.04,
+            "llm_judge_score": 0.4
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,44 @@
+entity: ORDER_V2
+description: Order transaction entity (variant 2)
+
+aliases:
+  - purchase
+  - transaction
+
+golden_source: OMS (OrderHub)
+
+identifier:
+  name: order_id_v2
+  type: UUID
+  immutable: true
+
+belongs_to:
+  entity: CUSTOMER
+  field: customer_id
+  mandatory: true
+
+status_flow:
+  - draft
+  - submitted
+  - processing
+  - shipped
+  - delivered
+terminal_states:
+  - cancelled
+  - returned
+
+immutable_after: submitted
+
+financial_fields:
+  fields:
+    - subtotal
+    - tax
+    - shipping_cost
+    - total
+  type: DECIMAL(19,4)
+
+retention:
+  active: indefinite
+  completed:
+    months: 84
+    action: archive

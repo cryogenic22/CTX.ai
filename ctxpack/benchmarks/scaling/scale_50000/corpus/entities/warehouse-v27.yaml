@@ -1,0 +1,36 @@
+entity: WAREHOUSE_V27
+description: Warehouse location entity, one per facility (variant 27)
+
+aliases:
+  - facility
+  - distribution-center
+  - DC
+
+golden_source: WMS (Manhattan Associates)
+
+identifier:
+  name: warehouse_id_v27
+  type: string
+  unique: true
+
+zones:
+  - receiving
+  - storage
+  - picking
+  - packing
+  - shipping
+
+capacity:
+  unit: pallets
+  max: 50000
+  alert_threshold: 90%
+
+operating_hours:
+  weekday: 06:00-22:00
+  weekend: 08:00-18:00
+
+retention:
+  active: indefinite
+  decommissioned:
+    months: 60
+    action: archive

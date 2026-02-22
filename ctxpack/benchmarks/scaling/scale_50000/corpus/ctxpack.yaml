@@ -1,0 +1,2141 @@
+domain: scaling-test-50000
+scope: multi-domain-eval
+author: ctxpack-scaling-generator
+
+entity_aliases:
+  WAREHOUSE:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT:
+    - item
+    - SKU
+  ACCOUNT:
+    - deposit-account
+    - ledger
+  PAYMENT:
+    - charge
+    - settlement
+  PROVIDER:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION:
+    - transfer
+    - movement
+  SHIPMENT:
+    - delivery
+    - consignment
+  ORDER:
+    - purchase
+    - transaction
+  CUSTOMER:
+    - client
+    - buyer
+  PATIENT:
+    - subject
+    - enrollee
+  CAMPAIGN:
+    - promotion
+    - initiative
+  EMPLOYEE:
+    - staff
+    - worker
+    - team-member
+  LEAD:
+    - prospect
+    - opportunity
+  DEPARTMENT:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V1:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V1:
+    - item
+    - SKU
+  ACCOUNT_V1:
+    - deposit-account
+    - ledger
+  PAYMENT_V1:
+    - charge
+    - settlement
+  PROVIDER_V1:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V1:
+    - transfer
+    - movement
+  SHIPMENT_V1:
+    - delivery
+    - consignment
+  ORDER_V1:
+    - purchase
+    - transaction
+  CUSTOMER_V1:
+    - client
+    - buyer
+  PATIENT_V1:
+    - subject
+    - enrollee
+  CAMPAIGN_V1:
+    - promotion
+    - initiative
+  EMPLOYEE_V1:
+    - staff
+    - worker
+    - team-member
+  LEAD_V1:
+    - prospect
+    - opportunity
+  DEPARTMENT_V1:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V2:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V2:
+    - item
+    - SKU
+  ACCOUNT_V2:
+    - deposit-account
+    - ledger
+  PAYMENT_V2:
+    - charge
+    - settlement
+  PROVIDER_V2:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V2:
+    - transfer
+    - movement
+  SHIPMENT_V2:
+    - delivery
+    - consignment
+  ORDER_V2:
+    - purchase
+    - transaction
+  CUSTOMER_V2:
+    - client
+    - buyer
+  PATIENT_V2:
+    - subject
+    - enrollee
+  CAMPAIGN_V2:
+    - promotion
+    - initiative
+  EMPLOYEE_V2:
+    - staff
+    - worker
+    - team-member
+  LEAD_V2:
+    - prospect
+    - opportunity
+  DEPARTMENT_V2:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V3:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V3:
+    - item
+    - SKU
+  ACCOUNT_V3:
+    - deposit-account
+    - ledger
+  PAYMENT_V3:
+    - charge
+    - settlement
+  PROVIDER_V3:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V3:
+    - transfer
+    - movement
+  SHIPMENT_V3:
+    - delivery
+    - consignment
+  ORDER_V3:
+    - purchase
+    - transaction
+  CUSTOMER_V3:
+    - client
+    - buyer
+  PATIENT_V3:
+    - subject
+    - enrollee
+  CAMPAIGN_V3:
+    - promotion
+    - initiative
+  EMPLOYEE_V3:
+    - staff
+    - worker
+    - team-member
+  LEAD_V3:
+    - prospect
+    - opportunity
+  DEPARTMENT_V3:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V4:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V4:
+    - item
+    - SKU
+  ACCOUNT_V4:
+    - deposit-account
+    - ledger
+  PAYMENT_V4:
+    - charge
+    - settlement
+  PROVIDER_V4:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V4:
+    - transfer
+    - movement
+  SHIPMENT_V4:
+    - delivery
+    - consignment
+  ORDER_V4:
+    - purchase
+    - transaction
+  CUSTOMER_V4:
+    - client
+    - buyer
+  PATIENT_V4:
+    - subject
+    - enrollee
+  CAMPAIGN_V4:
+    - promotion
+    - initiative
+  EMPLOYEE_V4:
+    - staff
+    - worker
+    - team-member
+  LEAD_V4:
+    - prospect
+    - opportunity
+  DEPARTMENT_V4:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V5:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V5:
+    - item
+    - SKU
+  ACCOUNT_V5:
+    - deposit-account
+    - ledger
+  PAYMENT_V5:
+    - charge
+    - settlement
+  PROVIDER_V5:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V5:
+    - transfer
+    - movement
+  SHIPMENT_V5:
+    - delivery
+    - consignment
+  ORDER_V5:
+    - purchase
+    - transaction
+  CUSTOMER_V5:
+    - client
+    - buyer
+  PATIENT_V5:
+    - subject
+    - enrollee
+  CAMPAIGN_V5:
+    - promotion
+    - initiative
+  EMPLOYEE_V5:
+    - staff
+    - worker
+    - team-member
+  LEAD_V5:
+    - prospect
+    - opportunity
+  DEPARTMENT_V5:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V6:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V6:
+    - item
+    - SKU
+  ACCOUNT_V6:
+    - deposit-account
+    - ledger
+  PAYMENT_V6:
+    - charge
+    - settlement
+  PROVIDER_V6:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V6:
+    - transfer
+    - movement
+  SHIPMENT_V6:
+    - delivery
+    - consignment
+  ORDER_V6:
+    - purchase
+    - transaction
+  CUSTOMER_V6:
+    - client
+    - buyer
+  PATIENT_V6:
+    - subject
+    - enrollee
+  CAMPAIGN_V6:
+    - promotion
+    - initiative
+  EMPLOYEE_V6:
+    - staff
+    - worker
+    - team-member
+  LEAD_V6:
+    - prospect
+    - opportunity
+  DEPARTMENT_V6:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V7:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V7:
+    - item
+    - SKU
+  ACCOUNT_V7:
+    - deposit-account
+    - ledger
+  PAYMENT_V7:
+    - charge
+    - settlement
+  PROVIDER_V7:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V7:
+    - transfer
+    - movement
+  SHIPMENT_V7:
+    - delivery
+    - consignment
+  ORDER_V7:
+    - purchase
+    - transaction
+  CUSTOMER_V7:
+    - client
+    - buyer
+  PATIENT_V7:
+    - subject
+    - enrollee
+  CAMPAIGN_V7:
+    - promotion
+    - initiative
+  EMPLOYEE_V7:
+    - staff
+    - worker
+    - team-member
+  LEAD_V7:
+    - prospect
+    - opportunity
+  DEPARTMENT_V7:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V8:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V8:
+    - item
+    - SKU
+  ACCOUNT_V8:
+    - deposit-account
+    - ledger
+  PAYMENT_V8:
+    - charge
+    - settlement
+  PROVIDER_V8:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V8:
+    - transfer
+    - movement
+  SHIPMENT_V8:
+    - delivery
+    - consignment
+  ORDER_V8:
+    - purchase
+    - transaction
+  CUSTOMER_V8:
+    - client
+    - buyer
+  PATIENT_V8:
+    - subject
+    - enrollee
+  CAMPAIGN_V8:
+    - promotion
+    - initiative
+  EMPLOYEE_V8:
+    - staff
+    - worker
+    - team-member
+  LEAD_V8:
+    - prospect
+    - opportunity
+  DEPARTMENT_V8:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V9:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V9:
+    - item
+    - SKU
+  ACCOUNT_V9:
+    - deposit-account
+    - ledger
+  PAYMENT_V9:
+    - charge
+    - settlement
+  PROVIDER_V9:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V9:
+    - transfer
+    - movement
+  SHIPMENT_V9:
+    - delivery
+    - consignment
+  ORDER_V9:
+    - purchase
+    - transaction
+  CUSTOMER_V9:
+    - client
+    - buyer
+  PATIENT_V9:
+    - subject
+    - enrollee
+  CAMPAIGN_V9:
+    - promotion
+    - initiative
+  EMPLOYEE_V9:
+    - staff
+    - worker
+    - team-member
+  LEAD_V9:
+    - prospect
+    - opportunity
+  DEPARTMENT_V9:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V10:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V10:
+    - item
+    - SKU
+  ACCOUNT_V10:
+    - deposit-account
+    - ledger
+  PAYMENT_V10:
+    - charge
+    - settlement
+  PROVIDER_V10:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V10:
+    - transfer
+    - movement
+  SHIPMENT_V10:
+    - delivery
+    - consignment
+  ORDER_V10:
+    - purchase
+    - transaction
+  CUSTOMER_V10:
+    - client
+    - buyer
+  PATIENT_V10:
+    - subject
+    - enrollee
+  CAMPAIGN_V10:
+    - promotion
+    - initiative
+  EMPLOYEE_V10:
+    - staff
+    - worker
+    - team-member
+  LEAD_V10:
+    - prospect
+    - opportunity
+  DEPARTMENT_V10:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V11:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V11:
+    - item
+    - SKU
+  ACCOUNT_V11:
+    - deposit-account
+    - ledger
+  PAYMENT_V11:
+    - charge
+    - settlement
+  PROVIDER_V11:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V11:
+    - transfer
+    - movement
+  SHIPMENT_V11:
+    - delivery
+    - consignment
+  ORDER_V11:
+    - purchase
+    - transaction
+  CUSTOMER_V11:
+    - client
+    - buyer
+  PATIENT_V11:
+    - subject
+    - enrollee
+  CAMPAIGN_V11:
+    - promotion
+    - initiative
+  EMPLOYEE_V11:
+    - staff
+    - worker
+    - team-member
+  LEAD_V11:
+    - prospect
+    - opportunity
+  DEPARTMENT_V11:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V12:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V12:
+    - item
+    - SKU
+  ACCOUNT_V12:
+    - deposit-account
+    - ledger
+  PAYMENT_V12:
+    - charge
+    - settlement
+  PROVIDER_V12:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V12:
+    - transfer
+    - movement
+  SHIPMENT_V12:
+    - delivery
+    - consignment
+  ORDER_V12:
+    - purchase
+    - transaction
+  CUSTOMER_V12:
+    - client
+    - buyer
+  PATIENT_V12:
+    - subject
+    - enrollee
+  CAMPAIGN_V12:
+    - promotion
+    - initiative
+  EMPLOYEE_V12:
+    - staff
+    - worker
+    - team-member
+  LEAD_V12:
+    - prospect
+    - opportunity
+  DEPARTMENT_V12:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V13:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V13:
+    - item
+    - SKU
+  ACCOUNT_V13:
+    - deposit-account
+    - ledger
+  PAYMENT_V13:
+    - charge
+    - settlement
+  PROVIDER_V13:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V13:
+    - transfer
+    - movement
+  SHIPMENT_V13:
+    - delivery
+    - consignment
+  ORDER_V13:
+    - purchase
+    - transaction
+  CUSTOMER_V13:
+    - client
+    - buyer
+  PATIENT_V13:
+    - subject
+    - enrollee
+  CAMPAIGN_V13:
+    - promotion
+    - initiative
+  EMPLOYEE_V13:
+    - staff
+    - worker
+    - team-member
+  LEAD_V13:
+    - prospect
+    - opportunity
+  DEPARTMENT_V13:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V14:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V14:
+    - item
+    - SKU
+  ACCOUNT_V14:
+    - deposit-account
+    - ledger
+  PAYMENT_V14:
+    - charge
+    - settlement
+  PROVIDER_V14:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V14:
+    - transfer
+    - movement
+  SHIPMENT_V14:
+    - delivery
+    - consignment
+  ORDER_V14:
+    - purchase
+    - transaction
+  CUSTOMER_V14:
+    - client
+    - buyer
+  PATIENT_V14:
+    - subject
+    - enrollee
+  CAMPAIGN_V14:
+    - promotion
+    - initiative
+  EMPLOYEE_V14:
+    - staff
+    - worker
+    - team-member
+  LEAD_V14:
+    - prospect
+    - opportunity
+  DEPARTMENT_V14:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V15:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V15:
+    - item
+    - SKU
+  ACCOUNT_V15:
+    - deposit-account
+    - ledger
+  PAYMENT_V15:
+    - charge
+    - settlement
+  PROVIDER_V15:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V15:
+    - transfer
+    - movement
+  SHIPMENT_V15:
+    - delivery
+    - consignment
+  ORDER_V15:
+    - purchase
+    - transaction
+  CUSTOMER_V15:
+    - client
+    - buyer
+  PATIENT_V15:
+    - subject
+    - enrollee
+  CAMPAIGN_V15:
+    - promotion
+    - initiative
+  EMPLOYEE_V15:
+    - staff
+    - worker
+    - team-member
+  LEAD_V15:
+    - prospect
+    - opportunity
+  DEPARTMENT_V15:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V16:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V16:
+    - item
+    - SKU
+  ACCOUNT_V16:
+    - deposit-account
+    - ledger
+  PAYMENT_V16:
+    - charge
+    - settlement
+  PROVIDER_V16:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V16:
+    - transfer
+    - movement
+  SHIPMENT_V16:
+    - delivery
+    - consignment
+  ORDER_V16:
+    - purchase
+    - transaction
+  CUSTOMER_V16:
+    - client
+    - buyer
+  PATIENT_V16:
+    - subject
+    - enrollee
+  CAMPAIGN_V16:
+    - promotion
+    - initiative
+  EMPLOYEE_V16:
+    - staff
+    - worker
+    - team-member
+  LEAD_V16:
+    - prospect
+    - opportunity
+  DEPARTMENT_V16:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V17:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V17:
+    - item
+    - SKU
+  ACCOUNT_V17:
+    - deposit-account
+    - ledger
+  PAYMENT_V17:
+    - charge
+    - settlement
+  PROVIDER_V17:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V17:
+    - transfer
+    - movement
+  SHIPMENT_V17:
+    - delivery
+    - consignment
+  ORDER_V17:
+    - purchase
+    - transaction
+  CUSTOMER_V17:
+    - client
+    - buyer
+  PATIENT_V17:
+    - subject
+    - enrollee
+  CAMPAIGN_V17:
+    - promotion
+    - initiative
+  EMPLOYEE_V17:
+    - staff
+    - worker
+    - team-member
+  LEAD_V17:
+    - prospect
+    - opportunity
+  DEPARTMENT_V17:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V18:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V18:
+    - item
+    - SKU
+  ACCOUNT_V18:
+    - deposit-account
+    - ledger
+  PAYMENT_V18:
+    - charge
+    - settlement
+  PROVIDER_V18:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V18:
+    - transfer
+    - movement
+  SHIPMENT_V18:
+    - delivery
+    - consignment
+  ORDER_V18:
+    - purchase
+    - transaction
+  CUSTOMER_V18:
+    - client
+    - buyer
+  PATIENT_V18:
+    - subject
+    - enrollee
+  CAMPAIGN_V18:
+    - promotion
+    - initiative
+  EMPLOYEE_V18:
+    - staff
+    - worker
+    - team-member
+  LEAD_V18:
+    - prospect
+    - opportunity
+  DEPARTMENT_V18:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V19:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V19:
+    - item
+    - SKU
+  ACCOUNT_V19:
+    - deposit-account
+    - ledger
+  PAYMENT_V19:
+    - charge
+    - settlement
+  PROVIDER_V19:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V19:
+    - transfer
+    - movement
+  SHIPMENT_V19:
+    - delivery
+    - consignment
+  ORDER_V19:
+    - purchase
+    - transaction
+  CUSTOMER_V19:
+    - client
+    - buyer
+  PATIENT_V19:
+    - subject
+    - enrollee
+  CAMPAIGN_V19:
+    - promotion
+    - initiative
+  EMPLOYEE_V19:
+    - staff
+    - worker
+    - team-member
+  LEAD_V19:
+    - prospect
+    - opportunity
+  DEPARTMENT_V19:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V20:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V20:
+    - item
+    - SKU
+  ACCOUNT_V20:
+    - deposit-account
+    - ledger
+  PAYMENT_V20:
+    - charge
+    - settlement
+  PROVIDER_V20:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V20:
+    - transfer
+    - movement
+  SHIPMENT_V20:
+    - delivery
+    - consignment
+  ORDER_V20:
+    - purchase
+    - transaction
+  CUSTOMER_V20:
+    - client
+    - buyer
+  PATIENT_V20:
+    - subject
+    - enrollee
+  CAMPAIGN_V20:
+    - promotion
+    - initiative
+  EMPLOYEE_V20:
+    - staff
+    - worker
+    - team-member
+  LEAD_V20:
+    - prospect
+    - opportunity
+  DEPARTMENT_V20:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V21:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V21:
+    - item
+    - SKU
+  ACCOUNT_V21:
+    - deposit-account
+    - ledger
+  PAYMENT_V21:
+    - charge
+    - settlement
+  PROVIDER_V21:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V21:
+    - transfer
+    - movement
+  SHIPMENT_V21:
+    - delivery
+    - consignment
+  ORDER_V21:
+    - purchase
+    - transaction
+  CUSTOMER_V21:
+    - client
+    - buyer
+  PATIENT_V21:
+    - subject
+    - enrollee
+  CAMPAIGN_V21:
+    - promotion
+    - initiative
+  EMPLOYEE_V21:
+    - staff
+    - worker
+    - team-member
+  LEAD_V21:
+    - prospect
+    - opportunity
+  DEPARTMENT_V21:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V22:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V22:
+    - item
+    - SKU
+  ACCOUNT_V22:
+    - deposit-account
+    - ledger
+  PAYMENT_V22:
+    - charge
+    - settlement
+  PROVIDER_V22:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V22:
+    - transfer
+    - movement
+  SHIPMENT_V22:
+    - delivery
+    - consignment
+  ORDER_V22:
+    - purchase
+    - transaction
+  CUSTOMER_V22:
+    - client
+    - buyer
+  PATIENT_V22:
+    - subject
+    - enrollee
+  CAMPAIGN_V22:
+    - promotion
+    - initiative
+  EMPLOYEE_V22:
+    - staff
+    - worker
+    - team-member
+  LEAD_V22:
+    - prospect
+    - opportunity
+  DEPARTMENT_V22:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V23:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V23:
+    - item
+    - SKU
+  ACCOUNT_V23:
+    - deposit-account
+    - ledger
+  PAYMENT_V23:
+    - charge
+    - settlement
+  PROVIDER_V23:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V23:
+    - transfer
+    - movement
+  SHIPMENT_V23:
+    - delivery
+    - consignment
+  ORDER_V23:
+    - purchase
+    - transaction
+  CUSTOMER_V23:
+    - client
+    - buyer
+  PATIENT_V23:
+    - subject
+    - enrollee
+  CAMPAIGN_V23:
+    - promotion
+    - initiative
+  EMPLOYEE_V23:
+    - staff
+    - worker
+    - team-member
+  LEAD_V23:
+    - prospect
+    - opportunity
+  DEPARTMENT_V23:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V24:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V24:
+    - item
+    - SKU
+  ACCOUNT_V24:
+    - deposit-account
+    - ledger
+  PAYMENT_V24:
+    - charge
+    - settlement
+  PROVIDER_V24:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V24:
+    - transfer
+    - movement
+  SHIPMENT_V24:
+    - delivery
+    - consignment
+  ORDER_V24:
+    - purchase
+    - transaction
+  CUSTOMER_V24:
+    - client
+    - buyer
+  PATIENT_V24:
+    - subject
+    - enrollee
+  CAMPAIGN_V24:
+    - promotion
+    - initiative
+  EMPLOYEE_V24:
+    - staff
+    - worker
+    - team-member
+  LEAD_V24:
+    - prospect
+    - opportunity
+  DEPARTMENT_V24:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V25:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V25:
+    - item
+    - SKU
+  ACCOUNT_V25:
+    - deposit-account
+    - ledger
+  PAYMENT_V25:
+    - charge
+    - settlement
+  PROVIDER_V25:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V25:
+    - transfer
+    - movement
+  SHIPMENT_V25:
+    - delivery
+    - consignment
+  ORDER_V25:
+    - purchase
+    - transaction
+  CUSTOMER_V25:
+    - client
+    - buyer
+  PATIENT_V25:
+    - subject
+    - enrollee
+  CAMPAIGN_V25:
+    - promotion
+    - initiative
+  EMPLOYEE_V25:
+    - staff
+    - worker
+    - team-member
+  LEAD_V25:
+    - prospect
+    - opportunity
+  DEPARTMENT_V25:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V26:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V26:
+    - item
+    - SKU
+  ACCOUNT_V26:
+    - deposit-account
+    - ledger
+  PAYMENT_V26:
+    - charge
+    - settlement
+  PROVIDER_V26:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V26:
+    - transfer
+    - movement
+  SHIPMENT_V26:
+    - delivery
+    - consignment
+  ORDER_V26:
+    - purchase
+    - transaction
+  CUSTOMER_V26:
+    - client
+    - buyer
+  PATIENT_V26:
+    - subject
+    - enrollee
+  CAMPAIGN_V26:
+    - promotion
+    - initiative
+  EMPLOYEE_V26:
+    - staff
+    - worker
+    - team-member
+  LEAD_V26:
+    - prospect
+    - opportunity
+  DEPARTMENT_V26:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V27:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V27:
+    - item
+    - SKU
+  ACCOUNT_V27:
+    - deposit-account
+    - ledger
+  PAYMENT_V27:
+    - charge
+    - settlement
+  PROVIDER_V27:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V27:
+    - transfer
+    - movement
+  SHIPMENT_V27:
+    - delivery
+    - consignment
+  ORDER_V27:
+    - purchase
+    - transaction
+  CUSTOMER_V27:
+    - client
+    - buyer
+  PATIENT_V27:
+    - subject
+    - enrollee
+  CAMPAIGN_V27:
+    - promotion
+    - initiative
+  EMPLOYEE_V27:
+    - staff
+    - worker
+    - team-member
+  LEAD_V27:
+    - prospect
+    - opportunity
+  DEPARTMENT_V27:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V28:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V28:
+    - item
+    - SKU
+  ACCOUNT_V28:
+    - deposit-account
+    - ledger
+  PAYMENT_V28:
+    - charge
+    - settlement
+  PROVIDER_V28:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V28:
+    - transfer
+    - movement
+  SHIPMENT_V28:
+    - delivery
+    - consignment
+  ORDER_V28:
+    - purchase
+    - transaction
+  CUSTOMER_V28:
+    - client
+    - buyer
+  PATIENT_V28:
+    - subject
+    - enrollee
+  CAMPAIGN_V28:
+    - promotion
+    - initiative
+  EMPLOYEE_V28:
+    - staff
+    - worker
+    - team-member
+  LEAD_V28:
+    - prospect
+    - opportunity
+  DEPARTMENT_V28:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V29:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V29:
+    - item
+    - SKU
+  ACCOUNT_V29:
+    - deposit-account
+    - ledger
+  PAYMENT_V29:
+    - charge
+    - settlement
+  PROVIDER_V29:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V29:
+    - transfer
+    - movement
+  SHIPMENT_V29:
+    - delivery
+    - consignment
+  ORDER_V29:
+    - purchase
+    - transaction
+  CUSTOMER_V29:
+    - client
+    - buyer
+  PATIENT_V29:
+    - subject
+    - enrollee
+  CAMPAIGN_V29:
+    - promotion
+    - initiative
+  EMPLOYEE_V29:
+    - staff
+    - worker
+    - team-member
+  LEAD_V29:
+    - prospect
+    - opportunity
+  DEPARTMENT_V29:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V30:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V30:
+    - item
+    - SKU
+  ACCOUNT_V30:
+    - deposit-account
+    - ledger
+  PAYMENT_V30:
+    - charge
+    - settlement
+  PROVIDER_V30:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V30:
+    - transfer
+    - movement
+  SHIPMENT_V30:
+    - delivery
+    - consignment
+  ORDER_V30:
+    - purchase
+    - transaction
+  CUSTOMER_V30:
+    - client
+    - buyer
+  PATIENT_V30:
+    - subject
+    - enrollee
+  CAMPAIGN_V30:
+    - promotion
+    - initiative
+  EMPLOYEE_V30:
+    - staff
+    - worker
+    - team-member
+  LEAD_V30:
+    - prospect
+    - opportunity
+  DEPARTMENT_V30:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V31:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V31:
+    - item
+    - SKU
+  ACCOUNT_V31:
+    - deposit-account
+    - ledger
+  PAYMENT_V31:
+    - charge
+    - settlement
+  PROVIDER_V31:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V31:
+    - transfer
+    - movement
+  SHIPMENT_V31:
+    - delivery
+    - consignment
+  ORDER_V31:
+    - purchase
+    - transaction
+  CUSTOMER_V31:
+    - client
+    - buyer
+  PATIENT_V31:
+    - subject
+    - enrollee
+  CAMPAIGN_V31:
+    - promotion
+    - initiative
+  EMPLOYEE_V31:
+    - staff
+    - worker
+    - team-member
+  LEAD_V31:
+    - prospect
+    - opportunity
+  DEPARTMENT_V31:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V32:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V32:
+    - item
+    - SKU
+  ACCOUNT_V32:
+    - deposit-account
+    - ledger
+  PAYMENT_V32:
+    - charge
+    - settlement
+  PROVIDER_V32:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V32:
+    - transfer
+    - movement
+  SHIPMENT_V32:
+    - delivery
+    - consignment
+  ORDER_V32:
+    - purchase
+    - transaction
+  CUSTOMER_V32:
+    - client
+    - buyer
+  PATIENT_V32:
+    - subject
+    - enrollee
+  CAMPAIGN_V32:
+    - promotion
+    - initiative
+  EMPLOYEE_V32:
+    - staff
+    - worker
+    - team-member
+  LEAD_V32:
+    - prospect
+    - opportunity
+  DEPARTMENT_V32:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V33:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V33:
+    - item
+    - SKU
+  ACCOUNT_V33:
+    - deposit-account
+    - ledger
+  PAYMENT_V33:
+    - charge
+    - settlement
+  PROVIDER_V33:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V33:
+    - transfer
+    - movement
+  SHIPMENT_V33:
+    - delivery
+    - consignment
+  ORDER_V33:
+    - purchase
+    - transaction
+  CUSTOMER_V33:
+    - client
+    - buyer
+  PATIENT_V33:
+    - subject
+    - enrollee
+  CAMPAIGN_V33:
+    - promotion
+    - initiative
+  EMPLOYEE_V33:
+    - staff
+    - worker
+    - team-member
+  LEAD_V33:
+    - prospect
+    - opportunity
+  DEPARTMENT_V33:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V34:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V34:
+    - item
+    - SKU
+  ACCOUNT_V34:
+    - deposit-account
+    - ledger
+  PAYMENT_V34:
+    - charge
+    - settlement
+  PROVIDER_V34:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V34:
+    - transfer
+    - movement
+  SHIPMENT_V34:
+    - delivery
+    - consignment
+  ORDER_V34:
+    - purchase
+    - transaction
+  CUSTOMER_V34:
+    - client
+    - buyer
+  PATIENT_V34:
+    - subject
+    - enrollee
+  CAMPAIGN_V34:
+    - promotion
+    - initiative
+  EMPLOYEE_V34:
+    - staff
+    - worker
+    - team-member
+  LEAD_V34:
+    - prospect
+    - opportunity
+  DEPARTMENT_V34:
+    - team
+    - division
+    - business-unit
+  WAREHOUSE_V35:
+    - facility
+    - distribution-center
+    - DC
+  PRODUCT_V35:
+    - item
+    - SKU
+  ACCOUNT_V35:
+    - deposit-account
+    - ledger
+  PAYMENT_V35:
+    - charge
+    - settlement
+  PROVIDER_V35:
+    - HCP
+    - physician
+    - clinician
+  TRANSACTION_V35:
+    - transfer
+    - movement
+  SHIPMENT_V35:
+    - delivery
+    - consignment
+  ORDER_V35:
+    - purchase
+    - transaction
+
+golden_sources:
+  WAREHOUSE: WMS (Manhattan Associates)
+  PRODUCT: PIM (Akeneo)
+  ACCOUNT: Core Banking (Temenos)
+  PAYMENT: Payment Gateway (Stripe)
+  PROVIDER: Credentialing (CAQH)
+  TRANSACTION: Payment Processor (FIS)
+  SHIPMENT: TMS (ShipStation)
+  ORDER: OMS (OrderHub)
+  CUSTOMER: CRM (Salesforce)
+  PATIENT: EHR (Epic)
+  CAMPAIGN: MAP (Marketo)
+  EMPLOYEE: HRIS (Workday)
+  LEAD: CRM (HubSpot)
+  DEPARTMENT: Org Chart (Workday)
+  WAREHOUSE_V1: WMS (Manhattan Associates)
+  PRODUCT_V1: PIM (Akeneo)
+  ACCOUNT_V1: Core Banking (Temenos)
+  PAYMENT_V1: Payment Gateway (Stripe)
+  PROVIDER_V1: Credentialing (CAQH)
+  TRANSACTION_V1: Payment Processor (FIS)
+  SHIPMENT_V1: TMS (ShipStation)
+  ORDER_V1: OMS (OrderHub)
+  CUSTOMER_V1: CRM (Salesforce)
+  PATIENT_V1: EHR (Epic)
+  CAMPAIGN_V1: MAP (Marketo)
+  EMPLOYEE_V1: HRIS (Workday)
+  LEAD_V1: CRM (HubSpot)
+  DEPARTMENT_V1: Org Chart (Workday)
+  WAREHOUSE_V2: WMS (Manhattan Associates)
+  PRODUCT_V2: PIM (Akeneo)
+  ACCOUNT_V2: Core Banking (Temenos)
+  PAYMENT_V2: Payment Gateway (Stripe)
+  PROVIDER_V2: Credentialing (CAQH)
+  TRANSACTION_V2: Payment Processor (FIS)
+  SHIPMENT_V2: TMS (ShipStation)
+  ORDER_V2: OMS (OrderHub)
+  CUSTOMER_V2: CRM (Salesforce)
+  PATIENT_V2: EHR (Epic)
+  CAMPAIGN_V2: MAP (Marketo)
+  EMPLOYEE_V2: HRIS (Workday)
+  LEAD_V2: CRM (HubSpot)
+  DEPARTMENT_V2: Org Chart (Workday)
+  WAREHOUSE_V3: WMS (Manhattan Associates)
+  PRODUCT_V3: PIM (Akeneo)
+  ACCOUNT_V3: Core Banking (Temenos)
+  PAYMENT_V3: Payment Gateway (Stripe)
+  PROVIDER_V3: Credentialing (CAQH)
+  TRANSACTION_V3: Payment Processor (FIS)
+  SHIPMENT_V3: TMS (ShipStation)
+  ORDER_V3: OMS (OrderHub)
+  CUSTOMER_V3: CRM (Salesforce)
+  PATIENT_V3: EHR (Epic)
+  CAMPAIGN_V3: MAP (Marketo)
+  EMPLOYEE_V3: HRIS (Workday)
+  LEAD_V3: CRM (HubSpot)
+  DEPARTMENT_V3: Org Chart (Workday)
+  WAREHOUSE_V4: WMS (Manhattan Associates)
+  PRODUCT_V4: PIM (Akeneo)
+  ACCOUNT_V4: Core Banking (Temenos)
+  PAYMENT_V4: Payment Gateway (Stripe)
+  PROVIDER_V4: Credentialing (CAQH)
+  TRANSACTION_V4: Payment Processor (FIS)
+  SHIPMENT_V4: TMS (ShipStation)
+  ORDER_V4: OMS (OrderHub)
+  CUSTOMER_V4: CRM (Salesforce)
+  PATIENT_V4: EHR (Epic)
+  CAMPAIGN_V4: MAP (Marketo)
+  EMPLOYEE_V4: HRIS (Workday)
+  LEAD_V4: CRM (HubSpot)
+  DEPARTMENT_V4: Org Chart (Workday)
+  WAREHOUSE_V5: WMS (Manhattan Associates)
+  PRODUCT_V5: PIM (Akeneo)
+  ACCOUNT_V5: Core Banking (Temenos)
+  PAYMENT_V5: Payment Gateway (Stripe)
+  PROVIDER_V5: Credentialing (CAQH)
+  TRANSACTION_V5: Payment Processor (FIS)
+  SHIPMENT_V5: TMS (ShipStation)
+  ORDER_V5: OMS (OrderHub)
+  CUSTOMER_V5: CRM (Salesforce)
+  PATIENT_V5: EHR (Epic)
+  CAMPAIGN_V5: MAP (Marketo)
+  EMPLOYEE_V5: HRIS (Workday)
+  LEAD_V5: CRM (HubSpot)
+  DEPARTMENT_V5: Org Chart (Workday)
+  WAREHOUSE_V6: WMS (Manhattan Associates)
+  PRODUCT_V6: PIM (Akeneo)
+  ACCOUNT_V6: Core Banking (Temenos)
+  PAYMENT_V6: Payment Gateway (Stripe)
+  PROVIDER_V6: Credentialing (CAQH)
+  TRANSACTION_V6: Payment Processor (FIS)
+  SHIPMENT_V6: TMS (ShipStation)
+  ORDER_V6: OMS (OrderHub)
+  CUSTOMER_V6: CRM (Salesforce)
+  PATIENT_V6: EHR (Epic)
+  CAMPAIGN_V6: MAP (Marketo)
+  EMPLOYEE_V6: HRIS (Workday)
+  LEAD_V6: CRM (HubSpot)
+  DEPARTMENT_V6: Org Chart (Workday)
+  WAREHOUSE_V7: WMS (Manhattan Associates)
+  PRODUCT_V7: PIM (Akeneo)
+  ACCOUNT_V7: Core Banking (Temenos)
+  PAYMENT_V7: Payment Gateway (Stripe)
+  PROVIDER_V7: Credentialing (CAQH)
+  TRANSACTION_V7: Payment Processor (FIS)
+  SHIPMENT_V7: TMS (ShipStation)
+  ORDER_V7: OMS (OrderHub)
+  CUSTOMER_V7: CRM (Salesforce)
+  PATIENT_V7: EHR (Epic)
+  CAMPAIGN_V7: MAP (Marketo)
+  EMPLOYEE_V7: HRIS (Workday)
+  LEAD_V7: CRM (HubSpot)
+  DEPARTMENT_V7: Org Chart (Workday)
+  WAREHOUSE_V8: WMS (Manhattan Associates)
+  PRODUCT_V8: PIM (Akeneo)
+  ACCOUNT_V8: Core Banking (Temenos)
+  PAYMENT_V8: Payment Gateway (Stripe)
+  PROVIDER_V8: Credentialing (CAQH)
+  TRANSACTION_V8: Payment Processor (FIS)
+  SHIPMENT_V8: TMS (ShipStation)
+  ORDER_V8: OMS (OrderHub)
+  CUSTOMER_V8: CRM (Salesforce)
+  PATIENT_V8: EHR (Epic)
+  CAMPAIGN_V8: MAP (Marketo)
+  EMPLOYEE_V8: HRIS (Workday)
+  LEAD_V8: CRM (HubSpot)
+  DEPARTMENT_V8: Org Chart (Workday)
+  WAREHOUSE_V9: WMS (Manhattan Associates)
+  PRODUCT_V9: PIM (Akeneo)
+  ACCOUNT_V9: Core Banking (Temenos)
+  PAYMENT_V9: Payment Gateway (Stripe)
+  PROVIDER_V9: Credentialing (CAQH)
+  TRANSACTION_V9: Payment Processor (FIS)
+  SHIPMENT_V9: TMS (ShipStation)
+  ORDER_V9: OMS (OrderHub)
+  CUSTOMER_V9: CRM (Salesforce)
+  PATIENT_V9: EHR (Epic)
+  CAMPAIGN_V9: MAP (Marketo)
+  EMPLOYEE_V9: HRIS (Workday)
+  LEAD_V9: CRM (HubSpot)
+  DEPARTMENT_V9: Org Chart (Workday)
+  WAREHOUSE_V10: WMS (Manhattan Associates)
+  PRODUCT_V10: PIM (Akeneo)
+  ACCOUNT_V10: Core Banking (Temenos)
+  PAYMENT_V10: Payment Gateway (Stripe)
+  PROVIDER_V10: Credentialing (CAQH)
+  TRANSACTION_V10: Payment Processor (FIS)
+  SHIPMENT_V10: TMS (ShipStation)
+  ORDER_V10: OMS (OrderHub)
+  CUSTOMER_V10: CRM (Salesforce)
+  PATIENT_V10: EHR (Epic)
+  CAMPAIGN_V10: MAP (Marketo)
+  EMPLOYEE_V10: HRIS (Workday)
+  LEAD_V10: CRM (HubSpot)
+  DEPARTMENT_V10: Org Chart (Workday)
+  WAREHOUSE_V11: WMS (Manhattan Associates)
+  PRODUCT_V11: PIM (Akeneo)
+  ACCOUNT_V11: Core Banking (Temenos)
+  PAYMENT_V11: Payment Gateway (Stripe)
+  PROVIDER_V11: Credentialing (CAQH)
+  TRANSACTION_V11: Payment Processor (FIS)
+  SHIPMENT_V11: TMS (ShipStation)
+  ORDER_V11: OMS (OrderHub)
+  CUSTOMER_V11: CRM (Salesforce)
+  PATIENT_V11: EHR (Epic)
+  CAMPAIGN_V11: MAP (Marketo)
+  EMPLOYEE_V11: HRIS (Workday)
+  LEAD_V11: CRM (HubSpot)
+  DEPARTMENT_V11: Org Chart (Workday)
+  WAREHOUSE_V12: WMS (Manhattan Associates)
+  PRODUCT_V12: PIM (Akeneo)
+  ACCOUNT_V12: Core Banking (Temenos)
+  PAYMENT_V12: Payment Gateway (Stripe)
+  PROVIDER_V12: Credentialing (CAQH)
+  TRANSACTION_V12: Payment Processor (FIS)
+  SHIPMENT_V12: TMS (ShipStation)
+  ORDER_V12: OMS (OrderHub)
+  CUSTOMER_V12: CRM (Salesforce)
+  PATIENT_V12: EHR (Epic)
+  CAMPAIGN_V12: MAP (Marketo)
+  EMPLOYEE_V12: HRIS (Workday)
+  LEAD_V12: CRM (HubSpot)
+  DEPARTMENT_V12: Org Chart (Workday)
+  WAREHOUSE_V13: WMS (Manhattan Associates)
+  PRODUCT_V13: PIM (Akeneo)
+  ACCOUNT_V13: Core Banking (Temenos)
+  PAYMENT_V13: Payment Gateway (Stripe)
+  PROVIDER_V13: Credentialing (CAQH)
+  TRANSACTION_V13: Payment Processor (FIS)
+  SHIPMENT_V13: TMS (ShipStation)
+  ORDER_V13: OMS (OrderHub)
+  CUSTOMER_V13: CRM (Salesforce)
+  PATIENT_V13: EHR (Epic)
+  CAMPAIGN_V13: MAP (Marketo)
+  EMPLOYEE_V13: HRIS (Workday)
+  LEAD_V13: CRM (HubSpot)
+  DEPARTMENT_V13: Org Chart (Workday)
+  WAREHOUSE_V14: WMS (Manhattan Associates)
+  PRODUCT_V14: PIM (Akeneo)
+  ACCOUNT_V14: Core Banking (Temenos)
+  PAYMENT_V14: Payment Gateway (Stripe)
+  PROVIDER_V14: Credentialing (CAQH)
+  TRANSACTION_V14: Payment Processor (FIS)
+  SHIPMENT_V14: TMS (ShipStation)
+  ORDER_V14: OMS (OrderHub)
+  CUSTOMER_V14: CRM (Salesforce)
+  PATIENT_V14: EHR (Epic)
+  CAMPAIGN_V14: MAP (Marketo)
+  EMPLOYEE_V14: HRIS (Workday)
+  LEAD_V14: CRM (HubSpot)
+  DEPARTMENT_V14: Org Chart (Workday)
+  WAREHOUSE_V15: WMS (Manhattan Associates)
+  PRODUCT_V15: PIM (Akeneo)
+  ACCOUNT_V15: Core Banking (Temenos)
+  PAYMENT_V15: Payment Gateway (Stripe)
+  PROVIDER_V15: Credentialing (CAQH)
+  TRANSACTION_V15: Payment Processor (FIS)
+  SHIPMENT_V15: TMS (ShipStation)
+  ORDER_V15: OMS (OrderHub)
+  CUSTOMER_V15: CRM (Salesforce)
+  PATIENT_V15: EHR (Epic)
+  CAMPAIGN_V15: MAP (Marketo)
+  EMPLOYEE_V15: HRIS (Workday)
+  LEAD_V15: CRM (HubSpot)
+  DEPARTMENT_V15: Org Chart (Workday)
+  WAREHOUSE_V16: WMS (Manhattan Associates)
+  PRODUCT_V16: PIM (Akeneo)
+  ACCOUNT_V16: Core Banking (Temenos)
+  PAYMENT_V16: Payment Gateway (Stripe)
+  PROVIDER_V16: Credentialing (CAQH)
+  TRANSACTION_V16: Payment Processor (FIS)
+  SHIPMENT_V16: TMS (ShipStation)
+  ORDER_V16: OMS (OrderHub)
+  CUSTOMER_V16: CRM (Salesforce)
+  PATIENT_V16: EHR (Epic)
+  CAMPAIGN_V16: MAP (Marketo)
+  EMPLOYEE_V16: HRIS (Workday)
+  LEAD_V16: CRM (HubSpot)
+  DEPARTMENT_V16: Org Chart (Workday)
+  WAREHOUSE_V17: WMS (Manhattan Associates)
+  PRODUCT_V17: PIM (Akeneo)
+  ACCOUNT_V17: Core Banking (Temenos)
+  PAYMENT_V17: Payment Gateway (Stripe)
+  PROVIDER_V17: Credentialing (CAQH)
+  TRANSACTION_V17: Payment Processor (FIS)
+  SHIPMENT_V17: TMS (ShipStation)
+  ORDER_V17: OMS (OrderHub)
+  CUSTOMER_V17: CRM (Salesforce)
+  PATIENT_V17: EHR (Epic)
+  CAMPAIGN_V17: MAP (Marketo)
+  EMPLOYEE_V17: HRIS (Workday)
+  LEAD_V17: CRM (HubSpot)
+  DEPARTMENT_V17: Org Chart (Workday)
+  WAREHOUSE_V18: WMS (Manhattan Associates)
+  PRODUCT_V18: PIM (Akeneo)
+  ACCOUNT_V18: Core Banking (Temenos)
+  PAYMENT_V18: Payment Gateway (Stripe)
+  PROVIDER_V18: Credentialing (CAQH)
+  TRANSACTION_V18: Payment Processor (FIS)
+  SHIPMENT_V18: TMS (ShipStation)
+  ORDER_V18: OMS (OrderHub)
+  CUSTOMER_V18: CRM (Salesforce)
+  PATIENT_V18: EHR (Epic)
+  CAMPAIGN_V18: MAP (Marketo)
+  EMPLOYEE_V18: HRIS (Workday)
+  LEAD_V18: CRM (HubSpot)
+  DEPARTMENT_V18: Org Chart (Workday)
+  WAREHOUSE_V19: WMS (Manhattan Associates)
+  PRODUCT_V19: PIM (Akeneo)
+  ACCOUNT_V19: Core Banking (Temenos)
+  PAYMENT_V19: Payment Gateway (Stripe)
+  PROVIDER_V19: Credentialing (CAQH)
+  TRANSACTION_V19: Payment Processor (FIS)
+  SHIPMENT_V19: TMS (ShipStation)
+  ORDER_V19: OMS (OrderHub)
+  CUSTOMER_V19: CRM (Salesforce)
+  PATIENT_V19: EHR (Epic)
+  CAMPAIGN_V19: MAP (Marketo)
+  EMPLOYEE_V19: HRIS (Workday)
+  LEAD_V19: CRM (HubSpot)
+  DEPARTMENT_V19: Org Chart (Workday)
+  WAREHOUSE_V20: WMS (Manhattan Associates)
+  PRODUCT_V20: PIM (Akeneo)
+  ACCOUNT_V20: Core Banking (Temenos)
+  PAYMENT_V20: Payment Gateway (Stripe)
+  PROVIDER_V20: Credentialing (CAQH)
+  TRANSACTION_V20: Payment Processor (FIS)
+  SHIPMENT_V20: TMS (ShipStation)
+  ORDER_V20: OMS (OrderHub)
+  CUSTOMER_V20: CRM (Salesforce)
+  PATIENT_V20: EHR (Epic)
+  CAMPAIGN_V20: MAP (Marketo)
+  EMPLOYEE_V20: HRIS (Workday)
+  LEAD_V20: CRM (HubSpot)
+  DEPARTMENT_V20: Org Chart (Workday)
+  WAREHOUSE_V21: WMS (Manhattan Associates)
+  PRODUCT_V21: PIM (Akeneo)
+  ACCOUNT_V21: Core Banking (Temenos)
+  PAYMENT_V21: Payment Gateway (Stripe)
+  PROVIDER_V21: Credentialing (CAQH)
+  TRANSACTION_V21: Payment Processor (FIS)
+  SHIPMENT_V21: TMS (ShipStation)
+  ORDER_V21: OMS (OrderHub)
+  CUSTOMER_V21: CRM (Salesforce)
+  PATIENT_V21: EHR (Epic)
+  CAMPAIGN_V21: MAP (Marketo)
+  EMPLOYEE_V21: HRIS (Workday)
+  LEAD_V21: CRM (HubSpot)
+  DEPARTMENT_V21: Org Chart (Workday)
+  WAREHOUSE_V22: WMS (Manhattan Associates)
+  PRODUCT_V22: PIM (Akeneo)
+  ACCOUNT_V22: Core Banking (Temenos)
+  PAYMENT_V22: Payment Gateway (Stripe)
+  PROVIDER_V22: Credentialing (CAQH)
+  TRANSACTION_V22: Payment Processor (FIS)
+  SHIPMENT_V22: TMS (ShipStation)
+  ORDER_V22: OMS (OrderHub)
+  CUSTOMER_V22: CRM (Salesforce)
+  PATIENT_V22: EHR (Epic)
+  CAMPAIGN_V22: MAP (Marketo)
+  EMPLOYEE_V22: HRIS (Workday)
+  LEAD_V22: CRM (HubSpot)
+  DEPARTMENT_V22: Org Chart (Workday)
+  WAREHOUSE_V23: WMS (Manhattan Associates)
+  PRODUCT_V23: PIM (Akeneo)
+  ACCOUNT_V23: Core Banking (Temenos)
+  PAYMENT_V23: Payment Gateway (Stripe)
+  PROVIDER_V23: Credentialing (CAQH)
+  TRANSACTION_V23: Payment Processor (FIS)
+  SHIPMENT_V23: TMS (ShipStation)
+  ORDER_V23: OMS (OrderHub)
+  CUSTOMER_V23: CRM (Salesforce)
+  PATIENT_V23: EHR (Epic)
+  CAMPAIGN_V23: MAP (Marketo)
+  EMPLOYEE_V23: HRIS (Workday)
+  LEAD_V23: CRM (HubSpot)
+  DEPARTMENT_V23: Org Chart (Workday)
+  WAREHOUSE_V24: WMS (Manhattan Associates)
+  PRODUCT_V24: PIM (Akeneo)
+  ACCOUNT_V24: Core Banking (Temenos)
+  PAYMENT_V24: Payment Gateway (Stripe)
+  PROVIDER_V24: Credentialing (CAQH)
+  TRANSACTION_V24: Payment Processor (FIS)
+  SHIPMENT_V24: TMS (ShipStation)
+  ORDER_V24: OMS (OrderHub)
+  CUSTOMER_V24: CRM (Salesforce)
+  PATIENT_V24: EHR (Epic)
+  CAMPAIGN_V24: MAP (Marketo)
+  EMPLOYEE_V24: HRIS (Workday)
+  LEAD_V24: CRM (HubSpot)
+  DEPARTMENT_V24: Org Chart (Workday)
+  WAREHOUSE_V25: WMS (Manhattan Associates)
+  PRODUCT_V25: PIM (Akeneo)
+  ACCOUNT_V25: Core Banking (Temenos)
+  PAYMENT_V25: Payment Gateway (Stripe)
+  PROVIDER_V25: Credentialing (CAQH)
+  TRANSACTION_V25: Payment Processor (FIS)
+  SHIPMENT_V25: TMS (ShipStation)
+  ORDER_V25: OMS (OrderHub)
+  CUSTOMER_V25: CRM (Salesforce)
+  PATIENT_V25: EHR (Epic)
+  CAMPAIGN_V25: MAP (Marketo)
+  EMPLOYEE_V25: HRIS (Workday)
+  LEAD_V25: CRM (HubSpot)
+  DEPARTMENT_V25: Org Chart (Workday)
+  WAREHOUSE_V26: WMS (Manhattan Associates)
+  PRODUCT_V26: PIM (Akeneo)
+  ACCOUNT_V26: Core Banking (Temenos)
+  PAYMENT_V26: Payment Gateway (Stripe)
+  PROVIDER_V26: Credentialing (CAQH)
+  TRANSACTION_V26: Payment Processor (FIS)
+  SHIPMENT_V26: TMS (ShipStation)
+  ORDER_V26: OMS (OrderHub)
+  CUSTOMER_V26: CRM (Salesforce)
+  PATIENT_V26: EHR (Epic)
+  CAMPAIGN_V26: MAP (Marketo)
+  EMPLOYEE_V26: HRIS (Workday)
+  LEAD_V26: CRM (HubSpot)
+  DEPARTMENT_V26: Org Chart (Workday)
+  WAREHOUSE_V27: WMS (Manhattan Associates)
+  PRODUCT_V27: PIM (Akeneo)
+  ACCOUNT_V27: Core Banking (Temenos)
+  PAYMENT_V27: Payment Gateway (Stripe)
+  PROVIDER_V27: Credentialing (CAQH)
+  TRANSACTION_V27: Payment Processor (FIS)
+  SHIPMENT_V27: TMS (ShipStation)
+  ORDER_V27: OMS (OrderHub)
+  CUSTOMER_V27: CRM (Salesforce)
+  PATIENT_V27: EHR (Epic)
+  CAMPAIGN_V27: MAP (Marketo)
+  EMPLOYEE_V27: HRIS (Workday)
+  LEAD_V27: CRM (HubSpot)
+  DEPARTMENT_V27: Org Chart (Workday)
+  WAREHOUSE_V28: WMS (Manhattan Associates)
+  PRODUCT_V28: PIM (Akeneo)
+  ACCOUNT_V28: Core Banking (Temenos)
+  PAYMENT_V28: Payment Gateway (Stripe)
+  PROVIDER_V28: Credentialing (CAQH)
+  TRANSACTION_V28: Payment Processor (FIS)
+  SHIPMENT_V28: TMS (ShipStation)
+  ORDER_V28: OMS (OrderHub)
+  CUSTOMER_V28: CRM (Salesforce)
+  PATIENT_V28: EHR (Epic)
+  CAMPAIGN_V28: MAP (Marketo)
+  EMPLOYEE_V28: HRIS (Workday)
+  LEAD_V28: CRM (HubSpot)
+  DEPARTMENT_V28: Org Chart (Workday)
+  WAREHOUSE_V29: WMS (Manhattan Associates)
+  PRODUCT_V29: PIM (Akeneo)
+  ACCOUNT_V29: Core Banking (Temenos)
+  PAYMENT_V29: Payment Gateway (Stripe)
+  PROVIDER_V29: Credentialing (CAQH)
+  TRANSACTION_V29: Payment Processor (FIS)
+  SHIPMENT_V29: TMS (ShipStation)
+  ORDER_V29: OMS (OrderHub)
+  CUSTOMER_V29: CRM (Salesforce)
+  PATIENT_V29: EHR (Epic)
+  CAMPAIGN_V29: MAP (Marketo)
+  EMPLOYEE_V29: HRIS (Workday)
+  LEAD_V29: CRM (HubSpot)
+  DEPARTMENT_V29: Org Chart (Workday)
+  WAREHOUSE_V30: WMS (Manhattan Associates)
+  PRODUCT_V30: PIM (Akeneo)
+  ACCOUNT_V30: Core Banking (Temenos)
+  PAYMENT_V30: Payment Gateway (Stripe)
+  PROVIDER_V30: Credentialing (CAQH)
+  TRANSACTION_V30: Payment Processor (FIS)
+  SHIPMENT_V30: TMS (ShipStation)
+  ORDER_V30: OMS (OrderHub)
+  CUSTOMER_V30: CRM (Salesforce)
+  PATIENT_V30: EHR (Epic)
+  CAMPAIGN_V30: MAP (Marketo)
+  EMPLOYEE_V30: HRIS (Workday)
+  LEAD_V30: CRM (HubSpot)
+  DEPARTMENT_V30: Org Chart (Workday)
+  WAREHOUSE_V31: WMS (Manhattan Associates)
+  PRODUCT_V31: PIM (Akeneo)
+  ACCOUNT_V31: Core Banking (Temenos)
+  PAYMENT_V31: Payment Gateway (Stripe)
+  PROVIDER_V31: Credentialing (CAQH)
+  TRANSACTION_V31: Payment Processor (FIS)
+  SHIPMENT_V31: TMS (ShipStation)
+  ORDER_V31: OMS (OrderHub)
+  CUSTOMER_V31: CRM (Salesforce)
+  PATIENT_V31: EHR (Epic)
+  CAMPAIGN_V31: MAP (Marketo)
+  EMPLOYEE_V31: HRIS (Workday)
+  LEAD_V31: CRM (HubSpot)
+  DEPARTMENT_V31: Org Chart (Workday)
+  WAREHOUSE_V32: WMS (Manhattan Associates)
+  PRODUCT_V32: PIM (Akeneo)
+  ACCOUNT_V32: Core Banking (Temenos)
+  PAYMENT_V32: Payment Gateway (Stripe)
+  PROVIDER_V32: Credentialing (CAQH)
+  TRANSACTION_V32: Payment Processor (FIS)
+  SHIPMENT_V32: TMS (ShipStation)
+  ORDER_V32: OMS (OrderHub)
+  CUSTOMER_V32: CRM (Salesforce)
+  PATIENT_V32: EHR (Epic)
+  CAMPAIGN_V32: MAP (Marketo)
+  EMPLOYEE_V32: HRIS (Workday)
+  LEAD_V32: CRM (HubSpot)
+  DEPARTMENT_V32: Org Chart (Workday)
+  WAREHOUSE_V33: WMS (Manhattan Associates)
+  PRODUCT_V33: PIM (Akeneo)
+  ACCOUNT_V33: Core Banking (Temenos)
+  PAYMENT_V33: Payment Gateway (Stripe)
+  PROVIDER_V33: Credentialing (CAQH)
+  TRANSACTION_V33: Payment Processor (FIS)
+  SHIPMENT_V33: TMS (ShipStation)
+  ORDER_V33: OMS (OrderHub)
+  CUSTOMER_V33: CRM (Salesforce)
+  PATIENT_V33: EHR (Epic)
+  CAMPAIGN_V33: MAP (Marketo)
+  EMPLOYEE_V33: HRIS (Workday)
+  LEAD_V33: CRM (HubSpot)
+  DEPARTMENT_V33: Org Chart (Workday)
+  WAREHOUSE_V34: WMS (Manhattan Associates)
+  PRODUCT_V34: PIM (Akeneo)
+  ACCOUNT_V34: Core Banking (Temenos)
+  PAYMENT_V34: Payment Gateway (Stripe)
+  PROVIDER_V34: Credentialing (CAQH)
+  TRANSACTION_V34: Payment Processor (FIS)
+  SHIPMENT_V34: TMS (ShipStation)
+  ORDER_V34: OMS (OrderHub)
+  CUSTOMER_V34: CRM (Salesforce)
+  PATIENT_V34: EHR (Epic)
+  CAMPAIGN_V34: MAP (Marketo)
+  EMPLOYEE_V34: HRIS (Workday)
+  LEAD_V34: CRM (HubSpot)
+  DEPARTMENT_V34: Org Chart (Workday)
+  WAREHOUSE_V35: WMS (Manhattan Associates)
+  PRODUCT_V35: PIM (Akeneo)
+  ACCOUNT_V35: Core Banking (Temenos)
+  PAYMENT_V35: Payment Gateway (Stripe)
+  PROVIDER_V35: Credentialing (CAQH)
+  TRANSACTION_V35: Payment Processor (FIS)
+  SHIPMENT_V35: TMS (ShipStation)
+  ORDER_V35: OMS (OrderHub)

@@ -20,7 +20,7 @@ class EvalConfig:
     run_latency: bool = False
     run_conflicts: bool = True
     run_human_eval: bool = False
-    model: str = "claude-sonnet-4-6"
+    model: str = ""  # auto-detect from CTXPACK_EVAL_MODEL or provider default
     api_key_env: str = "ANTHROPIC_API_KEY"
     output_dir: str = ""
 

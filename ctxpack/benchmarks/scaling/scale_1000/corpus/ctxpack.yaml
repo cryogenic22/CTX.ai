@@ -1,0 +1,54 @@
+domain: scaling-test-1000
+scope: multi-domain-eval
+author: ctxpack-scaling-generator
+
+entity_aliases:
+  TRANSACTION:
+    - transfer
+    - movement
+  EMPLOYEE:
+    - staff
+    - worker
+    - team-member
+  ACCOUNT:
+    - deposit-account
+    - ledger
+  PATIENT:
+    - subject
+    - enrollee
+  ORDER:
+    - purchase
+    - transaction
+  CAMPAIGN:
+    - promotion
+    - initiative
+  LEAD:
+    - prospect
+    - opportunity
+  PROVIDER:
+    - HCP
+    - physician
+    - clinician
+  SHIPMENT:
+    - delivery
+    - consignment
+  DEPARTMENT:
+    - team
+    - division
+    - business-unit
+  CUSTOMER:
+    - client
+    - buyer
+
+golden_sources:
+  TRANSACTION: Payment Processor (FIS)
+  EMPLOYEE: HRIS (Workday)
+  ACCOUNT: Core Banking (Temenos)
+  PATIENT: EHR (Epic)
+  ORDER: OMS (OrderHub)
+  CAMPAIGN: MAP (Marketo)
+  LEAD: CRM (HubSpot)
+  PROVIDER: Credentialing (CAQH)
+  SHIPMENT: TMS (ShipStation)
+  DEPARTMENT: Org Chart (Workday)
+  CUSTOMER: CRM (Salesforce)
