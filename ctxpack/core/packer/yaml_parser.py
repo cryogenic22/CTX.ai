@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from typing import Any, Optional
 
-from .ir import IREntity, IRField, IRSource, IRWarning, Severity
+from .ir import Certainty, IREntity, IRField, IRRelationship, IRSource, IRWarning, Severity
 
 # ── YAML Subset Parser ──
 
@@ -30,6 +30,7 @@ class YAMLParseError(Exception):
 _UNSUPPORTED_RE = re.compile(r"^[^#]*[&*!](?=[A-Za-z])")
 _ANCHOR_RE = re.compile(r"[&*]\w+")
 _TAG_RE = re.compile(r"!!\w+|![^\s]+")
+_MAPPING_RE = re.compile(r"^(\s*)([^#:]+?)\s*:\s*(.*?)\s*$")
 
 
 def yaml_parse(text: str, *, filename: str = "") -> Any:
@@ -141,7 +142,7 @@ class _YAMLParser:
 
             self._check_unsupported(line)
 
-            m = re.match(r"^(\s*)([^#:]+?)\s*:\s*(.*?)\s*$", line)
+            m = _MAPPING_RE.match(line)
             if not m:
                 break
             key_indent = len(m.group(1))
@@ -301,21 +302,19 @@ class _YAMLParser:
         """Split flow collection by commas, respecting nesting."""
         items: list[str] = []
         depth = 0
-        current: list[str] = []
-        for ch in text:
+        start = 0
+        for i, ch in enumerate(text):
             if ch in ("[", "{"):
                 depth += 1
-                current.append(ch)
             elif ch in ("]", "}"):
                 depth -= 1
-                current.append(ch)
             elif ch == "," and depth == 0:
-                items.append("".join(current))
-                current = []
-            else:
-                current.append(ch)
-        if current:
-            items.append("".join(current))
+                items.append(text[start:i])
+                start = i + 1
+        if start < len(text):
+            items.append(text[start:])
+        elif start == len(text) and start > 0:
+            pass  # trailing comma, no empty append
         return items
 
     def _parse_scalar(self, text: str) -> Any:
@@ -444,6 +443,8 @@ def _looks_like_entity(data: dict) -> bool:
         "identifier", "golden_source", "match_rules", "pii",
         "pii_classification", "retention", "fields", "attributes",
         "status", "relationships", "constraints",
+        "id", "uuid", "has_many", "has_one", "references",
+        "depends_on", "primary_key",
     }
     return bool(set(data.keys()) & entity_keys)
 
@@ -453,9 +454,14 @@ def _extract_single_entity(data: dict[str, Any], source: IRSource) -> IREntity:
     name = _canonicalize_name(str(data.get("entity", "UNKNOWN")))
     aliases: list[str] = []
     fields: list[IRField] = []
+    relationships: list[IRRelationship] = []
     annotations: dict[str, str] = {}
 
     description = str(data.get("description", ""))
+
+    _RELATIONSHIP_KEYS = {"belongs_to", "belongs-to", "has_many", "has-many",
+                          "has_one", "has-one", "references", "refs",
+                          "depends_on", "depends-on"}
 
     for key, val in data.items():
         if key == "entity":
@@ -468,82 +474,174 @@ def _extract_single_entity(data: dict[str, Any], source: IRSource) -> IREntity:
             annotations["description"] = description
             continue
 
-        compressed = _compress_entity_field(key, val, description=description)
+        comp_key, comp_val, certainty = _compress_entity_field(key, val, description=description)
         fields.append(
             IRField(
-                key=compressed[0],
-                value=compressed[1],
+                key=comp_key,
+                value=comp_val,
                 raw_value=val,
                 source=source,
+                certainty=certainty,
             )
         )
+
+        # Build IRRelationship for relationship keys
+        norm_key = key.lower().replace("-", "_")
+        if norm_key in {k.replace("-", "_") for k in _RELATIONSHIP_KEYS}:
+            rels = _build_relationships(name, norm_key, val, source)
+            relationships.extend(rels)
 
     return IREntity(
         name=name,
         aliases=aliases,
         fields=fields,
+        relationships=relationships,
         annotations=annotations,
         sources=[source],
     )
 
 
+def _build_relationships(
+    entity_name: str, norm_key: str, val: Any, source: IRSource
+) -> list[IRRelationship]:
+    """Build IRRelationship objects from a relationship field value."""
+    _REL_TYPE_MAP = {
+        "belongs_to": "belongs-to",
+        "has_many": "has-many",
+        "has_one": "has-one",
+        "references": "references",
+        "refs": "references",
+        "depends_on": "depends-on",
+    }
+    _CARDINALITY_MAP = {
+        "belongs_to": "1:1",
+        "has_many": "1:N",
+        "has_one": "1:1",
+        "references": "1:1",
+        "refs": "1:1",
+        "depends_on": "1:1",
+    }
+    rel_type = _REL_TYPE_MAP.get(norm_key, "references")
+    default_card = _CARDINALITY_MAP.get(norm_key, "1:1")
+
+    results: list[IRRelationship] = []
+
+    if isinstance(val, dict):
+        target = _canonicalize_name(str(val.get("entity", "")))
+        if target:
+            results.append(IRRelationship(
+                source_entity=entity_name,
+                target_entity=target,
+                rel_type=rel_type,
+                via_field=str(val.get("field", val.get("via", ""))),
+                cardinality=str(val.get("cardinality", default_card)),
+                cascade=str(val.get("cascade", "")),
+                required=bool(val.get("required", val.get("mandatory", False))),
+                source=source,
+            ))
+    elif isinstance(val, list):
+        for item in val:
+            if isinstance(item, dict):
+                target = _canonicalize_name(str(item.get("entity", "")))
+                if target:
+                    results.append(IRRelationship(
+                        source_entity=entity_name,
+                        target_entity=target,
+                        rel_type=rel_type,
+                        via_field=str(item.get("field", item.get("via", ""))),
+                        cardinality=str(item.get("cardinality", default_card)),
+                        cascade=str(item.get("cascade", "")),
+                        required=bool(item.get("required", item.get("mandatory", False))),
+                        source=source,
+                    ))
+            elif isinstance(item, str):
+                results.append(IRRelationship(
+                    source_entity=entity_name,
+                    target_entity=_canonicalize_name(item),
+                    rel_type=rel_type,
+                    cardinality=default_card,
+                    source=source,
+                ))
+    elif isinstance(val, str):
+        results.append(IRRelationship(
+            source_entity=entity_name,
+            target_entity=_canonicalize_name(val),
+            rel_type=rel_type,
+            cardinality=default_card,
+            source=source,
+        ))
+
+    return results
+
+
 # ── Field Compression Rules ──
 
 
-def _compress_entity_field(key: str, val: Any, *, description: str = "") -> tuple[str, str]:
+def _compress_entity_field(key: str, val: Any, *, description: str = "") -> tuple[str, str, Certainty]:
     """Compress a YAML entity field to L2 key:value notation.
 
-    Returns (compressed_key, compressed_value).
+    Returns (compressed_key, compressed_value, certainty).
     """
     norm_key = key.lower().replace("-", "_")
 
     # golden_source → ★GOLDEN-SOURCE:value
     if norm_key == "golden_source":
-        return "★GOLDEN-SOURCE", _compress_scalar(val)
+        return "★GOLDEN-SOURCE", _compress_scalar(val), Certainty.EXPLICIT
 
     # identifier → IDENTIFIER:name(type,flags)
     if norm_key == "identifier":
-        return "IDENTIFIER", _compress_identifier(val, description=description)
+        value, certainty = _compress_identifier(val, description=description)
+        return "IDENTIFIER", value, certainty
 
     # match_rules → MATCH-RULES:[field:method(options),...]
     if norm_key == "match_rules":
-        return "MATCH-RULES", _compress_match_rules(val)
+        return "MATCH-RULES", _compress_match_rules(val), Certainty.EXPLICIT
 
     # pii + pii_classification → PII-CLASSIFICATION:fields→LEVEL
     if norm_key == "pii_classification":
-        return "PII-CLASSIFICATION", _compress_scalar(val)
+        return "PII-CLASSIFICATION", _compress_scalar(val), Certainty.EXPLICIT
     if norm_key == "pii":
         if isinstance(val, list):
-            return "PII", "+".join(str(v) for v in val)
-        return "PII", _compress_scalar(val)
+            return "PII", "+".join(str(v) for v in val), Certainty.EXPLICIT
+        return "PII", _compress_scalar(val), Certainty.EXPLICIT
 
     # retention → RETENTION:active→X|churned→N-months→action
     if norm_key == "retention":
-        return "RETENTION", _compress_retention(val)
+        return "RETENTION", _compress_retention(val), Certainty.EXPLICIT
 
     # status / status_machine → STATUS-MACHINE:state→state→...|...
     if norm_key in ("status", "status_machine", "status_flow"):
-        return "STATUS-MACHINE", _compress_status(val)
+        return "STATUS-MACHINE", _compress_status(val), Certainty.EXPLICIT
 
-    # relationships (belongs_to, etc.)
+    # relationships (belongs_to, has_many, has_one, references, depends_on)
     if norm_key in ("belongs_to", "belongs-to"):
-        return "BELONGS-TO", _compress_relationship(val)
+        return "BELONGS-TO", _compress_relationship(val), Certainty.EXPLICIT
+    if norm_key in ("has_many", "has-many"):
+        return "HAS-MANY", _compress_relationship_extended(val, "1:N"), Certainty.EXPLICIT
+    if norm_key in ("has_one", "has-one"):
+        return "HAS-ONE", _compress_relationship_extended(val, "1:1"), Certainty.EXPLICIT
+    if norm_key in ("references", "refs"):
+        return "REFERENCES", _compress_relationship_extended(val, "1:1"), Certainty.EXPLICIT
+    if norm_key in ("depends_on", "depends-on"):
+        return "DEPENDS-ON", _compress_relationship_extended(val, "1:1"), Certainty.EXPLICIT
 
     # immutable_after → IMMUTABLE-AFTER:state(details)
     if norm_key in ("immutable_after", "immutable-after"):
-        return "IMMUTABLE-AFTER", _compress_scalar(val)
+        return "IMMUTABLE-AFTER", _compress_scalar(val), Certainty.EXPLICIT
 
     # financial_fields → FINANCIAL-FIELDS:[f1,f2]→TYPE
     if norm_key in ("financial_fields", "financial-fields"):
-        return "FINANCIAL-FIELDS", _compress_typed_list(val)
+        return "FINANCIAL-FIELDS", _compress_typed_list(val), Certainty.EXPLICIT
 
     # Generic compression
     compressed_key = _hyphenate(key).upper()
     compressed_val = _compress_value(val)
-    return compressed_key, compressed_val
+    return compressed_key, compressed_val, Certainty.EXPLICIT
 
 
-def _compress_identifier(val: Any, *, description: str = "") -> str:
+def _compress_identifier(val: Any, *, description: str = "") -> tuple[str, Certainty]:
+    """Returns (compressed_value, certainty)."""
+    certainty = Certainty.EXPLICIT
     if isinstance(val, dict):
         name = val.get("name", val.get("field", ""))
         typ = val.get("type", "")
@@ -553,7 +651,11 @@ def _compress_identifier(val: Any, *, description: str = "") -> str:
                 # Enrich "unique" with scope from description if available
                 if flag_key == "unique" and description:
                     scope = _extract_scope(description, flag_key)
-                    flags.append(scope if scope else flag_key)
+                    if scope:
+                        flags.append(scope)
+                        certainty = Certainty.INFERRED
+                    else:
+                        flags.append(flag_key)
                 else:
                     flags.append(flag_key)
         # Also include explicit scope/unique_per fields
@@ -562,11 +664,11 @@ def _compress_identifier(val: Any, *, description: str = "") -> str:
             flags.append(f"unique-per-{_hyphenate(str(scope_val))}")
         parts = [str(typ)] + flags if typ else flags
         if parts:
-            return f"{name}({','.join(parts)})"
-        return str(name)
+            return f"{name}({','.join(parts)})", certainty
+        return str(name), certainty
     if isinstance(val, str):
-        return val
-    return str(val)
+        return val, certainty
+    return str(val), certainty
 
 
 def _extract_scope(description: str, flag: str) -> str:
@@ -656,6 +758,42 @@ def _compress_relationship(val: Any) -> str:
         required = val.get("required", val.get("mandatory", False))
         req_str = ",mandatory" if required else ""
         return f"@ENTITY-{_canonicalize_name(entity)}({field}{req_str})"
+    return str(val)
+
+
+def _compress_relationship_extended(val: Any, default_cardinality: str = "1:1") -> str:
+    """Compress an extended relationship (has_many, has_one, references, depends_on).
+
+    Supports dict input with: entity, field/via, cardinality, cascade, required.
+    Uses spec operators: → (standard), ~> (weak), >> (cascade).
+    """
+    if isinstance(val, dict):
+        entity = val.get("entity", "")
+        field = val.get("field", val.get("via", ""))
+        cardinality = val.get("cardinality", default_cardinality)
+        cascade = val.get("cascade", "")
+        required = val.get("required", val.get("mandatory", False))
+
+        parts = []
+        if field:
+            parts.append(field)
+        parts.append(cardinality)
+        if required:
+            parts.append("mandatory")
+
+        ref = f"@ENTITY-{_canonicalize_name(entity)}({','.join(parts)})"
+        if cascade:
+            ref += f">>cascade-{_hyphenate(str(cascade))}"
+        return ref
+    if isinstance(val, list):
+        # List of relationships
+        items = []
+        for item in val:
+            items.append(_compress_relationship_extended(item, default_cardinality))
+        return "+".join(items)
+    if isinstance(val, str):
+        # Simple entity name reference
+        return f"@ENTITY-{_canonicalize_name(val)}"
     return str(val)
 
 

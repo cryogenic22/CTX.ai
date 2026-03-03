@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from .ir import IRCorpus, IREntity, IRField, IRSource
+from .ir import Certainty, IRCorpus, IREntity, IRField, IRRelationship, IRSource
 
 
 def resolve_entities(
@@ -41,6 +41,11 @@ def resolve_entities(
         merged.append(_merge_entities(canonical, group))
 
     corpus.entities = merged
+
+    # Cross-entity relationship inference: for each BELONGS-TO on A→B,
+    # add synthetic HAS-MANY on B→A (with certainty=INFERRED)
+    _infer_bidirectional_relationships(corpus)
+
     return corpus
 
 
@@ -119,10 +124,74 @@ def _dedup_fields(fields: list[IRField]) -> list[IRField]:
             if field.salience > existing.salience:
                 existing.salience = field.salience
             if field.source and existing.source:
-                # Keep the first source, just note the merge
-                pass
+                # Track additional sources for multi-source provenance
+                existing.additional_sources.append(field.source)
         else:
             seen[dedup_key] = field
             result.append(field)
 
     return result
+
+
+def _infer_bidirectional_relationships(corpus: IRCorpus) -> None:
+    """For each BELONGS-TO on entity A→B, add HAS-MANY on B→A if not already present."""
+    entity_map = {e.name: e for e in corpus.entities}
+
+    # Collect all explicit relationships
+    existing: set[tuple[str, str, str]] = set()  # (source, target, rel_type)
+    for entity in corpus.entities:
+        for rel in entity.relationships:
+            existing.add((rel.source_entity, rel.target_entity, rel.rel_type))
+
+    # Infer inverse relationships
+    for entity in list(corpus.entities):
+        for rel in list(entity.relationships):
+            if rel.rel_type == "belongs-to":
+                inverse_key = (rel.target_entity, rel.source_entity, "has-many")
+                if inverse_key not in existing and rel.target_entity in entity_map:
+                    target = entity_map[rel.target_entity]
+                    inverse_rel = IRRelationship(
+                        source_entity=rel.target_entity,
+                        target_entity=rel.source_entity,
+                        rel_type="has-many",
+                        via_field=rel.via_field,
+                        cardinality="1:N",
+                        cascade=rel.cascade,
+                        required=False,
+                        source=rel.source,
+                        certainty=Certainty.INFERRED,
+                    )
+                    target.relationships.append(inverse_rel)
+                    # Also add as a field
+                    target.fields.append(IRField(
+                        key="HAS-MANY",
+                        value=f"@ENTITY-{rel.source_entity}({rel.via_field},1:N)",
+                        raw_value=None,
+                        source=rel.source,
+                        certainty=Certainty.INFERRED,
+                    ))
+                    existing.add(inverse_key)
+            elif rel.rel_type == "has-many":
+                inverse_key = (rel.target_entity, rel.source_entity, "belongs-to")
+                if inverse_key not in existing and rel.target_entity in entity_map:
+                    target = entity_map[rel.target_entity]
+                    inverse_rel = IRRelationship(
+                        source_entity=rel.target_entity,
+                        target_entity=rel.source_entity,
+                        rel_type="belongs-to",
+                        via_field=rel.via_field,
+                        cardinality="1:1",
+                        cascade="",
+                        required=False,
+                        source=rel.source,
+                        certainty=Certainty.INFERRED,
+                    )
+                    target.relationships.append(inverse_rel)
+                    target.fields.append(IRField(
+                        key="BELONGS-TO",
+                        value=f"@ENTITY-{rel.source_entity}({rel.via_field})",
+                        raw_value=None,
+                        source=rel.source,
+                        certainty=Certainty.INFERRED,
+                    ))
+                    existing.add(inverse_key)

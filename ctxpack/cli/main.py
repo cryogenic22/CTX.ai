@@ -3,9 +3,10 @@
 Commands:
   ctxpack parse <file> [--level 1|2|3] [--json]
   ctxpack validate <file> [--level 1|2|3]
-  ctxpack fmt <file> [--ascii] [--inplace]
-  ctxpack pack <corpus-dir> [-o output.ctx] [--domain X] [--scope X] [--author X] [--ascii] [--validate]
+  ctxpack fmt <file> [--ascii] [--inplace] [--natural-language]
+  ctxpack pack <corpus-dir> [-o output.ctx] [--domain X] [--scope X] [--author X] [--ascii] [--validate] [--natural-language]
   ctxpack eval [--golden-set PATH] [--skip-fidelity] [--skip-latency] [--skip-human] [--output PATH]
+  ctxpack bench [--sizes 1000,5000,10000] [--iterations 10] [--json]
 """
 
 from __future__ import annotations
@@ -56,6 +57,8 @@ def main(argv: list[str] | None = None) -> int:
     p_fmt.add_argument("file", help="Path to .ctx file")
     p_fmt.add_argument("--ascii", action="store_true", help="ASCII-only output")
     p_fmt.add_argument("--inplace", action="store_true", help="Modify file in place")
+    p_fmt.add_argument("--natural-language", action="store_true", dest="natural_language",
+                        help="Output in natural language (L1) format")
 
     # pack
     p_pack = sub.add_parser("pack", help="Pack a corpus directory into a .ctx file")
@@ -67,6 +70,23 @@ def main(argv: list[str] | None = None) -> int:
     p_pack.add_argument("--ascii", action="store_true", help="ASCII-only output")
     p_pack.add_argument("--validate", action="store_true", dest="do_validate",
                         help="Validate output after packing")
+    p_pack.add_argument("--strict", action="store_true",
+                        help="Suppress inferred fields (emit only explicit facts)")
+    p_pack.add_argument("--enriched", action="store_true", default=True,
+                        help="Emit inferred fields with (inferred) markers (default)")
+    p_pack.add_argument("--provenance", choices=["companion", "inline", "none"],
+                        default="companion",
+                        help="Provenance mode: companion (.ctx.prov file), inline (SRC: in output), none")
+    p_pack.add_argument("--layers", default="L2",
+                        help="Comma-separated layers to generate (e.g. L2,L3)")
+    p_pack.add_argument("--max-ratio", type=float, default=0,
+                        help="Maximum compression ratio (e.g. 10.0). 0 = no limit")
+    p_pack.add_argument("--min-tokens-per-entity", type=int, default=0,
+                        help="Minimum token budget per entity (e.g. 25). 0 = no limit")
+    p_pack.add_argument("--natural-language", action="store_true", dest="natural_language",
+                        help="Output in natural language (L1) format")
+    p_pack.add_argument("--template",
+                        help="Domain template name (e.g. pharma, data-platform) or path to template YAML")
 
     # eval
     p_eval = sub.add_parser("eval", help="Run evaluation against golden set")
@@ -80,6 +100,20 @@ def main(argv: list[str] | None = None) -> int:
     p_eval.add_argument("--output", help="Output directory for results")
     p_eval.add_argument("--version", default="0.2.0", help="Version tag for results")
 
+    # diff
+    p_diff = sub.add_parser("diff", help="Compare two .ctx files")
+    p_diff.add_argument("file1", help="First .ctx file")
+    p_diff.add_argument("file2", help="Second .ctx file")
+
+    # bench
+    p_bench = sub.add_parser("bench", help="Run latency benchmark across corpus sizes")
+    p_bench.add_argument("--sizes", default="1000,5000,10000,25000,50000,100000",
+                         help="Comma-separated corpus sizes in tokens (default: 1000,5000,10000,25000,50000,100000)")
+    p_bench.add_argument("--iterations", type=int, default=10,
+                         help="Iterations per size (default: 10)")
+    p_bench.add_argument("--json", action="store_true", dest="json_output",
+                         help="Output as JSON")
+
     # scaling
     p_scale = sub.add_parser("scaling", help="Run scaling curve experiment")
     p_scale.add_argument("--skip-fidelity", action="store_true",
@@ -88,6 +122,8 @@ def main(argv: list[str] | None = None) -> int:
                          help="Max questions per scale (controls API cost)")
     p_scale.add_argument("--regenerate", action="store_true",
                          help="Regenerate scaling corpora")
+    p_scale.add_argument("--max-scale", type=int, default=0,
+                         help="Max corpus scale to run (e.g. 5000 to skip 20K/50K)")
 
     args = ap.parse_args(argv)
 
@@ -102,6 +138,10 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_pack(args)
         elif args.command == "eval":
             return _cmd_eval(args)
+        elif args.command == "diff":
+            return _cmd_diff(args)
+        elif args.command == "bench":
+            return _cmd_bench(args)
         elif args.command == "scaling":
             return _cmd_scaling(args)
     except ParseError as e:
@@ -159,7 +199,7 @@ def _cmd_validate(args: argparse.Namespace) -> int:
 def _cmd_fmt(args: argparse.Namespace) -> int:
     text = _read_file(args.file)
     doc = parse(text, level=2, filename=args.file)
-    output = serialize(doc, ascii_mode=args.ascii)
+    output = serialize(doc, ascii_mode=args.ascii, natural_language=args.natural_language)
 
     if args.inplace:
         with open(args.file, "w", encoding="utf-8") as f:
@@ -174,14 +214,22 @@ def _cmd_fmt(args: argparse.Namespace) -> int:
 def _cmd_pack(args: argparse.Namespace) -> int:
     from ..core.packer import pack
 
+    layer_list = [l.strip() for l in args.layers.split(",")]
     result = pack(
         args.corpus_dir,
         domain=args.domain,
         scope=args.scope,
         author=args.author,
+        strict=args.strict,
+        provenance=args.provenance,
+        layers=layer_list,
+        max_ratio=args.max_ratio,
+        min_tokens_per_entity=args.min_tokens_per_entity,
+        template=args.template,
     )
 
-    output_text = serialize(result.document, ascii_mode=args.ascii)
+    output_text = serialize(result.document, ascii_mode=args.ascii,
+                            natural_language=args.natural_language)
 
     if args.do_validate:
         diags = validate(result.document)
@@ -196,6 +244,29 @@ def _cmd_pack(args: argparse.Namespace) -> int:
         with open(args.output, "w", encoding="utf-8") as f:
             f.write(output_text)
         print(f"Packed {result.source_file_count} files → {args.output}")
+
+        # Write companion provenance file if available
+        if result.provenance_text and args.provenance == "companion":
+            prov_path = args.output + ".prov"
+            with open(prov_path, "w", encoding="utf-8") as f:
+                f.write(result.provenance_text)
+            print(f"  Provenance: {prov_path}")
+
+        # Write L3 and manifest if generated
+        if result.l3_document:
+            import os
+            out_dir = os.path.dirname(args.output) or "."
+            l3_path = os.path.join(out_dir, "L3.ctx")
+            with open(l3_path, "w", encoding="utf-8") as f:
+                f.write(serialize(result.l3_document, ascii_mode=args.ascii))
+            print(f"  L3 gist: {l3_path}")
+
+        if result.manifest_document:
+            manifest_path = os.path.join(out_dir, "MANIFEST.ctx")
+            with open(manifest_path, "w", encoding="utf-8") as f:
+                f.write(serialize(result.manifest_document, ascii_mode=args.ascii))
+            print(f"  Manifest: {manifest_path}")
+
         print(f"  Entities: {result.entity_count}")
         print(f"  Source tokens: ~{result.source_token_count}")
         print(f"  Warnings: {result.warning_count}")
@@ -203,6 +274,20 @@ def _cmd_pack(args: argparse.Namespace) -> int:
         print(output_text, end="")
 
     return 0
+
+
+def _cmd_diff(args: argparse.Namespace) -> int:
+    from ..core.diff import diff_documents, format_diff
+
+    text1 = _read_file(args.file1)
+    text2 = _read_file(args.file2)
+    doc1 = parse(text1, level=2, filename=args.file1)
+    doc2 = parse(text2, level=2, filename=args.file2)
+
+    result = diff_documents(doc1, doc2)
+    print(format_diff(result))
+
+    return 0 if not result.has_changes else 1
 
 
 def _cmd_eval(args: argparse.Namespace) -> int:
@@ -281,6 +366,7 @@ def _cmd_scaling(args: argparse.Namespace) -> int:
         max_questions_per_scale=args.max_questions,
         regenerate=args.regenerate,
         skip_fidelity=args.skip_fidelity,
+        max_scale=args.max_scale,
     )
 
     output_path = os.path.join(base_dir, "results", "scaling_curve.json")
@@ -288,6 +374,23 @@ def _cmd_scaling(args: argparse.Namespace) -> int:
     print(f"\nResults saved: {output_path}")
 
     print_scaling_summary(results)
+    return 0
+
+
+def _cmd_bench(args: argparse.Namespace) -> int:
+    from ..benchmarks.bench import format_table, run_bench
+
+    sizes = [int(s.strip()) for s in args.sizes.split(",")]
+    print(f"Running latency benchmark: sizes={sizes}, iterations={args.iterations}")
+
+    suite = run_bench(sizes=sizes, iterations=args.iterations)
+
+    if args.json_output:
+        print(suite.to_json())
+    else:
+        print()
+        print(format_table(suite))
+
     return 0
 
 

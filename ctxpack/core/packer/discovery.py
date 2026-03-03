@@ -21,6 +21,7 @@ class PackConfig:
     exclude: list[str] = field(default_factory=list)
     entity_aliases: dict[str, list[str]] = field(default_factory=dict)
     golden_sources: dict[str, str] = field(default_factory=dict)
+    template: str = ""
 
 
 @dataclass
@@ -29,6 +30,7 @@ class DiscoveryResult:
 
     yaml_files: list[str] = field(default_factory=list)
     md_files: list[str] = field(default_factory=list)
+    json_files: list[str] = field(default_factory=list)
     config: PackConfig = field(default_factory=PackConfig)
     corpus_root: str = ""
 
@@ -95,6 +97,8 @@ def discover(
                 result.yaml_files.append(full_path)
             elif lower.endswith(".md"):
                 result.md_files.append(full_path)
+            elif lower.endswith(".json"):
+                result.json_files.append(full_path)
 
     return result
 
@@ -130,6 +134,10 @@ def _load_config(path: str) -> PackConfig:
     golden = data.get("golden_sources")
     if isinstance(golden, dict):
         config.golden_sources = {str(k).upper(): str(v) for k, v in golden.items()}
+
+    tmpl = data.get("template")
+    if isinstance(tmpl, str) and tmpl:
+        config.template = tmpl
 
     return config
 
