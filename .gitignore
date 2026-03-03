@@ -1,10 +1,36 @@
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.egg-info/
+*.egg
 dist/
 build/
 .pytest_cache/
 .hypothesis/
-*.egg
+
+# Environment / secrets
 .env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Office temp/lock files
+~$*
+
+# Generated binaries (keep .md source, regenerate with paper/md_to_docx.py)
+paper/*.docx
+
+# Generated scaling test corpora (regenerate with scaling_runner.py)
+ctxpack/benchmarks/scaling/scaling_corpora/
+
+# Working notes (not part of the project)
+rough_notes.md

@@ -1,0 +1,115 @@
+§CTX v1.0 L2 DOMAIN:ctxpack-whitepaper
+COMPRESSED:2026-02-22 SOURCE_TOKENS:~12000 AUTHOR:Kapil-Pant(Independent-Researcher)
+LICENSE:AGPL-3.0 REPO:github.com/cryogenic22/CTX.ai
+
+±CORE-THESIS
+LLM-context→linear-cost($3-15/M-tokens)+quadratic-attention
+Domain-knowledge(YAML,MD,rules,entities)→high-structural-redundancy
+★INSIGHT:gap-between(human-written-density,transformer-consumed-density)→exploitable
+ANALOGY:MP3→psychoacoustic-model|CtxPack→transformer-perceptual-model
+CODEC-TYPE:deterministic,open-source,text-based,inspectable,versionable
+
+±CTX-FORMAT ★FORMAL-SPEC:PEG-grammar(105-rules)
+PRINCIPLES:[plain-text(UTF-8,diffable,git-friendly),multi-resolution,deterministic,format-aware(not-model-specific)]
+CONFORMANCE-LEVELS:L1(compressed-prose)→L2(semantic-graph)→L3(abstract-gist)
+OPERATORS:[§(header),±(section),→(flow/transition),|(alternative),+(conjunction),★(high-salience),⚠(warning),@(cross-ref),¬(negation)]
+OPERATOR-DESIGN:Unicode-operators→single/two-token-units→high-info-density-per-token
+PARSER:recursive-descent,pure-Python(410-lines),zero-deps→frozen-dataclass-AST
+AST-NODES:[CTXDocument,Header,Section,KeyValue,InlineList,PlainLine,QuotedBlock]
+⚠TOKENIZER-NOTE:token-counts-use-whitespace-split-approximation|cross-tokenizer-variance-expected(<10%)
+
+±PACKER PIPELINE:Discover→Parse→EntityResolve→ConflictDetect→Score→Compress
+STAGE-1-DISCOVER:walk-corpus,classify(.yaml/.yml,.md),load-ctxpack.yaml-config
+STAGE-2-PARSE:YAML-subset-parser(722-lines,stdlib-only,¬anchors,¬tags)|MD-heading/list-extractor→IR(entities,fields,warnings)
+STAGE-3-RESOLVE:exact-match→case-insensitive→alias→singular/plural|field-dedup-by(key+value)|provenance-tracked
+STAGE-4-CONFLICT:retention-policy|null-policy|type-mismatch|PII-classification→⚠warnings
+STAGE-5-SALIENCE:entity_score=(source_count×1.0+cross_refs×2.0+warnings×1.5)×golden_boost(1.5)|field-boost:[★:2.0x,⚠:1.5x,IDENTIFIER/PII/MATCH-RULES:1.3x]|sort-descending→exploit-attention(primacy+recency)
+STAGE-6-COMPRESS:IR→CTXDocument-AST(bottom-up)|type-specific-rules→operator-notation
+★SCOPE-INFERENCE:entity-description-pattern-match→enrich-identifiers(e.g.unique:true+desc:"one-per-merchant"→unique-per-merchant)|disable-via(--strict)
+IMPL:pure-Python,zero-deps,2407-lines,10-modules|CLI:ctxpack-pack|API:from-ctxpack.core.packer-import-pack
+
+±EVAL-METHODOLOGY
+AXES:[compression-efficiency(source/compressed-ratio),information-fidelity(Q&A-correctness)]
+★GOLDEN-SET:10-source-files(4-entity-YAML,2-rule-YAML,3-MD,1-config)|4-entities(CUSTOMER,ORDER,PAYMENT,PRODUCT)|690-source-tokens|2-planted-conflicts
+QUESTIONS:25-total[Easy:7(direct-lookup),Medium:11(multi-field-inference),Hard:7(cross-doc,adversarial)]|5-adversarial(2-hallucination-traps,2-low-salience,1-cross-entity-negation)
+BASELINES:[raw-stuffing(1x,upper-bound),ctxpack-L2(ours),llm-summary(same-token-budget),naive-truncation(first-N-words,floor)]
+GRADING-DUAL:[rule-based(keyword-match,60%-threshold),llm-as-judge(CORRECT/INCORRECT)]|primary-metric:llm-judge(cross-model)
+★PROMPT-EQUALIZATION(v0.2.1):identical-system+user-msgs-both-providers|QA-sys:"precise-Q&A-assistant"|judge-sys:"expert-grader"|temperature:0
+SELF-JUDGING:each-model-judges-own-answers|cross-model-agreement:92%(23/25)
+JUDGE-VARIANCE:±4-12pp-between-independent-runs
+MODELS:[Claude-Sonnet-4.6(Anthropic),GPT-4o(OpenAI)]|same-.ctx-files,same-questions,same-scales
+SCALING-CORPORA:synthetic-multi-domain(retail,logistics,healthcare,fintech,HR,marketing)|scales:[690,1202,4098,15244,37411]-tokens
+TOTAL-COST:~$30(~2500-API-calls,~8M-input-tokens)|60%-attributable-to-raw-37K
+
+±RESULTS-GOLDEN-SET SOURCE:690-tokens QUESTIONS:25 CTX-TOKENS:124 RATIO:5.6x
+CTXPACK:[Claude:100%,GPT-4o:92%]
+RAW:[Claude:96%,GPT-4o:88%]
+LLM-SUMMARY:[Claude:72%,GPT-4o:40%]|tokens:~112-114
+NAIVE:[Claude:24%,GPT-4o:36%]
+★FINDING-1:CtxPack-EXCEEDS-raw-on-BOTH-models(124-tokens-vs-720-tokens)
+FINDING-2:raw-has-higher-model-variance(96/88-vs-100/92)
+FINDING-3:llm-summary-model-dependent(Claude:72%,GPT-4o:40%→own-summary-unusable)
+
+±RESULTS-SCALING
+TABLE-2-CTXPACK(judge):690→[C:100%,G:88%]|1202→[C:100%,G:82%]|4098→[C:90%,G:66%]|15244→[C:97%,G:63%]|37411→[C:57%,G:63%]
+TABLE-2-RAW(judge):690→[C:96%,G:84%]|1202→[C:100%,G:86%]|4098→[C:100%,G:86%]|15244→[C:100%,G:83%]|37411→[C:13%,G:47%]
+TABLE-3-LLM-SUM:690→[C:76%,G:48%]|1202→[C:39%,G:54%]|4098→[C:31%,G:28%]|15244→[C:30%,G:57%]|37411→N/A
+TABLE-3-NAIVE:690→[C:24%,G:32%]|1202→[C:25%,G:57%]|4098→[C:21%,G:38%]|15244→[C:30%,G:50%]|37411→[C:3%,G:60%]
+COMPRESSION-RATIOS:5.6x(690)→7.0x(1K)→7.9x(5K)→8.2x(15K)→8.3x(37K)|model-independent
+★TREND-1:Claude-reads-.ctx-90-100%-up-to-15K,57%-at-37K
+TREND-2:GPT-4o-degrades-earlier:88%→66%(5K)→63%(15K+plateau)
+★TREND-3:raw-collapses-at-37K→C:13%,G:47%|CtxPack-beats-raw-BOTH-models(C:57%vs13%,G:63%vs47%)
+TREND-4:LLM-sum-degrades→C:76%→30%|G:non-monotonic(28-57%)
+TREND-5:crossover-point→corpus>effective-attention-span|C:37K(57%>13%)|G:37K(63%>47%)
+⚠ANOMALY:GPT-4o-naive-at-37K(60%)≈CtxPack(63%)|first-~4.5K-tokens→high-density-entity-defs|CtxPack-advantage=structural(cross-entity,conflicts)¬positional
+
+±DISAMBIGUATION-FINDING(Q13)
+SOURCE-YAML:entity-PRODUCT|identifier:sku,type:string,unique:true|description:"one-per-merchant"
+RAW-ANSWER(both-models):"string,unique"→missing-scope
+CTX-OUTPUT:IDENTIFIER:sku(string,unique-per-merchant)→scope-explicit
+★RESULT:codec-DISAMBIGUATES-implicit-knowledge→higher-fidelity-on-specific-Qs
+EQUALIZED(v0.2.1):both-models-now-answer-Q13-correctly-from-CtxPack|prior-Q13-failure→prompt-config-not-notation-fluency
+BENEFIT:model-general→both-models-get-Q13-from-.ctx,both-miss-scope-in-raw-YAML
+
+±MODEL-AFFINITY ★NOVEL-FINDING:model-specific-perceptual-properties-of-structured-format
+GPT-4o-FAILURES(golden,v0.2.1):Q04(parenthetical-attribute:customer_id(UUID,immutable)),Q25(cross-ref:@ENTITY-ORDER(order_id,mandatory))
+FAILURE-PATTERN:dense-parenthetical-notation+cross-reference-resolution
+PROMPT-EQUALIZATION-EFFECT:v0.2.0→5-failures|v0.2.1→2-failures(Q12,Q13,Q16-resolved)
+MITIGATION-STRATEGIES:[model-adaptive-formatting(expand-parens-for-GPT),progressive-disclosure(L1-for-low-fluency,L2-for-high),cross-model-training-data]
+ANALOGY:same-MP3-file→different-playback-hardware→different-perceived-quality
+
+±LOST-IN-THE-MIDDLE
+RAW-37K:[Claude:13%,GPT-4o:47%]→cross-model-evidence-of-Liu-et-al-2023
+GPT-4o-degrades-LESS(47%vs13%)→different-attention-distribution-curves
+CTXPACK-37K(4520-tokens):[Claude:57%,GPT-4o:63%]→outperforms-raw-both-models
+SALIENCE-ORDERING:most-referenced-entities→first+last-positions→exploit-primacy+recency
+
+±WHY-STRUCTURED-BEATS-SUMMARIZATION
+LOST-BY-SUMMARIES:[specific-thresholds("5min","0.92","Royal-Mail"),cross-entity-relationships(PAYMENT→ORDER→CUSTOMER),contradiction-awareness(⚠retained-by-ctxpack)]
+★PRINCIPLE:summarization-optimizes-for(narrative-coherence)|domain-knowledge-requires(fact-preservation)
+CTX-FORMAT:inherently-preserves-facts-as(KV-pairs-within-entity-sections)
+
+±LIMITATIONS
+CORPUS-SIZE:max-tested-37K|production→100K+|mitigation:multi-file-split(v0.3)
+DOMAIN-COVERAGE:entity-relationship-patterns-only|¬narrative-domains(legal,strategy)|cross-domain-planned
+SYNTHETIC-SCALING:template-generated|¬organic-inconsistencies|golden-set-reported-separately
+TWO-MODEL-EVAL:Claude+GPT-4o-only|¬Gemini,¬Llama,¬Mistral|development-bias-possible(Claude-primary-during-dev)
+SCOPE-INFERENCE-RISK:incorrect-inference→misinformation|conservative-markers|disable:--strict
+JUDGE-VARIANCE:±4-12pp|mitigated-by(dual-runs,dual-grading)
+
+±FUTURE-WORK
+MULTI-FILE-SPLIT:MANIFEST-index→query-relevant-sections|always-include-files
+RAG-POST-PROCESS:pack_chunks(retrieved)→compressed-.ctx|address-chunk-redundancy+lost-in-middle
+MODEL-ADAPTIVE-FORMAT:notation-density-per-model-family
+LEARNED-SALIENCE:small-model-on(click-through,expert-annotations)
+EXTENDED-EVAL:Gemini+Llama+Mistral|legal+financial+scientific-domains
+PERCEPTUAL-MODEL:map-.ctx-operators→attention-weights→principled-notation-tuning
+
+±COST-ANALYSIS PRICING:Claude($3/M-input)|GPT-4o($2.50/M-input)
+COST-REDUCTION:stabilizes-at-~88%(=~8x-compression)
+EXAMPLE:37K-corpus,10K-queries/day→raw:$426K/yr|ctxpack:$50K/yr
+
+±REFERENCES
+[Liu-2023]:Lost-in-the-Middle(TACL)|[Jiang-2023]:LLMLingua(EMNLP)|[Jiang-2024]:LongLLMLingua(ACL)
+[Mu-2023]:Gist-Tokens(NeurIPS)|[Chevalier-2023]:AutoCompressors(EMNLP)|[Ge-2024]:ICAE(ICLR)
+[Li-2023]:Selective-Context(EMNLP)|[Lewis-2020]:RAG(NeurIPS)
