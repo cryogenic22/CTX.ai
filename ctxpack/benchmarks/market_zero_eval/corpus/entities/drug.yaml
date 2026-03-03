@@ -1,0 +1,58 @@
+entity: DRUG
+description: Pharmaceutical compound tracked from FDA approval through patent expiry, with provenance from FDA Orange Book and openFDA APIs
+aliases:
+  - molecule
+  - compound
+
+identifier:
+  name: nda_number
+  type: string
+  immutable: true
+
+fields:
+  - name: generic_name
+    type: string
+    description: "INN generic drug name (e.g. semaglutide)"
+    required: true
+  - name: brand_name
+    type: string
+    description: "Commercial brand name (e.g. Ozempic)"
+  - name: nda_number
+    type: string
+    description: "FDA New Drug Application number for exact lookup"
+  - name: approval_date
+    type: date
+    description: "FDA approval date from Orange Book"
+  - name: patent_expiry_date
+    type: date
+    description: "Latest patent expiry date, used by risk engine for ACTIVE_PATENT_BLOCK factor"
+  - name: patent_number
+    type: string
+    description: "Associated patent number from Orange Book patent.txt"
+  - name: therapeutic_area_id
+    type: foreign_key
+    description: "Links to THERAPEUTIC-AREA entity via MeSH descriptor ID"
+  - name: mechanism_id
+    type: foreign_key
+    description: "Links to MECHANISM entity via MeSH pharmacological action"
+  - name: supply_status
+    type: enum
+    description: "Current supply status from FDA Shortages API (AVAILABLE, SHORTAGE, RESOLVED)"
+  - name: molecule_embedding
+    type: vector_1536
+    description: "OpenAI text-embedding-3-small embedding for semantic search"
+
+provenance:
+  source_api: "FDA Orange Book / openFDA"
+  source_url: "https://api.fda.gov/drug/"
+  tracking: "retrieved_at timestamp on every row"
+
+has_many:
+  entity: CLINICAL-TRIAL
+  relationship: INVESTIGATES
+  cardinality: 1:N
+
+belongs_to:
+  entity: COMPANY
+  relationship: OWNS
+  cardinality: N:1

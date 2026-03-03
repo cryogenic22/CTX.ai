@@ -1,0 +1,136 @@
+# Twilio Video API — Eval Questions (25)
+# Authored from actual Twilio Video v1 OpenAPI spec downloaded 2026-03-01
+# Covers: Rooms, Participants, Recordings, Compositions, Transcriptions, architecture, business rules
+
+# ── Easy (7) ──
+
+- id: T01
+  question: "What are the valid room types in Twilio Video?"
+  expected: "go, peer-to-peer, group, group-small"
+  difficulty: easy
+
+- id: T02
+  question: "What video codecs are supported in Twilio Video rooms?"
+  expected: "VP8 and H264"
+  difficulty: easy
+
+- id: T03
+  question: "What is the maximum number of participants in a group room?"
+  expected: "50"
+  difficulty: easy
+
+- id: T04
+  question: "What audio codecs are supported for recordings?"
+  expected: "opus and PCMU"
+  difficulty: easy
+
+- id: T05
+  question: "What container formats are available for recordings?"
+  expected: "mka for audio, mkv for video, mp4 for composition"
+  difficulty: easy
+
+- id: T06
+  question: "How many participants can a go room support?"
+  expected: "2"
+  difficulty: easy
+
+- id: T07
+  question: "What is the maximum number of participants for a group-small room?"
+  expected: "4"
+  difficulty: easy
+
+# ── Medium (11) ──
+
+- id: T08
+  question: "What happens when a new client joins a room with an existing participant identity?"
+  expected: "the existing client is disconnected"
+  difficulty: medium
+
+- id: T09
+  question: "What is the default max_participant_duration in seconds for a Twilio Video room?"
+  expected: "14400 seconds (4 hours)"
+  difficulty: medium
+
+- id: T10
+  question: "What is the maximum possible max_participant_duration value?"
+  expected: "86400 seconds (24 hours)"
+  difficulty: medium
+
+- id: T11
+  question: "What is the format of the resolution field for compositions?"
+  expected: "{width}x{height}"
+  difficulty: medium
+
+- id: T12
+  question: "What is the default HTTP method for composition status callbacks?"
+  expected: "POST"
+  difficulty: medium
+
+- id: T13
+  question: "When is the duration field populated for a participant?"
+  expected: "only after the participant is disconnected"
+  difficulty: medium
+
+- id: T14
+  question: "What field uniquely identifies a transcription resource?"
+  expected: "ttid"
+  difficulty: medium
+
+- id: T15
+  question: "If a sub-second track is recorded, what duration is reported?"
+  expected: "1 second"
+  difficulty: medium
+
+- id: T16
+  question: "What is the SID format convention used by Twilio resources?"
+  expected: "2-letter prefix plus 32 hexadecimal characters"
+  difficulty: medium
+
+- id: T17
+  question: "What webhook events are related to recordings?"
+  expected: "recording-started, recording-completed, recording-failed"
+  difficulty: medium
+
+- id: T18
+  question: "Can you use a unique_name instead of sid in room API URLs?"
+  expected: "Yes"
+  difficulty: medium
+
+# ── Hard (5) ──
+
+- id: T19
+  question: "Can a composition be created from an in-progress room?"
+  expected: "No, compositions can only be created from completed rooms"
+  difficulty: hard
+
+- id: T20
+  question: "What conditions must be met to create a composition from a room?"
+  expected: "the room must be completed and must have at least one recording"
+  difficulty: hard
+
+- id: T21
+  question: "Why must SubscribedTracks use SID for identification instead of track name?"
+  expected: "track names are not guaranteed to be unique on the subscriber side"
+  difficulty: hard
+
+- id: T22
+  question: "What room types support server-side recording, and which do not?"
+  expected: "group and group-small support recording; peer-to-peer and go do not"
+  difficulty: hard
+
+- id: T23
+  question: "If audio_only is set to true on a room, what restrictions apply?"
+  expected: "only audio tracks are allowed; no video tracks can be published"
+  difficulty: hard
+
+# ── Adversarial (2) ──
+
+- id: T24
+  question: "What is the pricing per room-minute for Twilio Video?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: adversarial
+
+- id: T25
+  question: "What is the maximum resolution supported for Twilio Video compositions?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: adversarial

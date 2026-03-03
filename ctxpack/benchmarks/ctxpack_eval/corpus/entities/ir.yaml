@@ -1,0 +1,47 @@
+entity: IR-PIPELINE
+description: Intermediate representation dataclasses used throughout the packer pipeline
+aliases:
+  - ir
+  - intermediate-representation
+
+identifier:
+  name: entity_name
+  type: string
+  immutable: false
+
+fields:
+  - name: IRSource
+    type: dataclass
+    description: "Source location reference with file path, line_start, line_end"
+  - name: IRField
+    type: dataclass
+    description: "Compressed key-value pair with salience score, certainty tier, and optional additional_sources for multi-source provenance"
+  - name: IREntity
+    type: dataclass
+    description: "Named entity with fields, relationships, annotations, sources list, and aggregate salience score"
+  - name: IRRelationship
+    type: dataclass
+    description: "Directed relationship between entities with rel_type (belongs-to, has-many, has-one, references, depends-on), cardinality, cascade, and certainty"
+  - name: IRCorpus
+    type: dataclass
+    description: "Top-level container holding entities list, standalone_rules, warnings, domain, scope, author, source_token_count"
+  - name: IRWarning
+    type: dataclass
+    description: "Diagnostic warning with entity name, message, and severity (INFO, WARNING, ERROR)"
+
+certainty_tiers:
+  - name: EXPLICIT
+    description: "Field value directly stated in source material"
+  - name: INFERRED
+    description: "Field value enriched from context (e.g. unique-per-merchant from description)"
+  - name: UNCERTAIN
+    description: "Field value is ambiguous or comes from conflicting sources"
+
+has_many:
+  entity: COMPRESSOR
+  cardinality: 1:N
+  required: true
+
+depends_on:
+  entity: CONFLICT-DETECTOR
+  cardinality: 1:1

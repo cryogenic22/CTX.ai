@@ -1,0 +1,1467 @@
+{
+  "corpus": "fda-drug-labels",
+  "timestamp": "2026-03-01T13:54:32Z",
+  "source_tokens": 14852,
+  "ctx_tokens": 159,
+  "compression_ratio": 93.41,
+  "entity_count": 0,
+  "question_count": 25,
+  "model_results": {
+    "claude-sonnet-4.5": {
+      "model": "claude-sonnet-4.5",
+      "model_id": "claude-sonnet-4-5-20250929",
+      "provider": "anthropic",
+      "baselines": {
+        "ctxpack_l2": {
+          "tokens": 159,
+          "ratio": "93.41x",
+          "cost": "$0.0005",
+          "fidelity": 0.84,
+          "llm_judge_score": 1.0,
+          "details": {
+            "total": 25,
+            "correct": 21,
+            "score": 0.84,
+            "llm_judge_correct": 25,
+            "llm_judge_score": 1.0,
+            "by_difficulty": {
+              "easy": {
+                "total": 7,
+                "correct": 6,
+                "score": 0.857
+              },
+              "medium": {
+                "total": 11,
+                "correct": 9,
+                "score": 0.818
+              },
+              "hard": {
+                "total": 5,
+                "correct": 4,
+                "score": 0.8
+              },
+              "adversarial": {
+                "total": 2,
+                "correct": 2,
+                "score": 1.0
+              }
+            },
+            "details": [
+              {
+                "id": "F01",
+                "question": "What is the recommended dosage range for atorvastatin in adults?",
+                "expected": "10 mg to 80 mg once daily",
+                "answer": "According to the provided context, the recommended dosage range for atorvastatin in adults is:\n\n**10 mg to 80 mg once daily**\n\nAdditional details:\n- Recommended starting dosage: 10-20 mg once daily\n- Patients requiring LDL-C reduction greater than 45% may start at 40 mg once daily\n- The medication should be taken orally once daily at any time of day, with or without food\n- LDL-C should be assessed when clinically appropriate, as early as 4 weeks after initiating therapy, and dosage adjusted if necessary",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F02",
+                "question": "What is the recommended initial dose of sertraline for major depressive disorder in adults?",
+                "expected": "50 mg once daily",
+                "answer": "According to the context, the recommended initial dose of sertraline for major depressive disorder in adults is **50 mg once daily**.\n\nThe dosage information states: \"Major Depressive Disorder \u2013 Sertraline hydrochloride treatment administered dose 50 mg once daily\" and \"dose 50 mg, administered once daily, recommended initial therapeutic dose.\"",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F03",
+                "question": "What is the route of administration for lisinopril?",
+                "expected": "oral",
+                "answer": "According to the context, the route of administration for lisinopril is **ORAL**.\n\nThis is stated in the IDENTIFICATION section:\n\"IDENTIFICATION:Generic-Name:-LISINOPRIL-HYDROCHLOROTHIAZIDE-TABLETS\nIDENTIFICATION:Brand-Names:-Lisinopril-Hydrochlorothiazide\nIDENTIFICATION:Manufacturer:-ST.-MARY'S-MEDICAL-PARK-PHARMACY\nIDENTIFICATION:Route:-ORAL\"",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F04",
+                "question": "For how many days should omeprazole be taken per treatment course?",
+                "expected": "14 days",
+                "answer": "According to the context, omeprazole should be taken for **14 days** per treatment course.\n\nThe dosage directions state: \"take every day for 14 days\" and \"do not take for more than 14 days or more often than every 4 months unless directed by doctor.\"",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F05",
+                "question": "What percentage of atorvastatin is bound to plasma proteins?",
+                "expected": "98%",
+                "answer": "According to the context, atorvastatin is **\u226598% bound to plasma proteins**.\n\nThis information is found in the Distribution section under Pharmacokinetics (12.3): \"Atorvastatin-\u226598%-bound-plasma-proteins.\"",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F06",
+                "question": "What is the starting dose of sertraline for children aged 6-12 with OCD?",
+                "expected": "25 mg once daily",
+                "answer": "According to the context, for children aged 6-12 with Obsessive-Compulsive Disorder (OCD), the recommended starting dose of sertraline is **25 mg once daily**.\n\nThe context specifically states: \"Obsessive-Compulsive Disorder \u2013 Sertraline-hydrochloride-treatment-initiated-dose-25-mg-once-daily-children-(ages-6-12).\"",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F07",
+                "question": "What are the effective dose ranges for lisinopril monotherapy?",
+                "expected": "10-80 mg",
+                "answer": "According to the context, lisinopril monotherapy is effective in the treatment of hypertension at **once daily doses of 10 mg to 80 mg**.",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F08",
+                "question": "What eGFR threshold contraindicates metformin (ZITUVIMET)?",
+                "expected": "eGFR below 30 mL/min/1.73 m2",
+                "answer": "According to the context, **eGFR below 30 mL/min/1.73 m\u00b2** contraindicates metformin (ZITUVIMET).\n\nThis is stated in the contraindications section:\n\n\"ZITUVIMET-contraindicated-patients-Severe-renal-impairment-(eGFR-below-30-mL/min/1.73-m-2-)\"\n\nAdditionally, the context notes that ZITUVIMET is **not recommended** (though not absolutely contraindicated) in patients with eGFR between 30 and less than 45 mL/min/1.73 m\u00b2.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F09",
+                "question": "What is the maximum atorvastatin dose when co-administered with clarithromycin or itraconazole?",
+                "expected": "20 mg once daily",
+                "answer": "According to the context, when atorvastatin is co-administered with clarithromycin or itraconazole, **do not exceed atorvastatin calcium tablets 20 mg once daily**.\n\nThis is stated in the dosage modifications section: \"Select-Azole-Antifungals-Macrolide-Antibiotics-patients-taking-clarithromycin-itraconazole,-exceed-atorvastatin-calcium-tablets-20-mg-once-daily.\"\n\nThis restriction is due to the increased risk of myopathy and rhabdomyolysis, as both clarithromycin and itraconazole are inhibitors of CYP3A4 and/or transporters, which significantly increase atorvastatin plasma levels.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F10",
+                "question": "What are the most common adverse reactions for atorvastatin with incidence of 5% or greater?",
+                "expected": "nasopharyngitis, arthralgia, diarrhea, pain in extremity, urinary tract infection",
+                "answer": "According to the context, the most common adverse reactions for atorvastatin with incidence \u22655% are:\n\n1. **Nasopharyngitis** (8.3%)\n2. **Arthralgia** (6.9%)\n3. **Diarrhea** (6.8%)\n4. **Pain in extremity** (6.0%)\n5. **Urinary tract infection** (5.7%)\n\nThese are listed in the adverse reactions section which states: \"Most-common-adverse-reactions-(incidence-\u22655%)-nasopharyngitis,-arthralgia,-diarrhea,-pain-extremity,-urinary-tract-infection.\"",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F11",
+                "question": "What is the average terminal elimination half-life of sertraline?",
+                "expected": "approximately 26 hours",
+                "answer": "According to the context, the average terminal elimination half-life of sertraline in plasma is **about 26 hours**.\n\nThis information is found in the Pharmacokinetics section, which states: \"The average terminal elimination half-life of plasma sertraline is about 26 hours.\"",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F12",
+                "question": "What is the required washout period between stopping sertraline and starting an MAOI?",
+                "expected": "14 days",
+                "answer": "According to the context, there is a **14-day washout period** required between stopping sertraline and starting an MAOI intended to treat psychiatric disorders, and vice versa.\n\nSpecifically, the contraindications state:\n\n- \"use of MAOIs intended to treat psychiatric disorders with Sertraline hydrochloride **within 14 days of stopping treatment** with Sertraline hydrochloride is contraindicated\"\n\n- \"use of Sertraline hydrochloride **within 14 days of stopping an MAOI** intended to treat psychiatric disorders is contraindicated\"\n\nThis 14-day washout period is required in both directions due to the increased risk of serotonin syndrome when these medications are used together.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F13",
+                "question": "What metformin plasma level is generally associated with lactic acidosis?",
+                "expected": "greater than 5 mcg/mL",
+                "answer": "According to the context, metformin-associated lactic acidosis is characterized by metformin plasma levels **generally >5 mcg/mL**.\n\nThis information appears in the boxed warning section, which states: \"Metformin associated lactic acidosis characterized by elevated blood lactate levels (>5 mmol/Liter), anion gap acidosis (without evidence of ketonuria or ketonemia), increased lactate/pyruvate ratio, **metformin plasma levels generally >5 mcg/mL**.\"",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F14",
+                "question": "Which drug class increases the risk of lactic acidosis when combined with metformin?",
+                "expected": "carbonic anhydrase inhibitors",
+                "answer": "According to the context, **carbonic anhydrase inhibitors** increase the risk of lactic acidosis when combined with metformin.\n\nThe context specifically states:\n\n\"Carbonic-Anhydrase-Inhibitors-Clinical-Impact:-Carbonic-anhydrase-inhibitors-frequently-cause-decrease-serum-bicarbonate-induce-non-anion-gap,-hyperchloremic-metabolic-acidosis.-Concomitant-use-drugs-ZITUVIMET-increase-risk-lactic-acidosis.\"\n\nExamples listed include: topiramate, zonisamide, acetazolamide, and dichlorphenamide.\n\nThe intervention recommended is to \"Consider-more-frequent-monitoring-patients\" when these drugs are used concomitantly with metformin-containing products.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F15",
+                "question": "What percentage of patients discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects?",
+                "expected": "4.4%",
+                "answer": "According to the context, **4.4% of patients** discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects, principally because of dizziness, cough, fatigue, and muscle cramps.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F16",
+                "question": "What electrolyte must be monitored with long-term omeprazole use exceeding one year?",
+                "expected": "magnesium",
+                "answer": "According to the context, **magnesium** must be monitored with long-term omeprazole use exceeding one year.\n\nThis is stated in the MONITORING-REQUIREMENTS section: \"Omeprazole:-monitor-magnesium-long-term-use-(>1-year)\"",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F17",
+                "question": "What is the time to maximum plasma concentration for atorvastatin after oral administration?",
+                "expected": "1 to 2 hours",
+                "answer": "According to the context, maximum plasma concentrations of atorvastatin occur **within 1 to 2 hours** after oral administration.\n\nThis is stated in the Pharmacokinetics section: \"Atorvastatin-rapidly-absorbed-after-oral-administration;-maximum-plasma-concentrations-occur-within-1-2-hours.\"",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F18",
+                "question": "Which patient population has a higher incidence of angioedema with lisinopril?",
+                "expected": "Black patients",
+                "answer": "According to the context, **Black patients** have a higher incidence of angioedema with lisinopril compared to non-Black patients.\n\nThe context specifically states: \"Angioedema-reported-patients-receiving-PRINZIDE,-incidence-higher-Black-than-non-Black-patients.\"",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F19",
+                "question": "Can metformin and lisinopril be co-prescribed safely for a diabetic patient with hypertension?",
+                "expected": "Yes, metformin and lisinopril are commonly co-prescribed for diabetic patients with hypertension",
+                "answer": "Yes, metformin and lisinopril can be co-prescribed safely for a diabetic patient with hypertension.\n\nAccording to the context:\n\n**Known Safe Combination:**\n\"Metformin + Lisinopril: commonly co-prescribed diabetic patients hypertension\"\n\n**Important Monitoring Requirements:**\n\nFor **Metformin:**\n- Monitor renal function (eGFR)\n- Hold before contrast procedures\n\nFor **Lisinopril:**\n- Monitor potassium\n- Monitor renal function\n- Monitor blood pressure\n\n**Key Consideration:**\nSince both drugs require renal function monitoring, it's particularly important to assess kidney function regularly when using this combination, as stated in the general principles: \"Renal function must monitored drugs cleared kidneys.\"\n\nThis is a standard, commonly used combination in clinical practice for patients with both diabetes and hypertension, but appropriate monitoring should be maintained",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F20",
+                "question": "What is the main risk when combining atorvastatin with strong CYP3A4 inhibitors, and what is the mechanism?",
+                "expected": "rhabdomyolysis due to CYP3A4 inhibition increasing atorvastatin exposure",
+                "answer": "Based on the provided context:\n\n**Main Risk:** Rhabdomyolysis (severe muscle breakdown)\n\n**Mechanism:** \nAtorvastatin is a substrate of CYP3A4. When combined with strong CYP3A4 inhibitors, atorvastatin plasma levels are significantly increased, which elevates the risk of myopathy and rhabdomyolysis.\n\n**Specific Guidance from the Context:**\n\nThe document lists this under \"CAUTION-COMBINATIONS\":\n- \"Atorvastatin + strong CYP3A4 inhibitors: risk rhabdomyolysis\"\n\nThe drug interactions section states:\n- \"Atorvastatin plasma levels significantly increased concomitant administration atorvastatin cyclosporine... inhibitor CYP3A4\"\n- \"Cases myopathy rhabdomyolysis reported",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F21",
+                "question": "Which of the five drugs in the corpus has a black box warning related to suicidality, and for what age group?",
+                "expected": "sertraline, patients under 25",
+                "answer": "Based on the context provided, **Sertraline** has a black box warning related to suicidality.\n\nThe age group affected is **patients under 25 years old** (specifically mentioned as \"age <25\" in the monitoring requirements section).\n\nThe boxed warning states that antidepressants, including Sertraline, increased the risk compared to placebo of suicidal thinking and behavior (suicidality) in children, adolescents, and young adults in short-term studies. The context specifies that short-term studies did not show an increase in risk of suicidality with antidepressants compared to placebo in adults beyond age 24, and there was actually a reduction in risk in adults aged 65 and older.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F22",
+                "question": "What is the absolute bioavailability of atorvastatin and what is the half-life of its HMG-CoA reductase inhibitory activity?",
+                "expected": "approximately 14% bioavailability, 20 to 30 hours inhibitory activity half-life",
+                "answer": "According to the context:\n\n**Absolute bioavailability of atorvastatin:** Approximately 14% (parent drug)\n\n**Half-life of HMG-CoA reductase inhibitory activity:** 20-30 hours\n\nThe context specifies: \"The absolute bioavailability of atorvastatin (parent drug) is approximately 14% and the systemic availability of HMG-CoA reductase inhibitory activity is approximately 30%.\"\n\nAnd: \"Mean plasma elimination half-life of atorvastatin in humans is approximately 14 hours, and the half-life of inhibitory activity for HMG-CoA reductase is 20-30 hours due to the contribution of active metabolites.\"",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F23",
+                "question": "Why does omeprazole interact with clopidogrel, and what is the clinical consequence?",
+                "expected": "CYP2C19 interaction leading to reduced antiplatelet effect",
+                "answer": "According to the context provided:\n\n**Why omeprazole interacts with clopidogrel:**\nThe interaction occurs due to a **CYP2C19 interaction**. Omeprazole interferes with the metabolism of clopidogrel through the CYP2C19 enzyme pathway.\n\n**Clinical consequence:**\nThe interaction results in a **reduced antiplatelet effect** of clopidogrel.\n\nThis is listed under the CAUTION-COMBINATIONS section, indicating that this drug combination requires careful consideration and monitoring when co-prescribed.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F24",
+                "question": "What is the cost per pill of metformin?",
+                "expected": "NOT_IN_CONTEXT",
+                "answer": "Not found in context.\n\nThe provided domain knowledge contains clinical and regulatory information about metformin (including dosing, interactions, warnings, pharmacology, etc.) but does not include pricing or cost information.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "adversarial"
+              },
+              {
+                "id": "F25",
+                "question": "What is the recommended dose of metformin for patients with type 1 diabetes?",
+                "expected": "NOT_IN_CONTEXT",
+                "answer": "Not found in context.\n\nThe context explicitly states that ZITUVIMET (which contains metformin) is \"not recommended in patients with type 1 diabetes mellitus\" and notes it as a \"Limitation of Use.\" There is no recommended dose of metformin for type 1 diabetes patients because it is contraindicated for this population.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "adversarial"
+              }
+            ]
+          }
+        },
+        "raw_stuffing": {
+          "tokens": 14876,
+          "ratio": "1x",
+          "cost": "$0.0446",
+          "fidelity": 0.84,
+          "llm_judge_score": 1.0
+        },
+        "naive_truncation": {
+          "tokens": 159,
+          "ratio": "93.4x",
+          "cost": "$0.0005",
+          "fidelity": 0.32,
+          "llm_judge_score": 0.24
+        },
+        "llm_summary": {
+          "tokens": 146,
+          "ratio": "101.7x",
+          "cost": "$0.0004",
+          "fidelity": 0.4,
+          "llm_judge_score": 0.28
+        }
+      }
+    },
+    "claude-haiku-4.5": {
+      "model": "claude-haiku-4.5",
+      "model_id": "claude-haiku-4-5-20251001",
+      "provider": "anthropic",
+      "baselines": {
+        "ctxpack_l2": {
+          "tokens": 159,
+          "ratio": "93.41x",
+          "cost": "$0.0002",
+          "fidelity": 0.8,
+          "llm_judge_score": 1.0,
+          "details": {
+            "total": 25,
+            "correct": 20,
+            "score": 0.8,
+            "llm_judge_correct": 25,
+            "llm_judge_score": 1.0,
+            "by_difficulty": {
+              "easy": {
+                "total": 7,
+                "correct": 6,
+                "score": 0.857
+              },
+              "medium": {
+                "total": 11,
+                "correct": 9,
+                "score": 0.818
+              },
+              "hard": {
+                "total": 5,
+                "correct": 3,
+                "score": 0.6
+              },
+              "adversarial": {
+                "total": 2,
+                "correct": 2,
+                "score": 1.0
+              }
+            },
+            "details": [
+              {
+                "id": "F01",
+                "question": "What is the recommended dosage range for atorvastatin in adults?",
+                "expected": "10 mg to 80 mg once daily",
+                "answer": "According to the context, the recommended dosage range for atorvastatin in adults is **10 mg to 80 mg once daily**.\n\nKey dosing details:\n- **Recommended starting dosage**: 10 mg or 20 mg once daily\n- **Dosage range**: 10 mg to 80 mg once daily\n- **For patients requiring >45% LDL-C reduction**: Start at 40 mg once daily\n- **Administration**: Take orally once daily, without food\n- **Monitoring**: Assess LDL-C levels when clinically appropriate, early at 4 weeks after initiating therapy, and adjust dosage if necessary",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F02",
+                "question": "What is the recommended initial dose of sertraline for major depressive disorder in adults?",
+                "expected": "50 mg once daily",
+                "answer": "According to the context, the recommended initial dose of sertraline hydrochloride for major depressive disorder in adults is **50 mg once daily**.\n\nThe prescribing information states: \"Sertraline hydrochloride treatment administered dose 50 mg once daily\" and \"the dose 50 mg, administered once daily, recommended initial therapeutic dose.\"\n\nPatients responding to the 50 mg dose may benefit from dose increases up to a maximum of 200 mg/day.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F03",
+                "question": "What is the route of administration for lisinopril?",
+                "expected": "oral",
+                "answer": "Based on the context provided, the route of administration for lisinopril is **ORAL**.\n\nThis is stated in the IDENTIFICATION section: \"Route:-ORAL\" for Lisinopril-Hydrochlorothiazide-Tablets.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F04",
+                "question": "For how many days should omeprazole be taken per treatment course?",
+                "expected": "14 days",
+                "answer": "According to the context, omeprazole should be taken for **14 days per treatment course**.\n\nThe dosage instructions state: \"swallow 1 tablet glass water before eating morning take day 14 days\" and \"take more than 14 days unless directed your doctor.\"\n\nAdditionally, the context notes that if needed, a repeated 14-day course can be taken, but not more often than every 4 months unless directed by a doctor.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F05",
+                "question": "What percentage of atorvastatin is bound to plasma proteins?",
+                "expected": "98%",
+                "answer": "According to the context, **atorvastatin is \u226598% bound to plasma proteins**.\n\nThis information is found in the PHARMACOKINETICS section under the Distribution subsection for atorvastatin.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F06",
+                "question": "What is the starting dose of sertraline for children aged 6-12 with OCD?",
+                "expected": "25 mg once daily",
+                "answer": "According to the context, the starting dose of sertraline for children aged 6-12 with OCD is **25 mg once daily**.\n\nThe prescribing information states: \"Sertraline hydrochloride treatment initiated dose 25 mg once daily children (ages 6-12).\"",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F07",
+                "question": "What are the effective dose ranges for lisinopril monotherapy?",
+                "expected": "10-80 mg",
+                "answer": "Based on the context provided, the effective dose range for lisinopril monotherapy is **10 mg to 80 mg once daily**.\n\nThis information is found in the DOSAGE-AND-ADMINISTRATION section, which states: \"Lisinopril monotherapy effective treatment hypertension once-daily doses 10 mg 80 mg.\"",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F08",
+                "question": "What eGFR threshold contraindicates metformin (ZITUVIMET)?",
+                "expected": "eGFR below 30 mL/min/1.73 m2",
+                "answer": "According to the context, metformin (ZITUVIMET) is contraindicated in patients with **severe renal impairment defined as eGFR below 30 mL/min/1.73 m\u00b2**.\n\nThe document states: \"ZITUVIMET contraindicated patients Severe renal impairment-(eGFR-below-30-mL/min/1.73-m-2-)\"\n\nAdditionally, ZITUVIMET is not recommended (but not absolutely contraindicated) in patients with eGFR between 30 and less than 45 mL/min/1.73 m\u00b2, as these patients require lower dosages than what is available in the fixed combination product.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F09",
+                "question": "What is the maximum atorvastatin dose when co-administered with clarithromycin or itraconazole?",
+                "expected": "20 mg once daily",
+                "answer": "According to the context, when atorvastatin is co-administered with clarithromycin or itraconazole, the maximum dose should **not exceed 20 mg once daily**.\n\nThis is stated in the DOSAGE-AND-ADMINISTRATION section under \"Dosage Modifications Due Drug Interactions\":\n\n\"Select Azole Antifungals Macrolide Antibiotics - patients taking clarithromycin itraconazole, exceed atorvastatin calcium tablets 20 mg once daily.\"",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F10",
+                "question": "What are the most common adverse reactions for atorvastatin with incidence of 5% or greater?",
+                "expected": "nasopharyngitis, arthralgia, diarrhea, pain in extremity, urinary tract infection",
+                "answer": "Based on the context provided, the most common adverse reactions for atorvastatin with incidence of 5% or greater are:\n\n1. **Nasopharyngitis** - 8.3%\n2. **Arthralgia** - 6.9%\n3. **Diarrhea** - 6.8%\n4. **Pain in extremity** - 6.0%\n5. **Urinary tract infection** - 5.7%\n\nThese adverse reactions were reported at rates \u22655% in patients treated with atorvastatin calcium across seventeen placebo-controlled trials, with incidence greater than placebo.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F11",
+                "question": "What is the average terminal elimination half-life of sertraline?",
+                "expected": "approximately 26 hours",
+                "answer": "According to the context, the average terminal elimination half-life of sertraline is about **26 hours**.\n\nThis is stated in the PHARMACOKINETICS section: \"In man, following oral once-daily dosing over a range of 50-200 mg over 14 days, mean peak plasma concentrations (C max) of sertraline occurred between 4.5-8.4 hours post-dosing. The average terminal elimination half-life in plasma of sertraline is about 26 hours.\"",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F12",
+                "question": "What is the required washout period between stopping sertraline and starting an MAOI?",
+                "expected": "14 days",
+                "answer": "Based on the context provided, the required washout period between stopping sertraline and starting an MAOI is **14 days**.\n\nThe contraindications section states: \"use Sertraline hydrochloride within 14 days of stopping MAOI intended treat psychiatric disorders contraindicated.\"\n\nAdditionally, the context notes that sertraline should not be used with MAOIs intended to treat psychiatric disorders within 14 days of stopping treatment with sertraline due to the increased risk of serotonin syndrome.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F13",
+                "question": "What metformin plasma level is generally associated with lactic acidosis?",
+                "expected": "greater than 5 mcg/mL",
+                "answer": "According to the context, metformin plasma levels generally **>5 mcg/mL** are associated with lactic acidosis.\n\nThis is stated in the BOXED-WARNING section for ZITUVIMET (which contains metformin): \"Laboratory abnormalities included elevated blood lactate levels, anion gap acidosis, increased lactate/pyruvate ratio, metformin plasma levels generally >5 mcg/mL.\"\n\nThe same information is reiterated as: \"Metformin-associated lactic acidosis is characterized by elevated blood lactate levels (>5 mmol/Liter), anion gap acidosis (without evidence of ketonuria or ketonemia), increased lactate/pyruvate ratio, metformin plasma levels generally >5 mcg/mL.\"",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F14",
+                "question": "Which drug class increases the risk of lactic acidosis when combined with metformin?",
+                "expected": "carbonic anhydrase inhibitors",
+                "answer": "Based on the context provided, **carbonic anhydrase inhibitors** increase the risk of lactic acidosis when combined with metformin.\n\nAccording to the drug interactions section for ZITUVIMET (which contains metformin):\n\n\"Carbonic anhydrase inhibitors frequently cause decrease serum bicarbonate induce non-anion gap, hyperchloremic metabolic acidosis. Concomitant use drugs [with] ZITUVIMET increase risk lactic acidosis.\"\n\nExamples of carbonic anhydrase inhibitors mentioned include: topiramate, zonisamide, acetazolamide, and dichlorphenamide.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F15",
+                "question": "What percentage of patients discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects?",
+                "expected": "4.4%",
+                "answer": "According to the context, **4.4% of patients** discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects. The discontinuations were principally due to dizziness, cough, fatigue, and muscle cramps.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F16",
+                "question": "What electrolyte must be monitored with long-term omeprazole use exceeding one year?",
+                "expected": "magnesium",
+                "answer": "According to the context, **magnesium** must be monitored with long-term omeprazole use exceeding one year.\n\nThis is stated in the MONITORING-REQUIREMENTS section: \"Omeprazole:-monitor-magnesium-long-term-use-(>1-year)\"",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F17",
+                "question": "What is the time to maximum plasma concentration for atorvastatin after oral administration?",
+                "expected": "1 to 2 hours",
+                "answer": "According to the context, maximum plasma concentrations of atorvastatin occur **within 1-2 hours** after oral administration.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F18",
+                "question": "Which patient population has a higher incidence of angioedema with lisinopril?",
+                "expected": "Black patients",
+                "answer": "Based on the context provided, **Black patients have a higher incidence of angioedema with lisinopril** compared to non-Black patients.\n\nThe document specifically states:\n\n\"Angioedema: Angioedema reported in patients receiving PRINZIDE, incidence higher Black than non-Black patients.\"",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F19",
+                "question": "Can metformin and lisinopril be co-prescribed safely for a diabetic patient with hypertension?",
+                "expected": "Yes, metformin and lisinopril are commonly co-prescribed for diabetic patients with hypertension",
+                "answer": "Yes, metformin and lisinopril can be co-prescribed safely for a diabetic patient with hypertension.\n\nAccording to the context, this combination is listed under **KNOWN-SAFE-COMBINATIONS**: \"Metformin + Lisinopril: commonly co-prescribed diabetic patients hypertension.\"\n\nThis is a well-established and commonly used combination in clinical practice for patients who have both type 2 diabetes and hypertension.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F20",
+                "question": "What is the main risk when combining atorvastatin with strong CYP3A4 inhibitors, and what is the mechanism?",
+                "expected": "rhabdomyolysis due to CYP3A4 inhibition increasing atorvastatin exposure",
+                "answer": "# Atorvastatin + Strong CYP3A4 Inhibitors\n\n## Main Risk\n**Myopathy and rhabdomyolysis** - the risk is significantly increased when atorvastatin is combined with strong CYP3A4 inhibitors.\n\n## Mechanism\nAtorvastatin is a substrate of **CYP3A4** (as well as transporters including OATP1B1/1B3, P-gp, and BCRP). When strong CYP3A4 inhibitors are coadministered:\n\n1. **Inhibition of metabolism** - CYP3A4 inhibitors block the enzyme responsible for metabolizing atorvastatin\n2. **Increased plasma concentrations** - This results in significantly elevated atorvastatin levels in the bloodstream\n3. **Elevated myopathy",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F21",
+                "question": "Which of the five drugs in the corpus has a black box warning related to suicidality, and for what age group?",
+                "expected": "sertraline, patients under 25",
+                "answer": "Based on the context provided, **Sertraline** has a black box warning related to suicidality.\n\nThe warning applies to the following age groups:\n\n1. **Children, adolescents, and young adults** - Antidepressants increased the risk of suicidal thinking and behavior compared to placebo in short-term studies for these age groups with major depressive disorder and other psychiatric disorders.\n\n2. **Young adults** - The increased risk extends to young adults in short-term studies.\n\nThe boxed warning specifically states that \"Antidepressants increased risk compared to placebo suicidal thinking behavior (suicidality) children, adolescents, young adults short-term studies major depressive disorder (MDD) other psychiatric disorders.\"\n\nAdditionally, the monitoring requirements section notes that Sertraline requires monitoring for \"suicidal-ideation (black-box-warning-age-<25)",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F22",
+                "question": "What is the absolute bioavailability of atorvastatin and what is the half-life of its HMG-CoA reductase inhibitory activity?",
+                "expected": "approximately 14% bioavailability, 20 to 30 hours inhibitory activity half-life",
+                "answer": "Based on the context provided:\n\n**Absolute bioavailability of atorvastatin (parent drug):** Approximately 14%\n\n**Half-life of HMG-CoA reductase inhibitory activity:** 20-30 hours\n\nThe context notes that while the mean plasma elimination half-life of atorvastatin in humans is approximately 14 hours, the longer half-life of inhibitory activity (20-30 hours) is due to the contribution of active metabolites.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F23",
+                "question": "Why does omeprazole interact with clopidogrel, and what is the clinical consequence?",
+                "expected": "CYP2C19 interaction leading to reduced antiplatelet effect",
+                "answer": "Based on the provided context:\n\n**Mechanism of Interaction:**\nOmeprazole interacts with clopidogrel through a CYP2C19 enzyme interaction.\n\n**Clinical Consequence:**\nThe interaction results in a **reduced antiplatelet effect** of clopidogrel.\n\nThis is listed in the context under CAUTION-COMBINATIONS as: \"Omeprazole-+-clopidogrel:-reduced-antiplatelet-effect-(CYP2C19-interaction)\"\n\nThe clinical significance is that omeprazole, as a CYP2C19 inhibitor, impairs the metabolism and activation of clopidogrel, thereby reducing its effectiveness as an antiplatelet agent. This is an important consideration when these drugs are used concomitantly, as it could compromise the therapeutic benefit of clopidogrel in patients requiring antiplatelet therapy.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F24",
+                "question": "What is the cost per pill of metformin?",
+                "expected": "NOT_IN_CONTEXT",
+                "answer": "Not found in context.\n\nThe provided domain knowledge contains FDA drug label information for several medications including Metformin (as part of ZITUVIMET combination), but does not include pricing or cost information for any of the drugs.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "adversarial"
+              },
+              {
+                "id": "F25",
+                "question": "What is the recommended dose of metformin for patients with type 1 diabetes?",
+                "expected": "NOT_IN_CONTEXT",
+                "answer": "Not found in context.\n\nThe context indicates that ZITUVIMET (sitagliptin-metformin combination) is **not recommended** for patients with type 1 diabetes mellitus. Specifically, the INDICATIONS-AND-USAGE section states: \"ZITUVIMET is not recommended in patients with type 1 diabetes mellitus.\"\n\nHowever, the context does not provide information about recommended doses of metformin for type 1 diabetes patients.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "adversarial"
+              }
+            ]
+          }
+        },
+        "raw_stuffing": {
+          "tokens": 14876,
+          "ratio": "1x",
+          "cost": "$0.0149",
+          "fidelity": 0.84,
+          "llm_judge_score": 1.0
+        },
+        "naive_truncation": {
+          "tokens": 159,
+          "ratio": "93.4x",
+          "cost": "$0.0002",
+          "fidelity": 0.32,
+          "llm_judge_score": 0.88
+        },
+        "llm_summary": {
+          "tokens": 158,
+          "ratio": "94.0x",
+          "cost": "$0.0002",
+          "fidelity": 0.36,
+          "llm_judge_score": 0.8
+        }
+      }
+    },
+    "o4-mini": {
+      "model": "o4-mini",
+      "model_id": "o4-mini",
+      "provider": "openai",
+      "baselines": {
+        "ctxpack_l2": {
+          "tokens": 159,
+          "ratio": "93.41x",
+          "cost": "$0.0002",
+          "fidelity": 0.8,
+          "llm_judge_score": 0.8,
+          "details": {
+            "total": 25,
+            "correct": 20,
+            "score": 0.8,
+            "llm_judge_correct": 20,
+            "llm_judge_score": 0.8,
+            "by_difficulty": {
+              "easy": {
+                "total": 7,
+                "correct": 6,
+                "score": 0.857
+              },
+              "medium": {
+                "total": 11,
+                "correct": 9,
+                "score": 0.818
+              },
+              "hard": {
+                "total": 5,
+                "correct": 3,
+                "score": 0.6
+              },
+              "adversarial": {
+                "total": 2,
+                "correct": 2,
+                "score": 1.0
+              }
+            },
+            "details": [
+              {
+                "id": "F01",
+                "question": "What is the recommended dosage range for atorvastatin in adults?",
+                "expected": "10 mg to 80 mg once daily",
+                "answer": "Recommended adult dosage: start 10\u201320 mg orally once daily; dosage may be adjusted within a 10 mg to 80 mg once-daily range.",
+                "correct": true,
+                "llm_judge_correct": false,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F02",
+                "question": "What is the recommended initial dose of sertraline for major depressive disorder in adults?",
+                "expected": "50 mg once daily",
+                "answer": "The recommended initial dose is 50 mg taken once daily.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F03",
+                "question": "What is the route of administration for lisinopril?",
+                "expected": "oral",
+                "answer": "The route of administration for lisinopril is oral.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F04",
+                "question": "For how many days should omeprazole be taken per treatment course?",
+                "expected": "14 days",
+                "answer": "Omeprazole is taken once daily for a 14-day course per treatment.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F05",
+                "question": "What percentage of atorvastatin is bound to plasma proteins?",
+                "expected": "98%",
+                "answer": "Atorvastatin is highly protein\u2010bound, with \u226598% bound to plasma proteins.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F06",
+                "question": "What is the starting dose of sertraline for children aged 6-12 with OCD?",
+                "expected": "25 mg once daily",
+                "answer": "The recommended starting dose is 25 mg once daily.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F07",
+                "question": "What are the effective dose ranges for lisinopril monotherapy?",
+                "expected": "10-80 mg",
+                "answer": "The effective lisinopril monotherapy dose range is 10 mg to 80 mg once daily.",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F08",
+                "question": "What eGFR threshold contraindicates metformin (ZITUVIMET)?",
+                "expected": "eGFR below 30 mL/min/1.73 m2",
+                "answer": "Not found in context",
+                "correct": false,
+                "llm_judge_correct": false,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F09",
+                "question": "What is the maximum atorvastatin dose when co-administered with clarithromycin or itraconazole?",
+                "expected": "20 mg once daily",
+                "answer": "The atorvastatin dose should not exceed 20 mg once daily when co-administered with clarithromycin or itraconazole.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F10",
+                "question": "What are the most common adverse reactions for atorvastatin with incidence of 5% or greater?",
+                "expected": "nasopharyngitis, arthralgia, diarrhea, pain in extremity, urinary tract infection",
+                "answer": "Most common (\u22655%) adverse reactions with atorvastatin are:  \n\u2022 Nasopharyngitis  \n\u2022 Arthralgia  \n\u2022 Diarrhea  \n\u2022 Pain in extremity  \n\u2022 Urinary tract infection",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F11",
+                "question": "What is the average terminal elimination half-life of sertraline?",
+                "expected": "approximately 26 hours",
+                "answer": "The average terminal elimination half-life of sertraline is about 26 hours.",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F12",
+                "question": "What is the required washout period between stopping sertraline and starting an MAOI?",
+                "expected": "14 days",
+                "answer": "The label specifies that you must wait 14 days after stopping sertraline before initiating an MAOI.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F13",
+                "question": "What metformin plasma level is generally associated with lactic acidosis?",
+                "expected": "greater than 5 mcg/mL",
+                "answer": "Metformin plasma levels generally greater than 5 mcg/mL are associated with lactic acidosis.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F14",
+                "question": "Which drug class increases the risk of lactic acidosis when combined with metformin?",
+                "expected": "carbonic anhydrase inhibitors",
+                "answer": "Carbonic anhydrase inhibitors.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F15",
+                "question": "What percentage of patients discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects?",
+                "expected": "4.4%",
+                "answer": "4.4% of patients discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F16",
+                "question": "What electrolyte must be monitored with long-term omeprazole use exceeding one year?",
+                "expected": "magnesium",
+                "answer": "The electrolyte that must be monitored is magnesium.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F17",
+                "question": "What is the time to maximum plasma concentration for atorvastatin after oral administration?",
+                "expected": "1 to 2 hours",
+                "answer": "The time to reach maximum plasma concentration (Tmax) for atorvastatin after oral dosing is approximately 1\u20132 hours.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F18",
+                "question": "Which patient population has a higher incidence of angioedema with lisinopril?",
+                "expected": "Black patients",
+                "answer": "Black patients have a higher incidence of angioedema with lisinopril than non-Black patients.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F19",
+                "question": "Can metformin and lisinopril be co-prescribed safely for a diabetic patient with hypertension?",
+                "expected": "Yes, metformin and lisinopril are commonly co-prescribed for diabetic patients with hypertension",
+                "answer": "Yes. Metformin and lisinopril are a known safe combination commonly co-prescribed in diabetic patients with hypertension. Renal function (eGFR), potassium and blood pressure should be monitored.",
+                "correct": true,
+                "llm_judge_correct": false,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F20",
+                "question": "What is the main risk when combining atorvastatin with strong CYP3A4 inhibitors, and what is the mechanism?",
+                "expected": "rhabdomyolysis due to CYP3A4 inhibition increasing atorvastatin exposure",
+                "answer": "The chief concern is statin\u2010induced muscle toxicity (myopathy progressing to rhabdomyolysis).  By blocking CYP3A4, these inhibitors impair atorvastatin\u2019s metabolism, raise its blood levels, and thereby heighten muscle\u2010injury risk.",
+                "correct": false,
+                "llm_judge_correct": false,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F21",
+                "question": "Which of the five drugs in the corpus has a black box warning related to suicidality, and for what age group?",
+                "expected": "sertraline, patients under 25",
+                "answer": "Sertraline has an FDA\u2010mandated black\u2010box warning for increased suicidality in patients under 25 years of age.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F22",
+                "question": "What is the absolute bioavailability of atorvastatin and what is the half-life of its HMG-CoA reductase inhibitory activity?",
+                "expected": "approximately 14% bioavailability, 20 to 30 hours inhibitory activity half-life",
+                "answer": "The absolute bioavailability of atorvastatin is approximately 14 %, and the half-life of its HMG-CoA-reductase inhibitory activity is about 20\u201330 hours.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F23",
+                "question": "Why does omeprazole interact with clopidogrel, and what is the clinical consequence?",
+                "expected": "CYP2C19 interaction leading to reduced antiplatelet effect",
+                "answer": "Omeprazole is a CYP2C19 inhibitor, and clopidogrel is a pro-drug whose bioactivation depends on CYP2C19.  When given together, omeprazole reduces the formation of clopidogrel\u2019s active metabolite, diminishing its antiplatelet effect and potentially increasing the risk of thrombotic events.",
+                "correct": false,
+                "llm_judge_correct": false,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F24",
+                "question": "What is the cost per pill of metformin?",
+                "expected": "NOT_IN_CONTEXT",
+                "answer": "Not found in context",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "adversarial"
+              },
+              {
+                "id": "F25",
+                "question": "What is the recommended dose of metformin for patients with type 1 diabetes?",
+                "expected": "NOT_IN_CONTEXT",
+                "answer": "Not found in context.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "adversarial"
+              }
+            ]
+          }
+        },
+        "raw_stuffing": {
+          "tokens": 14876,
+          "ratio": "1x",
+          "cost": "$0.0164",
+          "fidelity": 0.88,
+          "llm_judge_score": 0.68
+        },
+        "naive_truncation": {
+          "tokens": 159,
+          "ratio": "93.4x",
+          "cost": "$0.0002",
+          "fidelity": 0.2,
+          "llm_judge_score": 0.08
+        },
+        "llm_summary": {
+          "tokens": 152,
+          "ratio": "97.7x",
+          "cost": "$0.0002",
+          "fidelity": 0.4,
+          "llm_judge_score": 0.36
+        }
+      }
+    },
+    "gpt-5.2": {
+      "model": "gpt-5.2",
+      "model_id": "gpt-5.2",
+      "provider": "openai",
+      "baselines": {
+        "ctxpack_l2": {
+          "tokens": 159,
+          "ratio": "93.41x",
+          "cost": "$0.0008",
+          "fidelity": 0.84,
+          "llm_judge_score": 1.0,
+          "details": {
+            "total": 25,
+            "correct": 21,
+            "score": 0.84,
+            "llm_judge_correct": 25,
+            "llm_judge_score": 1.0,
+            "by_difficulty": {
+              "easy": {
+                "total": 7,
+                "correct": 6,
+                "score": 0.857
+              },
+              "medium": {
+                "total": 11,
+                "correct": 9,
+                "score": 0.818
+              },
+              "hard": {
+                "total": 5,
+                "correct": 4,
+                "score": 0.8
+              },
+              "adversarial": {
+                "total": 2,
+                "correct": 2,
+                "score": 1.0
+              }
+            },
+            "details": [
+              {
+                "id": "F01",
+                "question": "What is the recommended dosage range for atorvastatin in adults?",
+                "expected": "10 mg to 80 mg once daily",
+                "answer": "The recommended adult dosage range for atorvastatin is **10 mg to 80 mg once daily**.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F02",
+                "question": "What is the recommended initial dose of sertraline for major depressive disorder in adults?",
+                "expected": "50 mg once daily",
+                "answer": "The recommended initial dose of sertraline for major depressive disorder in adults is **50 mg once daily**.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F03",
+                "question": "What is the route of administration for lisinopril?",
+                "expected": "oral",
+                "answer": "The route of administration for lisinopril (lisinopril-hydrochlorothiazide tablets) is **oral**.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F04",
+                "question": "For how many days should omeprazole be taken per treatment course?",
+                "expected": "14 days",
+                "answer": "Omeprazole should be taken for **14 days** per treatment course.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F05",
+                "question": "What percentage of atorvastatin is bound to plasma proteins?",
+                "expected": "98%",
+                "answer": "Atorvastatin is **\u226598% bound to plasma proteins**.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F06",
+                "question": "What is the starting dose of sertraline for children aged 6-12 with OCD?",
+                "expected": "25 mg once daily",
+                "answer": "The starting dose of sertraline for children aged 6\u201312 with OCD is **25 mg once daily**.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F07",
+                "question": "What are the effective dose ranges for lisinopril monotherapy?",
+                "expected": "10-80 mg",
+                "answer": "Lisinopril monotherapy is effective for hypertension in **once-daily doses of 10 mg to 80 mg**.",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F08",
+                "question": "What eGFR threshold contraindicates metformin (ZITUVIMET)?",
+                "expected": "eGFR below 30 mL/min/1.73 m2",
+                "answer": "Metformin (ZITUVIMET) is **contraindicated when eGFR is below 30 mL/min/1.73 m\u00b2**.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F09",
+                "question": "What is the maximum atorvastatin dose when co-administered with clarithromycin or itraconazole?",
+                "expected": "20 mg once daily",
+                "answer": "The maximum recommended atorvastatin dose when co-administered with **clarithromycin or itraconazole is 20 mg once daily**.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F10",
+                "question": "What are the most common adverse reactions for atorvastatin with incidence of 5% or greater?",
+                "expected": "nasopharyngitis, arthralgia, diarrhea, pain in extremity, urinary tract infection",
+                "answer": "The most common adverse reactions for **atorvastatin** (incidence **\u2265 5%**) are: **nasopharyngitis, arthralgia, diarrhea, pain in extremity, and urinary tract infection**.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F11",
+                "question": "What is the average terminal elimination half-life of sertraline?",
+                "expected": "approximately 26 hours",
+                "answer": "The average terminal elimination half-life of plasma sertraline is **about 26 hours**.",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F12",
+                "question": "What is the required washout period between stopping sertraline and starting an MAOI?",
+                "expected": "14 days",
+                "answer": "At least **14 days** between stopping **sertraline** and starting an **MAOI**.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F13",
+                "question": "What metformin plasma level is generally associated with lactic acidosis?",
+                "expected": "greater than 5 mcg/mL",
+                "answer": "Metformin plasma levels generally **> 5 mcg/mL** are associated with lactic acidosis.",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F14",
+                "question": "Which drug class increases the risk of lactic acidosis when combined with metformin?",
+                "expected": "carbonic anhydrase inhibitors",
+                "answer": "**Carbonic anhydrase inhibitors** (e.g., topiramate, zonisamide, acetazolamide, dichlorphenamide) increase the risk of lactic acidosis when combined with metformin.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F15",
+                "question": "What percentage of patients discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects?",
+                "expected": "4.4%",
+                "answer": "4.4% of patients discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F16",
+                "question": "What electrolyte must be monitored with long-term omeprazole use exceeding one year?",
+                "expected": "magnesium",
+                "answer": "Magnesium.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F17",
+                "question": "What is the time to maximum plasma concentration for atorvastatin after oral administration?",
+                "expected": "1 to 2 hours",
+                "answer": "The time to maximum plasma concentration (Tmax) for atorvastatin after oral administration is **within 1\u20132 hours**.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F18",
+                "question": "Which patient population has a higher incidence of angioedema with lisinopril?",
+                "expected": "Black patients",
+                "answer": "Black patients have a higher incidence of angioedema with lisinopril (lisinopril/hydrochlorothiazide).",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F19",
+                "question": "Can metformin and lisinopril be co-prescribed safely for a diabetic patient with hypertension?",
+                "expected": "Yes, metformin and lisinopril are commonly co-prescribed for diabetic patients with hypertension",
+                "answer": "Yes. The context lists **Metformin + Lisinopril** as a **known safe combination** that is **commonly co-prescribed** for diabetic patients with hypertension (with appropriate monitoring of renal function, potassium, and blood pressure).",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F20",
+                "question": "What is the main risk when combining atorvastatin with strong CYP3A4 inhibitors, and what is the mechanism?",
+                "expected": "rhabdomyolysis due to CYP3A4 inhibition increasing atorvastatin exposure",
+                "answer": "The main risk is **myopathy/rhabdomyolysis**. The mechanism is that **atorvastatin is a CYP3A4 (and transporter) substrate**, so **strong CYP3A4 inhibitors increase atorvastatin plasma levels/exposure**, raising the risk of muscle toxicity.",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F21",
+                "question": "Which of the five drugs in the corpus has a black box warning related to suicidality, and for what age group?",
+                "expected": "sertraline, patients under 25",
+                "answer": "**Sertraline (and other SSRIs)** has a black box warning for **suicidality risk in patients under 25 years old** (children, adolescents, and young adults).",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F22",
+                "question": "What is the absolute bioavailability of atorvastatin and what is the half-life of its HMG-CoA reductase inhibitory activity?",
+                "expected": "approximately 14% bioavailability, 20 to 30 hours inhibitory activity half-life",
+                "answer": "The absolute bioavailability of atorvastatin (parent drug) is **approximately 14%**, and the half-life of its **HMG-CoA reductase inhibitory activity is 20\u201330 hours**.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F23",
+                "question": "Why does omeprazole interact with clopidogrel, and what is the clinical consequence?",
+                "expected": "CYP2C19 interaction leading to reduced antiplatelet effect",
+                "answer": "Omeprazole interacts with clopidogrel via a **CYP2C19 interaction**, leading to a **reduced antiplatelet effect** of clopidogrel.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F24",
+                "question": "What is the cost per pill of metformin?",
+                "expected": "NOT_IN_CONTEXT",
+                "answer": "Not found in context.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "adversarial"
+              },
+              {
+                "id": "F25",
+                "question": "What is the recommended dose of metformin for patients with type 1 diabetes?",
+                "expected": "NOT_IN_CONTEXT",
+                "answer": "Not found in context.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "adversarial"
+              }
+            ]
+          }
+        },
+        "raw_stuffing": {
+          "tokens": 14876,
+          "ratio": "1x",
+          "cost": "$0.0744",
+          "fidelity": 0.84,
+          "llm_judge_score": 1.0
+        },
+        "naive_truncation": {
+          "tokens": 159,
+          "ratio": "93.4x",
+          "cost": "$0.0008",
+          "fidelity": 0.24,
+          "llm_judge_score": 0.32
+        },
+        "llm_summary": {
+          "tokens": 123,
+          "ratio": "120.7x",
+          "cost": "$0.0006",
+          "fidelity": 0.24,
+          "llm_judge_score": 0.32
+        }
+      }
+    },
+    "gemini-2.5-pro": {
+      "model": "gemini-2.5-pro",
+      "model_id": "gemini-2.5-pro",
+      "provider": "google",
+      "baselines": {
+        "ctxpack_l2": {
+          "tokens": 159,
+          "ratio": "93.41x",
+          "cost": "$0.0002",
+          "fidelity": 0.76,
+          "llm_judge_score": 0.96,
+          "details": {
+            "total": 25,
+            "correct": 19,
+            "score": 0.76,
+            "llm_judge_correct": 24,
+            "llm_judge_score": 0.96,
+            "by_difficulty": {
+              "easy": {
+                "total": 7,
+                "correct": 6,
+                "score": 0.857
+              },
+              "medium": {
+                "total": 11,
+                "correct": 8,
+                "score": 0.727
+              },
+              "hard": {
+                "total": 5,
+                "correct": 4,
+                "score": 0.8
+              },
+              "adversarial": {
+                "total": 2,
+                "correct": 1,
+                "score": 0.5
+              }
+            },
+            "details": [
+              {
+                "id": "F01",
+                "question": "What is the recommended dosage range for atorvastatin in adults?",
+                "expected": "10 mg to 80 mg once daily",
+                "answer": "The recommended dosage range for atorvastatin in adults is 10 mg to 80 mg once daily.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F02",
+                "question": "What is the recommended initial dose of sertraline for major depressive disorder in adults?",
+                "expected": "50 mg once daily",
+                "answer": "The recommended initial dose of sertraline for major depressive disorder in adults is 50 mg once daily.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F03",
+                "question": "What is the route of administration for lisinopril?",
+                "expected": "oral",
+                "answer": "ORAL",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F04",
+                "question": "For how many days should omeprazole be taken per treatment course?",
+                "expected": "14 days",
+                "answer": "According to the context, omeprazole should be used once a day for 14 days per treatment course.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F05",
+                "question": "What percentage of atorvastatin is bound to plasma proteins?",
+                "expected": "98%",
+                "answer": "Atorvastatin is \u226598% bound to plasma proteins.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F06",
+                "question": "What is the starting dose of sertraline for children aged 6-12 with OCD?",
+                "expected": "25 mg once daily",
+                "answer": "The starting dose of sertraline hydrochloride for children (ages 6-12) with Obsessive-Compulsive Disorder is 25 mg once daily.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F07",
+                "question": "What are the effective dose ranges for lisinopril monotherapy?",
+                "expected": "10-80 mg",
+                "answer": "Lisinopril monotherapy is effective in once-daily doses of 10 mg to 80 mg.",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "easy"
+              },
+              {
+                "id": "F08",
+                "question": "What eGFR threshold contraindicates metformin (ZITUVIMET)?",
+                "expected": "eGFR below 30 mL/min/1.73 m2",
+                "answer": "ZITUVIMET is contraindicated in patients with an eGFR below 30 mL/min/1.73 m-2.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F09",
+                "question": "What is the maximum atorvastatin dose when co-administered with clarithromycin or itraconazole?",
+                "expected": "20 mg once daily",
+                "answer": "",
+                "correct": false,
+                "llm_judge_correct": false,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F10",
+                "question": "What are the most common adverse reactions for atorvastatin with incidence of 5% or greater?",
+                "expected": "nasopharyngitis, arthralgia, diarrhea, pain in extremity, urinary tract infection",
+                "answer": "The most common adverse reactions for atorvastatin with an incidence of 5% or greater are nasopharyngitis, arthralgia, diarrhea, pain in extremity, and urinary tract infection.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F11",
+                "question": "What is the average terminal elimination half-life of sertraline?",
+                "expected": "approximately 26 hours",
+                "answer": "The average terminal elimination half-life of plasma sertraline is about 26 hours.",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F12",
+                "question": "What is the required washout period between stopping sertraline and starting an MAOI?",
+                "expected": "14 days",
+                "answer": "The use of an MAOI within 14 days of stopping treatment with Sertraline hydrochloride is contraindicated.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F13",
+                "question": "What metformin plasma level is generally associated with lactic acidosis?",
+                "expected": "greater than 5 mcg/mL",
+                "answer": "Metformin plasma levels generally >5 mcg/mL are associated with lactic acidosis.",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F14",
+                "question": "Which drug class increases the risk of lactic acidosis when combined with metformin?",
+                "expected": "carbonic anhydrase inhibitors",
+                "answer": "Carbonic anhydrase inhibitors.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F15",
+                "question": "What percentage of patients discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects?",
+                "expected": "4.4%",
+                "answer": "Discontinuation of therapy due to adverse effects was required in 4.4% of patients.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F16",
+                "question": "What electrolyte must be monitored with long-term omeprazole use exceeding one year?",
+                "expected": "magnesium",
+                "answer": "Magnesium",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F17",
+                "question": "What is the time to maximum plasma concentration for atorvastatin after oral administration?",
+                "expected": "1 to 2 hours",
+                "answer": "Maximum plasma concentrations for atorvastatin occur within 1 to 2 hours after oral administration.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F18",
+                "question": "Which patient population has a higher incidence of angioedema with lisinopril?",
+                "expected": "Black patients",
+                "answer": "Based on the context, the incidence of angioedema is higher in Black patients than in non-Black patients.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "medium"
+              },
+              {
+                "id": "F19",
+                "question": "Can metformin and lisinopril be co-prescribed safely for a diabetic patient with hypertension?",
+                "expected": "Yes, metformin and lisinopril are commonly co-prescribed for diabetic patients with hypertension",
+                "answer": "Yes, the combination of Metformin and Lisinopril is listed as a known safe combination and is commonly co-prescribed for diabetic patients with hypertension.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F20",
+                "question": "What is the main risk when combining atorvastatin with strong CYP3A4 inhibitors, and what is the mechanism?",
+                "expected": "rhabdomyolysis due to CYP3A4 inhibition increasing atorvastatin exposure",
+                "answer": "The main risk is rhabdomyolysis. The mechanism is that atorvastatin is a substrate of CYP3A4, and inhibitors of this enzyme significantly increase atorvastatin plasma levels, which increases the risk of myopathy and rhabdomyolysis.",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F21",
+                "question": "Which of the five drugs in the corpus has a black box warning related to suicidality, and for what age group?",
+                "expected": "sertraline, patients under 25",
+                "answer": "Sertraline has a black box warning for suicidality risk in patients under the age of 25.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F22",
+                "question": "What is the absolute bioavailability of atorvastatin and what is the half-life of its HMG-CoA reductase inhibitory activity?",
+                "expected": "approximately 14% bioavailability, 20 to 30 hours inhibitory activity half-life",
+                "answer": "The absolute bioavailability of atorvastatin is approximately 14%, and the half-life of its HMG-CoA reductase inhibitory activity is 20 to 30 hours.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F23",
+                "question": "Why does omeprazole interact with clopidogrel, and what is the clinical consequence?",
+                "expected": "CYP2C19 interaction leading to reduced antiplatelet effect",
+                "answer": "The interaction is due to a CYP2C19 interaction, and the clinical consequence is a reduced antiplatelet effect.",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "hard"
+              },
+              {
+                "id": "F24",
+                "question": "What is the cost per pill of metformin?",
+                "expected": "NOT_IN_CONTEXT",
+                "answer": "Not found in context",
+                "correct": true,
+                "llm_judge_correct": true,
+                "difficulty": "adversarial"
+              },
+              {
+                "id": "F25",
+                "question": "What is the recommended dose of metformin for patients with type 1 diabetes?",
+                "expected": "NOT_IN_CONTEXT",
+                "answer": "ZITUVIMET (which contains metformin) is not recommended for patients with type 1 diabetes mellitus.",
+                "correct": false,
+                "llm_judge_correct": true,
+                "difficulty": "adversarial"
+              }
+            ]
+          }
+        },
+        "raw_stuffing": {
+          "tokens": 14876,
+          "ratio": "1x",
+          "cost": "$0.0186",
+          "fidelity": 0.8,
+          "llm_judge_score": 1.0
+        },
+        "naive_truncation": {
+          "tokens": 159,
+          "ratio": "93.4x",
+          "cost": "$0.0002",
+          "fidelity": 0.2,
+          "llm_judge_score": 0.36
+        },
+        "llm_summary": {
+          "tokens": 143,
+          "ratio": "103.9x",
+          "cost": "$0.0002",
+          "fidelity": 0.24,
+          "llm_judge_score": 0.48
+        }
+      }
+    }
+  },
+  "skipped": []
+}

@@ -1,0 +1,132 @@
+{
+  "log_type": "scaling_run",
+  "timestamp": "2026-02-22T17:31:24.058114+00:00",
+  "model": "gpt-4o",
+  "provenance": {
+    "tool": "ctxpack scaling",
+    "run_by": "automated",
+    "platform": "nt"
+  },
+  "results": {
+    "experiment": "scaling_curve",
+    "timestamp": "2026-02-22T17:31:24.058114+00:00",
+    "model": "gpt-4o",
+    "max_questions_per_scale": 30,
+    "scales": [
+      {
+        "name": "golden_set",
+        "source_tokens": 690,
+        "ctx_tokens": 124,
+        "compression_ratio": 5.56,
+        "entity_count": 20,
+        "question_count": 25,
+        "baselines": {
+          "ctxpack_l2": {
+            "tokens": 124,
+            "ratio": "5.6x",
+            "cost": "$0.0003",
+            "fidelity": 0.88,
+            "llm_judge_score": 0.92
+          },
+          "raw_stuffing": {
+            "tokens": 720,
+            "ratio": "1x",
+            "cost": "$0.0018",
+            "fidelity": 0.76,
+            "llm_judge_score": 0.84
+          },
+          "naive_truncation": {
+            "tokens": 124,
+            "ratio": "5.6x",
+            "cost": "$0.0003",
+            "fidelity": 0.16,
+            "llm_judge_score": 0.44
+          },
+          "llm_summary": {
+            "tokens": 113,
+            "ratio": "6.1x",
+            "cost": "$0.0003",
+            "fidelity": 0.24,
+            "llm_judge_score": 0.52
+          }
+        }
+      },
+      {
+        "name": "scale_1000",
+        "source_tokens": 1202,
+        "ctx_tokens": 171,
+        "compression_ratio": 7.03,
+        "entity_count": 27,
+        "question_count": 28,
+        "baselines": {
+          "ctxpack_l2": {
+            "tokens": 171,
+            "ratio": "7.0x",
+            "cost": "$0.0004",
+            "fidelity": 0.4642857142857143,
+            "llm_judge_score": 0.7142857142857143
+          },
+          "raw_stuffing": {
+            "tokens": 1253,
+            "ratio": "1x",
+            "cost": "$0.0031",
+            "fidelity": 0.7857142857142857,
+            "llm_judge_score": 0.8928571428571429
+          },
+          "naive_truncation": {
+            "tokens": 171,
+            "ratio": "7.0x",
+            "cost": "$0.0004",
+            "fidelity": 0.21428571428571427,
+            "llm_judge_score": 0.6071428571428571
+          },
+          "llm_summary": {
+            "tokens": 169,
+            "ratio": "7.1x",
+            "cost": "$0.0004",
+            "fidelity": 0.14285714285714285,
+            "llm_judge_score": 0.6785714285714286
+          }
+        }
+      },
+      {
+        "name": "scale_5000",
+        "source_tokens": 4098,
+        "ctx_tokens": 518,
+        "compression_ratio": 7.91,
+        "entity_count": 66,
+        "question_count": 29,
+        "baselines": {
+          "ctxpack_l2": {
+            "tokens": 518,
+            "ratio": "7.9x",
+            "cost": "$0.0013",
+            "fidelity": 0.3793103448275862,
+            "llm_judge_score": 0.6206896551724138
+          },
+          "raw_stuffing": {
+            "tokens": 4266,
+            "ratio": "1x",
+            "cost": "$0.0107",
+            "fidelity": 0.8275862068965517,
+            "llm_judge_score": 0.8620689655172413
+          },
+          "naive_truncation": {
+            "tokens": 518,
+            "ratio": "7.9x",
+            "cost": "$0.0013",
+            "fidelity": 0.2413793103448276,
+            "llm_judge_score": 0.4482758620689655
+          },
+          "llm_summary": {
+            "tokens": 267,
+            "ratio": "15.3x",
+            "cost": "$0.0007",
+            "fidelity": 0.13793103448275862,
+            "llm_judge_score": 0.3793103448275862
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,202 @@
+{
+  "timestamp": "2026-03-02T15:46:48.769467+00:00",
+  "source_tokens_wordsplit": 647,
+  "methods": {
+    "ctxpack_default": {
+      "word_count": 139,
+      "char_count": 4808,
+      "bpe_tokens": {
+        "cl100k_base": 1368,
+        "o200k_base": 1372,
+        "anthropic_estimate": 1202,
+        "word_split": 139
+      },
+      "cost_per_query": {
+        "claude-sonnet-4-5-20250929": {
+          "word_split": {
+            "input_tokens": 139,
+            "cost_per_query": "$0.0004",
+            "model": "claude-sonnet-4-5-20250929"
+          },
+          "bpe": {
+            "input_tokens": 1202,
+            "cost_per_query": "$0.0036",
+            "model": "claude-sonnet-4-5-20250929"
+          }
+        },
+        "gpt-4o": {
+          "word_split": {
+            "input_tokens": 139,
+            "cost_per_query": "$0.0003",
+            "model": "gpt-4o"
+          },
+          "bpe": {
+            "input_tokens": 1368,
+            "cost_per_query": "$0.0034",
+            "model": "gpt-4o"
+          }
+        },
+        "gemini-2.5-pro": {
+          "word_split": {
+            "input_tokens": 139,
+            "cost_per_query": "$0.0002",
+            "model": "gemini-2.5-pro"
+          },
+          "bpe": {
+            "input_tokens": 1202,
+            "cost_per_query": "$0.0015",
+            "model": "gemini-2.5-pro"
+          }
+        }
+      }
+    },
+    "ctxpack_bpe_optimized": {
+      "word_count": 321,
+      "char_count": 4808,
+      "bpe_tokens": {
+        "cl100k_base": 1270,
+        "o200k_base": 1272,
+        "anthropic_estimate": 1202,
+        "word_split": 321
+      },
+      "cost_per_query": {
+        "claude-sonnet-4-5-20250929": {
+          "word_split": {
+            "input_tokens": 321,
+            "cost_per_query": "$0.0010",
+            "model": "claude-sonnet-4-5-20250929"
+          },
+          "bpe": {
+            "input_tokens": 1202,
+            "cost_per_query": "$0.0036",
+            "model": "claude-sonnet-4-5-20250929"
+          }
+        },
+        "gpt-4o": {
+          "word_split": {
+            "input_tokens": 321,
+            "cost_per_query": "$0.0008",
+            "model": "gpt-4o"
+          },
+          "bpe": {
+            "input_tokens": 1270,
+            "cost_per_query": "$0.0032",
+            "model": "gpt-4o"
+          }
+        },
+        "gemini-2.5-pro": {
+          "word_split": {
+            "input_tokens": 321,
+            "cost_per_query": "$0.0004",
+            "model": "gemini-2.5-pro"
+          },
+          "bpe": {
+            "input_tokens": 1202,
+            "cost_per_query": "$0.0015",
+            "model": "gemini-2.5-pro"
+          }
+        }
+      }
+    },
+    "raw_stuffing": {
+      "word_count": 720,
+      "char_count": 5992,
+      "bpe_tokens": {
+        "cl100k_base": 1430,
+        "o200k_base": 1430,
+        "anthropic_estimate": 1498,
+        "word_split": 720
+      },
+      "cost_per_query": {
+        "claude-sonnet-4-5-20250929": {
+          "word_split": {
+            "input_tokens": 720,
+            "cost_per_query": "$0.0022",
+            "model": "claude-sonnet-4-5-20250929"
+          },
+          "bpe": {
+            "input_tokens": 1498,
+            "cost_per_query": "$0.0045",
+            "model": "claude-sonnet-4-5-20250929"
+          }
+        },
+        "gpt-4o": {
+          "word_split": {
+            "input_tokens": 720,
+            "cost_per_query": "$0.0018",
+            "model": "gpt-4o"
+          },
+          "bpe": {
+            "input_tokens": 1430,
+            "cost_per_query": "$0.0036",
+            "model": "gpt-4o"
+          }
+        },
+        "gemini-2.5-pro": {
+          "word_split": {
+            "input_tokens": 720,
+            "cost_per_query": "$0.0009",
+            "model": "gemini-2.5-pro"
+          },
+          "bpe": {
+            "input_tokens": 1498,
+            "cost_per_query": "$0.0019",
+            "model": "gemini-2.5-pro"
+          }
+        }
+      }
+    },
+    "minified": {
+      "word_count": 431,
+      "char_count": 5882,
+      "bpe_tokens": {
+        "cl100k_base": 1273,
+        "o200k_base": 1309,
+        "anthropic_estimate": 1470,
+        "word_split": 431
+      },
+      "cost_per_query": {
+        "claude-sonnet-4-5-20250929": {
+          "word_split": {
+            "input_tokens": 431,
+            "cost_per_query": "$0.0013",
+            "model": "claude-sonnet-4-5-20250929"
+          },
+          "bpe": {
+            "input_tokens": 1470,
+            "cost_per_query": "$0.0044",
+            "model": "claude-sonnet-4-5-20250929"
+          }
+        },
+        "gpt-4o": {
+          "word_split": {
+            "input_tokens": 431,
+            "cost_per_query": "$0.0011",
+            "model": "gpt-4o"
+          },
+          "bpe": {
+            "input_tokens": 1273,
+            "cost_per_query": "$0.0032",
+            "model": "gpt-4o"
+          }
+        },
+        "gemini-2.5-pro": {
+          "word_split": {
+            "input_tokens": 431,
+            "cost_per_query": "$0.0005",
+            "model": "gemini-2.5-pro"
+          },
+          "bpe": {
+            "input_tokens": 1470,
+            "cost_per_query": "$0.0018",
+            "model": "gemini-2.5-pro"
+          }
+        }
+      }
+    }
+  },
+  "bpe_optimization_savings": {
+    "cl100k_tokens_saved": 98,
+    "cl100k_pct_reduction": 7.16
+  }
+}

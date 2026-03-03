@@ -1,0 +1,86 @@
+{
+  "experiment": "ablation",
+  "timestamp": "2026-03-02T11:46:56.149419+00:00",
+  "model": "claude-sonnet-4-5-20250929",
+  "question_count": 25,
+  "variants": {
+    "ctxpack_enriched": {
+      "label": "ctxpack_enriched",
+      "tokens": 139,
+      "source_tokens": 647,
+      "ratio": "4.7x",
+      "cost": "$0.0004",
+      "fidelity": 0.96,
+      "llm_judge_score": 0.96,
+      "correct": 24,
+      "llm_judge_correct": 24,
+      "total": 25
+    },
+    "ctxpack_strict": {
+      "label": "ctxpack_strict",
+      "tokens": 137,
+      "source_tokens": 647,
+      "ratio": "4.7x",
+      "cost": "$0.0004",
+      "fidelity": 0.96,
+      "llm_judge_score": 0.96,
+      "correct": 24,
+      "llm_judge_correct": 24,
+      "total": 25
+    },
+    "ctxpack_random_order": {
+      "label": "ctxpack_random_order",
+      "tokens": 139,
+      "source_tokens": 647,
+      "ratio": "4.7x",
+      "cost": "$0.0004",
+      "fidelity": 1.0,
+      "llm_judge_score": 1.0,
+      "correct": 25,
+      "llm_judge_correct": 25,
+      "total": 25
+    },
+    "ctxpack_scored_order": {
+      "label": "ctxpack_scored_order",
+      "tokens": 139,
+      "source_tokens": 647,
+      "ratio": "4.7x",
+      "cost": "$0.0004",
+      "fidelity": 0.96,
+      "llm_judge_score": 0.96,
+      "correct": 24,
+      "llm_judge_correct": 24,
+      "total": 25
+    },
+    "raw_stuffing": {
+      "label": "raw_stuffing",
+      "tokens": 720,
+      "source_tokens": 647,
+      "ratio": "0.9x",
+      "cost": "$0.0022",
+      "fidelity": 0.96,
+      "llm_judge_score": 1.0,
+      "correct": 24,
+      "llm_judge_correct": 25,
+      "total": 25
+    },
+    "minified": {
+      "label": "minified",
+      "tokens": 431,
+      "source_tokens": 647,
+      "ratio": "1.5x",
+      "cost": "$0.0013",
+      "fidelity": 0.96,
+      "llm_judge_score": 1.0,
+      "correct": 24,
+      "llm_judge_correct": 25,
+      "total": 25
+    }
+  },
+  "deltas": {
+    "scope_inference_delta": 0.0,
+    "salience_ordering_delta": -0.04,
+    "ctxpack_vs_minified_delta": 0.0,
+    "ctxpack_vs_raw_delta": 0.0
+  }
+}

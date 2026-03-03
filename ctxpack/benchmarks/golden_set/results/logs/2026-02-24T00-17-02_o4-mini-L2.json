@@ -1,0 +1,257 @@
+{
+  "model": "o4-mini",
+  "model_id": "o4-mini",
+  "provider": "openai",
+  "format": "L2",
+  "tokens": 139,
+  "rule_score": 0.56,
+  "rule_correct": 14,
+  "judge_score": 0.0,
+  "judge_correct": 0,
+  "total": 25,
+  "elapsed_s": 65.7,
+  "by_difficulty": {
+    "easy": {
+      "total": 7,
+      "correct": 5,
+      "score": 0.714
+    },
+    "medium": {
+      "total": 11,
+      "correct": 7,
+      "score": 0.636
+    },
+    "hard": {
+      "total": 7,
+      "correct": 2,
+      "score": 0.286
+    }
+  },
+  "per_question": [
+    {
+      "id": "Q01",
+      "question": "What is the golden source for customer data?",
+      "expected": "CRM (Salesforce)",
+      "answer": "The golden source for customer data is the CRM system (Salesforce).",
+      "rule_correct": true,
+      "judge_correct": false,
+      "difficulty": "easy"
+    },
+    {
+      "id": "Q02",
+      "question": "What happens to churned customer data after 36 months?",
+      "expected": "anonymise",
+      "answer": "",
+      "rule_correct": false,
+      "judge_correct": false,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q03",
+      "question": "What type is the customer_id field?",
+      "expected": "UUID",
+      "answer": "The customer_id field is a UUID (immutable).",
+      "rule_correct": true,
+      "judge_correct": false,
+      "difficulty": "easy"
+    },
+    {
+      "id": "Q04",
+      "question": "Is the customer_id field mutable?",
+      "expected": "No, it is immutable",
+      "answer": "The customer_id field is immutable.",
+      "rule_correct": true,
+      "judge_correct": false,
+      "difficulty": "easy"
+    },
+    {
+      "id": "Q05",
+      "question": "What matching algorithm is used for name+address?",
+      "expected": "Jaro-Winkler with threshold > 0.92",
+      "answer": "The name + address matching uses a fuzzy‐match via the Jaro–Winkler algorithm (with a 0.92 similarity threshold, requiring manual review).",
+      "rule_correct": true,
+      "judge_correct": false,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q06",
+      "question": "What PII classification level applies to customer email?",
+      "expected": "RESTRICTED",
+      "answer": "RESTRICTED",
+      "rule_correct": true,
+      "judge_correct": false,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q07",
+      "question": "What is the order status flow?",
+      "expected": "draft -> submitted -> processing -> shipped -> delivered",
+      "answer": "",
+      "rule_correct": false,
+      "judge_correct": false,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q08",
+      "question": "After which status can order line items no longer be edited?",
+      "expected": "submitted",
+      "answer": "Order line items can no longer be edited once the order reaches the submitted status.",
+      "rule_correct": true,
+      "judge_correct": false,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q09",
+      "question": "What decimal precision should be used for financial fields?",
+      "expected": "DECIMAL(19,4)",
+      "answer": "Financial fields must use DECIMAL(19,4).",
+      "rule_correct": true,
+      "judge_correct": false,
+      "difficulty": "easy"
+    },
+    {
+      "id": "Q10",
+      "question": "What entity does ORDER belong to?",
+      "expected": "CUSTOMER (via customer_id)",
+      "answer": "ORDER belongs to the CUSTOMER entity.",
+      "rule_correct": true,
+      "judge_correct": false,
+      "difficulty": "easy"
+    },
+    {
+      "id": "Q11",
+      "question": "What is the maximum staleness allowed for inventory data?",
+      "expected": "5 minutes",
+      "answer": "Maximum staleness for inventory data is 5 minutes.",
+      "rule_correct": true,
+      "judge_correct": false,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q12",
+      "question": "What happens when an order exceeds $50,000?",
+      "expected": "auto-hold and alert",
+      "answer": "When an order’s value exceeds $50,000, it is automatically put on hold and an alert is generated.",
+      "rule_correct": true,
+      "judge_correct": false,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q13",
+      "question": "What is the SKU identifier type for products?",
+      "expected": "string, unique per merchant",
+      "answer": "",
+      "rule_correct": false,
+      "judge_correct": false,
+      "difficulty": "easy"
+    },
+    {
+      "id": "Q14",
+      "question": "How is inventory data synced?",
+      "expected": "Real-time via warehouse API (webhook + 5min poll fallback)",
+      "answer": "",
+      "rule_correct": false,
+      "judge_correct": false,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q15",
+      "question": "Are there any conflicting retention policies?",
+      "expected": "Yes - CUSTOMER says 36 months for churned, regulatory requires 7 years for financial records",
+      "answer": "",
+      "rule_correct": false,
+      "judge_correct": false,
+      "difficulty": "hard"
+    },
+    {
+      "id": "Q16",
+      "question": "What is the null policy for the email field?",
+      "expected": "never-null-for-active",
+      "answer": "",
+      "rule_correct": false,
+      "judge_correct": false,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q17",
+      "question": "How are timestamps stored and displayed?",
+      "expected": "Stored in UTC, displayed in customer locale",
+      "answer": "(error: HTTP Error 400: Bad Request)",
+      "rule_correct": false,
+      "judge_correct": false,
+      "difficulty": "easy"
+    },
+    {
+      "id": "Q18",
+      "question": "How are addresses normalised for US addresses?",
+      "expected": "Via SmartyStreets API, USPS format",
+      "answer": "US addresses are normalized via the SmartyStreets API and formatted to USPS standards.",
+      "rule_correct": true,
+      "judge_correct": false,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q19",
+      "question": "What is the PII classification for payment card numbers?",
+      "expected": "HIGHLY-RESTRICTED",
+      "answer": "The PII classification for payment card numbers is HIGHLY-RESTRICTED.",
+      "rule_correct": true,
+      "judge_correct": false,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q20",
+      "question": "What is the minimum retention period for financial transaction data?",
+      "expected": "7 years (regulatory requirement)",
+      "answer": "The minimum retention period for financial transaction data is 7 years.",
+      "rule_correct": false,
+      "judge_correct": false,
+      "difficulty": "hard"
+    },
+    {
+      "id": "Q21",
+      "question": "What is the customer return/refund policy?",
+      "expected": "NOT_IN_CONTEXT",
+      "answer": "Not found in context.",
+      "rule_correct": true,
+      "judge_correct": false,
+      "difficulty": "hard"
+    },
+    {
+      "id": "Q22",
+      "question": "What GDPR or CCPA compliance rules apply to customer data deletion?",
+      "expected": "NOT_IN_CONTEXT",
+      "answer": "",
+      "rule_correct": false,
+      "judge_correct": false,
+      "difficulty": "hard"
+    },
+    {
+      "id": "Q23",
+      "question": "What happens to seasonal products at end of season?",
+      "expected": "auto-deactivated, reactivation requires manual review by merchandising",
+      "answer": "",
+      "rule_correct": false,
+      "judge_correct": false,
+      "difficulty": "hard"
+    },
+    {
+      "id": "Q24",
+      "question": "What is the UK address format standard used for normalisation?",
+      "expected": "Royal Mail",
+      "answer": "The UK address format standard is the Royal Mail format.",
+      "rule_correct": true,
+      "judge_correct": false,
+      "difficulty": "hard"
+    },
+    {
+      "id": "Q25",
+      "question": "Can a PAYMENT exist without an associated ORDER?",
+      "expected": "No, order_id is mandatory (PAYMENT belongs to ORDER)",
+      "answer": "",
+      "rule_correct": false,
+      "judge_correct": false,
+      "difficulty": "hard"
+    }
+  ]
+}

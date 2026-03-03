@@ -1,0 +1,6 @@
+domain: healthcare-pharma
+scope: FDA drug labels for Metformin, Lisinopril, Atorvastatin, Omeprazole, Sertraline
+author: openFDA API (public domain)
+include:
+  - "entities/*.md"
+  - "docs/*.md"

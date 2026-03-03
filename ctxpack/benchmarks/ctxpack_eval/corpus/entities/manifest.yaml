@@ -1,0 +1,45 @@
+entity: MANIFEST
+description: Lightweight index pointing to all layers with token counts, enabling progressive hydration
+aliases:
+  - manifest-index
+
+identifier:
+  name: index_type
+  type: string
+  immutable: true
+
+indexes:
+  - name: LAYERS
+    description: "Layer name to filename and token count mapping (e.g. L2 -> L2.ctx ~500 tokens)"
+  - name: SECTION-INDEX
+    description: "Section name, token count, and key list (capped at 8 keys) for each section in L2"
+  - name: ENTITY-INDEX
+    description: "Entity name to section name and token cost for query-adaptive selection"
+  - name: KEYWORD-INDEX
+    description: "Top keywords per section for MCP query routing — structural (KV keys), navigational (cross-ref targets), and semantic (domain terms)"
+
+keyword_routing:
+  semantic_regex: "Extracts domain-relevant terms: retention, churn, pii, pci-dss, gdpr, immutable, nullable, cascade, encrypted, confidential, restricted, active, inactive, archived, deleted, pending, approved, unique, required, mandatory"
+  keyword_cap: 15
+  categories:
+    - type: structural
+      description: "KV keys like IDENTIFIER, STATUS-MACHINE"
+    - type: navigational
+      description: "Cross-reference targets via @ENTITY-X pattern"
+    - type: semantic
+      description: "Domain-relevant terms extracted from field values"
+
+budget_metadata:
+  - key: TOTAL_L2_TOKENS
+    description: "Total token count of L2 body"
+  - key: TOTAL_L3_TOKENS
+    description: "Total token count of L3 body"
+  - key: AVG_SECTION_TOKENS
+    description: "Average tokens per entity section (L2 tokens divided by entity count)"
+
+purpose: "Progressive hydration — L3 for routing, L2 for detail, L1 for deep-dive"
+
+depends_on:
+  entity: COMPRESSOR
+  cardinality: 1:1
+  description: "Uses count_tokens() and serialize() for token counting"

@@ -29,6 +29,10 @@ def run_scaling_eval(
     regenerate: bool = False,
     skip_fidelity: bool = False,
     seed: int = 42,
+    max_scale: int = 0,
+    provider: str = "",
+    model: str = "",
+    api_key: str = "",
 ) -> dict[str, Any]:
     """Run eval at each corpus scale and collect results.
 
@@ -38,25 +42,38 @@ def run_scaling_eval(
         regenerate: If True, regenerate corpora even if they exist.
         skip_fidelity: If True, skip LLM API calls (compression-only mode).
         seed: Random seed for question sampling.
+        max_scale: If > 0, only run scales up to this token count (e.g. 5000
+            to skip scale_20000 and scale_50000). 0 means run all.
+        provider: Explicit provider ("anthropic", "openai", "google"). Auto-detects if empty.
+        model: Explicit model ID. Auto-detects if empty.
+        api_key: Explicit API key. Auto-detects from env if empty.
 
     Returns:
         Results dict with per-scale metrics.
     """
     load_dotenv()
 
+    all_scale_sizes = [1000, 5000, 20000, 50000]
+    if max_scale > 0:
+        all_scale_sizes = [s for s in all_scale_sizes if s <= max_scale]
+
     # Generate corpora if needed
     scale_dirs = [
         os.path.join(base_dir, f"scale_{t}")
-        for t in [1000, 5000, 20000, 50000]
+        for t in all_scale_sizes
     ]
     if regenerate or not all(os.path.isdir(d) for d in scale_dirs):
         generate_all_scaling_corpora(base_dir)
 
-    # Detect provider
-    provider, api_key, detected_model = _detect_provider()
+    # Use explicit params or detect provider
+    if not provider or not api_key:
+        detected_provider, detected_key, detected_model = _detect_provider()
+        provider = provider or detected_provider
+        api_key = api_key or detected_key
+        model = model or detected_model
     if skip_fidelity:
         api_key = ""
-    eval_model = detected_model or "claude-sonnet-4-6"
+    eval_model = model or "claude-sonnet-4-6"
 
     rng = random.Random(seed)
 
@@ -77,7 +94,7 @@ def run_scaling_eval(
         ("golden_set", golden_set_path),
     ] + [
         (f"scale_{t}", os.path.join(base_dir, f"scale_{t}"))
-        for t in [1000, 5000, 20000, 50000]
+        for t in all_scale_sizes
     ]
 
     for scale_name, scale_dir in all_scales:
@@ -98,7 +115,7 @@ def run_scaling_eval(
         source_tokens = count_corpus_tokens(corpus_dir)
         ctx_tokens = count_tokens(ctx_text)
 
-        print(f"  Source: {source_tokens} tokens → Compressed: {ctx_tokens} tokens "
+        print(f"  Source: {source_tokens} tokens -> Compressed: {ctx_tokens} tokens "
               f"({source_tokens/max(1,ctx_tokens):.1f}x)")
 
         # Load questions
@@ -151,7 +168,7 @@ def run_scaling_eval(
             )
             ctx_result["fidelity"] = fidelity.score
             ctx_result["llm_judge_score"] = fidelity.llm_judge_score
-            print(f"    → fidelity={fidelity.score:.2f} judge={fidelity.llm_judge_score:.2f}")
+            print(f"    -> fidelity={fidelity.score:.2f} judge={fidelity.llm_judge_score:.2f}")
         scale_result["baselines"]["ctxpack_l2"] = ctx_result
 
         # ── Raw stuffing ──
@@ -171,7 +188,7 @@ def run_scaling_eval(
             )
             raw_result["fidelity"] = fidelity.score
             raw_result["llm_judge_score"] = fidelity.llm_judge_score
-            print(f"    → fidelity={fidelity.score:.2f} judge={fidelity.llm_judge_score:.2f}")
+            print(f"    -> fidelity={fidelity.score:.2f} judge={fidelity.llm_judge_score:.2f}")
         scale_result["baselines"]["raw_stuffing"] = raw_result
 
         # ── Naive truncation ──
@@ -191,7 +208,7 @@ def run_scaling_eval(
             )
             naive_result["fidelity"] = fidelity.score
             naive_result["llm_judge_score"] = fidelity.llm_judge_score
-            print(f"    → fidelity={fidelity.score:.2f} judge={fidelity.llm_judge_score:.2f}")
+            print(f"    -> fidelity={fidelity.score:.2f} judge={fidelity.llm_judge_score:.2f}")
         scale_result["baselines"]["naive_truncation"] = naive_result
 
         # ── LLM summary (only if API key and not too expensive) ──
@@ -215,7 +232,7 @@ def run_scaling_eval(
             )
             llm_result["fidelity"] = fidelity.score
             llm_result["llm_judge_score"] = fidelity.llm_judge_score
-            print(f"    → fidelity={fidelity.score:.2f} judge={fidelity.llm_judge_score:.2f}")
+            print(f"    -> fidelity={fidelity.score:.2f} judge={fidelity.llm_judge_score:.2f}")
             scale_result["baselines"]["llm_summary"] = llm_result
 
         results["scales"].append(scale_result)

@@ -1,0 +1,86 @@
+{
+  "experiment": "ablation",
+  "timestamp": "2026-03-02T11:47:00.347418+00:00",
+  "model": "gpt-4o",
+  "question_count": 25,
+  "variants": {
+    "ctxpack_enriched": {
+      "label": "ctxpack_enriched",
+      "tokens": 139,
+      "source_tokens": 647,
+      "ratio": "4.7x",
+      "cost": "$0.0003",
+      "fidelity": 0.84,
+      "llm_judge_score": 0.88,
+      "correct": 21,
+      "llm_judge_correct": 22,
+      "total": 25
+    },
+    "ctxpack_strict": {
+      "label": "ctxpack_strict",
+      "tokens": 137,
+      "source_tokens": 647,
+      "ratio": "4.7x",
+      "cost": "$0.0003",
+      "fidelity": 0.8,
+      "llm_judge_score": 0.84,
+      "correct": 20,
+      "llm_judge_correct": 21,
+      "total": 25
+    },
+    "ctxpack_random_order": {
+      "label": "ctxpack_random_order",
+      "tokens": 139,
+      "source_tokens": 647,
+      "ratio": "4.7x",
+      "cost": "$0.0003",
+      "fidelity": 0.76,
+      "llm_judge_score": 0.84,
+      "correct": 19,
+      "llm_judge_correct": 21,
+      "total": 25
+    },
+    "ctxpack_scored_order": {
+      "label": "ctxpack_scored_order",
+      "tokens": 139,
+      "source_tokens": 647,
+      "ratio": "4.7x",
+      "cost": "$0.0003",
+      "fidelity": 0.84,
+      "llm_judge_score": 0.88,
+      "correct": 21,
+      "llm_judge_correct": 22,
+      "total": 25
+    },
+    "raw_stuffing": {
+      "label": "raw_stuffing",
+      "tokens": 720,
+      "source_tokens": 647,
+      "ratio": "0.9x",
+      "cost": "$0.0018",
+      "fidelity": 0.76,
+      "llm_judge_score": 0.84,
+      "correct": 19,
+      "llm_judge_correct": 21,
+      "total": 25
+    },
+    "minified": {
+      "label": "minified",
+      "tokens": 431,
+      "source_tokens": 647,
+      "ratio": "1.5x",
+      "cost": "$0.0011",
+      "fidelity": 0.8,
+      "llm_judge_score": 0.84,
+      "correct": 20,
+      "llm_judge_correct": 21,
+      "total": 25
+    }
+  },
+  "deltas": {
+    "scope_inference_delta": 0.04,
+    "salience_ordering_delta": 0.08,
+    "ctxpack_vs_minified_delta": 0.04,
+    "ctxpack_vs_raw_delta": 0.08
+  }
+}

@@ -1,0 +1,2940 @@
+{
+  "experiment": "realworld_eval",
+  "timestamp": "2026-03-01T13:54:32Z",
+  "corpora": {
+    "fda-drug-labels": {
+      "corpus": "fda-drug-labels",
+      "timestamp": "2026-03-01T13:54:32Z",
+      "source_tokens": 14852,
+      "ctx_tokens": 159,
+      "compression_ratio": 93.41,
+      "entity_count": 0,
+      "question_count": 25,
+      "model_results": {
+        "claude-sonnet-4.5": {
+          "model": "claude-sonnet-4.5",
+          "model_id": "claude-sonnet-4-5-20250929",
+          "provider": "anthropic",
+          "baselines": {
+            "ctxpack_l2": {
+              "tokens": 159,
+              "ratio": "93.41x",
+              "cost": "$0.0005",
+              "fidelity": 0.84,
+              "llm_judge_score": 1.0,
+              "details": {
+                "total": 25,
+                "correct": 21,
+                "score": 0.84,
+                "llm_judge_correct": 25,
+                "llm_judge_score": 1.0,
+                "by_difficulty": {
+                  "easy": {
+                    "total": 7,
+                    "correct": 6,
+                    "score": 0.857
+                  },
+                  "medium": {
+                    "total": 11,
+                    "correct": 9,
+                    "score": 0.818
+                  },
+                  "hard": {
+                    "total": 5,
+                    "correct": 4,
+                    "score": 0.8
+                  },
+                  "adversarial": {
+                    "total": 2,
+                    "correct": 2,
+                    "score": 1.0
+                  }
+                },
+                "details": [
+                  {
+                    "id": "F01",
+                    "question": "What is the recommended dosage range for atorvastatin in adults?",
+                    "expected": "10 mg to 80 mg once daily",
+                    "answer": "According to the provided context, the recommended dosage range for atorvastatin in adults is:\n\n**10 mg to 80 mg once daily**\n\nAdditional details:\n- Recommended starting dosage: 10-20 mg once daily\n- Patients requiring LDL-C reduction greater than 45% may start at 40 mg once daily\n- The medication should be taken orally once daily at any time of day, with or without food\n- LDL-C should be assessed when clinically appropriate, as early as 4 weeks after initiating therapy, and dosage adjusted if necessary",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F02",
+                    "question": "What is the recommended initial dose of sertraline for major depressive disorder in adults?",
+                    "expected": "50 mg once daily",
+                    "answer": "According to the context, the recommended initial dose of sertraline for major depressive disorder in adults is **50 mg once daily**.\n\nThe dosage information states: \"Major Depressive Disorder \u2013 Sertraline hydrochloride treatment administered dose 50 mg once daily\" and \"dose 50 mg, administered once daily, recommended initial therapeutic dose.\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F03",
+                    "question": "What is the route of administration for lisinopril?",
+                    "expected": "oral",
+                    "answer": "According to the context, the route of administration for lisinopril is **ORAL**.\n\nThis is stated in the IDENTIFICATION section:\n\"IDENTIFICATION:Generic-Name:-LISINOPRIL-HYDROCHLOROTHIAZIDE-TABLETS\nIDENTIFICATION:Brand-Names:-Lisinopril-Hydrochlorothiazide\nIDENTIFICATION:Manufacturer:-ST.-MARY'S-MEDICAL-PARK-PHARMACY\nIDENTIFICATION:Route:-ORAL\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F04",
+                    "question": "For how many days should omeprazole be taken per treatment course?",
+                    "expected": "14 days",
+                    "answer": "According to the context, omeprazole should be taken for **14 days** per treatment course.\n\nThe dosage directions state: \"take every day for 14 days\" and \"do not take for more than 14 days or more often than every 4 months unless directed by doctor.\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F05",
+                    "question": "What percentage of atorvastatin is bound to plasma proteins?",
+                    "expected": "98%",
+                    "answer": "According to the context, atorvastatin is **\u226598% bound to plasma proteins**.\n\nThis information is found in the Distribution section under Pharmacokinetics (12.3): \"Atorvastatin-\u226598%-bound-plasma-proteins.\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F06",
+                    "question": "What is the starting dose of sertraline for children aged 6-12 with OCD?",
+                    "expected": "25 mg once daily",
+                    "answer": "According to the context, for children aged 6-12 with Obsessive-Compulsive Disorder (OCD), the recommended starting dose of sertraline is **25 mg once daily**.\n\nThe context specifically states: \"Obsessive-Compulsive Disorder \u2013 Sertraline-hydrochloride-treatment-initiated-dose-25-mg-once-daily-children-(ages-6-12).\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F07",
+                    "question": "What are the effective dose ranges for lisinopril monotherapy?",
+                    "expected": "10-80 mg",
+                    "answer": "According to the context, lisinopril monotherapy is effective in the treatment of hypertension at **once daily doses of 10 mg to 80 mg**.",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F08",
+                    "question": "What eGFR threshold contraindicates metformin (ZITUVIMET)?",
+                    "expected": "eGFR below 30 mL/min/1.73 m2",
+                    "answer": "According to the context, **eGFR below 30 mL/min/1.73 m\u00b2** contraindicates metformin (ZITUVIMET).\n\nThis is stated in the contraindications section:\n\n\"ZITUVIMET-contraindicated-patients-Severe-renal-impairment-(eGFR-below-30-mL/min/1.73-m-2-)\"\n\nAdditionally, the context notes that ZITUVIMET is **not recommended** (though not absolutely contraindicated) in patients with eGFR between 30 and less than 45 mL/min/1.73 m\u00b2.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F09",
+                    "question": "What is the maximum atorvastatin dose when co-administered with clarithromycin or itraconazole?",
+                    "expected": "20 mg once daily",
+                    "answer": "According to the context, when atorvastatin is co-administered with clarithromycin or itraconazole, **do not exceed atorvastatin calcium tablets 20 mg once daily**.\n\nThis is stated in the dosage modifications section: \"Select-Azole-Antifungals-Macrolide-Antibiotics-patients-taking-clarithromycin-itraconazole,-exceed-atorvastatin-calcium-tablets-20-mg-once-daily.\"\n\nThis restriction is due to the increased risk of myopathy and rhabdomyolysis, as both clarithromycin and itraconazole are inhibitors of CYP3A4 and/or transporters, which significantly increase atorvastatin plasma levels.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F10",
+                    "question": "What are the most common adverse reactions for atorvastatin with incidence of 5% or greater?",
+                    "expected": "nasopharyngitis, arthralgia, diarrhea, pain in extremity, urinary tract infection",
+                    "answer": "According to the context, the most common adverse reactions for atorvastatin with incidence \u22655% are:\n\n1. **Nasopharyngitis** (8.3%)\n2. **Arthralgia** (6.9%)\n3. **Diarrhea** (6.8%)\n4. **Pain in extremity** (6.0%)\n5. **Urinary tract infection** (5.7%)\n\nThese are listed in the adverse reactions section which states: \"Most-common-adverse-reactions-(incidence-\u22655%)-nasopharyngitis,-arthralgia,-diarrhea,-pain-extremity,-urinary-tract-infection.\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F11",
+                    "question": "What is the average terminal elimination half-life of sertraline?",
+                    "expected": "approximately 26 hours",
+                    "answer": "According to the context, the average terminal elimination half-life of sertraline in plasma is **about 26 hours**.\n\nThis information is found in the Pharmacokinetics section, which states: \"The average terminal elimination half-life of plasma sertraline is about 26 hours.\"",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F12",
+                    "question": "What is the required washout period between stopping sertraline and starting an MAOI?",
+                    "expected": "14 days",
+                    "answer": "According to the context, there is a **14-day washout period** required between stopping sertraline and starting an MAOI intended to treat psychiatric disorders, and vice versa.\n\nSpecifically, the contraindications state:\n\n- \"use of MAOIs intended to treat psychiatric disorders with Sertraline hydrochloride **within 14 days of stopping treatment** with Sertraline hydrochloride is contraindicated\"\n\n- \"use of Sertraline hydrochloride **within 14 days of stopping an MAOI** intended to treat psychiatric disorders is contraindicated\"\n\nThis 14-day washout period is required in both directions due to the increased risk of serotonin syndrome when these medications are used together.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F13",
+                    "question": "What metformin plasma level is generally associated with lactic acidosis?",
+                    "expected": "greater than 5 mcg/mL",
+                    "answer": "According to the context, metformin-associated lactic acidosis is characterized by metformin plasma levels **generally >5 mcg/mL**.\n\nThis information appears in the boxed warning section, which states: \"Metformin associated lactic acidosis characterized by elevated blood lactate levels (>5 mmol/Liter), anion gap acidosis (without evidence of ketonuria or ketonemia), increased lactate/pyruvate ratio, **metformin plasma levels generally >5 mcg/mL**.\"",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F14",
+                    "question": "Which drug class increases the risk of lactic acidosis when combined with metformin?",
+                    "expected": "carbonic anhydrase inhibitors",
+                    "answer": "According to the context, **carbonic anhydrase inhibitors** increase the risk of lactic acidosis when combined with metformin.\n\nThe context specifically states:\n\n\"Carbonic-Anhydrase-Inhibitors-Clinical-Impact:-Carbonic-anhydrase-inhibitors-frequently-cause-decrease-serum-bicarbonate-induce-non-anion-gap,-hyperchloremic-metabolic-acidosis.-Concomitant-use-drugs-ZITUVIMET-increase-risk-lactic-acidosis.\"\n\nExamples listed include: topiramate, zonisamide, acetazolamide, and dichlorphenamide.\n\nThe intervention recommended is to \"Consider-more-frequent-monitoring-patients\" when these drugs are used concomitantly with metformin-containing products.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F15",
+                    "question": "What percentage of patients discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects?",
+                    "expected": "4.4%",
+                    "answer": "According to the context, **4.4% of patients** discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects, principally because of dizziness, cough, fatigue, and muscle cramps.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F16",
+                    "question": "What electrolyte must be monitored with long-term omeprazole use exceeding one year?",
+                    "expected": "magnesium",
+                    "answer": "According to the context, **magnesium** must be monitored with long-term omeprazole use exceeding one year.\n\nThis is stated in the MONITORING-REQUIREMENTS section: \"Omeprazole:-monitor-magnesium-long-term-use-(>1-year)\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F17",
+                    "question": "What is the time to maximum plasma concentration for atorvastatin after oral administration?",
+                    "expected": "1 to 2 hours",
+                    "answer": "According to the context, maximum plasma concentrations of atorvastatin occur **within 1 to 2 hours** after oral administration.\n\nThis is stated in the Pharmacokinetics section: \"Atorvastatin-rapidly-absorbed-after-oral-administration;-maximum-plasma-concentrations-occur-within-1-2-hours.\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F18",
+                    "question": "Which patient population has a higher incidence of angioedema with lisinopril?",
+                    "expected": "Black patients",
+                    "answer": "According to the context, **Black patients** have a higher incidence of angioedema with lisinopril compared to non-Black patients.\n\nThe context specifically states: \"Angioedema-reported-patients-receiving-PRINZIDE,-incidence-higher-Black-than-non-Black-patients.\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F19",
+                    "question": "Can metformin and lisinopril be co-prescribed safely for a diabetic patient with hypertension?",
+                    "expected": "Yes, metformin and lisinopril are commonly co-prescribed for diabetic patients with hypertension",
+                    "answer": "Yes, metformin and lisinopril can be co-prescribed safely for a diabetic patient with hypertension.\n\nAccording to the context:\n\n**Known Safe Combination:**\n\"Metformin + Lisinopril: commonly co-prescribed diabetic patients hypertension\"\n\n**Important Monitoring Requirements:**\n\nFor **Metformin:**\n- Monitor renal function (eGFR)\n- Hold before contrast procedures\n\nFor **Lisinopril:**\n- Monitor potassium\n- Monitor renal function\n- Monitor blood pressure\n\n**Key Consideration:**\nSince both drugs require renal function monitoring, it's particularly important to assess kidney function regularly when using this combination, as stated in the general principles: \"Renal function must monitored drugs cleared kidneys.\"\n\nThis is a standard, commonly used combination in clinical practice for patients with both diabetes and hypertension, but appropriate monitoring should be maintained",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F20",
+                    "question": "What is the main risk when combining atorvastatin with strong CYP3A4 inhibitors, and what is the mechanism?",
+                    "expected": "rhabdomyolysis due to CYP3A4 inhibition increasing atorvastatin exposure",
+                    "answer": "Based on the provided context:\n\n**Main Risk:** Rhabdomyolysis (severe muscle breakdown)\n\n**Mechanism:** \nAtorvastatin is a substrate of CYP3A4. When combined with strong CYP3A4 inhibitors, atorvastatin plasma levels are significantly increased, which elevates the risk of myopathy and rhabdomyolysis.\n\n**Specific Guidance from the Context:**\n\nThe document lists this under \"CAUTION-COMBINATIONS\":\n- \"Atorvastatin + strong CYP3A4 inhibitors: risk rhabdomyolysis\"\n\nThe drug interactions section states:\n- \"Atorvastatin plasma levels significantly increased concomitant administration atorvastatin cyclosporine... inhibitor CYP3A4\"\n- \"Cases myopathy rhabdomyolysis reported",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F21",
+                    "question": "Which of the five drugs in the corpus has a black box warning related to suicidality, and for what age group?",
+                    "expected": "sertraline, patients under 25",
+                    "answer": "Based on the context provided, **Sertraline** has a black box warning related to suicidality.\n\nThe age group affected is **patients under 25 years old** (specifically mentioned as \"age <25\" in the monitoring requirements section).\n\nThe boxed warning states that antidepressants, including Sertraline, increased the risk compared to placebo of suicidal thinking and behavior (suicidality) in children, adolescents, and young adults in short-term studies. The context specifies that short-term studies did not show an increase in risk of suicidality with antidepressants compared to placebo in adults beyond age 24, and there was actually a reduction in risk in adults aged 65 and older.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F22",
+                    "question": "What is the absolute bioavailability of atorvastatin and what is the half-life of its HMG-CoA reductase inhibitory activity?",
+                    "expected": "approximately 14% bioavailability, 20 to 30 hours inhibitory activity half-life",
+                    "answer": "According to the context:\n\n**Absolute bioavailability of atorvastatin:** Approximately 14% (parent drug)\n\n**Half-life of HMG-CoA reductase inhibitory activity:** 20-30 hours\n\nThe context specifies: \"The absolute bioavailability of atorvastatin (parent drug) is approximately 14% and the systemic availability of HMG-CoA reductase inhibitory activity is approximately 30%.\"\n\nAnd: \"Mean plasma elimination half-life of atorvastatin in humans is approximately 14 hours, and the half-life of inhibitory activity for HMG-CoA reductase is 20-30 hours due to the contribution of active metabolites.\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F23",
+                    "question": "Why does omeprazole interact with clopidogrel, and what is the clinical consequence?",
+                    "expected": "CYP2C19 interaction leading to reduced antiplatelet effect",
+                    "answer": "According to the context provided:\n\n**Why omeprazole interacts with clopidogrel:**\nThe interaction occurs due to a **CYP2C19 interaction**. Omeprazole interferes with the metabolism of clopidogrel through the CYP2C19 enzyme pathway.\n\n**Clinical consequence:**\nThe interaction results in a **reduced antiplatelet effect** of clopidogrel.\n\nThis is listed under the CAUTION-COMBINATIONS section, indicating that this drug combination requires careful consideration and monitoring when co-prescribed.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F24",
+                    "question": "What is the cost per pill of metformin?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context.\n\nThe provided domain knowledge contains clinical and regulatory information about metformin (including dosing, interactions, warnings, pharmacology, etc.) but does not include pricing or cost information.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  },
+                  {
+                    "id": "F25",
+                    "question": "What is the recommended dose of metformin for patients with type 1 diabetes?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context.\n\nThe context explicitly states that ZITUVIMET (which contains metformin) is \"not recommended in patients with type 1 diabetes mellitus\" and notes it as a \"Limitation of Use.\" There is no recommended dose of metformin for type 1 diabetes patients because it is contraindicated for this population.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  }
+                ]
+              }
+            },
+            "raw_stuffing": {
+              "tokens": 14876,
+              "ratio": "1x",
+              "cost": "$0.0446",
+              "fidelity": 0.84,
+              "llm_judge_score": 1.0
+            },
+            "naive_truncation": {
+              "tokens": 159,
+              "ratio": "93.4x",
+              "cost": "$0.0005",
+              "fidelity": 0.32,
+              "llm_judge_score": 0.24
+            },
+            "llm_summary": {
+              "tokens": 146,
+              "ratio": "101.7x",
+              "cost": "$0.0004",
+              "fidelity": 0.4,
+              "llm_judge_score": 0.28
+            }
+          }
+        },
+        "claude-haiku-4.5": {
+          "model": "claude-haiku-4.5",
+          "model_id": "claude-haiku-4-5-20251001",
+          "provider": "anthropic",
+          "baselines": {
+            "ctxpack_l2": {
+              "tokens": 159,
+              "ratio": "93.41x",
+              "cost": "$0.0002",
+              "fidelity": 0.8,
+              "llm_judge_score": 1.0,
+              "details": {
+                "total": 25,
+                "correct": 20,
+                "score": 0.8,
+                "llm_judge_correct": 25,
+                "llm_judge_score": 1.0,
+                "by_difficulty": {
+                  "easy": {
+                    "total": 7,
+                    "correct": 6,
+                    "score": 0.857
+                  },
+                  "medium": {
+                    "total": 11,
+                    "correct": 9,
+                    "score": 0.818
+                  },
+                  "hard": {
+                    "total": 5,
+                    "correct": 3,
+                    "score": 0.6
+                  },
+                  "adversarial": {
+                    "total": 2,
+                    "correct": 2,
+                    "score": 1.0
+                  }
+                },
+                "details": [
+                  {
+                    "id": "F01",
+                    "question": "What is the recommended dosage range for atorvastatin in adults?",
+                    "expected": "10 mg to 80 mg once daily",
+                    "answer": "According to the context, the recommended dosage range for atorvastatin in adults is **10 mg to 80 mg once daily**.\n\nKey dosing details:\n- **Recommended starting dosage**: 10 mg or 20 mg once daily\n- **Dosage range**: 10 mg to 80 mg once daily\n- **For patients requiring >45% LDL-C reduction**: Start at 40 mg once daily\n- **Administration**: Take orally once daily, without food\n- **Monitoring**: Assess LDL-C levels when clinically appropriate, early at 4 weeks after initiating therapy, and adjust dosage if necessary",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F02",
+                    "question": "What is the recommended initial dose of sertraline for major depressive disorder in adults?",
+                    "expected": "50 mg once daily",
+                    "answer": "According to the context, the recommended initial dose of sertraline hydrochloride for major depressive disorder in adults is **50 mg once daily**.\n\nThe prescribing information states: \"Sertraline hydrochloride treatment administered dose 50 mg once daily\" and \"the dose 50 mg, administered once daily, recommended initial therapeutic dose.\"\n\nPatients responding to the 50 mg dose may benefit from dose increases up to a maximum of 200 mg/day.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F03",
+                    "question": "What is the route of administration for lisinopril?",
+                    "expected": "oral",
+                    "answer": "Based on the context provided, the route of administration for lisinopril is **ORAL**.\n\nThis is stated in the IDENTIFICATION section: \"Route:-ORAL\" for Lisinopril-Hydrochlorothiazide-Tablets.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F04",
+                    "question": "For how many days should omeprazole be taken per treatment course?",
+                    "expected": "14 days",
+                    "answer": "According to the context, omeprazole should be taken for **14 days per treatment course**.\n\nThe dosage instructions state: \"swallow 1 tablet glass water before eating morning take day 14 days\" and \"take more than 14 days unless directed your doctor.\"\n\nAdditionally, the context notes that if needed, a repeated 14-day course can be taken, but not more often than every 4 months unless directed by a doctor.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F05",
+                    "question": "What percentage of atorvastatin is bound to plasma proteins?",
+                    "expected": "98%",
+                    "answer": "According to the context, **atorvastatin is \u226598% bound to plasma proteins**.\n\nThis information is found in the PHARMACOKINETICS section under the Distribution subsection for atorvastatin.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F06",
+                    "question": "What is the starting dose of sertraline for children aged 6-12 with OCD?",
+                    "expected": "25 mg once daily",
+                    "answer": "According to the context, the starting dose of sertraline for children aged 6-12 with OCD is **25 mg once daily**.\n\nThe prescribing information states: \"Sertraline hydrochloride treatment initiated dose 25 mg once daily children (ages 6-12).\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F07",
+                    "question": "What are the effective dose ranges for lisinopril monotherapy?",
+                    "expected": "10-80 mg",
+                    "answer": "Based on the context provided, the effective dose range for lisinopril monotherapy is **10 mg to 80 mg once daily**.\n\nThis information is found in the DOSAGE-AND-ADMINISTRATION section, which states: \"Lisinopril monotherapy effective treatment hypertension once-daily doses 10 mg 80 mg.\"",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F08",
+                    "question": "What eGFR threshold contraindicates metformin (ZITUVIMET)?",
+                    "expected": "eGFR below 30 mL/min/1.73 m2",
+                    "answer": "According to the context, metformin (ZITUVIMET) is contraindicated in patients with **severe renal impairment defined as eGFR below 30 mL/min/1.73 m\u00b2**.\n\nThe document states: \"ZITUVIMET contraindicated patients Severe renal impairment-(eGFR-below-30-mL/min/1.73-m-2-)\"\n\nAdditionally, ZITUVIMET is not recommended (but not absolutely contraindicated) in patients with eGFR between 30 and less than 45 mL/min/1.73 m\u00b2, as these patients require lower dosages than what is available in the fixed combination product.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F09",
+                    "question": "What is the maximum atorvastatin dose when co-administered with clarithromycin or itraconazole?",
+                    "expected": "20 mg once daily",
+                    "answer": "According to the context, when atorvastatin is co-administered with clarithromycin or itraconazole, the maximum dose should **not exceed 20 mg once daily**.\n\nThis is stated in the DOSAGE-AND-ADMINISTRATION section under \"Dosage Modifications Due Drug Interactions\":\n\n\"Select Azole Antifungals Macrolide Antibiotics - patients taking clarithromycin itraconazole, exceed atorvastatin calcium tablets 20 mg once daily.\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F10",
+                    "question": "What are the most common adverse reactions for atorvastatin with incidence of 5% or greater?",
+                    "expected": "nasopharyngitis, arthralgia, diarrhea, pain in extremity, urinary tract infection",
+                    "answer": "Based on the context provided, the most common adverse reactions for atorvastatin with incidence of 5% or greater are:\n\n1. **Nasopharyngitis** - 8.3%\n2. **Arthralgia** - 6.9%\n3. **Diarrhea** - 6.8%\n4. **Pain in extremity** - 6.0%\n5. **Urinary tract infection** - 5.7%\n\nThese adverse reactions were reported at rates \u22655% in patients treated with atorvastatin calcium across seventeen placebo-controlled trials, with incidence greater than placebo.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F11",
+                    "question": "What is the average terminal elimination half-life of sertraline?",
+                    "expected": "approximately 26 hours",
+                    "answer": "According to the context, the average terminal elimination half-life of sertraline is about **26 hours**.\n\nThis is stated in the PHARMACOKINETICS section: \"In man, following oral once-daily dosing over a range of 50-200 mg over 14 days, mean peak plasma concentrations (C max) of sertraline occurred between 4.5-8.4 hours post-dosing. The average terminal elimination half-life in plasma of sertraline is about 26 hours.\"",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F12",
+                    "question": "What is the required washout period between stopping sertraline and starting an MAOI?",
+                    "expected": "14 days",
+                    "answer": "Based on the context provided, the required washout period between stopping sertraline and starting an MAOI is **14 days**.\n\nThe contraindications section states: \"use Sertraline hydrochloride within 14 days of stopping MAOI intended treat psychiatric disorders contraindicated.\"\n\nAdditionally, the context notes that sertraline should not be used with MAOIs intended to treat psychiatric disorders within 14 days of stopping treatment with sertraline due to the increased risk of serotonin syndrome.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F13",
+                    "question": "What metformin plasma level is generally associated with lactic acidosis?",
+                    "expected": "greater than 5 mcg/mL",
+                    "answer": "According to the context, metformin plasma levels generally **>5 mcg/mL** are associated with lactic acidosis.\n\nThis is stated in the BOXED-WARNING section for ZITUVIMET (which contains metformin): \"Laboratory abnormalities included elevated blood lactate levels, anion gap acidosis, increased lactate/pyruvate ratio, metformin plasma levels generally >5 mcg/mL.\"\n\nThe same information is reiterated as: \"Metformin-associated lactic acidosis is characterized by elevated blood lactate levels (>5 mmol/Liter), anion gap acidosis (without evidence of ketonuria or ketonemia), increased lactate/pyruvate ratio, metformin plasma levels generally >5 mcg/mL.\"",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F14",
+                    "question": "Which drug class increases the risk of lactic acidosis when combined with metformin?",
+                    "expected": "carbonic anhydrase inhibitors",
+                    "answer": "Based on the context provided, **carbonic anhydrase inhibitors** increase the risk of lactic acidosis when combined with metformin.\n\nAccording to the drug interactions section for ZITUVIMET (which contains metformin):\n\n\"Carbonic anhydrase inhibitors frequently cause decrease serum bicarbonate induce non-anion gap, hyperchloremic metabolic acidosis. Concomitant use drugs [with] ZITUVIMET increase risk lactic acidosis.\"\n\nExamples of carbonic anhydrase inhibitors mentioned include: topiramate, zonisamide, acetazolamide, and dichlorphenamide.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F15",
+                    "question": "What percentage of patients discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects?",
+                    "expected": "4.4%",
+                    "answer": "According to the context, **4.4% of patients** discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects. The discontinuations were principally due to dizziness, cough, fatigue, and muscle cramps.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F16",
+                    "question": "What electrolyte must be monitored with long-term omeprazole use exceeding one year?",
+                    "expected": "magnesium",
+                    "answer": "According to the context, **magnesium** must be monitored with long-term omeprazole use exceeding one year.\n\nThis is stated in the MONITORING-REQUIREMENTS section: \"Omeprazole:-monitor-magnesium-long-term-use-(>1-year)\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F17",
+                    "question": "What is the time to maximum plasma concentration for atorvastatin after oral administration?",
+                    "expected": "1 to 2 hours",
+                    "answer": "According to the context, maximum plasma concentrations of atorvastatin occur **within 1-2 hours** after oral administration.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F18",
+                    "question": "Which patient population has a higher incidence of angioedema with lisinopril?",
+                    "expected": "Black patients",
+                    "answer": "Based on the context provided, **Black patients have a higher incidence of angioedema with lisinopril** compared to non-Black patients.\n\nThe document specifically states:\n\n\"Angioedema: Angioedema reported in patients receiving PRINZIDE, incidence higher Black than non-Black patients.\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F19",
+                    "question": "Can metformin and lisinopril be co-prescribed safely for a diabetic patient with hypertension?",
+                    "expected": "Yes, metformin and lisinopril are commonly co-prescribed for diabetic patients with hypertension",
+                    "answer": "Yes, metformin and lisinopril can be co-prescribed safely for a diabetic patient with hypertension.\n\nAccording to the context, this combination is listed under **KNOWN-SAFE-COMBINATIONS**: \"Metformin + Lisinopril: commonly co-prescribed diabetic patients hypertension.\"\n\nThis is a well-established and commonly used combination in clinical practice for patients who have both type 2 diabetes and hypertension.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F20",
+                    "question": "What is the main risk when combining atorvastatin with strong CYP3A4 inhibitors, and what is the mechanism?",
+                    "expected": "rhabdomyolysis due to CYP3A4 inhibition increasing atorvastatin exposure",
+                    "answer": "# Atorvastatin + Strong CYP3A4 Inhibitors\n\n## Main Risk\n**Myopathy and rhabdomyolysis** - the risk is significantly increased when atorvastatin is combined with strong CYP3A4 inhibitors.\n\n## Mechanism\nAtorvastatin is a substrate of **CYP3A4** (as well as transporters including OATP1B1/1B3, P-gp, and BCRP). When strong CYP3A4 inhibitors are coadministered:\n\n1. **Inhibition of metabolism** - CYP3A4 inhibitors block the enzyme responsible for metabolizing atorvastatin\n2. **Increased plasma concentrations** - This results in significantly elevated atorvastatin levels in the bloodstream\n3. **Elevated myopathy",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F21",
+                    "question": "Which of the five drugs in the corpus has a black box warning related to suicidality, and for what age group?",
+                    "expected": "sertraline, patients under 25",
+                    "answer": "Based on the context provided, **Sertraline** has a black box warning related to suicidality.\n\nThe warning applies to the following age groups:\n\n1. **Children, adolescents, and young adults** - Antidepressants increased the risk of suicidal thinking and behavior compared to placebo in short-term studies for these age groups with major depressive disorder and other psychiatric disorders.\n\n2. **Young adults** - The increased risk extends to young adults in short-term studies.\n\nThe boxed warning specifically states that \"Antidepressants increased risk compared to placebo suicidal thinking behavior (suicidality) children, adolescents, young adults short-term studies major depressive disorder (MDD) other psychiatric disorders.\"\n\nAdditionally, the monitoring requirements section notes that Sertraline requires monitoring for \"suicidal-ideation (black-box-warning-age-<25)",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F22",
+                    "question": "What is the absolute bioavailability of atorvastatin and what is the half-life of its HMG-CoA reductase inhibitory activity?",
+                    "expected": "approximately 14% bioavailability, 20 to 30 hours inhibitory activity half-life",
+                    "answer": "Based on the context provided:\n\n**Absolute bioavailability of atorvastatin (parent drug):** Approximately 14%\n\n**Half-life of HMG-CoA reductase inhibitory activity:** 20-30 hours\n\nThe context notes that while the mean plasma elimination half-life of atorvastatin in humans is approximately 14 hours, the longer half-life of inhibitory activity (20-30 hours) is due to the contribution of active metabolites.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F23",
+                    "question": "Why does omeprazole interact with clopidogrel, and what is the clinical consequence?",
+                    "expected": "CYP2C19 interaction leading to reduced antiplatelet effect",
+                    "answer": "Based on the provided context:\n\n**Mechanism of Interaction:**\nOmeprazole interacts with clopidogrel through a CYP2C19 enzyme interaction.\n\n**Clinical Consequence:**\nThe interaction results in a **reduced antiplatelet effect** of clopidogrel.\n\nThis is listed in the context under CAUTION-COMBINATIONS as: \"Omeprazole-+-clopidogrel:-reduced-antiplatelet-effect-(CYP2C19-interaction)\"\n\nThe clinical significance is that omeprazole, as a CYP2C19 inhibitor, impairs the metabolism and activation of clopidogrel, thereby reducing its effectiveness as an antiplatelet agent. This is an important consideration when these drugs are used concomitantly, as it could compromise the therapeutic benefit of clopidogrel in patients requiring antiplatelet therapy.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F24",
+                    "question": "What is the cost per pill of metformin?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context.\n\nThe provided domain knowledge contains FDA drug label information for several medications including Metformin (as part of ZITUVIMET combination), but does not include pricing or cost information for any of the drugs.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  },
+                  {
+                    "id": "F25",
+                    "question": "What is the recommended dose of metformin for patients with type 1 diabetes?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context.\n\nThe context indicates that ZITUVIMET (sitagliptin-metformin combination) is **not recommended** for patients with type 1 diabetes mellitus. Specifically, the INDICATIONS-AND-USAGE section states: \"ZITUVIMET is not recommended in patients with type 1 diabetes mellitus.\"\n\nHowever, the context does not provide information about recommended doses of metformin for type 1 diabetes patients.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  }
+                ]
+              }
+            },
+            "raw_stuffing": {
+              "tokens": 14876,
+              "ratio": "1x",
+              "cost": "$0.0149",
+              "fidelity": 0.84,
+              "llm_judge_score": 1.0
+            },
+            "naive_truncation": {
+              "tokens": 159,
+              "ratio": "93.4x",
+              "cost": "$0.0002",
+              "fidelity": 0.32,
+              "llm_judge_score": 0.88
+            },
+            "llm_summary": {
+              "tokens": 158,
+              "ratio": "94.0x",
+              "cost": "$0.0002",
+              "fidelity": 0.36,
+              "llm_judge_score": 0.8
+            }
+          }
+        },
+        "o4-mini": {
+          "model": "o4-mini",
+          "model_id": "o4-mini",
+          "provider": "openai",
+          "baselines": {
+            "ctxpack_l2": {
+              "tokens": 159,
+              "ratio": "93.41x",
+              "cost": "$0.0002",
+              "fidelity": 0.8,
+              "llm_judge_score": 0.8,
+              "details": {
+                "total": 25,
+                "correct": 20,
+                "score": 0.8,
+                "llm_judge_correct": 20,
+                "llm_judge_score": 0.8,
+                "by_difficulty": {
+                  "easy": {
+                    "total": 7,
+                    "correct": 6,
+                    "score": 0.857
+                  },
+                  "medium": {
+                    "total": 11,
+                    "correct": 9,
+                    "score": 0.818
+                  },
+                  "hard": {
+                    "total": 5,
+                    "correct": 3,
+                    "score": 0.6
+                  },
+                  "adversarial": {
+                    "total": 2,
+                    "correct": 2,
+                    "score": 1.0
+                  }
+                },
+                "details": [
+                  {
+                    "id": "F01",
+                    "question": "What is the recommended dosage range for atorvastatin in adults?",
+                    "expected": "10 mg to 80 mg once daily",
+                    "answer": "Recommended adult dosage: start 10\u201320 mg orally once daily; dosage may be adjusted within a 10 mg to 80 mg once-daily range.",
+                    "correct": true,
+                    "llm_judge_correct": false,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F02",
+                    "question": "What is the recommended initial dose of sertraline for major depressive disorder in adults?",
+                    "expected": "50 mg once daily",
+                    "answer": "The recommended initial dose is 50 mg taken once daily.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F03",
+                    "question": "What is the route of administration for lisinopril?",
+                    "expected": "oral",
+                    "answer": "The route of administration for lisinopril is oral.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F04",
+                    "question": "For how many days should omeprazole be taken per treatment course?",
+                    "expected": "14 days",
+                    "answer": "Omeprazole is taken once daily for a 14-day course per treatment.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F05",
+                    "question": "What percentage of atorvastatin is bound to plasma proteins?",
+                    "expected": "98%",
+                    "answer": "Atorvastatin is highly protein\u2010bound, with \u226598% bound to plasma proteins.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F06",
+                    "question": "What is the starting dose of sertraline for children aged 6-12 with OCD?",
+                    "expected": "25 mg once daily",
+                    "answer": "The recommended starting dose is 25 mg once daily.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F07",
+                    "question": "What are the effective dose ranges for lisinopril monotherapy?",
+                    "expected": "10-80 mg",
+                    "answer": "The effective lisinopril monotherapy dose range is 10 mg to 80 mg once daily.",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F08",
+                    "question": "What eGFR threshold contraindicates metformin (ZITUVIMET)?",
+                    "expected": "eGFR below 30 mL/min/1.73 m2",
+                    "answer": "Not found in context",
+                    "correct": false,
+                    "llm_judge_correct": false,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F09",
+                    "question": "What is the maximum atorvastatin dose when co-administered with clarithromycin or itraconazole?",
+                    "expected": "20 mg once daily",
+                    "answer": "The atorvastatin dose should not exceed 20 mg once daily when co-administered with clarithromycin or itraconazole.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F10",
+                    "question": "What are the most common adverse reactions for atorvastatin with incidence of 5% or greater?",
+                    "expected": "nasopharyngitis, arthralgia, diarrhea, pain in extremity, urinary tract infection",
+                    "answer": "Most common (\u22655%) adverse reactions with atorvastatin are:  \n\u2022 Nasopharyngitis  \n\u2022 Arthralgia  \n\u2022 Diarrhea  \n\u2022 Pain in extremity  \n\u2022 Urinary tract infection",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F11",
+                    "question": "What is the average terminal elimination half-life of sertraline?",
+                    "expected": "approximately 26 hours",
+                    "answer": "The average terminal elimination half-life of sertraline is about 26 hours.",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F12",
+                    "question": "What is the required washout period between stopping sertraline and starting an MAOI?",
+                    "expected": "14 days",
+                    "answer": "The label specifies that you must wait 14 days after stopping sertraline before initiating an MAOI.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F13",
+                    "question": "What metformin plasma level is generally associated with lactic acidosis?",
+                    "expected": "greater than 5 mcg/mL",
+                    "answer": "Metformin plasma levels generally greater than 5 mcg/mL are associated with lactic acidosis.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F14",
+                    "question": "Which drug class increases the risk of lactic acidosis when combined with metformin?",
+                    "expected": "carbonic anhydrase inhibitors",
+                    "answer": "Carbonic anhydrase inhibitors.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F15",
+                    "question": "What percentage of patients discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects?",
+                    "expected": "4.4%",
+                    "answer": "4.4% of patients discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F16",
+                    "question": "What electrolyte must be monitored with long-term omeprazole use exceeding one year?",
+                    "expected": "magnesium",
+                    "answer": "The electrolyte that must be monitored is magnesium.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F17",
+                    "question": "What is the time to maximum plasma concentration for atorvastatin after oral administration?",
+                    "expected": "1 to 2 hours",
+                    "answer": "The time to reach maximum plasma concentration (Tmax) for atorvastatin after oral dosing is approximately 1\u20132 hours.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F18",
+                    "question": "Which patient population has a higher incidence of angioedema with lisinopril?",
+                    "expected": "Black patients",
+                    "answer": "Black patients have a higher incidence of angioedema with lisinopril than non-Black patients.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F19",
+                    "question": "Can metformin and lisinopril be co-prescribed safely for a diabetic patient with hypertension?",
+                    "expected": "Yes, metformin and lisinopril are commonly co-prescribed for diabetic patients with hypertension",
+                    "answer": "Yes. Metformin and lisinopril are a known safe combination commonly co-prescribed in diabetic patients with hypertension. Renal function (eGFR), potassium and blood pressure should be monitored.",
+                    "correct": true,
+                    "llm_judge_correct": false,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F20",
+                    "question": "What is the main risk when combining atorvastatin with strong CYP3A4 inhibitors, and what is the mechanism?",
+                    "expected": "rhabdomyolysis due to CYP3A4 inhibition increasing atorvastatin exposure",
+                    "answer": "The chief concern is statin\u2010induced muscle toxicity (myopathy progressing to rhabdomyolysis).  By blocking CYP3A4, these inhibitors impair atorvastatin\u2019s metabolism, raise its blood levels, and thereby heighten muscle\u2010injury risk.",
+                    "correct": false,
+                    "llm_judge_correct": false,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F21",
+                    "question": "Which of the five drugs in the corpus has a black box warning related to suicidality, and for what age group?",
+                    "expected": "sertraline, patients under 25",
+                    "answer": "Sertraline has an FDA\u2010mandated black\u2010box warning for increased suicidality in patients under 25 years of age.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F22",
+                    "question": "What is the absolute bioavailability of atorvastatin and what is the half-life of its HMG-CoA reductase inhibitory activity?",
+                    "expected": "approximately 14% bioavailability, 20 to 30 hours inhibitory activity half-life",
+                    "answer": "The absolute bioavailability of atorvastatin is approximately 14 %, and the half-life of its HMG-CoA-reductase inhibitory activity is about 20\u201330 hours.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F23",
+                    "question": "Why does omeprazole interact with clopidogrel, and what is the clinical consequence?",
+                    "expected": "CYP2C19 interaction leading to reduced antiplatelet effect",
+                    "answer": "Omeprazole is a CYP2C19 inhibitor, and clopidogrel is a pro-drug whose bioactivation depends on CYP2C19.  When given together, omeprazole reduces the formation of clopidogrel\u2019s active metabolite, diminishing its antiplatelet effect and potentially increasing the risk of thrombotic events.",
+                    "correct": false,
+                    "llm_judge_correct": false,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F24",
+                    "question": "What is the cost per pill of metformin?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  },
+                  {
+                    "id": "F25",
+                    "question": "What is the recommended dose of metformin for patients with type 1 diabetes?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  }
+                ]
+              }
+            },
+            "raw_stuffing": {
+              "tokens": 14876,
+              "ratio": "1x",
+              "cost": "$0.0164",
+              "fidelity": 0.88,
+              "llm_judge_score": 0.68
+            },
+            "naive_truncation": {
+              "tokens": 159,
+              "ratio": "93.4x",
+              "cost": "$0.0002",
+              "fidelity": 0.2,
+              "llm_judge_score": 0.08
+            },
+            "llm_summary": {
+              "tokens": 152,
+              "ratio": "97.7x",
+              "cost": "$0.0002",
+              "fidelity": 0.4,
+              "llm_judge_score": 0.36
+            }
+          }
+        },
+        "gpt-5.2": {
+          "model": "gpt-5.2",
+          "model_id": "gpt-5.2",
+          "provider": "openai",
+          "baselines": {
+            "ctxpack_l2": {
+              "tokens": 159,
+              "ratio": "93.41x",
+              "cost": "$0.0008",
+              "fidelity": 0.84,
+              "llm_judge_score": 1.0,
+              "details": {
+                "total": 25,
+                "correct": 21,
+                "score": 0.84,
+                "llm_judge_correct": 25,
+                "llm_judge_score": 1.0,
+                "by_difficulty": {
+                  "easy": {
+                    "total": 7,
+                    "correct": 6,
+                    "score": 0.857
+                  },
+                  "medium": {
+                    "total": 11,
+                    "correct": 9,
+                    "score": 0.818
+                  },
+                  "hard": {
+                    "total": 5,
+                    "correct": 4,
+                    "score": 0.8
+                  },
+                  "adversarial": {
+                    "total": 2,
+                    "correct": 2,
+                    "score": 1.0
+                  }
+                },
+                "details": [
+                  {
+                    "id": "F01",
+                    "question": "What is the recommended dosage range for atorvastatin in adults?",
+                    "expected": "10 mg to 80 mg once daily",
+                    "answer": "The recommended adult dosage range for atorvastatin is **10 mg to 80 mg once daily**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F02",
+                    "question": "What is the recommended initial dose of sertraline for major depressive disorder in adults?",
+                    "expected": "50 mg once daily",
+                    "answer": "The recommended initial dose of sertraline for major depressive disorder in adults is **50 mg once daily**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F03",
+                    "question": "What is the route of administration for lisinopril?",
+                    "expected": "oral",
+                    "answer": "The route of administration for lisinopril (lisinopril-hydrochlorothiazide tablets) is **oral**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F04",
+                    "question": "For how many days should omeprazole be taken per treatment course?",
+                    "expected": "14 days",
+                    "answer": "Omeprazole should be taken for **14 days** per treatment course.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F05",
+                    "question": "What percentage of atorvastatin is bound to plasma proteins?",
+                    "expected": "98%",
+                    "answer": "Atorvastatin is **\u226598% bound to plasma proteins**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F06",
+                    "question": "What is the starting dose of sertraline for children aged 6-12 with OCD?",
+                    "expected": "25 mg once daily",
+                    "answer": "The starting dose of sertraline for children aged 6\u201312 with OCD is **25 mg once daily**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F07",
+                    "question": "What are the effective dose ranges for lisinopril monotherapy?",
+                    "expected": "10-80 mg",
+                    "answer": "Lisinopril monotherapy is effective for hypertension in **once-daily doses of 10 mg to 80 mg**.",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F08",
+                    "question": "What eGFR threshold contraindicates metformin (ZITUVIMET)?",
+                    "expected": "eGFR below 30 mL/min/1.73 m2",
+                    "answer": "Metformin (ZITUVIMET) is **contraindicated when eGFR is below 30 mL/min/1.73 m\u00b2**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F09",
+                    "question": "What is the maximum atorvastatin dose when co-administered with clarithromycin or itraconazole?",
+                    "expected": "20 mg once daily",
+                    "answer": "The maximum recommended atorvastatin dose when co-administered with **clarithromycin or itraconazole is 20 mg once daily**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F10",
+                    "question": "What are the most common adverse reactions for atorvastatin with incidence of 5% or greater?",
+                    "expected": "nasopharyngitis, arthralgia, diarrhea, pain in extremity, urinary tract infection",
+                    "answer": "The most common adverse reactions for **atorvastatin** (incidence **\u2265 5%**) are: **nasopharyngitis, arthralgia, diarrhea, pain in extremity, and urinary tract infection**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F11",
+                    "question": "What is the average terminal elimination half-life of sertraline?",
+                    "expected": "approximately 26 hours",
+                    "answer": "The average terminal elimination half-life of plasma sertraline is **about 26 hours**.",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F12",
+                    "question": "What is the required washout period between stopping sertraline and starting an MAOI?",
+                    "expected": "14 days",
+                    "answer": "At least **14 days** between stopping **sertraline** and starting an **MAOI**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F13",
+                    "question": "What metformin plasma level is generally associated with lactic acidosis?",
+                    "expected": "greater than 5 mcg/mL",
+                    "answer": "Metformin plasma levels generally **> 5 mcg/mL** are associated with lactic acidosis.",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F14",
+                    "question": "Which drug class increases the risk of lactic acidosis when combined with metformin?",
+                    "expected": "carbonic anhydrase inhibitors",
+                    "answer": "**Carbonic anhydrase inhibitors** (e.g., topiramate, zonisamide, acetazolamide, dichlorphenamide) increase the risk of lactic acidosis when combined with metformin.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F15",
+                    "question": "What percentage of patients discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects?",
+                    "expected": "4.4%",
+                    "answer": "4.4% of patients discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F16",
+                    "question": "What electrolyte must be monitored with long-term omeprazole use exceeding one year?",
+                    "expected": "magnesium",
+                    "answer": "Magnesium.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F17",
+                    "question": "What is the time to maximum plasma concentration for atorvastatin after oral administration?",
+                    "expected": "1 to 2 hours",
+                    "answer": "The time to maximum plasma concentration (Tmax) for atorvastatin after oral administration is **within 1\u20132 hours**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F18",
+                    "question": "Which patient population has a higher incidence of angioedema with lisinopril?",
+                    "expected": "Black patients",
+                    "answer": "Black patients have a higher incidence of angioedema with lisinopril (lisinopril/hydrochlorothiazide).",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F19",
+                    "question": "Can metformin and lisinopril be co-prescribed safely for a diabetic patient with hypertension?",
+                    "expected": "Yes, metformin and lisinopril are commonly co-prescribed for diabetic patients with hypertension",
+                    "answer": "Yes. The context lists **Metformin + Lisinopril** as a **known safe combination** that is **commonly co-prescribed** for diabetic patients with hypertension (with appropriate monitoring of renal function, potassium, and blood pressure).",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F20",
+                    "question": "What is the main risk when combining atorvastatin with strong CYP3A4 inhibitors, and what is the mechanism?",
+                    "expected": "rhabdomyolysis due to CYP3A4 inhibition increasing atorvastatin exposure",
+                    "answer": "The main risk is **myopathy/rhabdomyolysis**. The mechanism is that **atorvastatin is a CYP3A4 (and transporter) substrate**, so **strong CYP3A4 inhibitors increase atorvastatin plasma levels/exposure**, raising the risk of muscle toxicity.",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F21",
+                    "question": "Which of the five drugs in the corpus has a black box warning related to suicidality, and for what age group?",
+                    "expected": "sertraline, patients under 25",
+                    "answer": "**Sertraline (and other SSRIs)** has a black box warning for **suicidality risk in patients under 25 years old** (children, adolescents, and young adults).",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F22",
+                    "question": "What is the absolute bioavailability of atorvastatin and what is the half-life of its HMG-CoA reductase inhibitory activity?",
+                    "expected": "approximately 14% bioavailability, 20 to 30 hours inhibitory activity half-life",
+                    "answer": "The absolute bioavailability of atorvastatin (parent drug) is **approximately 14%**, and the half-life of its **HMG-CoA reductase inhibitory activity is 20\u201330 hours**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F23",
+                    "question": "Why does omeprazole interact with clopidogrel, and what is the clinical consequence?",
+                    "expected": "CYP2C19 interaction leading to reduced antiplatelet effect",
+                    "answer": "Omeprazole interacts with clopidogrel via a **CYP2C19 interaction**, leading to a **reduced antiplatelet effect** of clopidogrel.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F24",
+                    "question": "What is the cost per pill of metformin?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  },
+                  {
+                    "id": "F25",
+                    "question": "What is the recommended dose of metformin for patients with type 1 diabetes?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  }
+                ]
+              }
+            },
+            "raw_stuffing": {
+              "tokens": 14876,
+              "ratio": "1x",
+              "cost": "$0.0744",
+              "fidelity": 0.84,
+              "llm_judge_score": 1.0
+            },
+            "naive_truncation": {
+              "tokens": 159,
+              "ratio": "93.4x",
+              "cost": "$0.0008",
+              "fidelity": 0.24,
+              "llm_judge_score": 0.32
+            },
+            "llm_summary": {
+              "tokens": 123,
+              "ratio": "120.7x",
+              "cost": "$0.0006",
+              "fidelity": 0.24,
+              "llm_judge_score": 0.32
+            }
+          }
+        },
+        "gemini-2.5-pro": {
+          "model": "gemini-2.5-pro",
+          "model_id": "gemini-2.5-pro",
+          "provider": "google",
+          "baselines": {
+            "ctxpack_l2": {
+              "tokens": 159,
+              "ratio": "93.41x",
+              "cost": "$0.0002",
+              "fidelity": 0.76,
+              "llm_judge_score": 0.96,
+              "details": {
+                "total": 25,
+                "correct": 19,
+                "score": 0.76,
+                "llm_judge_correct": 24,
+                "llm_judge_score": 0.96,
+                "by_difficulty": {
+                  "easy": {
+                    "total": 7,
+                    "correct": 6,
+                    "score": 0.857
+                  },
+                  "medium": {
+                    "total": 11,
+                    "correct": 8,
+                    "score": 0.727
+                  },
+                  "hard": {
+                    "total": 5,
+                    "correct": 4,
+                    "score": 0.8
+                  },
+                  "adversarial": {
+                    "total": 2,
+                    "correct": 1,
+                    "score": 0.5
+                  }
+                },
+                "details": [
+                  {
+                    "id": "F01",
+                    "question": "What is the recommended dosage range for atorvastatin in adults?",
+                    "expected": "10 mg to 80 mg once daily",
+                    "answer": "The recommended dosage range for atorvastatin in adults is 10 mg to 80 mg once daily.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F02",
+                    "question": "What is the recommended initial dose of sertraline for major depressive disorder in adults?",
+                    "expected": "50 mg once daily",
+                    "answer": "The recommended initial dose of sertraline for major depressive disorder in adults is 50 mg once daily.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F03",
+                    "question": "What is the route of administration for lisinopril?",
+                    "expected": "oral",
+                    "answer": "ORAL",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F04",
+                    "question": "For how many days should omeprazole be taken per treatment course?",
+                    "expected": "14 days",
+                    "answer": "According to the context, omeprazole should be used once a day for 14 days per treatment course.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F05",
+                    "question": "What percentage of atorvastatin is bound to plasma proteins?",
+                    "expected": "98%",
+                    "answer": "Atorvastatin is \u226598% bound to plasma proteins.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F06",
+                    "question": "What is the starting dose of sertraline for children aged 6-12 with OCD?",
+                    "expected": "25 mg once daily",
+                    "answer": "The starting dose of sertraline hydrochloride for children (ages 6-12) with Obsessive-Compulsive Disorder is 25 mg once daily.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F07",
+                    "question": "What are the effective dose ranges for lisinopril monotherapy?",
+                    "expected": "10-80 mg",
+                    "answer": "Lisinopril monotherapy is effective in once-daily doses of 10 mg to 80 mg.",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "F08",
+                    "question": "What eGFR threshold contraindicates metformin (ZITUVIMET)?",
+                    "expected": "eGFR below 30 mL/min/1.73 m2",
+                    "answer": "ZITUVIMET is contraindicated in patients with an eGFR below 30 mL/min/1.73 m-2.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F09",
+                    "question": "What is the maximum atorvastatin dose when co-administered with clarithromycin or itraconazole?",
+                    "expected": "20 mg once daily",
+                    "answer": "",
+                    "correct": false,
+                    "llm_judge_correct": false,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F10",
+                    "question": "What are the most common adverse reactions for atorvastatin with incidence of 5% or greater?",
+                    "expected": "nasopharyngitis, arthralgia, diarrhea, pain in extremity, urinary tract infection",
+                    "answer": "The most common adverse reactions for atorvastatin with an incidence of 5% or greater are nasopharyngitis, arthralgia, diarrhea, pain in extremity, and urinary tract infection.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F11",
+                    "question": "What is the average terminal elimination half-life of sertraline?",
+                    "expected": "approximately 26 hours",
+                    "answer": "The average terminal elimination half-life of plasma sertraline is about 26 hours.",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F12",
+                    "question": "What is the required washout period between stopping sertraline and starting an MAOI?",
+                    "expected": "14 days",
+                    "answer": "The use of an MAOI within 14 days of stopping treatment with Sertraline hydrochloride is contraindicated.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F13",
+                    "question": "What metformin plasma level is generally associated with lactic acidosis?",
+                    "expected": "greater than 5 mcg/mL",
+                    "answer": "Metformin plasma levels generally >5 mcg/mL are associated with lactic acidosis.",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F14",
+                    "question": "Which drug class increases the risk of lactic acidosis when combined with metformin?",
+                    "expected": "carbonic anhydrase inhibitors",
+                    "answer": "Carbonic anhydrase inhibitors.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F15",
+                    "question": "What percentage of patients discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects?",
+                    "expected": "4.4%",
+                    "answer": "Discontinuation of therapy due to adverse effects was required in 4.4% of patients.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F16",
+                    "question": "What electrolyte must be monitored with long-term omeprazole use exceeding one year?",
+                    "expected": "magnesium",
+                    "answer": "Magnesium",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F17",
+                    "question": "What is the time to maximum plasma concentration for atorvastatin after oral administration?",
+                    "expected": "1 to 2 hours",
+                    "answer": "Maximum plasma concentrations for atorvastatin occur within 1 to 2 hours after oral administration.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F18",
+                    "question": "Which patient population has a higher incidence of angioedema with lisinopril?",
+                    "expected": "Black patients",
+                    "answer": "Based on the context, the incidence of angioedema is higher in Black patients than in non-Black patients.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "F19",
+                    "question": "Can metformin and lisinopril be co-prescribed safely for a diabetic patient with hypertension?",
+                    "expected": "Yes, metformin and lisinopril are commonly co-prescribed for diabetic patients with hypertension",
+                    "answer": "Yes, the combination of Metformin and Lisinopril is listed as a known safe combination and is commonly co-prescribed for diabetic patients with hypertension.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F20",
+                    "question": "What is the main risk when combining atorvastatin with strong CYP3A4 inhibitors, and what is the mechanism?",
+                    "expected": "rhabdomyolysis due to CYP3A4 inhibition increasing atorvastatin exposure",
+                    "answer": "The main risk is rhabdomyolysis. The mechanism is that atorvastatin is a substrate of CYP3A4, and inhibitors of this enzyme significantly increase atorvastatin plasma levels, which increases the risk of myopathy and rhabdomyolysis.",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F21",
+                    "question": "Which of the five drugs in the corpus has a black box warning related to suicidality, and for what age group?",
+                    "expected": "sertraline, patients under 25",
+                    "answer": "Sertraline has a black box warning for suicidality risk in patients under the age of 25.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F22",
+                    "question": "What is the absolute bioavailability of atorvastatin and what is the half-life of its HMG-CoA reductase inhibitory activity?",
+                    "expected": "approximately 14% bioavailability, 20 to 30 hours inhibitory activity half-life",
+                    "answer": "The absolute bioavailability of atorvastatin is approximately 14%, and the half-life of its HMG-CoA reductase inhibitory activity is 20 to 30 hours.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F23",
+                    "question": "Why does omeprazole interact with clopidogrel, and what is the clinical consequence?",
+                    "expected": "CYP2C19 interaction leading to reduced antiplatelet effect",
+                    "answer": "The interaction is due to a CYP2C19 interaction, and the clinical consequence is a reduced antiplatelet effect.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "F24",
+                    "question": "What is the cost per pill of metformin?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  },
+                  {
+                    "id": "F25",
+                    "question": "What is the recommended dose of metformin for patients with type 1 diabetes?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "ZITUVIMET (which contains metformin) is not recommended for patients with type 1 diabetes mellitus.",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  }
+                ]
+              }
+            },
+            "raw_stuffing": {
+              "tokens": 14876,
+              "ratio": "1x",
+              "cost": "$0.0186",
+              "fidelity": 0.8,
+              "llm_judge_score": 1.0
+            },
+            "naive_truncation": {
+              "tokens": 159,
+              "ratio": "93.4x",
+              "cost": "$0.0002",
+              "fidelity": 0.2,
+              "llm_judge_score": 0.36
+            },
+            "llm_summary": {
+              "tokens": 143,
+              "ratio": "103.9x",
+              "cost": "$0.0002",
+              "fidelity": 0.24,
+              "llm_judge_score": 0.48
+            }
+          }
+        }
+      },
+      "skipped": []
+    },
+    "twilio-video-api": {
+      "corpus": "twilio-video-api",
+      "timestamp": "2026-03-01T14:24:58Z",
+      "source_tokens": 3076,
+      "ctx_tokens": 353,
+      "compression_ratio": 8.71,
+      "entity_count": 0,
+      "question_count": 25,
+      "model_results": {
+        "claude-sonnet-4.5": {
+          "model": "claude-sonnet-4.5",
+          "model_id": "claude-sonnet-4-5-20250929",
+          "provider": "anthropic",
+          "baselines": {
+            "ctxpack_l2": {
+              "tokens": 353,
+              "ratio": "8.71x",
+              "cost": "$0.0011",
+              "fidelity": 1.0,
+              "llm_judge_score": 0.96,
+              "details": {
+                "total": 25,
+                "correct": 25,
+                "score": 1.0,
+                "llm_judge_correct": 24,
+                "llm_judge_score": 0.96,
+                "by_difficulty": {
+                  "easy": {
+                    "total": 7,
+                    "correct": 7,
+                    "score": 1.0
+                  },
+                  "medium": {
+                    "total": 11,
+                    "correct": 11,
+                    "score": 1.0
+                  },
+                  "hard": {
+                    "total": 5,
+                    "correct": 5,
+                    "score": 1.0
+                  },
+                  "adversarial": {
+                    "total": 2,
+                    "correct": 2,
+                    "score": 1.0
+                  }
+                },
+                "details": [
+                  {
+                    "id": "T01",
+                    "question": "What are the valid room types in Twilio Video?",
+                    "expected": "go, peer-to-peer, group, group-small",
+                    "answer": "Based on the context, the valid room types in Twilio Video are:\n\n1. **go** - basic rooms for small meetings\n2. **peer-to-peer** - direct P2P connections, no media server\n3. **group** - server-routed, supports recording and composition\n4. **group-small** - optimized group rooms for up to 4 participants",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T02",
+                    "question": "What video codecs are supported in Twilio Video rooms?",
+                    "expected": "VP8 and H264",
+                    "answer": "According to the context, the supported video codecs in Twilio Video rooms are:\n\n- **VP8**\n- **H264**\n\nThese are listed under the MEDIA-AND-CODECS section and also confirmed in the FIELDS section where it states: \"video_codecs: array (nullable) \u2014 array of video codecs supported when publishing track room. `VP8` `H264`.\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T03",
+                    "question": "What is the maximum number of participants in a group room?",
+                    "expected": "50",
+                    "answer": "According to the context, the maximum number of participants in a group room is **50 participants** (configurable).\n\nThis is stated in the PARTICIPANT-LIMITS section: \"group-rooms:-max-50-participants-(configurable)\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T04",
+                    "question": "What audio codecs are supported for recordings?",
+                    "expected": "opus and PCMU",
+                    "answer": "According to the context, the supported audio codecs are:\n\n- **opus**\n- **PCMU**\n\nThese are listed under the MEDIA-AND-CODECS section as \"Audio-codecs:-opus,-PCMU\".",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T05",
+                    "question": "What container formats are available for recordings?",
+                    "expected": "mka for audio, mkv for video, mp4 for composition",
+                    "answer": "Based on the context provided, the container formats available for recordings are:\n\n- **mka** (audio)\n- **mkv** (video)\n- **mp4** (composition)",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T06",
+                    "question": "How many participants can a go room support?",
+                    "expected": "2",
+                    "answer": "According to the context, **go rooms support a maximum of 2 participants**.\n\nThis is specified in the PARTICIPANT-LIMITS section: \"go-rooms:-max-2-participants\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T07",
+                    "question": "What is the maximum number of participants for a group-small room?",
+                    "expected": "4",
+                    "answer": "According to the context, the maximum number of participants for a group-small room is **4 participants**.\n\nThis is stated in the PARTICIPANT-LIMITS section: \"group-small-rooms:-max-4-participants\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T08",
+                    "question": "What happens when a new client joins a room with an existing participant identity?",
+                    "expected": "the existing client is disconnected",
+                    "answer": "According to the context, when a client joins with an existing Identity, the existing client is replaced:\n\nFrom the FIELDS section:\n> **identity** - application-defined string uniquely identifies resource's User within Room. **If client joins existing Identity, existing client...**\n\nThe text appears to be cut off, but it indicates that when a new client joins a room using an identity that already exists in that room, it affects the existing client with that identity (likely disconnecting or replacing them).",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T09",
+                    "question": "What is the default max_participant_duration in seconds for a Twilio Video room?",
+                    "expected": "14400 seconds (4 hours)",
+                    "answer": "According to the context, the default `max_participant_duration` is **14,400 seconds** (24 hours).\n\nThe context states: \"max_participant_duration: integer \u2014 maximum number of seconds Participant connected room. maximum possible value 86400 seconds (24 hours). default 14400...\"",
+                    "correct": true,
+                    "llm_judge_correct": false,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T10",
+                    "question": "What is the maximum possible max_participant_duration value?",
+                    "expected": "86400 seconds (24 hours)",
+                    "answer": "According to the context, the maximum possible value for `max_participant_duration` is **86400 seconds (24 hours)**.\n\nThis field represents the maximum number of seconds a Participant can be connected to a room, with a default of 14400 seconds if not specified.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T11",
+                    "question": "What is the format of the resolution field for compositions?",
+                    "expected": "{width}x{height}",
+                    "answer": "According to the context, the resolution field format for compositions is:\n\n`{width}x{height}` - dimensions of the video image in pixels expressed as columns (width) and rows (height), such as `640x480`.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T12",
+                    "question": "What is the default HTTP method for composition status callbacks?",
+                    "expected": "POST",
+                    "answer": "According to the context, the default HTTP method for composition status callbacks is **POST**.\n\nThis is specified in the FIELDS section:\n`status_callback_method:-enum-[GET,-POST]-(nullable)-\u2014-HTTP-method-used-call-`status_callback`.-`POST`-`GET`,-defaults-`POST``.`",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T13",
+                    "question": "When is the duration field populated for a participant?",
+                    "expected": "only after the participant is disconnected",
+                    "answer": "According to the context, the duration field for a participant is populated **only after the participant is `disconnected`**.\n\nThe context states: \"duration:-integer-(nullable)-\u2014-duration-seconds-participant-`connected`.-Populated-only-after-participant-`disconnected`.\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T14",
+                    "question": "What field uniquely identifies a transcription resource?",
+                    "expected": "ttid",
+                    "answer": "Based on the context provided, the field that uniquely identifies a transcription resource is:\n\n**`ttid`** - described as \"unique string we created identify transcriptions resource\"\n\nThis is shown in the FIELDS section:\n`FIELDS:ttid:-string-(nullable)-\u2014-unique-string-we-created-identify-transcriptions-resource.`",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T15",
+                    "question": "If a sub-second track is recorded, what duration is reported?",
+                    "expected": "1 second",
+                    "answer": "According to the context, if a sub-second track is recorded, the duration reported is **1 second**.\n\nThis is specified in the FIELDS section: \"duration:-integer-(nullable)-\u2014-duration-recording-seconds-rounded-nearest-second.-Sub-second-tracks-`Duration`-property-1-second\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T16",
+                    "question": "What is the SID format convention used by Twilio resources?",
+                    "expected": "2-letter prefix plus 32 hexadecimal characters",
+                    "answer": "According to the SID-PATTERN-CONVENTION section in the context:\n\nTwilio resources use SID (String Identifier) patterns with the following format:\n- **Format**: 2-letter prefix + 32 hexadecimal characters\n- **Purpose**: Prefixes are unique per resource type for quick identification",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T17",
+                    "question": "What webhook events are related to recordings?",
+                    "expected": "recording-started, recording-completed, recording-failed",
+                    "answer": "Based on the context, the webhook events related to recordings are:\n\n1. **recording-started** - triggered when a recording starts\n2. **recording-completed** - triggered when a recording completes successfully\n3. **recording-failed** - triggered when a recording fails",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T18",
+                    "question": "Can you use a unique_name instead of sid in room API URLs?",
+                    "expected": "Yes",
+                    "answer": "Based on the context provided:\n\n**Yes**, you can use `unique_name` instead of `sid` in room API URLs.\n\nThe context explicitly states:\n\n> **unique_name**: string (nullable) \u2014 application-defined string uniquely identifies resource. **used `room_sid` place resource's `sid` URL** add...\n\nThis indicates that `unique_name` can be used in place of the room's SID in API URLs.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T19",
+                    "question": "Can a composition be created from an in-progress room?",
+                    "expected": "No, compositions can only be created from completed rooms",
+                    "answer": "No. According to the context, compositions can only be created from completed rooms.\n\nThe COMPOSITION-RULES section states: \"Compositions-only-created-completed-rooms\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T20",
+                    "question": "What conditions must be met to create a composition from a room?",
+                    "expected": "the room must be completed and must have at least one recording",
+                    "answer": "Based on the context, the following conditions must be met to create a composition from a room:\n\n1. **Compositions only created from completed rooms** - The room must be in a completed state.\n\n2. **Room must have at least one recording** - There must be at least one recording available to create a composition from.\n\n3. **Recording only available in group/group-small room types** - Since compositions are created from recordings, the room must be either a `group` or `group-small` room type (peer-to-peer rooms do not support server-side recording).",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T21",
+                    "question": "Why must SubscribedTracks use SID for identification instead of track name?",
+                    "expected": "track names are not guaranteed to be unique on the subscriber side",
+                    "answer": "According to the context, SubscribedTracks must use SID for identification instead of track name because **the Track Name on the subscriber side is not guaranteed to be unique**.\n\nThis is explicitly stated in the endpoint documentation:\n\n> \"Note: one resource Video API requires SID, Track Name subscriber side guaranteed unique.\"\n\nWhile track names may work for PublishedTracks, on the subscriber side, multiple tracks could potentially have the same name, making SID the only reliable unique identifier for SubscribedTracks.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T22",
+                    "question": "What room types support server-side recording, and which do not?",
+                    "expected": "group and group-small support recording; peer-to-peer and go do not",
+                    "answer": "Based on the context provided:\n\n**Room types that support server-side recording:**\n- `group` - server-routed, supports recording and composition\n- `group-small` - optimized group rooms for up to 4 participants\n\n**Room types that do NOT support server-side recording:**\n- `peer-to-peer` - direct P2P connections, no media server (explicitly stated: \"Peer-to-peer-rooms-support-server-side-recording\" appears to be missing a \"do not\" based on the recording rules)\n- `go` - basic rooms for small meetings\n\nThe context explicitly states: \"Recording-only-available-group-group-small-room-types\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T23",
+                    "question": "If audio_only is set to true on a room, what restrictions apply?",
+                    "expected": "only audio tracks are allowed; no video tracks can be published",
+                    "answer": "According to the context, when `audio_only` is set to true on a room:\n\n**No video tracks are allowed** - participants in the room can only publish audio. Video tracks are not permitted.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T24",
+                    "question": "What is the pricing per room-minute for Twilio Video?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context\n\nThe provided context contains technical API documentation for Twilio Video v1 API, including resource definitions, endpoints, field specifications, and room types, but does not include any pricing information.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  },
+                  {
+                    "id": "T25",
+                    "question": "What is the maximum resolution supported for Twilio Video compositions?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context.\n\nThe context mentions that composition resolution is configurable and includes a field `resolution` described as \"dimensions of video image in pixels expressed as columns (width) and rows (height)\" with format `{width}x{height}` (such as `640x480`), but it does not specify what the maximum supported resolution is.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  }
+                ]
+              }
+            },
+            "raw_stuffing": {
+              "tokens": 3121,
+              "ratio": "1x",
+              "cost": "$0.0094",
+              "fidelity": 1.0,
+              "llm_judge_score": 0.96
+            },
+            "naive_truncation": {
+              "tokens": 353,
+              "ratio": "8.7x",
+              "cost": "$0.0011",
+              "fidelity": 0.72,
+              "llm_judge_score": 0.52
+            },
+            "llm_summary": {
+              "tokens": 219,
+              "ratio": "14.0x",
+              "cost": "$0.0007",
+              "fidelity": 0.76,
+              "llm_judge_score": 0.52
+            }
+          }
+        },
+        "claude-haiku-4.5": {
+          "model": "claude-haiku-4.5",
+          "model_id": "claude-haiku-4-5-20251001",
+          "provider": "anthropic",
+          "baselines": {
+            "ctxpack_l2": {
+              "tokens": 353,
+              "ratio": "8.71x",
+              "cost": "$0.0004",
+              "fidelity": 1.0,
+              "llm_judge_score": 0.92,
+              "details": {
+                "total": 25,
+                "correct": 25,
+                "score": 1.0,
+                "llm_judge_correct": 23,
+                "llm_judge_score": 0.92,
+                "by_difficulty": {
+                  "easy": {
+                    "total": 7,
+                    "correct": 7,
+                    "score": 1.0
+                  },
+                  "medium": {
+                    "total": 11,
+                    "correct": 11,
+                    "score": 1.0
+                  },
+                  "hard": {
+                    "total": 5,
+                    "correct": 5,
+                    "score": 1.0
+                  },
+                  "adversarial": {
+                    "total": 2,
+                    "correct": 2,
+                    "score": 1.0
+                  }
+                },
+                "details": [
+                  {
+                    "id": "T01",
+                    "question": "What are the valid room types in Twilio Video?",
+                    "expected": "go, peer-to-peer, group, group-small",
+                    "answer": "Based on the context, the valid room types in Twilio Video are:\n\n1. **go** - Basic rooms for small meetings\n2. **peer-to-peer** - Direct P2P connections without a media server\n3. **group** - Server-routed rooms that support recording and composition\n4. **group-small** - Optimized group rooms for up to 4 participants\n\nEach room type has different participant limits and capabilities, with peer-to-peer supporting up to 10 participants, group-small supporting up to 4 participants, and group rooms supporting up to 50 participants (configurable).",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T02",
+                    "question": "What video codecs are supported in Twilio Video rooms?",
+                    "expected": "VP8 and H264",
+                    "answer": "According to the context, the supported video codecs in Twilio Video rooms are:\n\n- **VP8**\n- **H264**\n\nThese codecs can be specified in the `video_codecs` array field when configuring a room.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T03",
+                    "question": "What is the maximum number of participants in a group room?",
+                    "expected": "50",
+                    "answer": "According to the context, the maximum number of participants in a group room is **50 participants** (configurable).\n\nThis is specified in the PARTICIPANT-LIMITS section: \"group-rooms:-max-50-participants-(configurable)\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T04",
+                    "question": "What audio codecs are supported for recordings?",
+                    "expected": "opus and PCMU",
+                    "answer": "Based on the context provided, the supported audio codecs for recordings are:\n\n- **Opus**\n- **PCMU**",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T05",
+                    "question": "What container formats are available for recordings?",
+                    "expected": "mka for audio, mkv for video, mp4 for composition",
+                    "answer": "Based on the context provided, the available container formats for recordings are specified in the `container_format` field, which is of type `recording_enum_format`. However, the specific enum values for container formats are not explicitly listed in the provided context.\n\nThe context does mention that recording formats include:\n- **mka** (audio)\n- **mkv** (video)\n- **mp4** (composition)\n\nNote that mp4 is specifically for compositions, while mka and mkv are for recordings.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T06",
+                    "question": "How many participants can a go room support?",
+                    "expected": "2",
+                    "answer": "According to the context, a **go room can support a maximum of 2 participants**.\n\nThis is specified in the PARTICIPANT-LIMITS section: \"go-rooms:-max-2-participants\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T07",
+                    "question": "What is the maximum number of participants for a group-small room?",
+                    "expected": "4",
+                    "answer": "According to the context, the maximum number of participants for a group-small room is **4 participants**.\n\nThis is specified in the PARTICIPANT-LIMITS section: \"group-small-rooms:-max-4-participants\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T08",
+                    "question": "What happens when a new client joins a room with an existing participant identity?",
+                    "expected": "the existing client is disconnected",
+                    "answer": "Based on the context provided, when a client joins a room with an existing participant identity, the existing client is disconnected.\n\nThis is stated in the FIELDS section: \"If client joins existing Identity, existing c...\" (the text appears to be truncated in the context, but indicates the existing client connection is affected).\n\nHowever, the context does not provide complete details about the exact mechanism or timing of this behavior.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T09",
+                    "question": "What is the default max_participant_duration in seconds for a Twilio Video room?",
+                    "expected": "14400 seconds (4 hours)",
+                    "answer": "Not found in context.\n\nThe context mentions that `max_participant_duration` is \"the maximum number of seconds a Participant can be connected to a room\" with a maximum possible value of 86400 seconds (24 hours) and a default of 14400, but the text is truncated and does not clearly state the complete default value.",
+                    "correct": true,
+                    "llm_judge_correct": false,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T10",
+                    "question": "What is the maximum possible max_participant_duration value?",
+                    "expected": "86400 seconds (24 hours)",
+                    "answer": "According to the context, the maximum possible value for `max_participant_duration` is **86400 seconds (24 hours)**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T11",
+                    "question": "What is the format of the resolution field for compositions?",
+                    "expected": "{width}x{height}",
+                    "answer": "According to the context, the resolution field for compositions has the format `{width}x{height}`, expressed in pixels as columns (width) and rows (height). For example: `640x480`.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T12",
+                    "question": "What is the default HTTP method for composition status callbacks?",
+                    "expected": "POST",
+                    "answer": "According to the context, the default HTTP method for composition status callbacks is **POST**.\n\nThis is specified in the FIELDS section: \"status_callback_method:-enum-[GET,-POST]-(nullable)-\u2014-HTTP-method-used-call-`status_callback`.-`POST`-`GET`,-defaults-`POST`.\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T13",
+                    "question": "When is the duration field populated for a participant?",
+                    "expected": "only after the participant is disconnected",
+                    "answer": "According to the context, the duration field for a participant is populated **only after the participant disconnects**.\n\nSpecifically, the field definition states:\n\n> \"duration:-integer-(nullable)-\u2014-duration-seconds-participant-`connected`.-Populated-only-after-participant-`disconnected`.\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T14",
+                    "question": "What field uniquely identifies a transcription resource?",
+                    "expected": "ttid",
+                    "answer": "Based on the context provided, the field that uniquely identifies a transcription resource is **`ttid`** (transcription ID).\n\nAccording to the FIELDS section: \"ttid:-string-(nullable)-\u2014-unique-string-we-created-identify-transcriptions-resource.\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T15",
+                    "question": "If a sub-second track is recorded, what duration is reported?",
+                    "expected": "1 second",
+                    "answer": "According to the context, if a sub-second track is recorded, the `Duration` property is reported as **1 second**.\n\nThe relevant field definition states: \"Sub-second tracks `Duration` property 1 second\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T16",
+                    "question": "What is the SID format convention used by Twilio resources?",
+                    "expected": "2-letter prefix plus 32 hexadecimal characters",
+                    "answer": "According to the context, Twilio resources use the following SID format convention:\n\n**Format:** 2-letter prefix + 32 hexadecimal characters\n\n**Purpose:** The prefixes are unique per resource type, allowing for quick identification of the resource type from its SID.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T17",
+                    "question": "What webhook events are related to recordings?",
+                    "expected": "recording-started, recording-completed, recording-failed",
+                    "answer": "Based on the context, the webhook events related to recordings are:\n\n1. **recording-started** - triggered when a recording begins\n2. **recording-completed** - triggered when a recording finishes successfully\n3. **recording-failed** - triggered when a recording fails",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T18",
+                    "question": "Can you use a unique_name instead of sid in room API URLs?",
+                    "expected": "Yes",
+                    "answer": "Based on the context provided, yes, you can use a `unique_name` instead of `sid` in room API URLs.\n\nThe context states:\n\n> \"unique_name \u2014 application defined string uniquely identifies resource. used `room_sid` in place of resource's `sid` in URL\"\n\nThis indicates that the `unique_name` field can be used as an alternative to the `sid` (room SID) when constructing room API URLs.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T19",
+                    "question": "Can a composition be created from an in-progress room?",
+                    "expected": "No, compositions can only be created from completed rooms",
+                    "answer": "No. According to the context, compositions can only be created from completed rooms.\n\nSpecifically, the COMPOSITION-RULES section states: \"Compositions-only-created-completed-rooms\"\n\nAdditionally, a room must have at least one recording to create a composition: \"room-must-least-one-recording-create-composition\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T20",
+                    "question": "What conditions must be met to create a composition from a room?",
+                    "expected": "the room must be completed and must have at least one recording",
+                    "answer": "Based on the context, the following conditions must be met to create a composition from a room:\n\n1. **Room must be completed**: Compositions can only be created from completed rooms (not in-progress rooms).\n\n2. **Room must have at least one recording**: The room must contain at least one recording to create a composition from it.\n\nThese requirements are stated in the COMPOSITION-RULES section:\n- \"Compositions-only-created-completed-rooms\"\n- \"room-must-least-one-recording-create-composition\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T21",
+                    "question": "Why must SubscribedTracks use SID for identification instead of track name?",
+                    "expected": "track names are not guaranteed to be unique on the subscriber side",
+                    "answer": "Based on the context provided, the reason SubscribedTracks must use SID for identification instead of track name is:\n\n**Track names are not guaranteed to be unique on the subscriber side.** According to the endpoint documentation for SubscribedTracks:\n\n\"Note: one resource Video API requires SID, Track Name subscriber side guaranteed unique.\"\n\nThis means that while published tracks can use track names, on the subscriber side track names may not be unique across different sources, making SID the only reliable identifier for SubscribedTracks.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T22",
+                    "question": "What room types support server-side recording, and which do not?",
+                    "expected": "group and group-small support recording; peer-to-peer and go do not",
+                    "answer": "Based on the context provided:\n\n**Room types that support server-side recording:**\n- **Peer-to-peer rooms** - explicitly stated to support server-side recording\n\n**Room types that do NOT support recording:**\n- **Go rooms** - recording is only available for group and group-small room types\n- **Group and group-small rooms** - while these support recording, the context specifies that \"Recording only available group/group-small room types,\" implying go and peer-to-peer rooms have limitations\n\n**Clarification:** The context states \"Recording only available group/group-small room types\" but also notes \"Peer-to-peer rooms support server-side recording.\" This indicates peer-to-peer rooms are an exception to the general recording availability rule, supporting server-side recording specifically. Go rooms do not support recording.",
+                    "correct": true,
+                    "llm_judge_correct": false,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T23",
+                    "question": "If audio_only is set to true on a room, what restrictions apply?",
+                    "expected": "only audio tracks are allowed; no video tracks can be published",
+                    "answer": "Based on the context provided, when `audio_only` is set to true on a room, the following restriction applies:\n\n**Participants in the room can only publish audio tracks. Video tracks are not allowed.**\n\nThis is stated in the FIELDS section: \"When set to true, indicates participants in room only publish audio. video tracks allowed.\"",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T24",
+                    "question": "What is the pricing per room-minute for Twilio Video?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context.\n\nThe provided context contains technical API documentation for Twilio Video v1, including resource definitions, endpoints, fields, and relationships. It does not include any pricing information.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  },
+                  {
+                    "id": "T25",
+                    "question": "What is the maximum resolution supported for Twilio Video compositions?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context.\n\nThe context provides information about composition resolution being \"configurable\" and mentions that the resolution field uses a format of `{width}x{height}` (such as `640x480`), but it does not specify what the maximum resolution supported for Twilio Video compositions is.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  }
+                ]
+              }
+            },
+            "raw_stuffing": {
+              "tokens": 3121,
+              "ratio": "1x",
+              "cost": "$0.0031",
+              "fidelity": 1.0,
+              "llm_judge_score": 1.0
+            },
+            "naive_truncation": {
+              "tokens": 353,
+              "ratio": "8.7x",
+              "cost": "$0.0004",
+              "fidelity": 0.64,
+              "llm_judge_score": 0.8
+            },
+            "llm_summary": {
+              "tokens": 214,
+              "ratio": "14.4x",
+              "cost": "$0.0002",
+              "fidelity": 0.64,
+              "llm_judge_score": 0.92
+            }
+          }
+        },
+        "o4-mini": {
+          "model": "o4-mini",
+          "model_id": "o4-mini",
+          "provider": "openai",
+          "baselines": {
+            "ctxpack_l2": {
+              "tokens": 353,
+              "ratio": "8.71x",
+              "cost": "$0.0004",
+              "fidelity": 0.96,
+              "llm_judge_score": 0.72,
+              "details": {
+                "total": 25,
+                "correct": 24,
+                "score": 0.96,
+                "llm_judge_correct": 18,
+                "llm_judge_score": 0.72,
+                "by_difficulty": {
+                  "easy": {
+                    "total": 7,
+                    "correct": 7,
+                    "score": 1.0
+                  },
+                  "medium": {
+                    "total": 11,
+                    "correct": 10,
+                    "score": 0.909
+                  },
+                  "hard": {
+                    "total": 5,
+                    "correct": 5,
+                    "score": 1.0
+                  },
+                  "adversarial": {
+                    "total": 2,
+                    "correct": 2,
+                    "score": 1.0
+                  }
+                },
+                "details": [
+                  {
+                    "id": "T01",
+                    "question": "What are the valid room types in Twilio Video?",
+                    "expected": "go, peer-to-peer, group, group-small",
+                    "answer": "The Twilio Video API supports four room types:  \n\u2022 go  \n\u2022 peer-to-peer  \n\u2022 group  \n\u2022 group-small",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T02",
+                    "question": "What video codecs are supported in Twilio Video rooms?",
+                    "expected": "VP8 and H264",
+                    "answer": "The supported video codecs are VP8 and H264.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T03",
+                    "question": "What is the maximum number of participants in a group room?",
+                    "expected": "50",
+                    "answer": "The maximum number of participants in a group room is 50 (configurable).",
+                    "correct": true,
+                    "llm_judge_correct": false,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T04",
+                    "question": "What audio codecs are supported for recordings?",
+                    "expected": "opus and PCMU",
+                    "answer": "The supported audio codecs for recordings are opus and PCMU.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T05",
+                    "question": "What container formats are available for recordings?",
+                    "expected": "mka for audio, mkv for video, mp4 for composition",
+                    "answer": "The only two recording container formats are mka (audio-only) and mkv (video).",
+                    "correct": true,
+                    "llm_judge_correct": false,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T06",
+                    "question": "How many participants can a go room support?",
+                    "expected": "2",
+                    "answer": "A go room supports up to 2 participants.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T07",
+                    "question": "What is the maximum number of participants for a group-small room?",
+                    "expected": "4",
+                    "answer": "The maximum number of participants in a group-small room is 4.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T08",
+                    "question": "What happens when a new client joins a room with an existing participant identity?",
+                    "expected": "the existing client is disconnected",
+                    "answer": "Twilio enforces unique identities in a Room. If a new client connects using an identity already in use, the existing Participant is automatically disconnected and the new connection takes its place.",
+                    "correct": true,
+                    "llm_judge_correct": false,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T09",
+                    "question": "What is the default max_participant_duration in seconds for a Twilio Video room?",
+                    "expected": "14400 seconds (4 hours)",
+                    "answer": "The default max_participant_duration is 14,400 seconds.",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T10",
+                    "question": "What is the maximum possible max_participant_duration value?",
+                    "expected": "86400 seconds (24 hours)",
+                    "answer": "The maximum possible `max_participant_duration` is 86 400 seconds (24 hours).",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T11",
+                    "question": "What is the format of the resolution field for compositions?",
+                    "expected": "{width}x{height}",
+                    "answer": "The `resolution` field is a string in the form `{width}x{height}` (e.g. `640x480`).",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T12",
+                    "question": "What is the default HTTP method for composition status callbacks?",
+                    "expected": "POST",
+                    "answer": "The default HTTP method for composition status callbacks is POST.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T13",
+                    "question": "When is the duration field populated for a participant?",
+                    "expected": "only after the participant is disconnected",
+                    "answer": "The `duration` (seconds connected) is only populated once the participant has disconnected from the room.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T14",
+                    "question": "What field uniquely identifies a transcription resource?",
+                    "expected": "ttid",
+                    "answer": "The transcription resource is uniquely identified by its ttid field.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T15",
+                    "question": "If a sub-second track is recorded, what duration is reported?",
+                    "expected": "1 second",
+                    "answer": "Sub-second tracks report a Duration of 1 second.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T16",
+                    "question": "What is the SID format convention used by Twilio resources?",
+                    "expected": "2-letter prefix plus 32 hexadecimal characters",
+                    "answer": "Twilio SIDs are 34\u2010character strings: a two\u2010letter resource\u2010type prefix followed by 32 hexadecimal characters.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T17",
+                    "question": "What webhook events are related to recordings?",
+                    "expected": "recording-started, recording-completed, recording-failed",
+                    "answer": "The webhook events related to recordings are:\n\u2022 recording-started  \n\u2022 recording-completed  \n\u2022 recording-failed",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T18",
+                    "question": "Can you use a unique_name instead of sid in room API URLs?",
+                    "expected": "Yes",
+                    "answer": "Yes. For Room resources you can use the unique_name in place of the SID in the URL (i.e. pass the room\u2019s unique_name as the {RoomSid} path parameter).",
+                    "correct": true,
+                    "llm_judge_correct": false,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T19",
+                    "question": "Can a composition be created from an in-progress room?",
+                    "expected": "No, compositions can only be created from completed rooms",
+                    "answer": "No. Per the composition rules, you can only create a composition once the room has completed.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T20",
+                    "question": "What conditions must be met to create a composition from a room?",
+                    "expected": "the room must be completed and must have at least one recording",
+                    "answer": "Compositions can only be created after a Room has reached the \u201ccompleted\u201d state, and only if that Room has at least one recording to include in the composition.",
+                    "correct": true,
+                    "llm_judge_correct": false,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T21",
+                    "question": "Why must SubscribedTracks use SID for identification instead of track name?",
+                    "expected": "track names are not guaranteed to be unique on the subscriber side",
+                    "answer": "SubscribedTracks use the track\u2019s SID because the Video API endpoints require a SID as a stable resource identifier. Track names are only guaranteed unique on the subscriber side and therefore cannot serve reliably as the API path parameter.",
+                    "correct": true,
+                    "llm_judge_correct": false,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T22",
+                    "question": "What room types support server-side recording, and which do not?",
+                    "expected": "group and group-small support recording; peer-to-peer and go do not",
+                    "answer": "Server\u2010side recording is available in Peer-to-Peer, Group and Group-Small rooms. Go rooms do not support server-side recording.",
+                    "correct": true,
+                    "llm_judge_correct": false,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T23",
+                    "question": "If audio_only is set to true on a room, what restrictions apply?",
+                    "expected": "only audio tracks are allowed; no video tracks can be published",
+                    "answer": "When audio_only=true, the room is audio\u2010only: participants may publish audio tracks but may not publish any video tracks.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T24",
+                    "question": "What is the pricing per room-minute for Twilio Video?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  },
+                  {
+                    "id": "T25",
+                    "question": "What is the maximum resolution supported for Twilio Video compositions?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  }
+                ]
+              }
+            },
+            "raw_stuffing": {
+              "tokens": 3121,
+              "ratio": "1x",
+              "cost": "$0.0034",
+              "fidelity": 0.96,
+              "llm_judge_score": 0.84
+            },
+            "naive_truncation": {
+              "tokens": 353,
+              "ratio": "8.7x",
+              "cost": "$0.0004",
+              "fidelity": 0.6,
+              "llm_judge_score": 0.48
+            },
+            "llm_summary": {
+              "tokens": 362,
+              "ratio": "8.5x",
+              "cost": "$0.0004",
+              "fidelity": 0.8,
+              "llm_judge_score": 0.56
+            }
+          }
+        },
+        "gpt-5.2": {
+          "model": "gpt-5.2",
+          "model_id": "gpt-5.2",
+          "provider": "openai",
+          "baselines": {
+            "ctxpack_l2": {
+              "tokens": 353,
+              "ratio": "8.71x",
+              "cost": "$0.0018",
+              "fidelity": 1.0,
+              "llm_judge_score": 0.92,
+              "details": {
+                "total": 25,
+                "correct": 25,
+                "score": 1.0,
+                "llm_judge_correct": 23,
+                "llm_judge_score": 0.92,
+                "by_difficulty": {
+                  "easy": {
+                    "total": 7,
+                    "correct": 7,
+                    "score": 1.0
+                  },
+                  "medium": {
+                    "total": 11,
+                    "correct": 11,
+                    "score": 1.0
+                  },
+                  "hard": {
+                    "total": 5,
+                    "correct": 5,
+                    "score": 1.0
+                  },
+                  "adversarial": {
+                    "total": 2,
+                    "correct": 2,
+                    "score": 1.0
+                  }
+                },
+                "details": [
+                  {
+                    "id": "T01",
+                    "question": "What are the valid room types in Twilio Video?",
+                    "expected": "go, peer-to-peer, group, group-small",
+                    "answer": "The valid Twilio Video room types are: `go`, `peer-to-peer`, `group`, and `group-small`.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T02",
+                    "question": "What video codecs are supported in Twilio Video rooms?",
+                    "expected": "VP8 and H264",
+                    "answer": "Twilio Video rooms support the **VP8** and **H264** video codecs.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T03",
+                    "question": "What is the maximum number of participants in a group room?",
+                    "expected": "50",
+                    "answer": "The maximum number of participants in a **group** room is **50** (configurable).",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T04",
+                    "question": "What audio codecs are supported for recordings?",
+                    "expected": "opus and PCMU",
+                    "answer": "The supported audio codecs are **opus** and **PCMU**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T05",
+                    "question": "What container formats are available for recordings?",
+                    "expected": "mka for audio, mkv for video, mp4 for composition",
+                    "answer": "The available recording container formats are **mka** (audio) and **mkv** (video).",
+                    "correct": true,
+                    "llm_judge_correct": false,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T06",
+                    "question": "How many participants can a go room support?",
+                    "expected": "2",
+                    "answer": "A **go** room supports a maximum of **2 participants**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T07",
+                    "question": "What is the maximum number of participants for a group-small room?",
+                    "expected": "4",
+                    "answer": "The maximum number of participants for a **group-small** room is **4**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T08",
+                    "question": "What happens when a new client joins a room with an existing participant identity?",
+                    "expected": "the existing client is disconnected",
+                    "answer": "When a new client joins with an existing **Identity**, the existing participant is **disconnected** and the new client **takes over that Identity** in the Room.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T09",
+                    "question": "What is the default max_participant_duration in seconds for a Twilio Video room?",
+                    "expected": "14400 seconds (4 hours)",
+                    "answer": "14400 seconds.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T10",
+                    "question": "What is the maximum possible max_participant_duration value?",
+                    "expected": "86400 seconds (24 hours)",
+                    "answer": "86400 seconds (24 hours).",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T11",
+                    "question": "What is the format of the resolution field for compositions?",
+                    "expected": "{width}x{height}",
+                    "answer": "The `resolution` field for compositions is a string in the format `{width}x{height}` (e.g., `640x480`).",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T12",
+                    "question": "What is the default HTTP method for composition status callbacks?",
+                    "expected": "POST",
+                    "answer": "The default HTTP method for composition status callbacks (`status_callback_method`) is **POST**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T13",
+                    "question": "When is the duration field populated for a participant?",
+                    "expected": "only after the participant is disconnected",
+                    "answer": "The participant\u2019s `duration` field is populated only after the participant has **disconnected**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T14",
+                    "question": "What field uniquely identifies a transcription resource?",
+                    "expected": "ttid",
+                    "answer": "`ttid` \u2014 the unique string that identifies the transcription resource.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T15",
+                    "question": "If a sub-second track is recorded, what duration is reported?",
+                    "expected": "1 second",
+                    "answer": "If a track is under one second, the `duration` is reported as **1 second** (rounded to the nearest second).",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T16",
+                    "question": "What is the SID format convention used by Twilio resources?",
+                    "expected": "2-letter prefix plus 32 hexadecimal characters",
+                    "answer": "Twilio resources use SIDs with the format: **2-letter prefix + 32 hexadecimal characters**, with prefixes unique per resource type.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T17",
+                    "question": "What webhook events are related to recordings?",
+                    "expected": "recording-started, recording-completed, recording-failed",
+                    "answer": "The recording-related webhook events are: **`recording-started`**, **`recording-completed`**, and **`recording-failed`**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T18",
+                    "question": "Can you use a unique_name instead of sid in room API URLs?",
+                    "expected": "Yes",
+                    "answer": "Yes. The Room resource\u2019s `unique_name` \u201ccan be used in place of the resource\u2019s `sid` in the URL.\u201d",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T19",
+                    "question": "Can a composition be created from an in-progress room?",
+                    "expected": "No, compositions can only be created from completed rooms",
+                    "answer": "No. In the context, compositions can only be created from **completed** rooms (\u201cCompositions only created completed rooms\u201d).",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T20",
+                    "question": "What conditions must be met to create a composition from a room?",
+                    "expected": "the room must be completed and must have at least one recording",
+                    "answer": "To create a Composition from a Room:\n\n- The Room must be **completed**.\n- The Room must have **at least one Recording** available to use in the Composition.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T21",
+                    "question": "Why must SubscribedTracks use SID for identification instead of track name?",
+                    "expected": "track names are not guaranteed to be unique on the subscriber side",
+                    "answer": "SubscribedTracks must use a SID because on the subscriber side the track name is **not guaranteed to be unique**, so the API requires the track\u2019s **`track_sid`** for reliable identification.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T22",
+                    "question": "What room types support server-side recording, and which do not?",
+                    "expected": "group and group-small support recording; peer-to-peer and go do not",
+                    "answer": "Server-side recording is supported by **peer-to-peer** rooms (and recording is available for **group** and **group-small** room types). It is **not supported** for **go** rooms.",
+                    "correct": true,
+                    "llm_judge_correct": false,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T23",
+                    "question": "If audio_only is set to true on a room, what restrictions apply?",
+                    "expected": "only audio tracks are allowed; no video tracks can be published",
+                    "answer": "If `audio_only` is set to `true`, participants in the Room can **only publish audio**\u2014**video tracks are not allowed**.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T24",
+                    "question": "What is the pricing per room-minute for Twilio Video?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  },
+                  {
+                    "id": "T25",
+                    "question": "What is the maximum resolution supported for Twilio Video compositions?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  }
+                ]
+              }
+            },
+            "raw_stuffing": {
+              "tokens": 3121,
+              "ratio": "1x",
+              "cost": "$0.0156",
+              "fidelity": 1.0,
+              "llm_judge_score": 0.92
+            },
+            "naive_truncation": {
+              "tokens": 353,
+              "ratio": "8.7x",
+              "cost": "$0.0018",
+              "fidelity": 0.56,
+              "llm_judge_score": 0.48
+            },
+            "llm_summary": {
+              "tokens": 0,
+              "ratio": "3076.0x",
+              "cost": "$0.0000",
+              "fidelity": 0.08,
+              "llm_judge_score": 0.12
+            }
+          }
+        },
+        "gemini-2.5-pro": {
+          "model": "gemini-2.5-pro",
+          "model_id": "gemini-2.5-pro",
+          "provider": "google",
+          "baselines": {
+            "ctxpack_l2": {
+              "tokens": 353,
+              "ratio": "8.71x",
+              "cost": "$0.0004",
+              "fidelity": 0.84,
+              "llm_judge_score": 0.88,
+              "details": {
+                "total": 25,
+                "correct": 21,
+                "score": 0.84,
+                "llm_judge_correct": 22,
+                "llm_judge_score": 0.88,
+                "by_difficulty": {
+                  "easy": {
+                    "total": 7,
+                    "correct": 6,
+                    "score": 0.857
+                  },
+                  "medium": {
+                    "total": 11,
+                    "correct": 9,
+                    "score": 0.818
+                  },
+                  "hard": {
+                    "total": 5,
+                    "correct": 4,
+                    "score": 0.8
+                  },
+                  "adversarial": {
+                    "total": 2,
+                    "correct": 2,
+                    "score": 1.0
+                  }
+                },
+                "details": [
+                  {
+                    "id": "T01",
+                    "question": "What are the valid room types in Twilio Video?",
+                    "expected": "go, peer-to-peer, group, group-small",
+                    "answer": "Based on the context, the valid room types are: go, peer-to-peer, group, and group-small.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T02",
+                    "question": "What video codecs are supported in Twilio Video rooms?",
+                    "expected": "VP8 and H264",
+                    "answer": "VP8 and H264.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T03",
+                    "question": "What is the maximum number of participants in a group room?",
+                    "expected": "50",
+                    "answer": "The maximum number of participants in a group room is 50, which is configurable.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T04",
+                    "question": "What audio codecs are supported for recordings?",
+                    "expected": "opus and PCMU",
+                    "answer": "opus, PCMU",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T05",
+                    "question": "What container formats are available for recordings?",
+                    "expected": "mka for audio, mkv for video, mp4 for composition",
+                    "answer": "mka (audio) and mkv (video).",
+                    "correct": false,
+                    "llm_judge_correct": false,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T06",
+                    "question": "How many participants can a go room support?",
+                    "expected": "2",
+                    "answer": "A go room can support a maximum of 2 participants.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T07",
+                    "question": "What is the maximum number of participants for a group-small room?",
+                    "expected": "4",
+                    "answer": "The maximum number of participants for group-small rooms is 4.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "easy"
+                  },
+                  {
+                    "id": "T08",
+                    "question": "What happens when a new client joins a room with an existing participant identity?",
+                    "expected": "the existing client is disconnected",
+                    "answer": "Not found in context.",
+                    "correct": false,
+                    "llm_judge_correct": false,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T09",
+                    "question": "What is the default max_participant_duration in seconds for a Twilio Video room?",
+                    "expected": "14400 seconds (4 hours)",
+                    "answer": "14400",
+                    "correct": false,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T10",
+                    "question": "What is the maximum possible max_participant_duration value?",
+                    "expected": "86400 seconds (24 hours)",
+                    "answer": "The maximum possible value is 86400 seconds (24 hours).",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T11",
+                    "question": "What is the format of the resolution field for compositions?",
+                    "expected": "{width}x{height}",
+                    "answer": "The format is `{width}x{height}`, such as `640x480`.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T12",
+                    "question": "What is the default HTTP method for composition status callbacks?",
+                    "expected": "POST",
+                    "answer": "POST",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T13",
+                    "question": "When is the duration field populated for a participant?",
+                    "expected": "only after the participant is disconnected",
+                    "answer": "The duration field is populated only after the participant is `disconnected`.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T14",
+                    "question": "What field uniquely identifies a transcription resource?",
+                    "expected": "ttid",
+                    "answer": "ttid",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T15",
+                    "question": "If a sub-second track is recorded, what duration is reported?",
+                    "expected": "1 second",
+                    "answer": "For sub-second tracks, the `Duration` property is 1 second.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T16",
+                    "question": "What is the SID format convention used by Twilio resources?",
+                    "expected": "2-letter prefix plus 32 hexadecimal characters",
+                    "answer": "The format is a 2-letter prefix followed by 32 hexadecimal characters.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T17",
+                    "question": "What webhook events are related to recordings?",
+                    "expected": "recording-started, recording-completed, recording-failed",
+                    "answer": "recording-started, recording-completed, recording-failed",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T18",
+                    "question": "Can you use a unique_name instead of sid in room API URLs?",
+                    "expected": "Yes",
+                    "answer": "Yes, the `unique_name` is an application-defined string that uniquely identifies the resource and can be used in place of the resource's `sid` in the URL.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "medium"
+                  },
+                  {
+                    "id": "T19",
+                    "question": "Can a composition be created from an in-progress room?",
+                    "expected": "No, compositions can only be created from completed rooms",
+                    "answer": "No, compositions can only be created from completed rooms.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T20",
+                    "question": "What conditions must be met to create a composition from a room?",
+                    "expected": "the room must be completed and must have at least one recording",
+                    "answer": "Based on the context, the following conditions must be met:\n*   Compositions can only be created from completed rooms.\n*   The room must have at least one recording.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T21",
+                    "question": "Why must SubscribedTracks use SID for identification instead of track name?",
+                    "expected": "track names are not guaranteed to be unique on the subscriber side",
+                    "answer": "According to the context, the Track Name on the subscriber side is not guaranteed to be unique, which is why the SID is required.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T22",
+                    "question": "What room types support server-side recording, and which do not?",
+                    "expected": "group and group-small support recording; peer-to-peer and go do not",
+                    "answer": "",
+                    "correct": false,
+                    "llm_judge_correct": false,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T23",
+                    "question": "If audio_only is set to true on a room, what restrictions apply?",
+                    "expected": "only audio tracks are allowed; no video tracks can be published",
+                    "answer": "When set to true, participants in the room can only publish audio, and no video tracks are allowed.",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "hard"
+                  },
+                  {
+                    "id": "T24",
+                    "question": "What is the pricing per room-minute for Twilio Video?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  },
+                  {
+                    "id": "T25",
+                    "question": "What is the maximum resolution supported for Twilio Video compositions?",
+                    "expected": "NOT_IN_CONTEXT",
+                    "answer": "Not found in context",
+                    "correct": true,
+                    "llm_judge_correct": true,
+                    "difficulty": "adversarial"
+                  }
+                ]
+              }
+            },
+            "raw_stuffing": {
+              "tokens": 3121,
+              "ratio": "1x",
+              "cost": "$0.0039",
+              "fidelity": 0.88,
+              "llm_judge_score": 0.88
+            },
+            "naive_truncation": {
+              "tokens": 353,
+              "ratio": "8.7x",
+              "cost": "$0.0004",
+              "fidelity": 0.52,
+              "llm_judge_score": 0.64
+            },
+            "llm_summary": {
+              "tokens": 208,
+              "ratio": "14.8x",
+              "cost": "$0.0003",
+              "fidelity": 0.4,
+              "llm_judge_score": 0.6
+            }
+          }
+        }
+      },
+      "skipped": []
+    }
+  }
+}

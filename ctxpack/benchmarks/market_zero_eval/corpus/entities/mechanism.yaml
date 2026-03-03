@@ -1,0 +1,31 @@
+entity: MECHANISM
+description: Mechanism of action sourced from MeSH pharmacological actions, with WHO ATC classification codes
+aliases:
+  - mechanism-of-action
+  - moa
+
+identifier:
+  name: mesh_id
+  type: string
+  immutable: true
+
+fields:
+  - name: name
+    type: string
+    description: "Mechanism name (e.g. GLP-1 Receptor Agonists)"
+    required: true
+  - name: mesh_id
+    type: string
+    description: "MeSH descriptor ID for pharmacological action"
+  - name: atc_code
+    type: string
+    description: "WHO ATC classification code"
+
+provenance:
+  source_api: "MeSH pharmacological actions"
+  refresh_frequency: monthly
+
+has_many:
+  entity: DRUG
+  relationship: ACTS_VIA
+  cardinality: 1:N

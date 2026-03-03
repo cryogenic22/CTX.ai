@@ -1,0 +1,188 @@
+{
+  "model": "gemini-2.5-pro",
+  "format": "L1",
+  "tokens": 417,
+  "rule_score": 0.92,
+  "judge_score": 0.92,
+  "rule_correct": 23,
+  "judge_correct": 23,
+  "total": 25,
+  "elapsed_s": 133.3,
+  "per_question": [
+    {
+      "id": "Q01",
+      "expected": "CRM (Salesforce)",
+      "answer": "CRM-(Salesforce)",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q02",
+      "expected": "anonymise",
+      "answer": "Churned leads are anonymized.",
+      "rule_correct": false,
+      "judge_correct": true
+    },
+    {
+      "id": "Q03",
+      "expected": "UUID",
+      "answer": "UUID",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q04",
+      "expected": "No, it is immutable",
+      "answer": "No, the customer_id is immutable.",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q05",
+      "expected": "Jaro-Winkler with threshold > 0.92",
+      "answer": "Jaro-Winkler similarity with a threshold of 0.92, requiring manual review.",
+      "rule_correct": true,
+      "judge_correct": false
+    },
+    {
+      "id": "Q06",
+      "expected": "RESTRICTED",
+      "answer": "RESTRICTED",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q07",
+      "expected": "draft -> submitted -> processing -> shipped -> delivered",
+      "answer": "The order status flow is: draft -> submitted -> processing -> shipped -> delivered. Terminal states also include cancelled and returned.",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q08",
+      "expected": "submitted",
+      "answer": "submitted",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q09",
+      "expected": "DECIMAL(19,4)",
+      "answer": "DECIMAL(19,4)",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q10",
+      "expected": "CUSTOMER (via customer_id)",
+      "answer": "Customer (via customer_id, mandatory)",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q11",
+      "expected": "5 minutes",
+      "answer": "The maximum staleness allowed for inventory data is 5 minutes.",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q12",
+      "expected": "auto-hold and alert",
+      "answer": "It is placed on auto-hold and an alert is triggered.",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q13",
+      "expected": "string, unique per merchant",
+      "answer": "string",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q14",
+      "expected": "Real-time via warehouse API (webhook + 5min poll fallback)",
+      "answer": "Inventory is synced in real-time from a warehouse API, using a webhook with a 5-minute poll as a fallback.",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q15",
+      "expected": "Yes - CUSTOMER says 36 months for churned, regulatory requires 7 years for financial records",
+      "answer": "Yes, there is a known conflict between the customer retention policy (36 months for churned leads) and the regulatory requirement to retain financial records for 7 years. The 7-year regulatory retention overrides shorter entity-specific policies.",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q16",
+      "expected": "never-null-for-active",
+      "answer": "The email field is never null for active customers.",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q17",
+      "expected": "Stored in UTC, displayed in customer locale",
+      "answer": "Timestamps are stored in UTC and displayed according to the customer's locale.",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q18",
+      "expected": "Via SmartyStreets API, USPS format",
+      "answer": "Addresses are normalised using the SmartyStreets API and formatted for the US using USPS.",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q19",
+      "expected": "HIGHLY-RESTRICTED",
+      "answer": "HIGHLY-RESTRICTED",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q20",
+      "expected": "7 years (regulatory requirement)",
+      "answer": "A minimum of 7 years, per regulatory requirements.",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q21",
+      "expected": "NOT_IN_CONTEXT",
+      "answer": "Not found in context",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q22",
+      "expected": "NOT_IN_CONTEXT",
+      "answer": "Not found in context",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q23",
+      "expected": "auto-deactivated, reactivation requires manual review by merchandising",
+      "answer": "Products with a 'seasonal' catalog status are automatically deactivated at the end of the season. Reactivation requires a manual review by the merchandising team.",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q24",
+      "expected": "Royal Mail",
+      "answer": "Royal Mail",
+      "rule_correct": true,
+      "judge_correct": true
+    },
+    {
+      "id": "Q25",
+      "expected": "No, order_id is mandatory (PAYMENT belongs to ORDER)",
+      "answer": "No. The context states that a Payment \"Belongs To: Order (via order_id, mandatory)\".",
+      "rule_correct": true,
+      "judge_correct": true
+    }
+  ]
+}

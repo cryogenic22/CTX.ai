@@ -1,0 +1,139 @@
+{
+  "method": "structured_prompt",
+  "packer_model": "claude-sonnet-4-5-20250929",
+  "eval_model": "claude-sonnet-4-5-20250929",
+  "word_count": 41,
+  "bpe_cl100k": 565,
+  "fidelity_rule": 0.84,
+  "fidelity_judge": 0.96,
+  "correct_rule": 21,
+  "correct_judge": 24,
+  "total": 25,
+  "details": [
+    {
+      "id": "Q01",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q02",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q03",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q04",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q05",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q06",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q07",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q08",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q09",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q10",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q11",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q12",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q13",
+      "correct": false,
+      "judge": true
+    },
+    {
+      "id": "Q14",
+      "correct": false,
+      "judge": true
+    },
+    {
+      "id": "Q15",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q16",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q17",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q18",
+      "correct": false,
+      "judge": true
+    },
+    {
+      "id": "Q19",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q20",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q21",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q22",
+      "correct": false,
+      "judge": false
+    },
+    {
+      "id": "Q23",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q24",
+      "correct": true,
+      "judge": true
+    },
+    {
+      "id": "Q25",
+      "correct": true,
+      "judge": true
+    }
+  ]
+}

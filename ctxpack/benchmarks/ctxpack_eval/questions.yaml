@@ -1,0 +1,134 @@
+# ── Cross-entity questions ──
+
+- id: Q01
+  question: "What entity does COMPRESSOR depend on for cross-reference counting?"
+  expected: "IR-PIPELINE (uses IREntity and IRField)"
+  difficulty: easy
+  entities: [COMPRESSOR, IR-PIPELINE]
+
+- id: Q02
+  question: "What is the relationship between L3-GENERATOR and COMPRESSOR?"
+  expected: "L3-GENERATOR depends on COMPRESSOR's count_tokens() function"
+  difficulty: medium
+  entities: [L3-GENERATOR, COMPRESSOR]
+
+- id: Q03
+  question: "Which module consumes the MANIFEST entity index for query routing?"
+  expected: "MCP hydration (query-adaptive section selection based on entity name)"
+  difficulty: medium
+  entities: [MANIFEST]
+
+- id: Q04
+  question: "What is the full packer pipeline order?"
+  expected: "discovery -> parse -> entity-resolution -> conflict-detection -> provenance-generation -> compression -> l3-generation -> manifest-generation"
+  difficulty: medium
+  entities: [PACKER-PIPELINE]
+
+# ── Constraint questions ──
+
+- id: Q05
+  question: "Is the CTXDocument AST mutable or immutable?"
+  expected: "Immutable (frozen dataclasses)"
+  difficulty: easy
+  entities: [IR-PIPELINE]
+
+- id: Q06
+  question: "Does the packer use any LLM or ML model?"
+  expected: "No — zero-dependency, deterministic, no LLM in the loop"
+  difficulty: easy
+  entities: [PACKER-PIPELINE]
+
+- id: Q07
+  question: "What is the L3 token budget?"
+  expected: "500 tokens"
+  difficulty: easy
+  entities: [L3-GENERATOR]
+
+- id: Q08
+  question: "What license is ctxpack released under?"
+  expected: "AGPL-3.0-or-later"
+  difficulty: easy
+  entities: []
+
+# ── Negation questions ──
+
+- id: Q09
+  question: "Can the parser handle arbitrary Python files?"
+  expected: "No — only .ctx format (line-oriented, section-based)"
+  difficulty: medium
+  entities: [PARSER]
+
+- id: Q10
+  question: "Does the conflict detector catch semantic contradictions?"
+  expected: "No — only structural: null policy, type mismatch, retention periods, PII classification level"
+  difficulty: medium
+  entities: [CONFLICT-DETECTOR]
+
+- id: Q11
+  question: "Can L3 topology classification be fully customized per-domain without code changes?"
+  expected: "Only hub_threshold is configurable; topology classification rules (hub/leaf/bridge) are hardcoded"
+  difficulty: hard
+  entities: [L3-GENERATOR]
+
+# ── Multi-hop questions ──
+
+- id: Q12
+  question: "If a field has certainty=INFERRED and --strict mode is on, what happens?"
+  expected: "The field is suppressed from output entirely (strict mode drops all INFERRED fields)"
+  difficulty: hard
+  entities: [COMPRESSOR, IR-PIPELINE]
+
+- id: Q13
+  question: "What happens when two sources define the same field with different types?"
+  expected: "Type conflict warning is generated AND both sources are tracked in provenance"
+  difficulty: hard
+  entities: [CONFLICT-DETECTOR, IR-PIPELINE]
+
+- id: Q14
+  question: "How does the keyword index route a query about 'retention' to the right entity?"
+  expected: "Semantic regex extracts 'retention' from field values, keyword index maps to sections containing the term"
+  difficulty: hard
+  entities: [MANIFEST]
+
+# ── Operational questions ──
+
+- id: Q15
+  question: "What is the entity-level salience scoring formula?"
+  expected: "source_count * 1.0 + cross_refs * 2.0 + warning_count * 1.5 (golden source gets 1.5x multiplier, minimum score is 1.0)"
+  difficulty: medium
+  entities: [COMPRESSOR]
+
+- id: Q16
+  question: "How does the serializer handle Unicode operators in ASCII mode?"
+  expected: "Unicode operators are replaced with ASCII fallbacks: section-ctx to $CTX, plus-minus to ##, arrow to ->, negation to exclamation-mark, star to triple-asterisk, warning to WARN-colon, equivalence to ===, conflict to CONFLICT-colon"
+  difficulty: medium
+  entities: [SERIALIZER]
+
+- id: Q17
+  question: "What heuristic determines whether a YAML structure is classified as an entity?"
+  expected: "Presence of keys like identifier, golden_source, match_rules, pii, retention, has_many, belongs_to, id, uuid, primary_key"
+  difficulty: medium
+  entities: [PACKER-PIPELINE]
+
+# ── Adversarial questions (hallucination traps) ──
+
+- id: Q18
+  question: "What database does ctxpack use for storage?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: hard
+  entities: []
+  adversarial: true
+
+- id: Q19
+  question: "What is the REST API endpoint for packing?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: hard
+  entities: []
+  adversarial: true
+
+- id: Q20
+  question: "How does ctxpack handle real-time streaming from Kafka?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: hard
+  entities: []
+  adversarial: true

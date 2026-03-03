@@ -1,0 +1,40 @@
+entity: SERIALIZER
+description: AST-to-text serializer with default, canonical, and ASCII modes plus streaming support
+aliases:
+  - ctx-serializer
+
+identifier:
+  name: mode
+  type: string
+  immutable: true
+
+modes:
+  - name: default
+    description: "Reproduce original formatting from AST"
+  - name: canonical
+    description: "Reorder header fields (required then recommended then custom), consistent whitespace"
+  - name: ascii
+    description: "Replace Unicode operators with ASCII fallbacks for terminal compatibility"
+
+ascii_mapping:
+  section_ctx: "$CTX replaces section-ctx unicode"
+  section_marker: "## replaces plus-minus unicode"
+  arrow: "-> replaces arrow unicode"
+  negation: "exclamation-mark replaces negation unicode"
+  emphasis: "*** replaces star unicode"
+  warning: "WARN: replaces warning unicode"
+  equivalence: "=== replaces equivalence unicode"
+  conflict: "CONFLICT: replaces conflict unicode"
+  weak_assoc: "~> stays the same (already ASCII)"
+
+streaming:
+  functions:
+    - name: serialize_iter
+      description: "Yields lines for streaming and MCP use"
+    - name: serialize_section
+      description: "Yields lines for a single section — used for MCP per-section hydration"
+  design: "All serialize functions are yield-based iterators; serialize() joins via serialize_iter()"
+
+depends_on:
+  entity: IR-PIPELINE
+  cardinality: 1:1

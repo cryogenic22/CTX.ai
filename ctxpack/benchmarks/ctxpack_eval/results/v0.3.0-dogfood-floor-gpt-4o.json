@@ -1,0 +1,874 @@
+{
+  "version": "0.3.0-dogfood-floor",
+  "timestamp": "2026-02-23T20:12:09.155603+00:00",
+  "baselines": {
+    "ctxpack_l2": {
+      "tokens": 259,
+      "ratio": "8.4x",
+      "cost": "$0.0006",
+      "fidelity": 0.4,
+      "fidelity_details": {
+        "total": 20,
+        "correct": 8,
+        "score": 0.4,
+        "llm_judge_correct": 16,
+        "llm_judge_score": 0.8,
+        "by_difficulty": {
+          "easy": {
+            "total": 5,
+            "correct": 2,
+            "score": 0.4
+          },
+          "medium": {
+            "total": 8,
+            "correct": 1,
+            "score": 0.125
+          },
+          "hard": {
+            "total": 7,
+            "correct": 5,
+            "score": 0.714
+          }
+        },
+        "details": [
+          {
+            "id": "Q01",
+            "question": "What entity does COMPRESSOR depend on for cross-reference counting?",
+            "expected": "IR-PIPELINE (uses IREntity and IRField)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q02",
+            "question": "What is the relationship between L3-GENERATOR and COMPRESSOR?",
+            "expected": "L3-GENERATOR depends on COMPRESSOR's count_tokens() function",
+            "answer": "The L3-GENERATOR depends on the COMPRESSOR.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q03",
+            "question": "Which module consumes the MANIFEST entity index for query routing?",
+            "expected": "MCP hydration (query-adaptive section selection based on entity name)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q04",
+            "question": "What is the full packer pipeline order?",
+            "expected": "discovery -> parse -> entity-resolution -> conflict-detection -> provenance-generation -> compression -> l3-generation -> manifest-generation",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q05",
+            "question": "Is the CTXDocument AST mutable or immutable?",
+            "expected": "Immutable (frozen dataclasses)",
+            "answer": "Immutable.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q06",
+            "question": "Does the packer use any LLM or ML model?",
+            "expected": "No \u2014 zero-dependency, deterministic, no LLM in the loop",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q07",
+            "question": "What is the L3 token budget?",
+            "expected": "500 tokens",
+            "answer": "The L3 token budget is 500 tokens.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q08",
+            "question": "What license is ctxpack released under?",
+            "expected": "AGPL-3.0-or-later",
+            "answer": "ctxpack is released under AGPL-3.0 or later (open-core model).",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q09",
+            "question": "Can the parser handle arbitrary Python files?",
+            "expected": "No \u2014 only .ctx format (line-oriented, section-based)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q10",
+            "question": "Does the conflict detector catch semantic contradictions?",
+            "expected": "No \u2014 only structural: null policy, type mismatch, retention periods, PII classification level",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q11",
+            "question": "Can L3 topology classification be fully customized per-domain without code changes?",
+            "expected": "Only hub_threshold is configurable; topology classification rules (hub/leaf/bridge) are hardcoded",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q12",
+            "question": "If a field has certainty=INFERRED and --strict mode is on, what happens?",
+            "expected": "The field is suppressed from output entirely (strict mode drops all INFERRED fields)",
+            "answer": "If a field has certainty=INFERRED and --strict mode is on, it is suppressed from output entirely.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q13",
+            "question": "What happens when two sources define the same field with different types?",
+            "expected": "Type conflict warning is generated AND both sources are tracked in provenance",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q14",
+            "question": "How does the keyword index route a query about 'retention' to the right entity?",
+            "expected": "Semantic regex extracts 'retention' from field values, keyword index maps to sections containing the term",
+            "answer": "The keyword index routes a query about 'retention' by using a semantic regex to extract domain-relevant terms, such as 'retention', from field values. This allows the index to identify and route queries to the appropriate entities based on these extracted terms.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q15",
+            "question": "What is the entity-level salience scoring formula?",
+            "expected": "source_count * 1.0 + cross_refs * 2.0 + warning_count * 1.5 (golden source gets 1.5x multiplier, minimum score is 1.0)",
+            "answer": "entity-level(formula(source-count * 1.0 + cross-refs * 2.0 + warning-count * 1.5) + golden-source-boost(1.5x multiplier when entity has a GOLDEN SOURCE field) + minimum(1.0))",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q16",
+            "question": "How does the serializer handle Unicode operators in ASCII mode?",
+            "expected": "Unicode operators are replaced with ASCII fallbacks: section-ctx to $CTX, plus-minus to ##, arrow to ->, negation to exclamation-mark, star to triple-asterisk, warning to WARN-colon, equivalence to ===, conflict to CONFLICT-colon",
+            "answer": "The serializer replaces Unicode operators with ASCII fallbacks in ASCII mode. For example, it replaces the section-ctx Unicode with $CTX, the section marker with ##, the arrow with ->, the negation with an exclamation mark, emphasis with ***, the warning with WARN:, and the equivalence with ===.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q17",
+            "question": "What heuristic determines whether a YAML structure is classified as an entity?",
+            "expected": "Presence of keys like identifier, golden_source, match_rules, pii, retention, has_many, belongs_to, id, uuid, primary_key",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q18",
+            "question": "What database does ctxpack use for storage?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q19",
+            "question": "What is the REST API endpoint for packing?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q20",
+            "question": "How does ctxpack handle real-time streaming from Kafka?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          }
+        ]
+      }
+    },
+    "raw_stuffing": {
+      "tokens": 2209,
+      "ratio": "1x",
+      "cost": "$0.0055",
+      "fidelity": 0.4,
+      "fidelity_details": {
+        "total": 20,
+        "correct": 8,
+        "score": 0.4,
+        "llm_judge_correct": 16,
+        "llm_judge_score": 0.8,
+        "by_difficulty": {
+          "easy": {
+            "total": 5,
+            "correct": 2,
+            "score": 0.4
+          },
+          "medium": {
+            "total": 8,
+            "correct": 2,
+            "score": 0.25
+          },
+          "hard": {
+            "total": 7,
+            "correct": 4,
+            "score": 0.571
+          }
+        },
+        "details": [
+          {
+            "id": "Q01",
+            "question": "What entity does COMPRESSOR depend on for cross-reference counting?",
+            "expected": "IR-PIPELINE (uses IREntity and IRField)",
+            "answer": "IR-PIPELINE",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q02",
+            "question": "What is the relationship between L3-GENERATOR and COMPRESSOR?",
+            "expected": "L3-GENERATOR depends on COMPRESSOR's count_tokens() function",
+            "answer": "The L3-GENERATOR depends on the COMPRESSOR with a cardinality of 1:1. It uses the `count_tokens()` function from the COMPRESSOR module.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q03",
+            "question": "Which module consumes the MANIFEST entity index for query routing?",
+            "expected": "MCP hydration (query-adaptive section selection based on entity name)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q04",
+            "question": "What is the full packer pipeline order?",
+            "expected": "discovery -> parse -> entity-resolution -> conflict-detection -> provenance-generation -> compression -> l3-generation -> manifest-generation",
+            "answer": "1. Discovery\n2. Parse\n3. Entity-resolution\n4. Conflict-detection\n5. Provenance-generation\n6. Compression\n7. L3-generation\n8. Manifest-generation",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q05",
+            "question": "Is the CTXDocument AST mutable or immutable?",
+            "expected": "Immutable (frozen dataclasses)",
+            "answer": "Immutable.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q06",
+            "question": "Does the packer use any LLM or ML model?",
+            "expected": "No \u2014 zero-dependency, deterministic, no LLM in the loop",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q07",
+            "question": "What is the L3 token budget?",
+            "expected": "500 tokens",
+            "answer": "500 tokens",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q08",
+            "question": "What license is ctxpack released under?",
+            "expected": "AGPL-3.0-or-later",
+            "answer": "AGPL-3.0-or-later (open-core model).",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q09",
+            "question": "Can the parser handle arbitrary Python files?",
+            "expected": "No \u2014 only .ctx format (line-oriented, section-based)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q10",
+            "question": "Does the conflict detector catch semantic contradictions?",
+            "expected": "No \u2014 only structural: null policy, type mismatch, retention periods, PII classification level",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q11",
+            "question": "Can L3 topology classification be fully customized per-domain without code changes?",
+            "expected": "Only hub_threshold is configurable; topology classification rules (hub/leaf/bridge) are hardcoded",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q12",
+            "question": "If a field has certainty=INFERRED and --strict mode is on, what happens?",
+            "expected": "The field is suppressed from output entirely (strict mode drops all INFERRED fields)",
+            "answer": "If a field has certainty=INFERRED and --strict mode is on, it is suppressed from output entirely.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q13",
+            "question": "What happens when two sources define the same field with different types?",
+            "expected": "Type conflict warning is generated AND both sources are tracked in provenance",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q14",
+            "question": "How does the keyword index route a query about 'retention' to the right entity?",
+            "expected": "Semantic regex extracts 'retention' from field values, keyword index maps to sections containing the term",
+            "answer": "The keyword index routes a query about 'retention' to the right entity by extracting domain-relevant terms, such as 'retention', using a semantic regex. This allows the index to categorize and route queries based on structural, navigational, and semantic keywords.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q15",
+            "question": "What is the entity-level salience scoring formula?",
+            "expected": "source_count * 1.0 + cross_refs * 2.0 + warning_count * 1.5 (golden source gets 1.5x multiplier, minimum score is 1.0)",
+            "answer": "The entity-level salience scoring formula is \"source_count * 1.0 + cross_refs * 2.0 + warning_count * 1.5\".",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q16",
+            "question": "How does the serializer handle Unicode operators in ASCII mode?",
+            "expected": "Unicode operators are replaced with ASCII fallbacks: section-ctx to $CTX, plus-minus to ##, arrow to ->, negation to exclamation-mark, star to triple-asterisk, warning to WARN-colon, equivalence to ===, conflict to CONFLICT-colon",
+            "answer": "In ASCII mode, the serializer replaces Unicode operators with ASCII fallbacks for terminal compatibility. For example, \"->\" replaces arrow unicode, \"***\" replaces star unicode, and \"WARN:\" replaces warning unicode.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q17",
+            "question": "What heuristic determines whether a YAML structure is classified as an entity?",
+            "expected": "Presence of keys like identifier, golden_source, match_rules, pii, retention, has_many, belongs_to, id, uuid, primary_key",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q18",
+            "question": "What database does ctxpack use for storage?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q19",
+            "question": "What is the REST API endpoint for packing?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q20",
+            "question": "How does ctxpack handle real-time streaming from Kafka?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          }
+        ]
+      }
+    },
+    "naive_summary": {
+      "tokens": 259,
+      "ratio": "8.4x",
+      "cost": "$0.0006",
+      "fidelity": 0.2,
+      "fidelity_details": {
+        "total": 20,
+        "correct": 4,
+        "score": 0.2,
+        "llm_judge_correct": 13,
+        "llm_judge_score": 0.65,
+        "by_difficulty": {
+          "easy": {
+            "total": 5,
+            "correct": 1,
+            "score": 0.2
+          },
+          "medium": {
+            "total": 8,
+            "correct": 0,
+            "score": 0.0
+          },
+          "hard": {
+            "total": 7,
+            "correct": 3,
+            "score": 0.429
+          }
+        },
+        "details": [
+          {
+            "id": "Q01",
+            "question": "What entity does COMPRESSOR depend on for cross-reference counting?",
+            "expected": "IR-PIPELINE (uses IREntity and IRField)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q02",
+            "question": "What is the relationship between L3-GENERATOR and COMPRESSOR?",
+            "expected": "L3-GENERATOR depends on COMPRESSOR's count_tokens() function",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q03",
+            "question": "Which module consumes the MANIFEST entity index for query routing?",
+            "expected": "MCP hydration (query-adaptive section selection based on entity name)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q04",
+            "question": "What is the full packer pipeline order?",
+            "expected": "discovery -> parse -> entity-resolution -> conflict-detection -> provenance-generation -> compression -> l3-generation -> manifest-generation",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q05",
+            "question": "Is the CTXDocument AST mutable or immutable?",
+            "expected": "Immutable (frozen dataclasses)",
+            "answer": "Immutable.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q06",
+            "question": "Does the packer use any LLM or ML model?",
+            "expected": "No \u2014 zero-dependency, deterministic, no LLM in the loop",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q07",
+            "question": "What is the L3 token budget?",
+            "expected": "500 tokens",
+            "answer": "Under 500 tokens.",
+            "correct": true,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q08",
+            "question": "What license is ctxpack released under?",
+            "expected": "AGPL-3.0-or-later",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q09",
+            "question": "Can the parser handle arbitrary Python files?",
+            "expected": "No \u2014 only .ctx format (line-oriented, section-based)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q10",
+            "question": "Does the conflict detector catch semantic contradictions?",
+            "expected": "No \u2014 only structural: null policy, type mismatch, retention periods, PII classification level",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q11",
+            "question": "Can L3 topology classification be fully customized per-domain without code changes?",
+            "expected": "Only hub_threshold is configurable; topology classification rules (hub/leaf/bridge) are hardcoded",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q12",
+            "question": "If a field has certainty=INFERRED and --strict mode is on, what happens?",
+            "expected": "The field is suppressed from output entirely (strict mode drops all INFERRED fields)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q13",
+            "question": "What happens when two sources define the same field with different types?",
+            "expected": "Type conflict warning is generated AND both sources are tracked in provenance",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q14",
+            "question": "How does the keyword index route a query about 'retention' to the right entity?",
+            "expected": "Semantic regex extracts 'retention' from field values, keyword index maps to sections containing the term",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q15",
+            "question": "What is the entity-level salience scoring formula?",
+            "expected": "source_count * 1.0 + cross_refs * 2.0 + warning_count * 1.5 (golden source gets 1.5x multiplier, minimum score is 1.0)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q16",
+            "question": "How does the serializer handle Unicode operators in ASCII mode?",
+            "expected": "Unicode operators are replaced with ASCII fallbacks: section-ctx to $CTX, plus-minus to ##, arrow to ->, negation to exclamation-mark, star to triple-asterisk, warning to WARN-colon, equivalence to ===, conflict to CONFLICT-colon",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q17",
+            "question": "What heuristic determines whether a YAML structure is classified as an entity?",
+            "expected": "Presence of keys like identifier, golden_source, match_rules, pii, retention, has_many, belongs_to, id, uuid, primary_key",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q18",
+            "question": "What database does ctxpack use for storage?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q19",
+            "question": "What is the REST API endpoint for packing?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q20",
+            "question": "How does ctxpack handle real-time streaming from Kafka?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          }
+        ]
+      }
+    },
+    "llm_summary": {
+      "tokens": 217,
+      "ratio": "10.0x",
+      "cost": "$0.0005",
+      "summary_preview": "The `ctxpack` is a domain knowledge packer designed to compress corpus directories into `.ctx` files, functioning as a multi-resolution compression codec for LLM context windows. It operates on a four...",
+      "fidelity": 0.2,
+      "fidelity_details": {
+        "total": 20,
+        "correct": 4,
+        "score": 0.2,
+        "llm_judge_correct": 12,
+        "llm_judge_score": 0.6,
+        "by_difficulty": {
+          "easy": {
+            "total": 5,
+            "correct": 1,
+            "score": 0.2
+          },
+          "medium": {
+            "total": 8,
+            "correct": 0,
+            "score": 0.0
+          },
+          "hard": {
+            "total": 7,
+            "correct": 3,
+            "score": 0.429
+          }
+        },
+        "details": [
+          {
+            "id": "Q01",
+            "question": "What entity does COMPRESSOR depend on for cross-reference counting?",
+            "expected": "IR-PIPELINE (uses IREntity and IRField)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q02",
+            "question": "What is the relationship between L3-GENERATOR and COMPRESSOR?",
+            "expected": "L3-GENERATOR depends on COMPRESSOR's count_tokens() function",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q03",
+            "question": "Which module consumes the MANIFEST entity index for query routing?",
+            "expected": "MCP hydration (query-adaptive section selection based on entity name)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q04",
+            "question": "What is the full packer pipeline order?",
+            "expected": "discovery -> parse -> entity-resolution -> conflict-detection -> provenance-generation -> compression -> l3-generation -> manifest-generation",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q05",
+            "question": "Is the CTXDocument AST mutable or immutable?",
+            "expected": "Immutable (frozen dataclasses)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q06",
+            "question": "Does the packer use any LLM or ML model?",
+            "expected": "No \u2014 zero-dependency, deterministic, no LLM in the loop",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q07",
+            "question": "What is the L3 token budget?",
+            "expected": "500 tokens",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q08",
+            "question": "What license is ctxpack released under?",
+            "expected": "AGPL-3.0-or-later",
+            "answer": "AGPL-3.0-or-later",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q09",
+            "question": "Can the parser handle arbitrary Python files?",
+            "expected": "No \u2014 only .ctx format (line-oriented, section-based)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q10",
+            "question": "Does the conflict detector catch semantic contradictions?",
+            "expected": "No \u2014 only structural: null policy, type mismatch, retention periods, PII classification level",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q11",
+            "question": "Can L3 topology classification be fully customized per-domain without code changes?",
+            "expected": "Only hub_threshold is configurable; topology classification rules (hub/leaf/bridge) are hardcoded",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q12",
+            "question": "If a field has certainty=INFERRED and --strict mode is on, what happens?",
+            "expected": "The field is suppressed from output entirely (strict mode drops all INFERRED fields)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q13",
+            "question": "What happens when two sources define the same field with different types?",
+            "expected": "Type conflict warning is generated AND both sources are tracked in provenance",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q14",
+            "question": "How does the keyword index route a query about 'retention' to the right entity?",
+            "expected": "Semantic regex extracts 'retention' from field values, keyword index maps to sections containing the term",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q15",
+            "question": "What is the entity-level salience scoring formula?",
+            "expected": "source_count * 1.0 + cross_refs * 2.0 + warning_count * 1.5 (golden source gets 1.5x multiplier, minimum score is 1.0)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q16",
+            "question": "How does the serializer handle Unicode operators in ASCII mode?",
+            "expected": "Unicode operators are replaced with ASCII fallbacks: section-ctx to $CTX, plus-minus to ##, arrow to ->, negation to exclamation-mark, star to triple-asterisk, warning to WARN-colon, equivalence to ===, conflict to CONFLICT-colon",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q17",
+            "question": "What heuristic determines whether a YAML structure is classified as an entity?",
+            "expected": "Presence of keys like identifier, golden_source, match_rules, pii, retention, has_many, belongs_to, id, uuid, primary_key",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q18",
+            "question": "What database does ctxpack use for storage?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q19",
+            "question": "What is the REST API endpoint for packing?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q20",
+            "question": "How does ctxpack handle real-time streaming from Kafka?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          }
+        ]
+      }
+    }
+  },
+  "config": {
+    "golden_set_path": "ctxpack/benchmarks/ctxpack_eval",
+    "baselines": [
+      "raw",
+      "naive",
+      "llm_summary",
+      "hand"
+    ],
+    "run_fidelity": true,
+    "run_conflicts": true,
+    "model": "gpt-4o",
+    "provider": "openai"
+  },
+  "conflict_detection": {
+    "planted": 0,
+    "found": 0,
+    "precision": 0.0,
+    "recall": 0.0
+  }
+}

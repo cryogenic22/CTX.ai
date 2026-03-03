@@ -1,0 +1,52 @@
+entity: PARSER
+description: Recursive descent parser for .ctx format files with three conformance levels
+aliases:
+  - ctx-parser
+
+identifier:
+  name: conformance_level
+  type: int
+  immutable: true
+
+conformance_levels:
+  - level: 1
+    description: "Header only — magic, version, layer, status fields, metadata"
+  - level: 2
+    description: "Level 1 plus body structure — sections, KV pairs, lists, quoted blocks"
+  - level: 3
+    description: "Level 2 plus operator extraction and cross-reference parsing"
+
+error_codes:
+  - code: E001
+    description: "Missing required header field (DOMAIN, COMPRESSED, SOURCE_TOKENS)"
+  - code: E002
+    description: "Invalid magic — not §CTX or $CTX"
+  - code: E003
+    description: "Invalid version format — not M.m (e.g. 1.0)"
+  - code: E004
+    description: "Invalid layer value"
+  - code: E005
+    description: "Missing blank line between header and body"
+  - code: E010
+    description: "L3 file missing required section (ENTITIES, PATTERNS, CONSTRAINTS, or WARNINGS)"
+
+warning_codes:
+  - code: W001
+    description: "Unknown header field"
+  - code: W002
+    description: "Section name uses underscore instead of hyphen"
+  - code: W003
+    description: "Header fields not in canonical order (required then recommended then custom)"
+  - code: W004
+    description: "Unclosed brackets detected"
+  - code: W005
+    description: "Unclosed backtick block detected"
+
+design:
+  approach: "Line-oriented recursive descent"
+  sections_own_content: "Sections own all content until next section at same or lesser indent depth"
+  input_format: ".ctx text files only (not arbitrary Python or YAML)"
+
+depends_on:
+  entity: IR-PIPELINE
+  cardinality: 1:1

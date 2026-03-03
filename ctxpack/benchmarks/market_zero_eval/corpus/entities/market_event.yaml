@@ -1,0 +1,51 @@
+entity: MARKET-EVENT
+description: Discrete market signal affecting drug launch strategy, sourced from FDA, SEC filings, and PubMed
+aliases:
+  - event
+  - signal
+
+identifier:
+  name: event_id
+  type: auto_increment
+  immutable: true
+
+fields:
+  - name: event_type
+    type: enum
+    description: "One of: FDA_APPROVAL, SHORTAGE_START, SHORTAGE_RESOLVED, PATENT_LAWSUIT, PATENT_EXPIRY, GUIDANCE_ISSUED"
+    required: true
+  - name: event_date
+    type: date
+    description: "Date the event occurred or was reported"
+  - name: description
+    type: string
+    description: "Free-text description of the event"
+  - name: impact_score
+    type: float
+    description: "Directional impact score from -1.0 (negative) to +1.0 (positive)"
+  - name: source_api
+    type: string
+    description: "Which connector produced this event"
+
+provenance:
+  sources:
+    - "FDA Shortages API (SHORTAGE_START, SHORTAGE_RESOLVED)"
+    - "SEC EDGAR filings (PATENT_LAWSUIT)"
+    - "FDA Orange Book (FDA_APPROVAL, PATENT_EXPIRY)"
+    - "FDA guidance documents (GUIDANCE_ISSUED)"
+
+risk_factor_triggers:
+  - factor: "SHORTAGE_LOOPHOLE_CLOSED"
+    condition: "SHORTAGE_RESOLVED event within 90 days of launch date"
+    weight: 2.5
+  - factor: "REGULATORY_HEADWIND"
+    condition: "GUIDANCE_ISSUED within 180 days for therapeutic area"
+    weight: 1.5
+  - factor: "LITIGATION_OVERHANG"
+    condition: "Active PATENT_LAWSUIT within 365 days"
+    weight: 1.0
+
+depends_on:
+  entity: DRUG
+  relationship: AFFECTS
+  cardinality: N:1

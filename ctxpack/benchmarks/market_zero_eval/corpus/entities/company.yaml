@@ -1,0 +1,61 @@
+entity: COMPANY
+description: Pharmaceutical company tracked via SEC EDGAR filings and ClinicalTrials.gov sponsor data
+aliases:
+  - pharma-company
+  - sponsor
+
+identifier:
+  name: cik
+  type: string
+  immutable: true
+  description: "SEC Central Index Key for exact lookup"
+
+fields:
+  - name: name
+    type: string
+    description: "Canonical company name (e.g. Novo Nordisk)"
+    required: true
+  - name: ticker
+    type: string
+    description: "Stock ticker symbol for exact lookup"
+  - name: cik
+    type: string
+    description: "SEC Central Index Key"
+  - name: region
+    type: string
+    description: "Headquarters region"
+  - name: market_cap_tier
+    type: enum
+    description: "Large-cap, mid-cap, small-cap classification"
+  - name: strategy_embedding
+    type: vector_1536
+    description: "Embedding from 10-K filing text for semantic similarity"
+
+provenance:
+  source_api: "SEC EDGAR"
+  source_url: "https://data.sec.gov/"
+  tracking: "retrieved_at timestamp, etl_run_id for audit trail"
+
+target_companies:
+  - name: "Novo Nordisk"
+    cik: "0000353278"
+  - name: "Eli Lilly"
+    cik: "0000059478"
+  - name: "Sanofi"
+    cik: "0001121404"
+  - name: "AstraZeneca"
+    cik: "0000901832"
+  - name: "Pfizer"
+    cik: "0000078003"
+  - name: "Novartis"
+    cik: "0001114448"
+
+has_many:
+  entity: DRUG
+  relationship: OWNS
+  cardinality: 1:N
+
+has_many_trials:
+  entity: CLINICAL-TRIAL
+  relationship: SPONSORS
+  cardinality: 1:N

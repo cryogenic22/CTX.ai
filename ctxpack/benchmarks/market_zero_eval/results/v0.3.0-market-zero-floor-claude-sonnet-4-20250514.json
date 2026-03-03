@@ -1,0 +1,625 @@
+{
+  "model": "claude-sonnet-4-20250514",
+  "condition": "with-floor",
+  "ctx_tokens": 289,
+  "raw_tokens": 2740,
+  "compression_ratio": 9.5,
+  "ctxpack_l2": {
+    "total": 20,
+    "correct": 20,
+    "score": 1.0,
+    "llm_judge_correct": 20,
+    "llm_judge_score": 1.0,
+    "by_difficulty": {
+      "easy": {
+        "total": 6,
+        "correct": 6,
+        "score": 1.0
+      },
+      "medium": {
+        "total": 7,
+        "correct": 7,
+        "score": 1.0
+      },
+      "hard": {
+        "total": 7,
+        "correct": 7,
+        "score": 1.0
+      }
+    },
+    "details": [
+      {
+        "id": "Q01",
+        "question": "What is the weight of the Active Patent Block risk factor?",
+        "expected": "3.0",
+        "answer": "According to the context, the Active Patent Block risk factor (R1) has a weight of **3.0**.\n\nThis is the highest weighted risk factor in the system, triggered when `drugs.patent_expiry_date > strategy.launch_date`, with data sourced from the FDA Orange Book.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q02",
+        "question": "When is the Active Patent Block risk factor triggered?",
+        "expected": "drugs.patent_expiry_date > strategy.launch_date",
+        "answer": "According to the context, the Active Patent Block risk factor (R1) is triggered when:\n\n**drugs.patent_expiry_date > strategy.launch_date**\n\nThis means the risk factor is triggered when a drug's patent expiry date is after the planned launch date, indicating that the patent will still be active and blocking the launch strategy. This factor has a weight of 3.0 and sources its data from the FDA Orange Book.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q03",
+        "question": "Which data source provides the patent_expiry_date field used by the Active Patent Block rule?",
+        "expected": "FDA Orange Book",
+        "answer": "Based on the context, the patent_expiry_date field used by the Active Patent Block rule comes from the **FDA Orange Book**.\n\nThis is specified in the ENTITY-DRUG section where patent_expiry_date is described as \"Latest patent expiry date, used by risk engine for ACTIVE PATENT BLOCK factor\" and the provenance shows \"source-api(FDA-Orange-Book-/-openFDA)\".\n\nAdditionally, in the RISK-FACTORS section, the Active Patent Block rule (R1) explicitly lists its source as \"FDA-Orange-Book\".",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q04",
+        "question": "What is the full integration pipeline order?",
+        "expected": "Normalize -> Resolve -> Embed -> Store -> Cross-Link",
+        "answer": "Based on the context, the full integration pipeline follows a 5-step order:\n\n1. **Normalize** - Map source-specific field names to canonical schema (config-driven via domain pack field mappings)\n\n2. **Resolve** - 6-strategy cascade including exact ID lookup, fuzzy name matching (threshold 0.85), embedding similarity (threshold 0.82), LLM resolution, auto-create (for trusted sources), and human-in-the-loop (unresolved queue for admin review)\n\n3. **Embed** - Batched OpenAI text-embedding-3-small calls for text-bearing records\n\n4. **Store** - Upsert to correct table with SHA-256 content hash dedup, preserving provenance on insert/update\n\n5. **Cross-Link** - Apply declarative link rules from domain pack, including ontology-mediated links via MeS",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q05",
+        "question": "Does the risk scoring engine use any machine learning or LLM?",
+        "expected": "No \u2014 purely deterministic rule-based evaluation, no ML or LLM in score computation",
+        "answer": "No, the risk scoring engine does not use any machine learning or LLM. According to the context, the risk engine is \"purely deterministic rule-based\" and \"No ML or LLM used in scoring.\" It's explicitly stated as a design principle that there is \"No-ML-or-LLM(purely-rule-based-evaluation)\" and that \"risk-engine-use-machine-learning.-8-risk-factors-use-deterministic-rule-evaluation.\"\n\nThe risk score is calculated as a \"Sum-of-triggered-factor-weights,-capped-at-10.0\" using 8 predefined risk factors with specific weights and conditions. LLMs are only used to generate natural language critiques when the risk score exceeds 7.0, but not for the actual scoring computation itself.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q06",
+        "question": "What is the risk score severity threshold for Yellow?",
+        "expected": "4.0 to 7.0",
+        "answer": "According to the context, the risk score severity threshold for Yellow is 4.0 to 7.0.\n\nThe system uses three severity levels:\n- Green: 0.0 to 4.0\n- Yellow: 4.0 to 7.0  \n- Red: 7.0 to 10.0",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q07",
+        "question": "What is the auto-create confidence threshold for entity resolution?",
+        "expected": "0.95",
+        "answer": "Based on the context, the auto-create confidence threshold for entity resolution is **0.95 or above**.\n\nThis threshold applies only to trusted sources, which include ClinicalTrials.gov, FDA Orange Book, PubMed, and FDA Shortages. When the confidence level is 0.95 or higher from these trusted sources, entities are automatically created in the system.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q08",
+        "question": "What embedding model and dimensionality does Market-Zero use?",
+        "expected": "OpenAI text-embedding-3-small with 1536 dimensions",
+        "answer": "Market-Zero uses OpenAI text-embedding-3-small with 1536 dimensions for embeddings.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q09",
+        "question": "Does Market-Zero process real-time streaming data?",
+        "expected": "No \u2014 it processes batch ETL from public APIs on scheduled intervals",
+        "answer": "No, Market-Zero does not process real-time streaming data. According to the system boundaries section, \"Market-Zero is not a real-time streaming system. It processes batch ETL from public APIs at scheduled intervals.\"",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q10",
+        "question": "Does Market-Zero perform drug discovery or molecular simulation?",
+        "expected": "No \u2014 it evaluates drug launch strategies as a competitive intelligence tool for strategy analysts",
+        "answer": "No, Market-Zero does not perform drug discovery or molecular simulation. According to the system boundaries, \"Market-Zero does not perform drug discovery or molecular simulation. It evaluates launch strategies.\" Market-Zero is specifically designed as a competitive intelligence tool for strategy analysts that evaluates drug launch strategies against live market signals.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q11",
+        "question": "Is Market-Zero open source?",
+        "expected": "No \u2014 Market-Zero is proprietary software (not open source)",
+        "answer": "No, Market-Zero is not open source. According to the licensing section in the context, \"Market-Zero proprietary software (not open source).\"",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q12",
+        "question": "If a drug has both an active patent block AND a competitor in Phase 3, what is the combined minimum risk score from those two factors alone?",
+        "expected": "5.0 (Active Patent Block 3.0 + Competitor Phase 3 Active 2.0)",
+        "answer": "Based on the risk engine rules in the context, the combined minimum risk score from those two factors would be **5.0**.\n\nThe two risk factors are:\n- **Active Patent Block (R1)**: weight 3.0\n- **Competitor Phase 3 Active (R3)**: weight 2.0\n\nSince the risk score is calculated as \"Sum of triggered factor weights,\" these two factors together would contribute 3.0 + 2.0 = 5.0 to the total risk score.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q13",
+        "question": "How are PubMed articles automatically linked to drugs without manual wiring?",
+        "expected": "Ontology-mediated linking via MeSH descriptor IDs - articles with MeSH terms matching a drug therapeutic area are automatically linked with EVIDENCE_FOR relationship",
+        "answer": "Based on the context, PubMed articles are automatically linked to drugs through **ontology-mediated linking via MeSH term matching**:\n\n1. **MeSH Terms as the Bridge**: PubMed articles have MeSH (Medical Subject Headings) descriptor terms assigned by NLM indexers, stored in the `mesh_terms` and `mesh_descriptor_ids` fields.\n\n2. **Automatic Matching Process**: Articles are automatically linked to drugs when they share the same MeSH descriptor IDs. For example, if a PubMed article has MeSH descriptor D009765 (Obesity), it automatically links to all drugs that are also tagged with the Obesity therapeutic area.\n\n3. **Link Type**: These connections are established as `EVIDENCE_FOR` relationships between literature and drugs.\n\n4. **Cross-Linking Implementation**: The system uses declarative link rules in the domain pack",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q14",
+        "question": "What happens when entity resolution fuzzy matching returns a confidence score of 0.90?",
+        "expected": "The match goes to the unresolved_entities table for admin review (between 0.85 and 0.95 threshold)",
+        "answer": "Based on the context, when entity resolution fuzzy matching returns a confidence score of 0.90, the entity goes to the **review queue** for admin review.\n\nAccording to the entity resolution thresholds:\n- Auto-create confidence: 0.95 and above (only for trusted sources)\n- **Review queue: 0.85-0.95 confidence** (goes to unresolved_entities for admin review)\n- Reject: below 0.85 confidence\n\nSince 0.90 falls within the 0.85-0.95 range, it would be placed in the unresolved_entities table for human-in-the-loop admin review rather than being automatically resolved or rejected.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q15",
+        "question": "What is the condition for the Failed Precedent risk factor and what data sources does it combine?",
+        "expected": "Terminated trial for same mechanism plus adverse events in PubMed. Combines ClinicalTrials.gov and PubMed data.",
+        "answer": "Based on the context, the Failed Precedent risk factor (R8) has the following details:\n\n**Condition:** Terminated trial for same mechanism + adverse events in PubMed\n\n**Data Sources:** ClinicalTrials.gov + PubMed\n\n**Weight:** 1.0\n\nThis risk factor combines data from two sources to identify when there's precedent for failure - it looks for terminated clinical trials (from ClinicalTrials.gov) that involve the same mechanism of action as the drug being evaluated, combined with adverse event evidence found in PubMed literature.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q16",
+        "question": "How many external data source connectors does Market-Zero have?",
+        "expected": "11 connectors (MeSH, FDA Orange Book, ClinicalTrials.gov, FDA Shortages, SEC EDGAR, PubMed, openFDA FAERS, openFDA Labels, PubMed Central, User Document, User URL)",
+        "answer": "Based on the context, Market-Zero has **11 external data source connectors**.\n\nThe context specifically states in the CONNECTOR-CONTRACT section: \"source-count(11)\" and lists the registered sources as:\n\n1. MeSH ontology (monthly)\n2. FDA Orange Book (weekly)\n3. ClinicalTrials.gov (daily)\n4. FDA Shortages (daily)\n5. SEC EDGAR (quarterly, RSS-triggered)\n6. PubMed (weekly)\n7. openFDA FAERS (weekly)\n8. openFDA Labels (weekly)\n9. PubMed Central (weekly)\n10. User Document Upload (on-demand)\n11. User URL Ingestion (on-demand)",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q17",
+        "question": "What are the four agent personas in the multi-agent team evaluation?",
+        "expected": "Clinical Researcher, Market Analyst, Regulatory Expert, Data Scientist",
+        "answer": "Based on the context, the four agent personas in the multi-agent team evaluation are:\n\n1. **Clinical Researcher**\n2. **Market Analyst** \n3. **Regulatory Expert**\n4. **Data Scientist**\n\nEach agent persona has its own system prompt and tool access, and they are configurable through the domain pack.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q18",
+        "question": "What blockchain technology does Market-Zero use for provenance tracking?",
+        "expected": "NOT_IN_CONTEXT",
+        "answer": "Not found in context.\n\nThe context explicitly states under SYSTEM-BOUNDARIES that \"There-blockchain-distributed-ledger-architecture\" (indicating there is no blockchain or distributed ledger architecture). Market-Zero uses traditional database provenance tracking with PostgreSQL, where each database row carries source_api, source_url, and retrieved_at fields for tracking data lineage.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q19",
+        "question": "What is the FDA approval date for Nexovimab?",
+        "expected": "NOT_IN_CONTEXT",
+        "answer": "Not found in context.\n\nThe provided context contains information about the pharmaceutical intelligence system's data structure and entities, including how FDA approval dates are tracked in the ENTITY-DRUG schema (stored in the `approval_date` field from the FDA Orange Book), but it does not contain specific drug data or approval dates for any particular drugs, including Nexovimab.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q20",
+        "question": "What Kubernetes deployment configuration does Market-Zero use for auto-scaling?",
+        "expected": "NOT_IN_CONTEXT",
+        "answer": "Not found in context.\n\nThe provided context describes Market-Zero's technology stack and deployment configuration, but it only mentions \"Docker Compose\" for deployment. There is no information about Kubernetes deployment configuration or auto-scaling setup in the context.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      }
+    ]
+  },
+  "raw_stuffing": {
+    "total": 20,
+    "correct": 20,
+    "score": 1.0,
+    "llm_judge_correct": 20,
+    "llm_judge_score": 1.0,
+    "by_difficulty": {
+      "easy": {
+        "total": 6,
+        "correct": 6,
+        "score": 1.0
+      },
+      "medium": {
+        "total": 7,
+        "correct": 7,
+        "score": 1.0
+      },
+      "hard": {
+        "total": 7,
+        "correct": 7,
+        "score": 1.0
+      }
+    },
+    "details": [
+      {
+        "id": "Q01",
+        "question": "What is the weight of the Active Patent Block risk factor?",
+        "expected": "3.0",
+        "answer": "The weight of the Active Patent Block risk factor is 3.0.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q02",
+        "question": "When is the Active Patent Block risk factor triggered?",
+        "expected": "drugs.patent_expiry_date > strategy.launch_date",
+        "answer": "The Active Patent Block risk factor is triggered when `drugs.patent_expiry_date > strategy.launch_date`.\n\nThis means the risk factor activates when a drug's patent expiry date is after the planned launch date in the strategy being evaluated. It carries a weight of 3.0 (the highest among all risk factors) and sources its data from the FDA Orange Book.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q03",
+        "question": "Which data source provides the patent_expiry_date field used by the Active Patent Block rule?",
+        "expected": "FDA Orange Book",
+        "answer": "Based on the context, the patent_expiry_date field used by the Active Patent Block rule is provided by the **FDA Orange Book**.\n\nThis is confirmed in multiple places:\n1. In the drug entity definition, the patent_expiry_date field shows \"provenance: source_api: 'FDA Orange Book / openFDA'\"\n2. In the risk engine definition, the Active Patent Block factor (R1) explicitly lists \"source: 'FDA Orange Book'\"\n3. The drug entity also mentions \"Latest patent expiry date, used by risk engine for ACTIVE_PATENT_BLOCK factor\"",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q04",
+        "question": "What is the full integration pipeline order?",
+        "expected": "Normalize -> Resolve -> Embed -> Store -> Cross-Link",
+        "answer": "Based on the context, the full integration pipeline order is a 5-step process:\n\n1. **Normalize**: Map source-specific field names to canonical schema (config-driven from domain pack field mappings)\n\n2. **Resolve**: 6-strategy cascade for entity resolution:\n   - Exact ID lookup\n   - Fuzzy name matching (threshold 0.85)\n   - Embedding similarity (threshold 0.82)\n   - LLM resolution\n   - Auto-create (for trusted sources)\n   - Human-in-the-loop (unresolved queue for admin review)\n\n3. **Embed**: Batched OpenAI text-embedding-3-small calls for text-bearing records\n\n4. **Store**: Upsert to correct table with SHA-256 content hash for dedup. Provenance preserved on every insert/update.\n\n5. **Cross-Link",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q05",
+        "question": "Does the risk scoring engine use any machine learning or LLM?",
+        "expected": "No \u2014 purely deterministic rule-based evaluation, no ML or LLM in score computation",
+        "answer": "No, the risk scoring engine does not use any machine learning or LLM. According to the constraints document, \"The risk scoring engine is purely deterministic and rule-based. No ML or LLM is used in score computation.\" \n\nThe risk engine design principles explicitly state \"No ML or LLM: purely rule-based evaluation\" and that it uses \"deterministic rule-based risk scoring engine.\" The score is calculated as a \"sum of triggered factor weights, capped at 10.0\" using 8 predefined risk factors with specific conditions and weights.\n\nLLMs are only used AFTER scoring - specifically, \"LLM critique is generated ONLY when score exceeds 7.0, and is grounded in source data only\" - but not in the actual score computation itself.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q06",
+        "question": "What is the risk score severity threshold for Yellow?",
+        "expected": "4.0 to 7.0",
+        "answer": "According to the risk engine documentation, the severity threshold for Yellow is **4.0 to 7.0**.\n\nThe complete severity thresholds are:\n- Green: 0.0 to 4.0\n- Yellow: 4.0 to 7.0  \n- Red: 7.0 to 10.0",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q07",
+        "question": "What is the auto-create confidence threshold for entity resolution?",
+        "expected": "0.95",
+        "answer": "The auto-create confidence threshold for entity resolution is **0.95 or above**.\n\nThis threshold applies only to trusted sources: ClinicalTrials.gov, FDA Orange Book, PubMed, and FDA Shortages. Entities with confidence scores between 0.85 to 0.95 go to the review queue for admin review, while those below 0.85 are rejected.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q08",
+        "question": "What embedding model and dimensionality does Market-Zero use?",
+        "expected": "OpenAI text-embedding-3-small with 1536 dimensions",
+        "answer": "Market-Zero uses OpenAI text-embedding-3-small with 1536 dimensions for all embeddings, including drug molecule embeddings, clinical trial protocol embeddings, company strategy embeddings, literature abstract embeddings, and knowledge chunk embeddings for RAG retrieval.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q09",
+        "question": "Does Market-Zero process real-time streaming data?",
+        "expected": "No \u2014 it processes batch ETL from public APIs on scheduled intervals",
+        "answer": "No, Market-Zero does NOT process real-time streaming data. According to the constraints documentation, \"Market-Zero is NOT a real-time streaming system. It processes batch ETL from public APIs on scheduled intervals.\"\n\nThe system operates on scheduled batch processing from 11 public APIs, with different refresh frequencies ranging from daily (ClinicalTrials.gov, FDA Shortages) to quarterly (SEC EDGAR) to monthly (MeSH ontology).",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q10",
+        "question": "Does Market-Zero perform drug discovery or molecular simulation?",
+        "expected": "No \u2014 it evaluates drug launch strategies as a competitive intelligence tool for strategy analysts",
+        "answer": "No. According to the system boundaries in the constraints documentation, \"Market-Zero does NOT perform drug discovery or molecular simulation. It evaluates launch strategies.\" Market-Zero is specifically designed as a war-gaming engine for pharmaceutical strategy that evaluates drug launch strategies against live market signals, not for discovering new drugs or simulating molecular interactions.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q11",
+        "question": "Is Market-Zero open source?",
+        "expected": "No \u2014 Market-Zero is proprietary software (not open source)",
+        "answer": "No, Market-Zero is not open source. According to the constraints documentation, Market-Zero is proprietary software.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q12",
+        "question": "If a drug has both an active patent block AND a competitor in Phase 3, what is the combined minimum risk score from those two factors alone?",
+        "expected": "5.0 (Active Patent Block 3.0 + Competitor Phase 3 Active 2.0)",
+        "answer": "Based on the risk engine configuration, if a drug has both an active patent block AND a competitor in Phase 3, the combined minimum risk score from those two factors would be **5.0**.\n\nThis comes from:\n- **Active Patent Block (R1)**: 3.0 points\n- **Competitor Phase 3 Active (R3)**: 2.0 points\n\nTotal: 3.0 + 2.0 = 5.0\n\nThis score would place the drug in the **yellow** severity threshold (4.0 to 7.0 range).",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q13",
+        "question": "How are PubMed articles automatically linked to drugs without manual wiring?",
+        "expected": "Ontology-mediated linking via MeSH descriptor IDs - articles with MeSH terms matching a drug therapeutic area are automatically linked with EVIDENCE_FOR relationship",
+        "answer": "Based on the context, PubMed articles are automatically linked to drugs through **ontology-mediated linking via MeSH terms**:\n\n1. **MeSH Term Matching**: PubMed articles contain `mesh_descriptor_ids` (e.g., D009765 for Obesity) assigned by NLM indexers, and drugs are also linked to therapeutic areas via `mesh_id` fields.\n\n2. **Automatic Cross-Linking**: The system automatically creates `EVIDENCE_FOR` relationships between literature and drugs when they share the same MeSH descriptor IDs. As stated in the literature entity: \"if article has MeSH D009765 (Obesity), it links to all Obesity drugs.\"\n\n3. **Pipeline Integration**: This happens during the Cross-Link step of the 5-step integration pipeline, using declarative link rules from the domain pack with confidence 1.0.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q14",
+        "question": "What happens when entity resolution fuzzy matching returns a confidence score of 0.90?",
+        "expected": "The match goes to the unresolved_entities table for admin review (between 0.85 and 0.95 threshold)",
+        "answer": "Based on the context, when entity resolution fuzzy matching returns a confidence score of 0.90, the entity goes to the **review queue** for admin review.\n\nAccording to the constraints document, the entity resolution thresholds are:\n- Auto-create confidence: 0.95 or above\n- **Review queue: 0.85 to 0.95 confidence** (goes to unresolved_entities table for admin review)\n- Reject: below 0.85 confidence\n\nSince 0.90 falls within the 0.85 to 0.95 range, it gets placed in the `unresolved_entities` table where an administrator can manually review and decide whether to accept or reject the match.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q15",
+        "question": "What is the condition for the Failed Precedent risk factor and what data sources does it combine?",
+        "expected": "Terminated trial for same mechanism plus adverse events in PubMed. Combines ClinicalTrials.gov and PubMed data.",
+        "answer": "Based on the risk engine documentation, the Failed Precedent risk factor (R8) has the following condition and data sources:\n\n**Condition:** \"Terminated trial for same mechanism + adverse events in PubMed\"\n\n**Data Sources:** ClinicalTrials.gov + PubMed\n\n**Weight:** 1.0\n\nThis risk factor combines data from two sources to identify when there's precedent for failure - it looks for terminated clinical trials (from ClinicalTrials.gov) that involve the same mechanism of action as the drug being evaluated, combined with evidence of adverse events from published literature (PubMed).",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q16",
+        "question": "How many external data source connectors does Market-Zero have?",
+        "expected": "11 connectors (MeSH, FDA Orange Book, ClinicalTrials.gov, FDA Shortages, SEC EDGAR, PubMed, openFDA FAERS, openFDA Labels, PubMed Central, User Document, User URL)",
+        "answer": "Based on the context, Market-Zero has **11 external data source connectors**.\n\nThe architecture document states that the Connector Layer has \"11 source adapters\" and the pipeline rules document lists all 11 registered sources:\n\n1. MeSH ontology\n2. FDA Orange Book\n3. ClinicalTrials.gov\n4. FDA Shortages\n5. SEC EDGAR\n6. PubMed\n7. openFDA FAERS\n8. openFDA Labels\n9. PubMed Central\n10. User Document Upload\n11. User URL Ingestion\n\nEach connector implements the BaseConnector interface and returns RawRecord objects with complete provenance tracking.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q17",
+        "question": "What are the four agent personas in the multi-agent team evaluation?",
+        "expected": "Clinical Researcher, Market Analyst, Regulatory Expert, Data Scientist",
+        "answer": "Based on the provided context, the four agent personas in the multi-agent team evaluation are:\n\n1. **Clinical Researcher**\n2. **Market Analyst** \n3. **Regulatory Expert**\n4. **Data Scientist**\n\nAccording to the architecture documentation, these personas are configurable in the domain pack, and each has its own system prompt and tool access within the LangGraph agent orchestration system.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q18",
+        "question": "What blockchain technology does Market-Zero use for provenance tracking?",
+        "expected": "NOT_IN_CONTEXT",
+        "answer": "Not found in context.\n\nThe documentation explicitly states in the constraints section that \"There is NO blockchain or distributed ledger in the architecture.\" Market-Zero uses traditional database provenance tracking with source_api, source_url, and retrieved_at fields on every database row.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q19",
+        "question": "What is the FDA approval date for Nexovimab?",
+        "expected": "NOT_IN_CONTEXT",
+        "answer": "Not found in context.\n\nThe provided context contains the schema and architecture for the Market-Zero pharmaceutical intelligence system, but does not include any specific drug data or FDA approval dates for individual drugs like Nexovimab.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q20",
+        "question": "What Kubernetes deployment configuration does Market-Zero use for auto-scaling?",
+        "expected": "NOT_IN_CONTEXT",
+        "answer": "Not found in context.\n\nThe provided documentation only mentions that Market-Zero uses \"Docker Compose\" for deployment, but does not contain any information about Kubernetes deployment configurations or auto-scaling setup.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      }
+    ]
+  },
+  "naive_truncation": {
+    "total": 20,
+    "correct": 10,
+    "score": 0.5,
+    "llm_judge_correct": 13,
+    "llm_judge_score": 0.65,
+    "by_difficulty": {
+      "easy": {
+        "total": 6,
+        "correct": 2,
+        "score": 0.333
+      },
+      "medium": {
+        "total": 7,
+        "correct": 4,
+        "score": 0.571
+      },
+      "hard": {
+        "total": 7,
+        "correct": 4,
+        "score": 0.571
+      }
+    },
+    "details": [
+      {
+        "id": "Q01",
+        "question": "What is the weight of the Active Patent Block risk factor?",
+        "expected": "3.0",
+        "answer": "Not found in context.\n\nThe provided context describes the Market-Zero architecture and its five-layer data structure, but does not contain specific information about risk factor weights or the \"Active Patent Block\" risk factor weight.",
+        "correct": false,
+        "llm_judge_correct": false,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q02",
+        "question": "When is the Active Patent Block risk factor triggered?",
+        "expected": "drugs.patent_expiry_date > strategy.launch_date",
+        "answer": "Not found in context.\n\nThe provided context describes the Market-Zero architecture and data pipeline but does not contain information about when the Active Patent Block risk factor is triggered.",
+        "correct": false,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q03",
+        "question": "Which data source provides the patent_expiry_date field used by the Active Patent Block rule?",
+        "expected": "FDA Orange Book",
+        "answer": "Not found in context.\n\nThe provided context describes the overall architecture and mentions 11 source adapters including FDA Orange Book, but it doesn't specify which data source provides the patent_expiry_date field or details about the Active Patent Block rule.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q04",
+        "question": "What is the full integration pipeline order?",
+        "expected": "Normalize -> Resolve -> Embed -> Store -> Cross-Link",
+        "answer": "Based on the context, the full integration pipeline order is a 5-step process:\n\n1. **Normalize** - Map source-specific field names to unified schema\n2. **Resolve** - Process and standardize data\n3. **Embed** - Generate vector embeddings\n4. **Store** - Save to PostgreSQL database\n5. **Cross-Link** - Create relationships between entities\n\nThe context notes this is a \"source-agnostic\" pipeline that applies the same steps whether processing FDA data, user PDFs, or web URLs.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q05",
+        "question": "Does the risk scoring engine use any machine learning or LLM?",
+        "expected": "No \u2014 purely deterministic rule-based evaluation, no ML or LLM in score computation",
+        "answer": "Not found in context.\n\nThe context describes the risk scoring engine as \"deterministic\" and mentions it's part of the Query Layer along with multi-agent orchestration and other components, but it doesn't specify whether the risk scoring engine itself uses machine learning or LLMs.",
+        "correct": false,
+        "llm_judge_correct": false,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q06",
+        "question": "What is the risk score severity threshold for Yellow?",
+        "expected": "4.0 to 7.0",
+        "answer": "Not found in context.\n\nThe provided context describes the Market-Zero architecture and its risk scoring engine, but does not specify the severity thresholds for different risk score levels, including the Yellow threshold.",
+        "correct": false,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q07",
+        "question": "What is the auto-create confidence threshold for entity resolution?",
+        "expected": "0.95",
+        "answer": "Not found in context.\n\nThe provided context describes the Market-Zero architecture and its five-layer data architecture, including details about the Integration Layer's 5-step pipeline (Normalize, Resolve, Embed, Store, Cross-Link), but it does not specify any auto-create confidence threshold for entity resolution.",
+        "correct": false,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q08",
+        "question": "What embedding model and dimensionality does Market-Zero use?",
+        "expected": "OpenAI text-embedding-3-small with 1536 dimensions",
+        "answer": "Market-Zero uses OpenAI text-embedding-3-small with 1536 dimensions for vector similarity in its hybrid retrieval system.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q09",
+        "question": "Does Market-Zero process real-time streaming data?",
+        "expected": "No \u2014 it processes batch ETL from public APIs on scheduled intervals",
+        "answer": "Not found in context.\n\nThe provided context describes Market-Zero's architecture and data processing pipeline, but does not mention real-time streaming data capabilities. The documentation focuses on the five-layer architecture, data sources, and processing steps, but doesn't specify whether the system handles real-time streaming or batch processing.",
+        "correct": false,
+        "llm_judge_correct": false,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q10",
+        "question": "Does Market-Zero perform drug discovery or molecular simulation?",
+        "expected": "No \u2014 it evaluates drug launch strategies as a competitive intelligence tool for strategy analysts",
+        "answer": "Not found in context.\n\nThe provided context describes Market-Zero as a war-gaming engine for pharmaceutical strategy that evaluates drug launch strategies against market signals, but it does not mention drug discovery or molecular simulation capabilities.",
+        "correct": true,
+        "llm_judge_correct": false,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q11",
+        "question": "Is Market-Zero open source?",
+        "expected": "No \u2014 Market-Zero is proprietary software (not open source)",
+        "answer": "Not found in context.\n\nThe provided documentation describes Market-Zero's architecture, data layers, and functionality as a pharmaceutical war-gaming engine, but does not contain any information about its licensing model or whether it is open source.",
+        "correct": true,
+        "llm_judge_correct": false,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q12",
+        "question": "If a drug has both an active patent block AND a competitor in Phase 3, what is the combined minimum risk score from those two factors alone?",
+        "expected": "5.0 (Active Patent Block 3.0 + Competitor Phase 3 Active 2.0)",
+        "answer": "Not found in context.\n\nThe provided context describes the Market-Zero architecture and data pipeline but does not include specific information about risk scoring calculations, patent block risk scores, or Phase 3 competitor risk scores.",
+        "correct": true,
+        "llm_judge_correct": false,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q13",
+        "question": "How are PubMed articles automatically linked to drugs without manual wiring?",
+        "expected": "Ontology-mediated linking via MeSH descriptor IDs - articles with MeSH terms matching a drug therapeutic area are automatically linked with EVIDENCE_FOR relationship",
+        "answer": "Not found in context.\n\nThe provided context describes the overall architecture of Market-Zero including the five-layer data architecture and mentions PubMed as one of the 11 source adapters, but it does not explain the specific mechanism for how PubMed articles are automatically linked to drugs without manual wiring.",
+        "correct": false,
+        "llm_judge_correct": false,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q14",
+        "question": "What happens when entity resolution fuzzy matching returns a confidence score of 0.90?",
+        "expected": "The match goes to the unresolved_entities table for admin review (between 0.85 and 0.95 threshold)",
+        "answer": "Not found in context.\n\nThe provided context describes the Market-Zero architecture and its five-layer data architecture, including an Integration Layer with a 5-step pipeline that includes \"Resolve\" as one of the steps. However, the context does not provide specific details about what happens when entity resolution fuzzy matching returns a confidence score of 0.90 or any other confidence threshold behaviors.",
+        "correct": false,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q15",
+        "question": "What is the condition for the Failed Precedent risk factor and what data sources does it combine?",
+        "expected": "Terminated trial for same mechanism plus adverse events in PubMed. Combines ClinicalTrials.gov and PubMed data.",
+        "answer": "Not found in context.\n\nThe provided context describes the Market-Zero architecture and its five-layer data system, but it does not contain information about the \"Failed Precedent risk factor,\" its conditions, or what data sources it combines.",
+        "correct": false,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q16",
+        "question": "How many external data source connectors does Market-Zero have?",
+        "expected": "11 connectors (MeSH, FDA Orange Book, ClinicalTrials.gov, FDA Shortages, SEC EDGAR, PubMed, openFDA FAERS, openFDA Labels, PubMed Central, User Document, User URL)",
+        "answer": "Market-Zero has 11 external data source connectors. These include FDA Orange Book, ClinicalTrials.gov, PubMed, SEC EDGAR, MeSH, FDA Shortages, openFDA FAERS, openFDA Labels, PubMed Central, User Document, and User URL.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q17",
+        "question": "What are the four agent personas in the multi-agent team evaluation?",
+        "expected": "Clinical Researcher, Market Analyst, Regulatory Expert, Data Scientist",
+        "answer": "Not found in context.\n\nThe provided context mentions \"multi-agent orchestration (LangGraph)\" and that \"agent personas\" are contained in the DomainPack, but it does not specify what the four agent personas are or provide details about the multi-agent team evaluation.",
+        "correct": false,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q18",
+        "question": "What blockchain technology does Market-Zero use for provenance tracking?",
+        "expected": "NOT_IN_CONTEXT",
+        "answer": "Not found in context.\n\nThe context mentions that Market-Zero has \"complete provenance tracking\" and that \"every data point traces to a verifiable external source with complete provenance tracking,\" but it does not specify that blockchain technology is used for this provenance tracking. The architecture described uses PostgreSQL with pgvector for data storage and tracking.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q19",
+        "question": "What is the FDA approval date for Nexovimab?",
+        "expected": "NOT_IN_CONTEXT",
+        "answer": "Not found in context.\n\nThe provided context describes the Market-Zero architecture and system design, but does not contain specific drug information such as FDA approval dates for Nexovimab or any other specific drugs.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q20",
+        "question": "What Kubernetes deployment configuration does Market-Zero use for auto-scaling?",
+        "expected": "NOT_IN_CONTEXT",
+        "answer": "Not found in context.\n\nThe provided context covers Market-Zero's architecture, data layers, and domain abstraction, but does not contain any information about Kubernetes deployment configurations or auto-scaling settings.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      }
+    ]
+  }
+}

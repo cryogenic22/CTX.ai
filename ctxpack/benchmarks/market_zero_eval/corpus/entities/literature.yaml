@@ -1,0 +1,55 @@
+entity: LITERATURE
+description: Published research articles from PubMed and PubMed Central, linked to drugs via MeSH term matching
+aliases:
+  - pubmed-article
+  - publication
+
+identifier:
+  name: pmid
+  type: string
+  immutable: true
+  description: "PubMed identifier for exact lookup"
+
+fields:
+  - name: pmid
+    type: string
+    description: "PubMed ID"
+    required: true
+  - name: title
+    type: string
+    description: "Article title"
+  - name: abstract
+    type: text
+    description: "Article abstract text"
+  - name: authors
+    type: list_of_string
+    description: "Author names"
+  - name: journal
+    type: string
+    description: "Journal name"
+  - name: publication_date
+    type: date
+    description: "Publication date"
+  - name: mesh_terms
+    type: list_of_string
+    description: "MeSH descriptor terms assigned by NLM indexers"
+  - name: mesh_descriptor_ids
+    type: list_of_string
+    description: "MeSH descriptor IDs (e.g. D009765 for Obesity)"
+  - name: abstract_embedding
+    type: vector_1536
+    description: "Embedding from abstract for semantic search"
+
+provenance:
+  source_api: "NCBI E-Utilities (esearch/efetch)"
+  source_url: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
+  tracking: "retrieved_at, etl_run_id"
+
+ontology_mediated_linking:
+  description: "Articles are automatically linked to drugs via MeSH term matching - if article has MeSH D009765 (Obesity), it links to all Obesity drugs"
+  link_type: EVIDENCE_FOR
+
+depends_on:
+  entity: DRUG
+  relationship: EVIDENCE_FOR
+  cardinality: N:M

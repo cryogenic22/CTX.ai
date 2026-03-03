@@ -1,0 +1,43 @@
+entity: COMPRESSOR
+description: IR-to-CTXDocument AST compression with heuristic salience scoring
+aliases:
+  - salience-scorer
+
+identifier:
+  name: pipeline_step
+  type: string
+  immutable: true
+
+salience_scoring:
+  entity_level:
+    formula: "source_count * 1.0 + cross_refs * 2.0 + warning_count * 1.5"
+    golden_source_boost: "1.5x multiplier when entity has a GOLDEN-SOURCE field"
+    minimum: 1.0
+  field_level:
+    star_prefix_boost: "2.0x for fields with key starting with star symbol"
+    warning_value_boost: "1.5x for fields containing warning symbol in value"
+    identity_keys_boost: "1.3x for IDENTIFIER, PII, PII-CLASSIFICATION, MATCH-RULES"
+    relationship_keys_boost: "1.2x for BELONGS-TO, HAS-MANY, HAS-ONE, REFERENCES, DEPENDS-ON"
+
+cross_reference_index:
+  design: "Single-pass O(1) lookup — precompiled regex scans all field values for @ENTITY-X references"
+  data_structure: "dict mapping entity_name to inbound reference count"
+
+token_counting:
+  function: count_tokens
+  method: "AST-walking — counts words via whitespace split across all text-bearing nodes (Section names count as 1 token)"
+  reused_by: "l3_generator and manifest"
+
+strict_mode:
+  description: "When strict=True, all fields with certainty=INFERRED are suppressed from output entirely"
+  default: false
+
+enriched_mode:
+  description: "Default mode — annotates INFERRED fields with (inferred) suffix instead of suppressing"
+
+golden_source_handling:
+  description: "Golden source field extracted first, placed in section subtitles as star-GOLDEN-SOURCE:value"
+
+depends_on:
+  entity: IR-PIPELINE
+  cardinality: 1:1

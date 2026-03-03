@@ -1,0 +1,6 @@
+domain: communications-api
+scope: Twilio Video v1 API resource definitions
+author: Twilio OpenAPI spec (public)
+include:
+  - "entities/*.md"
+  - "docs/*.md"

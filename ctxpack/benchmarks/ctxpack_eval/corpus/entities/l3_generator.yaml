@@ -1,0 +1,44 @@
+entity: L3-GENERATOR
+description: Deterministic L3 gist extraction from L2 AST — no LLM, zero dependencies
+aliases:
+  - gist-generator
+  - l3
+
+identifier:
+  name: section_type
+  type: string
+  immutable: true
+
+sections:
+  - name: ENTITIES
+    description: "Entity names with identifier types, relationship arrows, and role tags (hub/leaf/bridge)"
+  - name: TOPOLOGY
+    description: "Graph structure with HUBS, LEAVES, BRIDGES classification and edge count"
+  - name: PATTERNS
+    description: "Status machines, match rules, retention digest, and ID type distribution"
+  - name: CONSTRAINTS
+    description: "Star-marked fields, warning fields, PII — sorted by severity (PII > IMMUTABLE > star > other)"
+  - name: WARNINGS
+    description: "Direct copy of warning lines from L2 WARNINGS section"
+
+topology_classification:
+  hub_threshold: 3
+  hub: "Entity with >= 3 inbound cross-references (configurable via hub_threshold parameter)"
+  leaf: "Entity with 0 inbound cross-references"
+  bridge: "Entity with 1 to hub_threshold-1 inbound cross-references"
+  configurability: "Only hub_threshold is configurable; topology classification rules are hardcoded"
+
+token_budget:
+  value: 500
+  unit: tokens
+  trim_strategy: "Drop lowest-priority lines from PATTERNS and CONSTRAINTS sections; ENTITIES, TOPOLOGY, and WARNINGS are preserved"
+  severity_ranking: "PII highest, then IMMUTABLE, then star-marked, then other"
+
+constraints:
+  - "No LLM in the loop — preserves zero-dependency property"
+  - "Deterministic output for same input"
+
+depends_on:
+  entity: COMPRESSOR
+  cardinality: 1:1
+  description: "Uses count_tokens() function from compressor module"

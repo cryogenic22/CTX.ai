@@ -1,0 +1,61 @@
+rules:
+  entity_resolution:
+    exact_lookup_keys:
+      - "nct_id (ClinicalTrials.gov)"
+      - "pmid (PubMed)"
+      - "nda_number (FDA Orange Book)"
+      - "mesh_id (MeSH ontology)"
+      - "cik (SEC EDGAR)"
+      - "ticker (stock symbol)"
+      - "orcid (investigator)"
+      - "patent_number (patents)"
+    fuzzy_match_fields:
+      - "company_name (companies table)"
+      - "generic_name (drugs table)"
+      - "sponsor_name (clinical_trials table)"
+      - "investigator_name (investigators table)"
+    auto_create_sources:
+      - "ClinicalTrials.gov"
+      - "FDA Orange Book"
+      - "PubMed"
+      - "FDA Shortages"
+
+  cross_linking:
+    link_types:
+      - "OWNS (Company -> Drug)"
+      - "SPONSORS (Company -> Trial)"
+      - "INVESTIGATES (Trial -> Drug)"
+      - "EVIDENCE_FOR (Literature -> Drug)"
+      - "MENTIONED_IN (KnowledgeChunk -> Company or Drug)"
+      - "SHORTAGE_AFFECTS (Event -> Drug)"
+      - "PATENT_BLOCKS (Patent -> Drug)"
+      - "HAS_OUTCOME (Trial -> Outcome)"
+      - "LED_BY (Trial -> Investigator)"
+      - "INDICATED_FOR (TherapeuticArea -> Drug)"
+      - "ACTS_VIA (Mechanism -> Drug)"
+    ontology_mediated:
+      description: "MeSH descriptor IDs automatically link PubMed articles to drugs sharing the same therapeutic area"
+      confidence: 1.0
+
+  data_quality:
+    content_hash: "SHA-256 of canonical payload excluding embeddings and timestamps"
+    staleness_amber: "48 hours"
+    staleness_red: "7 days"
+    etl_tracking: "etl_runs table with source_name, api_endpoint, query_params, status, record counts"
+
+  connector_contract:
+    interface: "BaseConnector ABC with fetch(), source_type(), health_check() methods"
+    output: "list of RawRecord objects with Provenance"
+    source_count: 11
+    registered_sources:
+      - "MeSH ontology (monthly)"
+      - "FDA Orange Book (weekly)"
+      - "ClinicalTrials.gov (daily)"
+      - "FDA Shortages (daily)"
+      - "SEC EDGAR (quarterly, RSS-triggered)"
+      - "PubMed (weekly)"
+      - "openFDA FAERS (weekly)"
+      - "openFDA Labels (weekly)"
+      - "PubMed Central (weekly)"
+      - "User Document Upload (on-demand)"
+      - "User URL Ingestion (on-demand)"

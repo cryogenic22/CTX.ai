@@ -1,0 +1,189 @@
+{
+  "model": "gpt-5.2-pro",
+  "model_id": "gpt-5.2-pro",
+  "format": "L2",
+  "tokens": 139,
+  "rule_score": 0.0,
+  "judge_score": 0.0,
+  "rule_correct": 0,
+  "judge_correct": 0,
+  "total": 25,
+  "elapsed_s": 23.0,
+  "per_question": [
+    {
+      "id": "Q01",
+      "expected": "CRM (Salesforce)",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q02",
+      "expected": "anonymise",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q03",
+      "expected": "UUID",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q04",
+      "expected": "No, it is immutable",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q05",
+      "expected": "Jaro-Winkler with threshold > 0.92",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q06",
+      "expected": "RESTRICTED",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q07",
+      "expected": "draft -> submitted -> processing -> shipped -> delivered",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q08",
+      "expected": "submitted",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q09",
+      "expected": "DECIMAL(19,4)",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q10",
+      "expected": "CUSTOMER (via customer_id)",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q11",
+      "expected": "5 minutes",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q12",
+      "expected": "auto-hold and alert",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q13",
+      "expected": "string, unique per merchant",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q14",
+      "expected": "Real-time via warehouse API (webhook + 5min poll fallback)",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q15",
+      "expected": "Yes - CUSTOMER says 36 months for churned, regulatory requires 7 years for financial records",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q16",
+      "expected": "never-null-for-active",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q17",
+      "expected": "Stored in UTC, displayed in customer locale",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q18",
+      "expected": "Via SmartyStreets API, USPS format",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q19",
+      "expected": "HIGHLY-RESTRICTED",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q20",
+      "expected": "7 years (regulatory requirement)",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q21",
+      "expected": "NOT_IN_CONTEXT",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q22",
+      "expected": "NOT_IN_CONTEXT",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q23",
+      "expected": "auto-deactivated, reactivation requires manual review by merchandising",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q24",
+      "expected": "Royal Mail",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    },
+    {
+      "id": "Q25",
+      "expected": "No, order_id is mandatory (PAYMENT belongs to ORDER)",
+      "answer": "(error: HTTP Error 404: Not Found)",
+      "rule_correct": false,
+      "judge_correct": false
+    }
+  ]
+}

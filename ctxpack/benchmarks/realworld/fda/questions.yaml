@@ -1,0 +1,136 @@
+# FDA Drug Labels — Eval Questions (25)
+# Authored from actual openFDA data downloaded 2026-03-01
+# Covers: metformin (ZITUVIMET), lisinopril+HCTZ, atorvastatin, omeprazole, sertraline
+
+# ── Easy (7) ──
+
+- id: F01
+  question: "What is the recommended dosage range for atorvastatin in adults?"
+  expected: "10 mg to 80 mg once daily"
+  difficulty: easy
+
+- id: F02
+  question: "What is the recommended initial dose of sertraline for major depressive disorder in adults?"
+  expected: "50 mg once daily"
+  difficulty: easy
+
+- id: F03
+  question: "What is the route of administration for lisinopril?"
+  expected: "oral"
+  difficulty: easy
+
+- id: F04
+  question: "For how many days should omeprazole be taken per treatment course?"
+  expected: "14 days"
+  difficulty: easy
+
+- id: F05
+  question: "What percentage of atorvastatin is bound to plasma proteins?"
+  expected: "98%"
+  difficulty: easy
+
+- id: F06
+  question: "What is the starting dose of sertraline for children aged 6-12 with OCD?"
+  expected: "25 mg once daily"
+  difficulty: easy
+
+- id: F07
+  question: "What are the effective dose ranges for lisinopril monotherapy?"
+  expected: "10-80 mg"
+  difficulty: easy
+
+# ── Medium (11) ──
+
+- id: F08
+  question: "What eGFR threshold contraindicates metformin (ZITUVIMET)?"
+  expected: "eGFR below 30 mL/min/1.73 m2"
+  difficulty: medium
+
+- id: F09
+  question: "What is the maximum atorvastatin dose when co-administered with clarithromycin or itraconazole?"
+  expected: "20 mg once daily"
+  difficulty: medium
+
+- id: F10
+  question: "What are the most common adverse reactions for atorvastatin with incidence of 5% or greater?"
+  expected: "nasopharyngitis, arthralgia, diarrhea, pain in extremity, urinary tract infection"
+  difficulty: medium
+
+- id: F11
+  question: "What is the average terminal elimination half-life of sertraline?"
+  expected: "approximately 26 hours"
+  difficulty: medium
+
+- id: F12
+  question: "What is the required washout period between stopping sertraline and starting an MAOI?"
+  expected: "14 days"
+  difficulty: medium
+
+- id: F13
+  question: "What metformin plasma level is generally associated with lactic acidosis?"
+  expected: "greater than 5 mcg/mL"
+  difficulty: medium
+
+- id: F14
+  question: "Which drug class increases the risk of lactic acidosis when combined with metformin?"
+  expected: "carbonic anhydrase inhibitors"
+  difficulty: medium
+
+- id: F15
+  question: "What percentage of patients discontinued lisinopril-hydrochlorothiazide therapy due to adverse effects?"
+  expected: "4.4%"
+  difficulty: medium
+
+- id: F16
+  question: "What electrolyte must be monitored with long-term omeprazole use exceeding one year?"
+  expected: "magnesium"
+  difficulty: medium
+
+- id: F17
+  question: "What is the time to maximum plasma concentration for atorvastatin after oral administration?"
+  expected: "1 to 2 hours"
+  difficulty: medium
+
+- id: F18
+  question: "Which patient population has a higher incidence of angioedema with lisinopril?"
+  expected: "Black patients"
+  difficulty: medium
+
+# ── Hard (5) ──
+
+- id: F19
+  question: "Can metformin and lisinopril be co-prescribed safely for a diabetic patient with hypertension?"
+  expected: "Yes, metformin and lisinopril are commonly co-prescribed for diabetic patients with hypertension"
+  difficulty: hard
+
+- id: F20
+  question: "What is the main risk when combining atorvastatin with strong CYP3A4 inhibitors, and what is the mechanism?"
+  expected: "rhabdomyolysis due to CYP3A4 inhibition increasing atorvastatin exposure"
+  difficulty: hard
+
+- id: F21
+  question: "Which of the five drugs in the corpus has a black box warning related to suicidality, and for what age group?"
+  expected: "sertraline, patients under 25"
+  difficulty: hard
+
+- id: F22
+  question: "What is the absolute bioavailability of atorvastatin and what is the half-life of its HMG-CoA reductase inhibitory activity?"
+  expected: "approximately 14% bioavailability, 20 to 30 hours inhibitory activity half-life"
+  difficulty: hard
+
+- id: F23
+  question: "Why does omeprazole interact with clopidogrel, and what is the clinical consequence?"
+  expected: "CYP2C19 interaction leading to reduced antiplatelet effect"
+  difficulty: hard
+
+# ── Adversarial (2) ──
+
+- id: F24
+  question: "What is the cost per pill of metformin?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: adversarial
+
+- id: F25
+  question: "What is the recommended dose of metformin for patients with type 1 diabetes?"
+  expected: "NOT_IN_CONTEXT"
+  difficulty: adversarial

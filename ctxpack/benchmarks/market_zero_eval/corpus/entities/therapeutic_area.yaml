@@ -1,0 +1,44 @@
+entity: THERAPEUTIC-AREA
+description: Medical condition category sourced from MeSH (Medical Subject Headings) ontology maintained by NIH
+aliases:
+  - condition
+  - indication
+
+identifier:
+  name: mesh_id
+  type: string
+  immutable: true
+  description: "MeSH descriptor ID (e.g. D003924 for Diabetes Mellitus Type 2)"
+
+fields:
+  - name: name
+    type: string
+    description: "Therapeutic area name (e.g. Diabetes Mellitus Type 2)"
+    required: true
+  - name: mesh_id
+    type: string
+    description: "MeSH descriptor ID for exact lookup"
+    required: true
+  - name: source_url
+    type: url
+    description: "Link to MeSH browser entry"
+  - name: tree_numbers
+    type: list_of_string
+    description: "MeSH tree hierarchy positions for ontology traversal"
+
+provenance:
+  source_api: "MeSH (id.nlm.nih.gov/mesh/)"
+  refresh_frequency: monthly
+
+target_areas:
+  description: "MVP tracks 17 therapeutic areas including Diabetes Mellitus Type 2, Obesity, Heart Failure, Chronic Kidney Disease"
+  mesh_ids:
+    - "D003924 (Diabetes Mellitus Type 2)"
+    - "D009765 (Obesity)"
+    - "D006333 (Heart Failure)"
+    - "D051436 (Chronic Kidney Disease)"
+
+has_many:
+  entity: DRUG
+  relationship: INDICATED_FOR
+  cardinality: 1:N

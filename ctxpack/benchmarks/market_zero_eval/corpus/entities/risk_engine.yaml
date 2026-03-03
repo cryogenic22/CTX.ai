@@ -1,0 +1,82 @@
+entity: RISK-ENGINE
+description: Deterministic rule-based risk scoring engine that evaluates drug launch strategies against live market signals. No ML or LLM used in scoring.
+aliases:
+  - risk-scorer
+  - war-gaming-engine
+
+identifier:
+  name: engine_version
+  type: string
+  value: "MVP-v1"
+
+design_principles:
+  - "Deterministic: same inputs always produce same score"
+  - "Explainable: every point in the score traces to a named factor with a data source"
+  - "No ML or LLM: purely rule-based evaluation"
+  - "Live data: scores assembled at query time from current database state, never cached"
+
+scoring:
+  method: "Sum of triggered factor weights, capped at 10.0"
+  severity_thresholds:
+    green: "0.0 to 4.0"
+    yellow: "4.0 to 7.0"
+    red: "7.0 to 10.0"
+  critique_trigger: "If score exceeds 7.0, LLM generates natural language explanation grounded in source data only"
+
+risk_factors:
+  - id: R1
+    name: "Active Patent Block"
+    weight: 3.0
+    condition: "drugs.patent_expiry_date > strategy.launch_date"
+    source: "FDA Orange Book"
+  - id: R2
+    name: "Shortage Loophole Closed"
+    weight: 2.5
+    condition: "SHORTAGE_RESOLVED event within 90 days of launch"
+    source: "FDA Shortages API"
+  - id: R3
+    name: "Competitor Phase 3 Active"
+    weight: 2.0
+    condition: "Competing trials with status=RECRUITING AND phase=Phase 3 in same therapeutic area"
+    source: "ClinicalTrials.gov"
+  - id: R4
+    name: "Price Undercut Exposure"
+    weight: 1.5
+    condition: "strategy.price < competitor.price * 0.7"
+    source: "SEC filings (RAG extraction)"
+  - id: R5
+    name: "Regulatory Headwind"
+    weight: 1.5
+    condition: "GUIDANCE_ISSUED within 180 days for therapeutic area"
+    source: "FDA guidance"
+  - id: R6
+    name: "Supply Chain Concentration"
+    weight: 1.0
+    condition: "Manufacturer mentioned in 2+ company 10-K filings"
+    source: "SEC EDGAR"
+  - id: R7
+    name: "Litigation Overhang"
+    weight: 1.0
+    condition: "Active PATENT_LAWSUIT within 365 days"
+    source: "SEC EDGAR + market events"
+  - id: R8
+    name: "Failed Precedent"
+    weight: 1.0
+    condition: "Terminated trial for same mechanism + adverse events in PubMed"
+    source: "ClinicalTrials.gov + PubMed"
+
+market_snapshot:
+  description: "Assembled at query time by joining live DB tables. Every query gets a fresh snapshot - no stale scoring."
+  inputs:
+    - "Drug data (patents, supply status)"
+    - "Active clinical trials (status, phase, sponsor)"
+    - "Recent market events (type, date, impact)"
+    - "Knowledge chunks (RAG-retrieved SEC filings)"
+    - "PubMed literature (adverse event evidence)"
+
+depends_on:
+  - entity: DRUG
+  - entity: CLINICAL-TRIAL
+  - entity: MARKET-EVENT
+  - entity: KNOWLEDGE-CHUNK
+  - entity: LITERATURE

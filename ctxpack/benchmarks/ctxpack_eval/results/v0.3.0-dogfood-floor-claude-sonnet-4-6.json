@@ -1,0 +1,874 @@
+{
+  "version": "0.3.0-dogfood-floor",
+  "timestamp": "2026-02-23T20:31:17.137794+00:00",
+  "baselines": {
+    "ctxpack_l2": {
+      "tokens": 259,
+      "ratio": "8.4x",
+      "cost": "$0.0008",
+      "fidelity": 0.0,
+      "fidelity_details": {
+        "total": 20,
+        "correct": 0,
+        "score": 0.0,
+        "llm_judge_correct": 0,
+        "llm_judge_score": 0.0,
+        "by_difficulty": {
+          "easy": {
+            "total": 5,
+            "correct": 0,
+            "score": 0.0
+          },
+          "medium": {
+            "total": 8,
+            "correct": 0,
+            "score": 0.0
+          },
+          "hard": {
+            "total": 7,
+            "correct": 0,
+            "score": 0.0
+          }
+        },
+        "details": [
+          {
+            "id": "Q01",
+            "question": "What entity does COMPRESSOR depend on for cross-reference counting?",
+            "expected": "IR-PIPELINE (uses IREntity and IRField)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q02",
+            "question": "What is the relationship between L3-GENERATOR and COMPRESSOR?",
+            "expected": "L3-GENERATOR depends on COMPRESSOR's count_tokens() function",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q03",
+            "question": "Which module consumes the MANIFEST entity index for query routing?",
+            "expected": "MCP hydration (query-adaptive section selection based on entity name)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q04",
+            "question": "What is the full packer pipeline order?",
+            "expected": "discovery -> parse -> entity-resolution -> conflict-detection -> provenance-generation -> compression -> l3-generation -> manifest-generation",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q05",
+            "question": "Is the CTXDocument AST mutable or immutable?",
+            "expected": "Immutable (frozen dataclasses)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q06",
+            "question": "Does the packer use any LLM or ML model?",
+            "expected": "No \u2014 zero-dependency, deterministic, no LLM in the loop",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q07",
+            "question": "What is the L3 token budget?",
+            "expected": "500 tokens",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q08",
+            "question": "What license is ctxpack released under?",
+            "expected": "AGPL-3.0-or-later",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q09",
+            "question": "Can the parser handle arbitrary Python files?",
+            "expected": "No \u2014 only .ctx format (line-oriented, section-based)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q10",
+            "question": "Does the conflict detector catch semantic contradictions?",
+            "expected": "No \u2014 only structural: null policy, type mismatch, retention periods, PII classification level",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q11",
+            "question": "Can L3 topology classification be fully customized per-domain without code changes?",
+            "expected": "Only hub_threshold is configurable; topology classification rules (hub/leaf/bridge) are hardcoded",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q12",
+            "question": "If a field has certainty=INFERRED and --strict mode is on, what happens?",
+            "expected": "The field is suppressed from output entirely (strict mode drops all INFERRED fields)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q13",
+            "question": "What happens when two sources define the same field with different types?",
+            "expected": "Type conflict warning is generated AND both sources are tracked in provenance",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q14",
+            "question": "How does the keyword index route a query about 'retention' to the right entity?",
+            "expected": "Semantic regex extracts 'retention' from field values, keyword index maps to sections containing the term",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q15",
+            "question": "What is the entity-level salience scoring formula?",
+            "expected": "source_count * 1.0 + cross_refs * 2.0 + warning_count * 1.5 (golden source gets 1.5x multiplier, minimum score is 1.0)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q16",
+            "question": "How does the serializer handle Unicode operators in ASCII mode?",
+            "expected": "Unicode operators are replaced with ASCII fallbacks: section-ctx to $CTX, plus-minus to ##, arrow to ->, negation to exclamation-mark, star to triple-asterisk, warning to WARN-colon, equivalence to ===, conflict to CONFLICT-colon",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q17",
+            "question": "What heuristic determines whether a YAML structure is classified as an entity?",
+            "expected": "Presence of keys like identifier, golden_source, match_rules, pii, retention, has_many, belongs_to, id, uuid, primary_key",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q18",
+            "question": "What database does ctxpack use for storage?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q19",
+            "question": "What is the REST API endpoint for packing?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q20",
+            "question": "How does ctxpack handle real-time streaming from Kafka?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          }
+        ]
+      }
+    },
+    "raw_stuffing": {
+      "tokens": 2209,
+      "ratio": "1x",
+      "cost": "$0.0066",
+      "fidelity": 0.0,
+      "fidelity_details": {
+        "total": 20,
+        "correct": 0,
+        "score": 0.0,
+        "llm_judge_correct": 0,
+        "llm_judge_score": 0.0,
+        "by_difficulty": {
+          "easy": {
+            "total": 5,
+            "correct": 0,
+            "score": 0.0
+          },
+          "medium": {
+            "total": 8,
+            "correct": 0,
+            "score": 0.0
+          },
+          "hard": {
+            "total": 7,
+            "correct": 0,
+            "score": 0.0
+          }
+        },
+        "details": [
+          {
+            "id": "Q01",
+            "question": "What entity does COMPRESSOR depend on for cross-reference counting?",
+            "expected": "IR-PIPELINE (uses IREntity and IRField)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q02",
+            "question": "What is the relationship between L3-GENERATOR and COMPRESSOR?",
+            "expected": "L3-GENERATOR depends on COMPRESSOR's count_tokens() function",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q03",
+            "question": "Which module consumes the MANIFEST entity index for query routing?",
+            "expected": "MCP hydration (query-adaptive section selection based on entity name)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q04",
+            "question": "What is the full packer pipeline order?",
+            "expected": "discovery -> parse -> entity-resolution -> conflict-detection -> provenance-generation -> compression -> l3-generation -> manifest-generation",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q05",
+            "question": "Is the CTXDocument AST mutable or immutable?",
+            "expected": "Immutable (frozen dataclasses)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q06",
+            "question": "Does the packer use any LLM or ML model?",
+            "expected": "No \u2014 zero-dependency, deterministic, no LLM in the loop",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q07",
+            "question": "What is the L3 token budget?",
+            "expected": "500 tokens",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q08",
+            "question": "What license is ctxpack released under?",
+            "expected": "AGPL-3.0-or-later",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q09",
+            "question": "Can the parser handle arbitrary Python files?",
+            "expected": "No \u2014 only .ctx format (line-oriented, section-based)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q10",
+            "question": "Does the conflict detector catch semantic contradictions?",
+            "expected": "No \u2014 only structural: null policy, type mismatch, retention periods, PII classification level",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q11",
+            "question": "Can L3 topology classification be fully customized per-domain without code changes?",
+            "expected": "Only hub_threshold is configurable; topology classification rules (hub/leaf/bridge) are hardcoded",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q12",
+            "question": "If a field has certainty=INFERRED and --strict mode is on, what happens?",
+            "expected": "The field is suppressed from output entirely (strict mode drops all INFERRED fields)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q13",
+            "question": "What happens when two sources define the same field with different types?",
+            "expected": "Type conflict warning is generated AND both sources are tracked in provenance",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q14",
+            "question": "How does the keyword index route a query about 'retention' to the right entity?",
+            "expected": "Semantic regex extracts 'retention' from field values, keyword index maps to sections containing the term",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q15",
+            "question": "What is the entity-level salience scoring formula?",
+            "expected": "source_count * 1.0 + cross_refs * 2.0 + warning_count * 1.5 (golden source gets 1.5x multiplier, minimum score is 1.0)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q16",
+            "question": "How does the serializer handle Unicode operators in ASCII mode?",
+            "expected": "Unicode operators are replaced with ASCII fallbacks: section-ctx to $CTX, plus-minus to ##, arrow to ->, negation to exclamation-mark, star to triple-asterisk, warning to WARN-colon, equivalence to ===, conflict to CONFLICT-colon",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q17",
+            "question": "What heuristic determines whether a YAML structure is classified as an entity?",
+            "expected": "Presence of keys like identifier, golden_source, match_rules, pii, retention, has_many, belongs_to, id, uuid, primary_key",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q18",
+            "question": "What database does ctxpack use for storage?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q19",
+            "question": "What is the REST API endpoint for packing?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q20",
+            "question": "How does ctxpack handle real-time streaming from Kafka?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          }
+        ]
+      }
+    },
+    "naive_summary": {
+      "tokens": 259,
+      "ratio": "8.4x",
+      "cost": "$0.0008",
+      "fidelity": 0.0,
+      "fidelity_details": {
+        "total": 20,
+        "correct": 0,
+        "score": 0.0,
+        "llm_judge_correct": 0,
+        "llm_judge_score": 0.0,
+        "by_difficulty": {
+          "easy": {
+            "total": 5,
+            "correct": 0,
+            "score": 0.0
+          },
+          "medium": {
+            "total": 8,
+            "correct": 0,
+            "score": 0.0
+          },
+          "hard": {
+            "total": 7,
+            "correct": 0,
+            "score": 0.0
+          }
+        },
+        "details": [
+          {
+            "id": "Q01",
+            "question": "What entity does COMPRESSOR depend on for cross-reference counting?",
+            "expected": "IR-PIPELINE (uses IREntity and IRField)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q02",
+            "question": "What is the relationship between L3-GENERATOR and COMPRESSOR?",
+            "expected": "L3-GENERATOR depends on COMPRESSOR's count_tokens() function",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q03",
+            "question": "Which module consumes the MANIFEST entity index for query routing?",
+            "expected": "MCP hydration (query-adaptive section selection based on entity name)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q04",
+            "question": "What is the full packer pipeline order?",
+            "expected": "discovery -> parse -> entity-resolution -> conflict-detection -> provenance-generation -> compression -> l3-generation -> manifest-generation",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q05",
+            "question": "Is the CTXDocument AST mutable or immutable?",
+            "expected": "Immutable (frozen dataclasses)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q06",
+            "question": "Does the packer use any LLM or ML model?",
+            "expected": "No \u2014 zero-dependency, deterministic, no LLM in the loop",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q07",
+            "question": "What is the L3 token budget?",
+            "expected": "500 tokens",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q08",
+            "question": "What license is ctxpack released under?",
+            "expected": "AGPL-3.0-or-later",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q09",
+            "question": "Can the parser handle arbitrary Python files?",
+            "expected": "No \u2014 only .ctx format (line-oriented, section-based)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q10",
+            "question": "Does the conflict detector catch semantic contradictions?",
+            "expected": "No \u2014 only structural: null policy, type mismatch, retention periods, PII classification level",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q11",
+            "question": "Can L3 topology classification be fully customized per-domain without code changes?",
+            "expected": "Only hub_threshold is configurable; topology classification rules (hub/leaf/bridge) are hardcoded",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q12",
+            "question": "If a field has certainty=INFERRED and --strict mode is on, what happens?",
+            "expected": "The field is suppressed from output entirely (strict mode drops all INFERRED fields)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q13",
+            "question": "What happens when two sources define the same field with different types?",
+            "expected": "Type conflict warning is generated AND both sources are tracked in provenance",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q14",
+            "question": "How does the keyword index route a query about 'retention' to the right entity?",
+            "expected": "Semantic regex extracts 'retention' from field values, keyword index maps to sections containing the term",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q15",
+            "question": "What is the entity-level salience scoring formula?",
+            "expected": "source_count * 1.0 + cross_refs * 2.0 + warning_count * 1.5 (golden source gets 1.5x multiplier, minimum score is 1.0)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q16",
+            "question": "How does the serializer handle Unicode operators in ASCII mode?",
+            "expected": "Unicode operators are replaced with ASCII fallbacks: section-ctx to $CTX, plus-minus to ##, arrow to ->, negation to exclamation-mark, star to triple-asterisk, warning to WARN-colon, equivalence to ===, conflict to CONFLICT-colon",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q17",
+            "question": "What heuristic determines whether a YAML structure is classified as an entity?",
+            "expected": "Presence of keys like identifier, golden_source, match_rules, pii, retention, has_many, belongs_to, id, uuid, primary_key",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q18",
+            "question": "What database does ctxpack use for storage?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q19",
+            "question": "What is the REST API endpoint for packing?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q20",
+            "question": "How does ctxpack handle real-time streaming from Kafka?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          }
+        ]
+      }
+    },
+    "llm_summary": {
+      "tokens": 6,
+      "ratio": "362.2x",
+      "cost": "$0.0000",
+      "summary_preview": "(error: HTTP Error 404: Not Found)",
+      "fidelity": 0.0,
+      "fidelity_details": {
+        "total": 20,
+        "correct": 0,
+        "score": 0.0,
+        "llm_judge_correct": 0,
+        "llm_judge_score": 0.0,
+        "by_difficulty": {
+          "easy": {
+            "total": 5,
+            "correct": 0,
+            "score": 0.0
+          },
+          "medium": {
+            "total": 8,
+            "correct": 0,
+            "score": 0.0
+          },
+          "hard": {
+            "total": 7,
+            "correct": 0,
+            "score": 0.0
+          }
+        },
+        "details": [
+          {
+            "id": "Q01",
+            "question": "What entity does COMPRESSOR depend on for cross-reference counting?",
+            "expected": "IR-PIPELINE (uses IREntity and IRField)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q02",
+            "question": "What is the relationship between L3-GENERATOR and COMPRESSOR?",
+            "expected": "L3-GENERATOR depends on COMPRESSOR's count_tokens() function",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q03",
+            "question": "Which module consumes the MANIFEST entity index for query routing?",
+            "expected": "MCP hydration (query-adaptive section selection based on entity name)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q04",
+            "question": "What is the full packer pipeline order?",
+            "expected": "discovery -> parse -> entity-resolution -> conflict-detection -> provenance-generation -> compression -> l3-generation -> manifest-generation",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q05",
+            "question": "Is the CTXDocument AST mutable or immutable?",
+            "expected": "Immutable (frozen dataclasses)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q06",
+            "question": "Does the packer use any LLM or ML model?",
+            "expected": "No \u2014 zero-dependency, deterministic, no LLM in the loop",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q07",
+            "question": "What is the L3 token budget?",
+            "expected": "500 tokens",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q08",
+            "question": "What license is ctxpack released under?",
+            "expected": "AGPL-3.0-or-later",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q09",
+            "question": "Can the parser handle arbitrary Python files?",
+            "expected": "No \u2014 only .ctx format (line-oriented, section-based)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q10",
+            "question": "Does the conflict detector catch semantic contradictions?",
+            "expected": "No \u2014 only structural: null policy, type mismatch, retention periods, PII classification level",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q11",
+            "question": "Can L3 topology classification be fully customized per-domain without code changes?",
+            "expected": "Only hub_threshold is configurable; topology classification rules (hub/leaf/bridge) are hardcoded",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q12",
+            "question": "If a field has certainty=INFERRED and --strict mode is on, what happens?",
+            "expected": "The field is suppressed from output entirely (strict mode drops all INFERRED fields)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q13",
+            "question": "What happens when two sources define the same field with different types?",
+            "expected": "Type conflict warning is generated AND both sources are tracked in provenance",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q14",
+            "question": "How does the keyword index route a query about 'retention' to the right entity?",
+            "expected": "Semantic regex extracts 'retention' from field values, keyword index maps to sections containing the term",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q15",
+            "question": "What is the entity-level salience scoring formula?",
+            "expected": "source_count * 1.0 + cross_refs * 2.0 + warning_count * 1.5 (golden source gets 1.5x multiplier, minimum score is 1.0)",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q16",
+            "question": "How does the serializer handle Unicode operators in ASCII mode?",
+            "expected": "Unicode operators are replaced with ASCII fallbacks: section-ctx to $CTX, plus-minus to ##, arrow to ->, negation to exclamation-mark, star to triple-asterisk, warning to WARN-colon, equivalence to ===, conflict to CONFLICT-colon",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q17",
+            "question": "What heuristic determines whether a YAML structure is classified as an entity?",
+            "expected": "Presence of keys like identifier, golden_source, match_rules, pii, retention, has_many, belongs_to, id, uuid, primary_key",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q18",
+            "question": "What database does ctxpack use for storage?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q19",
+            "question": "What is the REST API endpoint for packing?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q20",
+            "question": "How does ctxpack handle real-time streaming from Kafka?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "(error: HTTP Error 404: Not Found)",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          }
+        ]
+      }
+    }
+  },
+  "config": {
+    "golden_set_path": "ctxpack/benchmarks/ctxpack_eval",
+    "baselines": [
+      "raw",
+      "naive",
+      "llm_summary",
+      "hand"
+    ],
+    "run_fidelity": true,
+    "run_conflicts": true,
+    "model": "claude-sonnet-4-6",
+    "provider": "openai"
+  },
+  "conflict_detection": {
+    "planted": 0,
+    "found": 0,
+    "precision": 0.0,
+    "recall": 0.0
+  }
+}

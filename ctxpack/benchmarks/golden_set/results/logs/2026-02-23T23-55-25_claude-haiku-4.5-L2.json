@@ -1,0 +1,257 @@
+{
+  "model": "claude-haiku-4.5",
+  "model_id": "claude-haiku-4-5-20251001",
+  "provider": "anthropic",
+  "format": "L2",
+  "tokens": 139,
+  "rule_score": 1.0,
+  "rule_correct": 25,
+  "judge_score": 1.0,
+  "judge_correct": 25,
+  "total": 25,
+  "elapsed_s": 58.6,
+  "by_difficulty": {
+    "easy": {
+      "total": 7,
+      "correct": 7,
+      "score": 1.0
+    },
+    "medium": {
+      "total": 11,
+      "correct": 11,
+      "score": 1.0
+    },
+    "hard": {
+      "total": 7,
+      "correct": 7,
+      "score": 1.0
+    }
+  },
+  "per_question": [
+    {
+      "id": "Q01",
+      "question": "What is the golden source for customer data?",
+      "expected": "CRM (Salesforce)",
+      "answer": "The golden source for customer data is **CRM (Salesforce)**.",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "easy"
+    },
+    {
+      "id": "Q02",
+      "question": "What happens to churned customer data after 36 months?",
+      "expected": "anonymise",
+      "answer": "According to the context, churned customer data is **anonymised after 36 months**.\n\nSpecifically, the CUSTOMER entity retention policy states: `churned→36→anonymise`\n\nHowever, there is an important caveat: The context includes a warning that **the 7-year regulatory retention requirement for financial records overrides this 36-month anonymisation rule**. Therefore, if a churned customer has associated payment or financial records, those must be retained for 7 years per regulatory requirements rather than being anonymised after 36 months.",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q03",
+      "question": "What type is the customer_id field?",
+      "expected": "UUID",
+      "answer": "Based on the context, the customer_id field is of type **UUID (Universally Unique Identifier)** and is **immutable**.",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "easy"
+    },
+    {
+      "id": "Q04",
+      "question": "Is the customer_id field mutable?",
+      "expected": "No, it is immutable",
+      "answer": "No, the customer_id field is **immutable**. \n\nAccording to the context, the ENTITY-CUSTOMER specifies: `IDENTIFIER:customer_id(UUID,immutable)`",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "easy"
+    },
+    {
+      "id": "Q05",
+      "question": "What matching algorithm is used for name+address?",
+      "expected": "Jaro-Winkler with threshold > 0.92",
+      "answer": "According to the context, the matching algorithm used for name+address is **Jaro-Winkler similarity** with a threshold of **0.92**, and it requires manual review.",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q06",
+      "question": "What PII classification level applies to customer email?",
+      "expected": "RESTRICTED",
+      "answer": "Based on the context, customer email has a PII classification level of **RESTRICTED**.\n\nThis is specified under the ENTITY-CUSTOMER section:\n- PII: name+email+phone+address\n- PII-CLASSIFICATION: RESTRICTED",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q07",
+      "question": "What is the order status flow?",
+      "expected": "draft -> submitted -> processing -> shipped -> delivered",
+      "answer": "Based on the context, the order status flow follows a strict state machine:\n\n**Primary flow:**\ndraft → submitted → processing → shipped → delivered\n\n**Terminal states:**\n- cancelled\n- returned\n\n**Key constraint:** Once an order is submitted, line items cannot be edited.",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q08",
+      "question": "After which status can order line items no longer be edited?",
+      "expected": "submitted",
+      "answer": "After the **submitted** status, order line items can no longer be edited.\n\nAccording to the context: \"Once submitted, line items cannot be edited\" and \"IMMUTABLE-AFTER: submitted (no-edits-to-line-items-after-submission)\".",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q09",
+      "question": "What decimal precision should be used for financial fields?",
+      "expected": "DECIMAL(19,4)",
+      "answer": "According to the context, financial fields should use **DECIMAL(19,4)** precision.\n\nThis is specified in the ENTITY-ORDER section under FINANCIAL-FIELDS and reinforced in the FINANCIAL-RULES: \"monetary-values-must-use-DECIMAL(19,4). Never use FLOAT for financial data.\"",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "easy"
+    },
+    {
+      "id": "Q10",
+      "question": "What entity does ORDER belong to?",
+      "expected": "CUSTOMER (via customer_id)",
+      "answer": "According to the context, ORDER belongs to **CUSTOMER**.\n\nSpecifically, the ENTITY-ORDER definition states:\n- `BELONGS-TO:@ENTITY-CUSTOMER(customer_id,mandatory)`\n\nThis indicates that every order must be associated with a customer via the customer_id field, and this relationship is mandatory.",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "easy"
+    },
+    {
+      "id": "Q11",
+      "question": "What is the maximum staleness allowed for inventory data?",
+      "expected": "5 minutes",
+      "answer": "According to the context, the maximum staleness allowed for inventory data is **5 minutes**.\n\nThis is specified in the FRESHNESS section: `inventory(max-5min-stale)`",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q12",
+      "question": "What happens when an order exceeds $50,000?",
+      "expected": "auto-hold and alert",
+      "answer": "Based on the context, when an order value exceeds $50,000:\n\n**Action: Auto-hold + alert**\n\nThis is part of the anomaly detection rules defined in the system. Orders exceeding $50,000 are automatically held and an alert is triggered for review.\n\n(Note: Orders exceeding $10,000 are flagged for review, but the $50,000 threshold triggers the more severe auto-hold and alert actions.)",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q13",
+      "question": "What is the SKU identifier type for products?",
+      "expected": "string, unique per merchant",
+      "answer": "According to the context, the SKU identifier type for products is **string**, and it is unique per merchant (inferred).\n\nFrom the ENTITY-PRODUCT section:\n> IDENTIFIER:sku(string,unique-per-merchant(inferred))",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "easy"
+    },
+    {
+      "id": "Q14",
+      "question": "How is inventory data synced?",
+      "expected": "Real-time via warehouse API (webhook + 5min poll fallback)",
+      "answer": "Based on the context, inventory data is synced using the following method:\n\n**Real-time sync** with a **webhook + 5-minute poll fallback** approach:\n- Primary method: Webhook\n- Fallback method: 5-minute polling interval\n- Source: Warehouse API\n\nThis ensures inventory stays current with a maximum 5-minute staleness threshold.",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q15",
+      "question": "Are there any conflicting retention policies?",
+      "expected": "Yes - CUSTOMER says 36 months for churned, regulatory requires 7 years for financial records",
+      "answer": "Yes, there are conflicting retention policies:\n\n1. **Customer vs. Financial Retention Conflict**: \n   - Churned customers are retained for 36 months then anonymised\n   - However, financial transaction data must be retained for a minimum of 7 years per regulatory requirements\n   - The 7-year regulatory retention **overrides** any shorter entity-specific retention policies\n\n2. **Specific Warning**: The context explicitly states that the 36-month anonymisation rule should **not** be applied to customers with financial records subject to regulatory retention.\n\nThis creates a gotcha where customers with payment history cannot be anonymised at the 36-month mark if their financial records are still within the 7-year regulatory window.",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "hard"
+    },
+    {
+      "id": "Q16",
+      "question": "What is the null policy for the email field?",
+      "expected": "never-null-for-active",
+      "answer": "According to the NULL-POLICY section in the context:\n\n**Email must never be null for active customers.**\n\nThe specific rule states: `email(never-null-for-active)`",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q17",
+      "question": "How are timestamps stored and displayed?",
+      "expected": "Stored in UTC, displayed in customer locale",
+      "answer": "Based on the context provided:\n\n**Storage:** Timestamps are stored in **UTC** timezone.\n\n**Display:** Timestamps are displayed in the **customer's locale** timezone.\n\nThis is specified in the TIMEZONE section of the domain knowledge.",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "easy"
+    },
+    {
+      "id": "Q18",
+      "question": "How are addresses normalised for US addresses?",
+      "expected": "Via SmartyStreets API, USPS format",
+      "answer": "Based on the context provided:\n\nUS addresses are normalised using the **USPS format** via the **SmartyStreets API**.\n\nSpecifically, the context states:\n- ADDRESS:normalisation(SmartyStreets-API)+format-us(USPS)+format-uk(Royal-Mail)",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q19",
+      "question": "What is the PII classification for payment card numbers?",
+      "expected": "HIGHLY-RESTRICTED",
+      "answer": "Based on the context provided, payment card numbers have a PII classification of **HIGHLY-RESTRICTED**.\n\nThis is specified under the ENTITY-PAYMENT section:\n- PII: card_number+bank_account\n- PII-CLASSIFICATION: HIGHLY-RESTRICTED\n\nAdditionally, the context notes that access to HIGHLY-RESTRICTED data (such as payment card numbers) requires additional authorization.",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "medium"
+    },
+    {
+      "id": "Q20",
+      "question": "What is the minimum retention period for financial transaction data?",
+      "expected": "7 years (regulatory requirement)",
+      "answer": "Based on the context provided, the minimum retention period for financial transaction data is **7 years per regulatory requirements**.\n\nThis is stated in the DATA-RETENTION section:\n> \"Financial-transaction-data-must-retained-minimum-7-years-per-regulatory-requirements.\"\n\nAdditionally, the context notes that this 7-year regulatory retention requirement **overrides any shorter entity-specific retention policies** (as indicated in the WARNINGS section).",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "hard"
+    },
+    {
+      "id": "Q21",
+      "question": "What is the customer return/refund policy?",
+      "expected": "NOT_IN_CONTEXT",
+      "answer": "Not found in context.\n\nThe provided domain knowledge context covers customer data structure, entity relationships, data retention policies, and PII handling rules, but does not contain information about customer return or refund policies.",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "hard"
+    },
+    {
+      "id": "Q22",
+      "question": "What GDPR or CCPA compliance rules apply to customer data deletion?",
+      "expected": "NOT_IN_CONTEXT",
+      "answer": "Not found in context.\n\nThe provided context contains data retention and PII handling policies, but does not include specific GDPR or CCPA compliance rules. The context mentions:\n\n- A 36-month anonymisation rule for churned customers\n- A 7-year regulatory retention requirement for financial transaction data\n- General PII encryption and access control requirements\n- Audit trail logging for changes\n\nHowever, these are internal business rules rather than explicit GDPR or CCPA compliance specifications.",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "hard"
+    },
+    {
+      "id": "Q23",
+      "question": "What happens to seasonal products at end of season?",
+      "expected": "auto-deactivated, reactivation requires manual review by merchandising",
+      "answer": "According to the context, seasonal products are automatically deactivated at the end of season. Reactivation requires manual review by the merchandising team.",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "hard"
+    },
+    {
+      "id": "Q24",
+      "question": "What is the UK address format standard used for normalisation?",
+      "expected": "Royal Mail",
+      "answer": "Based on the context provided, the UK address format standard used for normalisation is **Royal Mail**.\n\nThis is specified in the ADDRESS section: \"format-uk(Royal-Mail)\"",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "hard"
+    },
+    {
+      "id": "Q25",
+      "question": "Can a PAYMENT exist without an associated ORDER?",
+      "expected": "No, order_id is mandatory (PAYMENT belongs to ORDER)",
+      "answer": "No. According to the context, PAYMENT has a mandatory relationship to ORDER:\n\n**BELONGS-TO:@ENTITY-ORDER(order_id,mandatory)**\n\nThis means every PAYMENT must be associated with an ORDER and cannot exist independently.",
+      "rule_correct": true,
+      "judge_correct": true,
+      "difficulty": "hard"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+entity: PACKER-PIPELINE
+description: End-to-end orchestrator that converts a corpus directory into packed .ctx output
+aliases:
+  - packer
+  - pack
+
+identifier:
+  name: pipeline_name
+  type: string
+  immutable: true
+
+pipeline_steps:
+  - step: 1
+    name: discovery
+    description: "Scan corpus directory, find YAML/MD/JSON files, read ctxpack.yaml config"
+  - step: 2
+    name: parse
+    description: "Parse YAML, Markdown, and JSON files into IREntity and IRField objects"
+  - step: 3
+    name: entity-resolution
+    description: "Merge duplicate entities, resolve aliases, infer bidirectional relationships"
+  - step: 4
+    name: conflict-detection
+    description: "Find retention, null-policy, type, and PII conflicts, emit IRWarning objects"
+  - step: 5
+    name: provenance-generation
+    description: "Map fields to source file locations — companion (.ctx.prov) or inline (SRC:) mode"
+  - step: 6
+    name: compression
+    description: "IR to CTXDocument AST with heuristic salience scoring"
+  - step: 7
+    name: l3-generation
+    description: "Optional — extract ultra-compressed gist layer from L2 AST"
+  - step: 8
+    name: manifest-generation
+    description: "Optional — build MANIFEST with section, entity, and keyword indexes"
+
+input_formats:
+  - format: YAML
+    parser: yaml_parser
+    description: "Entity definitions, rules, and configuration"
+  - format: Markdown
+    parser: md_parser
+    description: "Documentation with heading/list structure"
+  - format: JSON
+    parser: json_parser
+    description: "JSON Schema definitions and entity arrays"
+
+output:
+  type: PackResult
+  fields:
+    - document: "CTXDocument AST (L2)"
+    - source_token_count: int
+    - source_file_count: int
+    - entity_count: int
+    - warning_count: int
+    - provenance_text: string
+    - l3_document: "Optional CTXDocument (L3)"
+    - manifest_document: "Optional CTXDocument (MANIFEST)"
+
+has_many:
+  entity: IR-PIPELINE
+  cardinality: 1:N
+  required: true
+
+depends_on:
+  entity: COMPRESSOR
+  cardinality: 1:1

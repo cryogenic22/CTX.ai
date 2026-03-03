@@ -1,0 +1,39 @@
+entity: CONFLICT-DETECTOR
+description: Cross-rule contradiction detection for packed corpora — structural conflicts only, not semantic
+aliases:
+  - conflict
+  - contradiction-detector
+
+identifier:
+  name: detector_type
+  type: string
+  immutable: true
+
+detectors:
+  - type: retention
+    description: "Detects different retention periods across entities for the same data class (e.g. 36 months vs 84 months)"
+    method: "Regex extraction of month values from RETENTION fields, pairwise comparison"
+  - type: null-policy
+    description: "Detects contradictions between never-null and nullable on the same field, and cross-checks IDENTIFIER required flags against NULL-POLICY"
+    method: "Parse never-null vs nullable fields, cross-check with required identifiers"
+  - type: type-mismatch
+    description: "Detects same field name with different type annotations across entities (e.g. UUID vs INT)"
+    method: "Extract types from IDENTIFIER fields, compare across entities and BELONGS-TO references"
+  - type: pii-classification
+    description: "Detects same field with different PII classification levels across entities (e.g. RESTRICTED vs CONFIDENTIAL)"
+    method: "Extract field-to-level pairs, compare levels across entities"
+
+output:
+  type: IRWarning
+  fields:
+    - entity: "Concatenated entity names separated by plus sign (e.g. CUSTOMER+PAYMENT)"
+    - message: "Human-readable conflict description"
+    - severity: "WARNING level from Severity enum"
+
+limitations:
+  - "Does NOT detect semantic contradictions — only structural pattern mismatches"
+  - "Relies on field key naming conventions for cross-entity comparison"
+
+depends_on:
+  entity: IR-PIPELINE
+  cardinality: 1:1

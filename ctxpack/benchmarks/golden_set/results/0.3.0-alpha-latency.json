@@ -1,0 +1,76 @@
+{
+  "version": "0.3.0-alpha",
+  "timestamp": "2026-02-23T23:25:12Z",
+  "deliverable": "latency-benchmark",
+  "corpus_sizes": [
+    {
+      "target_tokens": 1000,
+      "raw_tokens": 1202,
+      "l2_tokens": 188,
+      "l1_tokens": 785,
+      "l2_ratio": 6.39,
+      "l1_ratio": 1.53,
+      "pack_ms_mean": 6.14,
+      "pack_ms_p95": 7.24,
+      "ser_ms_mean": 0.03,
+      "pack_ms_all": [
+        5.5,
+        5.96,
+        5.25,
+        7.24,
+        6.36,
+        5.79,
+        6.68,
+        5.33,
+        6.72,
+        6.52
+      ]
+    },
+    {
+      "target_tokens": 5000,
+      "raw_tokens": 4098,
+      "l2_tokens": 552,
+      "l1_tokens": 2647,
+      "l2_ratio": 7.42,
+      "l1_ratio": 1.55,
+      "pack_ms_mean": 25.97,
+      "pack_ms_p95": 37.17,
+      "ser_ms_mean": 0.11,
+      "pack_ms_all": [
+        27.27,
+        27.17,
+        37.17,
+        26.92,
+        21.59,
+        25.6,
+        25.47,
+        23.41,
+        25.81,
+        19.25
+      ]
+    },
+    {
+      "target_tokens": 10000,
+      "raw_tokens": 7807,
+      "l2_tokens": 1021,
+      "l1_tokens": 5021,
+      "l2_ratio": 7.65,
+      "l1_ratio": 1.55,
+      "pack_ms_mean": 48.81,
+      "pack_ms_p95": 66.55,
+      "ser_ms_mean": 0.21,
+      "pack_ms_all": [
+        65.3,
+        42.88,
+        44.37,
+        41.76,
+        42.96,
+        41.18,
+        41.08,
+        66.55,
+        54.53,
+        47.47
+      ]
+    }
+  ]
+}

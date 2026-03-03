@@ -1,0 +1,213 @@
+{
+  "model": "gpt-4o",
+  "condition": "without-floor",
+  "ctx_tokens": 144,
+  "raw_tokens": 2740,
+  "compression_ratio": 19.0,
+  "ctxpack_l2": {
+    "total": 20,
+    "correct": 13,
+    "score": 0.65,
+    "llm_judge_correct": 18,
+    "llm_judge_score": 0.9,
+    "by_difficulty": {
+      "easy": {
+        "total": 6,
+        "correct": 4,
+        "score": 0.667
+      },
+      "medium": {
+        "total": 7,
+        "correct": 4,
+        "score": 0.571
+      },
+      "hard": {
+        "total": 7,
+        "correct": 5,
+        "score": 0.714
+      }
+    },
+    "details": [
+      {
+        "id": "Q01",
+        "question": "What is the weight of the Active Patent Block risk factor?",
+        "expected": "3.0",
+        "answer": "3.0",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q02",
+        "question": "When is the Active Patent Block risk factor triggered?",
+        "expected": "drugs.patent_expiry_date > strategy.launch_date",
+        "answer": "The Active Patent Block risk factor is triggered when a drug's patent expiry date is after the strategy launch date.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q03",
+        "question": "Which data source provides the patent_expiry_date field used by the Active Patent Block rule?",
+        "expected": "FDA Orange Book",
+        "answer": "FDA-Orange-Book",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q04",
+        "question": "What is the full integration pipeline order?",
+        "expected": "Normalize -> Resolve -> Embed -> Store -> Cross-Link",
+        "answer": "Normalize, Resolve, Embed, Store, Cross-Link.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q05",
+        "question": "Does the risk scoring engine use any machine learning or LLM?",
+        "expected": "No \u2014 purely deterministic rule-based evaluation, no ML or LLM in score computation",
+        "answer": "Not found in context.",
+        "correct": false,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q06",
+        "question": "What is the risk score severity threshold for Yellow?",
+        "expected": "4.0 to 7.0",
+        "answer": "The risk score severity threshold for Yellow is 4.0 to 7.0.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q07",
+        "question": "What is the auto-create confidence threshold for entity resolution?",
+        "expected": "0.95",
+        "answer": "The auto-create confidence threshold for entity resolution is 0.95.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q08",
+        "question": "What embedding model and dimensionality does Market-Zero use?",
+        "expected": "OpenAI text-embedding-3-small with 1536 dimensions",
+        "answer": "OpenAI-text-embedding-3-small with 1536 dimensions.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q09",
+        "question": "Does Market-Zero process real-time streaming data?",
+        "expected": "No \u2014 it processes batch ETL from public APIs on scheduled intervals",
+        "answer": "Not found in context.",
+        "correct": false,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q10",
+        "question": "Does Market-Zero perform drug discovery or molecular simulation?",
+        "expected": "No \u2014 it evaluates drug launch strategies as a competitive intelligence tool for strategy analysts",
+        "answer": "Not found in context.",
+        "correct": false,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q11",
+        "question": "Is Market-Zero open source?",
+        "expected": "No \u2014 Market-Zero is proprietary software (not open source)",
+        "answer": "Not found in context.",
+        "correct": false,
+        "llm_judge_correct": true,
+        "difficulty": "easy"
+      },
+      {
+        "id": "Q12",
+        "question": "If a drug has both an active patent block AND a competitor in Phase 3, what is the combined minimum risk score from those two factors alone?",
+        "expected": "5.0 (Active Patent Block 3.0 + Competitor Phase 3 Active 2.0)",
+        "answer": "Not found in context.",
+        "correct": false,
+        "llm_judge_correct": false,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q13",
+        "question": "How are PubMed articles automatically linked to drugs without manual wiring?",
+        "expected": "Ontology-mediated linking via MeSH descriptor IDs - articles with MeSH terms matching a drug therapeutic area are automatically linked with EVIDENCE_FOR relationship",
+        "answer": "PubMed articles are automatically linked to drugs via MeSH term matching. If an article has a MeSH descriptor term that matches a therapeutic area associated with a drug, it is linked to that drug.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q14",
+        "question": "What happens when entity resolution fuzzy matching returns a confidence score of 0.90?",
+        "expected": "The match goes to the unresolved_entities table for admin review (between 0.85 and 0.95 threshold)",
+        "answer": "Not found in context.",
+        "correct": false,
+        "llm_judge_correct": false,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q15",
+        "question": "What is the condition for the Failed Precedent risk factor and what data sources does it combine?",
+        "expected": "Terminated trial for same mechanism plus adverse events in PubMed. Combines ClinicalTrials.gov and PubMed data.",
+        "answer": "The condition for the Failed Precedent risk factor is a terminated trial for the same mechanism combined with adverse events in PubMed. It combines data sources from ClinicalTrials.gov and PubMed.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q16",
+        "question": "How many external data source connectors does Market-Zero have?",
+        "expected": "11 connectors (MeSH, FDA Orange Book, ClinicalTrials.gov, FDA Shortages, SEC EDGAR, PubMed, openFDA FAERS, openFDA Labels, PubMed Central, User Document, User URL)",
+        "answer": "11",
+        "correct": false,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q17",
+        "question": "What are the four agent personas in the multi-agent team evaluation?",
+        "expected": "Clinical Researcher, Market Analyst, Regulatory Expert, Data Scientist",
+        "answer": "Clinical Researcher, Market Analyst, Regulatory Expert, Data Scientist.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "Q18",
+        "question": "What blockchain technology does Market-Zero use for provenance tracking?",
+        "expected": "NOT_IN_CONTEXT",
+        "answer": "Not found in context.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q19",
+        "question": "What is the FDA approval date for Nexovimab?",
+        "expected": "NOT_IN_CONTEXT",
+        "answer": "Not found in context.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      },
+      {
+        "id": "Q20",
+        "question": "What Kubernetes deployment configuration does Market-Zero use for auto-scaling?",
+        "expected": "NOT_IN_CONTEXT",
+        "answer": "Not found in context.",
+        "correct": true,
+        "llm_judge_correct": true,
+        "difficulty": "hard"
+      }
+    ]
+  }
+}

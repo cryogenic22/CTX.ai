@@ -1,0 +1,32 @@
+domain: pharmaceutical-intelligence
+scope: market-zero-war-gaming-engine
+author: market-zero-team
+
+entity_aliases:
+  DRUG:
+    - molecule
+    - compound
+  COMPANY:
+    - pharma-company
+    - sponsor
+  CLINICAL-TRIAL:
+    - trial
+    - study
+  MARKET-EVENT:
+    - event
+    - signal
+  LITERATURE:
+    - pubmed-article
+    - publication
+  KNOWLEDGE-CHUNK:
+    - chunk
+    - rag-chunk
+  THERAPEUTIC-AREA:
+    - condition
+    - indication
+  MECHANISM:
+    - mechanism-of-action
+    - moa
+  RISK-ENGINE:
+    - risk-scorer
+    - war-gaming-engine

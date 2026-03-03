@@ -1,0 +1,38 @@
+rules:
+  error_codes:
+    E001: "Missing required header field (DOMAIN, COMPRESSED, or SOURCE_TOKENS)"
+    E002: "Invalid magic — must be §CTX or $CTX"
+    E003: "Invalid version format — must be M.m (e.g. 1.0)"
+    E004: "Invalid layer value"
+    E005: "Missing blank line between header and body"
+    E010: "L3 file missing required section (ENTITIES, PATTERNS, CONSTRAINTS, or WARNINGS)"
+
+  warning_codes:
+    W001: "Unknown header field (not in required or recommended set)"
+    W002: "Section name uses underscore instead of hyphen"
+    W003: "Header fields not in canonical order (required then recommended then custom)"
+    W004: "Unclosed brackets detected in body"
+    W005: "Unclosed backtick block detected in body"
+
+  required_header_fields:
+    - DOMAIN
+    - COMPRESSED
+    - SOURCE_TOKENS
+
+  recommended_header_fields:
+    - SCOPE
+    - AUTHOR
+    - CTX_TOKENS
+    - SOURCE
+    - RATIO
+    - GEN
+    - HASH
+    - PROVENANCE
+    - SCHEMA
+    - TURNS
+
+  l3_required_sections:
+    - ENTITIES
+    - PATTERNS
+    - CONSTRAINTS
+    - WARNINGS

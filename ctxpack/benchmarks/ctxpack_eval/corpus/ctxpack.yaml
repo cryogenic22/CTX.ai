@@ -1,0 +1,25 @@
+domain: software-architecture
+scope: ctxpack-packer-internals
+author: ctxpack-team
+
+entity_aliases:
+  IR-PIPELINE:
+    - ir
+    - intermediate-representation
+  PARSER:
+    - ctx-parser
+  SERIALIZER:
+    - ctx-serializer
+  COMPRESSOR:
+    - salience-scorer
+  PACKER-PIPELINE:
+    - packer
+    - pack
+  CONFLICT-DETECTOR:
+    - conflict
+    - contradiction-detector
+  L3-GENERATOR:
+    - gist-generator
+    - l3
+  MANIFEST:
+    - manifest-index

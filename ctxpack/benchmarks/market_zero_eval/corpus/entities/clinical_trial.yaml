@@ -1,0 +1,56 @@
+entity: CLINICAL-TRIAL
+description: Clinical trial tracked from ClinicalTrials.gov API v2, linked to drugs, companies, and therapeutic areas
+aliases:
+  - trial
+  - study
+
+identifier:
+  name: nct_id
+  type: string
+  immutable: true
+  description: "ClinicalTrials.gov NCT identifier (e.g. NCT04567890)"
+
+fields:
+  - name: nct_id
+    type: string
+    description: "Unique NCT identifier for exact lookup"
+    required: true
+  - name: title
+    type: string
+    description: "Official study title"
+  - name: status
+    type: enum
+    description: "Trial status: RECRUITING, ACTIVE_NOT_RECRUITING, COMPLETED, TERMINATED, WITHDRAWN (stored UPPERCASE)"
+  - name: phase
+    type: enum
+    description: "Trial phase: Phase 1, Phase 2, Phase 3, Phase 4"
+  - name: sponsor_name
+    type: string
+    description: "Lead sponsor organization name, used for fuzzy matching to COMPANY"
+  - name: conditions
+    type: list_of_string
+    description: "Medical conditions studied (maps to therapeutic areas via MeSH)"
+  - name: enrollment
+    type: integer
+    description: "Target or actual enrollment count"
+  - name: failure_reason
+    type: string
+    description: "Reason for termination (if status is TERMINATED)"
+  - name: protocol_embedding
+    type: vector_1536
+    description: "Embedding from detailed description for semantic retrieval"
+
+provenance:
+  source_api: "ClinicalTrials.gov API v2"
+  source_url: "https://clinicaltrials.gov/api/v2/studies"
+  tracking: "retrieved_at, etl_run_id"
+
+depends_on:
+  entity: DRUG
+  relationship: INVESTIGATES
+  cardinality: N:1
+
+belongs_to:
+  entity: COMPANY
+  relationship: SPONSORS
+  cardinality: N:1

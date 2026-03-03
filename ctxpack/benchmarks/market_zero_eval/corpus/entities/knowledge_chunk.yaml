@@ -1,0 +1,51 @@
+entity: KNOWLEDGE-CHUNK
+description: Free-text excerpt from SEC filings, PubMed articles, user PDFs, or web pages, stored for RAG retrieval
+aliases:
+  - chunk
+  - rag-chunk
+
+identifier:
+  name: chunk_id
+  type: auto_increment
+  immutable: true
+
+fields:
+  - name: entity_type
+    type: string
+    description: "Type of parent entity (drug, company, trial)"
+  - name: entity_id
+    type: foreign_key
+    description: "ID of the parent entity this chunk belongs to"
+  - name: source_type
+    type: enum
+    description: "Source classification: 10-K, 10-Q, PUBMED, NEWS, USER_DOCUMENT, USER_URL"
+    required: true
+  - name: source_reference
+    type: string
+    description: "Specific section (e.g. 'Item 1A Risk Factors' for SEC filing)"
+  - name: chunk_text
+    type: text
+    description: "The actual text content of the chunk"
+  - name: content_hash
+    type: string
+    description: "SHA-256 of canonical payload for dedup (excludes embeddings and timestamps)"
+  - name: chunk_embedding
+    type: vector_1536
+    description: "Embedding for vector similarity search"
+
+provenance:
+  sources:
+    - "SEC EDGAR (10-K/10-Q section extraction and chunking)"
+    - "PubMed (article abstract chunks)"
+    - "User uploads (PDF/DOCX with entity extraction)"
+    - "User URLs (HTML parsing with entity extraction)"
+
+retrieval:
+  method: "Hybrid search combining vector similarity with structured filters"
+  filters: "therapeutic_area, source_type, entity_type"
+  ranking: "Similarity score within filtered result set"
+
+depends_on:
+  entity: COMPANY
+  relationship: MENTIONED_IN
+  cardinality: N:1

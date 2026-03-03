@@ -1,0 +1,885 @@
+{
+  "log_type": "eval_run",
+  "timestamp": "2026-02-23T20:33:31.081960+00:00",
+  "model": "claude-sonnet-4-20250514",
+  "provenance": {
+    "tool": "ctxpack eval",
+    "version": "0.3.0-dogfood-floor",
+    "run_by": "automated",
+    "platform": "nt"
+  },
+  "results": {
+    "version": "0.3.0-dogfood-floor",
+    "timestamp": "2026-02-23T20:33:31.081960+00:00",
+    "baselines": {
+      "ctxpack_l2": {
+        "tokens": 259,
+        "ratio": "8.4x",
+        "cost": "$0.0008",
+        "fidelity": 0.95,
+        "fidelity_details": {
+          "total": 20,
+          "correct": 19,
+          "score": 0.95,
+          "llm_judge_correct": 18,
+          "llm_judge_score": 0.9,
+          "by_difficulty": {
+            "easy": {
+              "total": 5,
+              "correct": 5,
+              "score": 1.0
+            },
+            "medium": {
+              "total": 8,
+              "correct": 7,
+              "score": 0.875
+            },
+            "hard": {
+              "total": 7,
+              "correct": 7,
+              "score": 1.0
+            }
+          },
+          "details": [
+            {
+              "id": "Q01",
+              "question": "What entity does COMPRESSOR depend on for cross-reference counting?",
+              "expected": "IR-PIPELINE (uses IREntity and IRField)",
+              "answer": "Based on the context, the COMPRESSOR depends on **ENTITY-IR-PIPELINE** for cross-reference counting.\n\nThe context shows that ENTITY-COMPRESSOR has a dependency relationship \"DEPENDS-ON:@ENTITY-IR-PIPELINE(1:1)\" and uses a \"CROSS-REFERENCE-INDEX\" that performs \"Single-pass-O(1)-lookup-\u2014-precompiled-regex-scans-all-field-values-for-@ENTITY-X-references\" with a data structure that maps \"entity-name-to-inbound-reference-count.\"",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q02",
+              "question": "What is the relationship between L3-GENERATOR and COMPRESSOR?",
+              "expected": "L3-GENERATOR depends on COMPRESSOR's count_tokens() function",
+              "answer": "Based on the context, the L3-GENERATOR depends on the COMPRESSOR in a 1:1 relationship.\n\nSpecifically:\n- **ENTITY-L3-GENERATOR** has `DEPENDS-ON:@ENTITY-COMPRESSOR(1:1)`\n- The L3-GENERATOR performs \"Deterministic L3 gist extraction from L2 AST\" \n- The COMPRESSOR handles \"IR-to-CTXDocument AST compression with heuristic salience scoring\"\n\nThe relationship flows as: COMPRESSOR creates the L2 AST from intermediate representation (IR), then L3-GENERATOR extracts an ultra-compressed gist from that L2 AST. The L3-GENERATOR operates on the output of the COMPRESSOR to create the L3 layer (under 500 tokens) from the L2 layer.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q03",
+              "question": "Which module consumes the MANIFEST entity index for query routing?",
+              "expected": "MCP hydration (query-adaptive section selection based on entity name)",
+              "answer": "Not found in context.\n\nThe context describes that the MANIFEST entity provides indexes including an \"ENTITY-INDEX\" for \"query adaptive selection\" and mentions \"MCP query routing\" in the keyword routing section, but it does not specify which particular module consumes the MANIFEST entity index for query routing purposes.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q04",
+              "question": "What is the full packer pipeline order?",
+              "expected": "discovery -> parse -> entity-resolution -> conflict-detection -> provenance-generation -> compression -> l3-generation -> manifest-generation",
+              "answer": "Based on the context, the full packer pipeline consists of 8 steps in the following order:\n\n1. **discovery** - Scan corpus directory, find YAML/MD/JSON files, read ctxpack.yaml config\n2. **parse** - Parse YAML, Markdown, and JSON files into IREntity and IRField objects\n3. **entity-resolution** - Merge duplicate entities, resolve aliases, infer bidirectional relationships\n4. **conflict-detection** - Find retention, null-policy, type, and PII conflicts, emit IRWarning objects\n5. **provenance-generation** - Map fields to source file locations \u2014 companion (.ctx.prov) or inline (SRC:) mode\n6. **compression** - IR-to-CTXDocument AST with heuristic salience scoring\n7. **l3-generation** - Optional \u2014 extract ultra-compressed gist layer from L",
+              "correct": true,
+              "llm_judge_correct": false,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q05",
+              "question": "Is the CTXDocument AST mutable or immutable?",
+              "expected": "Immutable (frozen dataclasses)",
+              "answer": "The CTXDocument AST is **immutable**. \n\nAccording to the context, the AST uses frozen (immutable) dataclasses, and once parsed, the AST cannot be modified. Any transformation produces a new AST rather than modifying the existing one. This immutability ensures that the AST cannot be accidentally modified after parsing.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q06",
+              "question": "Does the packer use any LLM or ML model?",
+              "expected": "No \u2014 zero-dependency, deterministic, no LLM in the loop",
+              "answer": "No, the packer does not use any LLM or ML model. According to the context:\n\n**Zero Dependency Principle**: The entire packer pipeline is pure Python with zero external dependencies, and \"no LLM or ML model is used at any stage.\"\n\n**Deterministic Output**: The packer produces deterministic output for the same input, which reinforces that no AI models are involved in the processing.\n\n**L3 Generation**: Even the L3 gist generation is \"purely algorithmic extraction from L2 AST\" rather than using summarization models.\n\nThe only LLM usage mentioned is in the **evaluation framework for fidelity measurement** (LLM as judge), but this is separate from the actual packing process itself.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q07",
+              "question": "What is the L3 token budget?",
+              "expected": "500 tokens",
+              "answer": "The L3 token budget is 500 tokens. When this budget is exceeded, the system uses a trim strategy that drops the lowest-priority lines from the PATTERNS and CONSTRAINTS sections, while preserving the ENTITIES, TOPOLOGY, and WARNINGS sections.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q08",
+              "question": "What license is ctxpack released under?",
+              "expected": "AGPL-3.0-or-later",
+              "answer": "ctxpack is released under AGPL 3.0 or later (open core model).",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q09",
+              "question": "Can the parser handle arbitrary Python files?",
+              "expected": "No \u2014 only .ctx format (line-oriented, section-based)",
+              "answer": "No, the parser cannot handle arbitrary Python files. According to the context, the parser scope is limited to \".ctx format files \u2014 line-oriented, section-based text\" and \"cannot parse arbitrary Python files, YAML files, other formats.\" The packer has separate parsers (yaml_parser, md_parser, json_parser) for input formats, but the .ctx parser itself is specifically designed only for .ctx format files.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q10",
+              "question": "Does the conflict detector catch semantic contradictions?",
+              "expected": "No \u2014 only structural: null policy, type mismatch, retention periods, PII classification level",
+              "answer": "No, the conflict detector does not catch semantic contradictions. According to the context, the ENTITY-CONFLICT-DETECTOR is explicitly described as handling \"structural conflicts only, not semantic\" and its limitations state: \"Does NOT detect semantic contradictions \u2014 only structural pattern mismatches.\"\n\nThe conflict detector only identifies structural contradictions such as:\n- Different retention periods across entities for the same data class\n- Contradictions between never null and nullable policies\n- Type mismatches for same field names across entities  \n- Different PII classification levels for the same field\n\nIt relies on field key naming conventions and pattern matching rather than understanding the semantic meaning of the data.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q11",
+              "question": "Can L3 topology classification be fully customized per-domain without code changes?",
+              "expected": "Only hub_threshold is configurable; topology classification rules (hub/leaf/bridge) are hardcoded",
+              "answer": "No, L3 topology classification cannot be fully customized per-domain without code changes.\n\nAccording to the context, the L3 generator has limited configurability:\n\n- Only the **hub-threshold** parameter is configurable (default: 3)\n- The **topology classification rules are hardcoded**:\n  - Hub: Entity with \u22653 inbound cross-references (configurable threshold)\n  - Leaf: Entity with 0 inbound cross-references  \n  - Bridge: Entity with 1 to (hub-threshold-1) inbound cross-references\n\nThe system allows adjusting when an entity is considered a \"hub\" by changing the threshold, but the fundamental classification logic (hub/leaf/bridge categories and their definitions) cannot be customized without modifying the code.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q12",
+              "question": "If a field has certainty=INFERRED and --strict mode is on, what happens?",
+              "expected": "The field is suppressed from output entirely (strict mode drops all INFERRED fields)",
+              "answer": "Based on the context, if a field has certainty=INFERRED and --strict mode is on, the field is **suppressed from output entirely**.\n\nThe context specifically states under ENTITY-COMPRESSOR's STRICT-MODE: \"When strict=True, all fields with certainty=INFERRED are suppressed from output entirely\" (with default=false).\n\nThis is in contrast to the default ENRICHED-MODE, where INFERRED fields are annotated with an \"(inferred)\" suffix instead of being suppressed.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q13",
+              "question": "What happens when two sources define the same field with different types?",
+              "expected": "Type conflict warning is generated AND both sources are tracked in provenance",
+              "answer": "Based on the context, when two sources define the same field with different types, the **ENTITY-CONFLICT-DETECTOR** identifies this as a **type-mismatch** conflict.\n\nSpecifically:\n- **Detection method**: The detector extracts types from IDENTIFIER fields and compares them across entities and BELONGS-TO references\n- **Example**: The same field name having different type annotations like UUID vs INT across entities\n- **Output**: An IRWarning is generated with:\n  - Entity names concatenated with a plus sign (e.g., \"CUSTOMER+PAYMENT\")\n  - A human-readable conflict description message\n  - WARNING severity level\n\nThis is part of the structural conflict detection system that identifies contradictions in packed corpora, though it's noted that the system only detects structural pattern mismatches, not semantic contradictions.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q14",
+              "question": "How does the keyword index route a query about 'retention' to the right entity?",
+              "expected": "Semantic regex extracts 'retention' from field values, keyword index maps to sections containing the term",
+              "answer": "Based on the context, the keyword index routes a query about 'retention' through the following mechanism:\n\n1. **Keyword Extraction**: The MANIFEST's keyword routing system uses a semantic regex that specifically extracts domain-relevant terms including \"retention\" from field values across entities.\n\n2. **Categorization**: 'Retention' is classified as a **semantic** keyword (domain-relevant term extracted from field values), as opposed to structural (KV keys) or navigational (cross-reference targets) keywords.\n\n3. **Index Structure**: The KEYWORD-INDEX maps keywords to sections, with each section containing up to 15 top keywords and their associated entity information.\n\n4. **Query Routing**: When a query about 'retention' comes in, the system:\n   - Looks up 'retention' in the keyword index\n   - Identifies which entity sections contain retention-related information\n   - Uses the ENTITY",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q15",
+              "question": "What is the entity-level salience scoring formula?",
+              "expected": "source_count * 1.0 + cross_refs * 2.0 + warning_count * 1.5 (golden source gets 1.5x multiplier, minimum score is 1.0)",
+              "answer": "Based on the context, the entity-level salience scoring formula is:\n\n**source-count * 1.0 + cross-refs * 2.0 + warning-count * 1.5**\n\nAdditionally, there is a **golden-source-boost** of 1.5x multiplier when an entity has a GOLDEN-SOURCE field, and a **minimum** score of 1.0.\n\nThis formula is part of the ENTITY-COMPRESSOR's salience scoring system used for IR-to-CTXDocument AST compression.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q16",
+              "question": "How does the serializer handle Unicode operators in ASCII mode?",
+              "expected": "Unicode operators are replaced with ASCII fallbacks: section-ctx to $CTX, plus-minus to ##, arrow to ->, negation to exclamation-mark, star to triple-asterisk, warning to WARN-colon, equivalence to ===, conflict to CONFLICT-colon",
+              "answer": "In ASCII mode, the serializer replaces Unicode operators with ASCII fallbacks for terminal compatibility. The specific mappings are:\n\n- `\u00a7CTX` \u2192 `$CTX` (section-ctx unicode)\n- `\u00b1` \u2192 `##` (section-marker unicode) \n- `\u2192` \u2192 `->` (arrow unicode)\n- `\u00ac` \u2192 `!` (negation unicode)\n- `\u2605` \u2192 `***` (emphasis unicode)\n- `\u26a0` \u2192 `WARN:` (warning unicode)\n- `\u2261` \u2192 `===` (equivalence unicode)\n- `\u26a1` \u2192 `CONFLICT:` (conflict unicode)\n- `~>` stays the same (already ASCII)\n\nThis ensures the .ctx format remains readable in terminals that don't support Unicode characters.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q17",
+              "question": "What heuristic determines whether a YAML structure is classified as an entity?",
+              "expected": "Presence of keys like identifier, golden_source, match_rules, pii, retention, has_many, belongs_to, id, uuid, primary_key",
+              "answer": "Not found in context.\n\nThe provided context describes the ctxpack system's internal pipeline components, AST structures, and processing steps, but it does not contain information about the specific heuristics used to classify YAML structures as entities during the parsing phase.",
+              "correct": false,
+              "llm_judge_correct": false,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q18",
+              "question": "What database does ctxpack use for storage?",
+              "expected": "NOT_IN_CONTEXT",
+              "answer": "Not found in context.\n\nThe context indicates that ctxpack is a \"file-based compression codec\" that \"processes static file corpora disk\" and explicitly states it does \"NOT\" have \"database, REST API, streaming ingestion, real-time processing capabilities.\" It works with input directories containing YAML, Markdown, and JSON files and outputs .ctx text files, but no database storage system is mentioned.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q19",
+              "question": "What is the REST API endpoint for packing?",
+              "expected": "NOT_IN_CONTEXT",
+              "answer": "Not found in context.\n\nThe documentation describes ctxpack as a file-based compression codec that processes static file corpora from disk, and explicitly states it does \"NOT have database, REST API, streaming ingestion, or real-time processing capabilities.\" The integration points mentioned are CLI commands, MCP Server, and Library usage, but no REST API endpoints are documented.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q20",
+              "question": "How does ctxpack handle real-time streaming from Kafka?",
+              "expected": "NOT_IN_CONTEXT",
+              "answer": "Not found in context.\n\nThe documentation indicates that ctxpack is a \"file-based compression codec\" that \"processes static file corpora disk\" and explicitly states it has \"NOT database, REST API, streaming ingestion, real-time processing capabilities.\" It works with input directories containing YAML, Markdown, and JSON files to produce .ctx text files.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            }
+          ]
+        }
+      },
+      "raw_stuffing": {
+        "tokens": 2209,
+        "ratio": "1x",
+        "cost": "$0.0066",
+        "fidelity": 0.9,
+        "fidelity_details": {
+          "total": 20,
+          "correct": 18,
+          "score": 0.9,
+          "llm_judge_correct": 18,
+          "llm_judge_score": 0.9,
+          "by_difficulty": {
+            "easy": {
+              "total": 5,
+              "correct": 4,
+              "score": 0.8
+            },
+            "medium": {
+              "total": 8,
+              "correct": 7,
+              "score": 0.875
+            },
+            "hard": {
+              "total": 7,
+              "correct": 7,
+              "score": 1.0
+            }
+          },
+          "details": [
+            {
+              "id": "Q01",
+              "question": "What entity does COMPRESSOR depend on for cross-reference counting?",
+              "expected": "IR-PIPELINE (uses IREntity and IRField)",
+              "answer": "Based on the context, COMPRESSOR depends on IR-PIPELINE for cross-reference counting.\n\nThe COMPRESSOR entity has a \"depends_on\" relationship with IR-PIPELINE (cardinality 1:1), and its cross-reference index is described as using \"Single-pass O(1) lookup \u2014 precompiled regex scans all field values for @ENTITY-X references\" to build a \"dict mapping entity_name to inbound reference count.\" This cross-reference data comes from the intermediate representation provided by the IR-PIPELINE.",
+              "correct": false,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q02",
+              "question": "What is the relationship between L3-GENERATOR and COMPRESSOR?",
+              "expected": "L3-GENERATOR depends on COMPRESSOR's count_tokens() function",
+              "answer": "Based on the context, the L3-GENERATOR depends on the COMPRESSOR in a 1:1 relationship. Specifically:\n\n1. **Dependency**: L3-GENERATOR depends on COMPRESSOR (cardinality 1:1)\n\n2. **Functional relationship**: L3-GENERATOR uses the `count_tokens()` function from the COMPRESSOR module for token counting operations\n\n3. **Pipeline sequence**: L3-GENERATOR performs \"deterministic L3 gist extraction from L2 AST\" - it takes the compressed L2 output produced by the COMPRESSOR and further processes it into an ultra-compressed L3 gist format under 500 tokens\n\n4. **Shared principles**: Both maintain the zero-dependency constraint - L3-GENERATOR explicitly states \"No LLM in the loop \u2014 preserves zero-dependency property\" and produces \"Deterministic output for same input",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q03",
+              "question": "Which module consumes the MANIFEST entity index for query routing?",
+              "expected": "MCP hydration (query-adaptive section selection based on entity name)",
+              "answer": "Based on the context, the **MCP Server** consumes the MANIFEST entity index for query routing.\n\nThe context specifically mentions under \"Integration Points\" that the MCP Server provides \"Query-adaptive hydration via manifest entity/keyword indexes.\" Additionally, the MANIFEST entity description states its purpose is \"Progressive hydration \u2014 L3 for routing, L2 for detail, L1 for deep-dive\" and includes keyword routing functionality with structural, navigational, and semantic categories specifically designed for \"MCP query routing.\"",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q04",
+              "question": "What is the full packer pipeline order?",
+              "expected": "discovery -> parse -> entity-resolution -> conflict-detection -> provenance-generation -> compression -> l3-generation -> manifest-generation",
+              "answer": "Based on the context, the full packer pipeline order consists of 8 steps:\n\n1. **discovery** - Scan corpus directory, find YAML/MD/JSON files, read ctxpack.yaml config\n2. **parse** - Parse YAML, Markdown, and JSON files into IREntity and IRField objects\n3. **entity-resolution** - Merge duplicate entities, resolve aliases, infer bidirectional relationships\n4. **conflict-detection** - Find retention, null-policy, type, and PII conflicts, emit IRWarning objects\n5. **provenance-generation** - Map fields to source file locations \u2014 companion (.ctx.prov) or inline (SRC:) mode\n6. **compression** - IR to CTXDocument AST with heuristic salience scoring\n7. **l3-generation** - Optional \u2014 extract ultra-compressed gist layer from L2 AST",
+              "correct": true,
+              "llm_judge_correct": false,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q05",
+              "question": "Is the CTXDocument AST mutable or immutable?",
+              "expected": "Immutable (frozen dataclasses)",
+              "answer": "The CTXDocument AST is **immutable**. According to the context:\n\n- The CTXDocument and all child nodes (Header, Section, KeyValue, etc.) are frozen dataclasses\n- Once parsed, the AST cannot be modified\n- Any transformation produces a new AST\n- Immutability ensures the AST cannot be accidentally modified after parsing\n\nThis immutable design is a core architectural constraint of ctxpack.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q06",
+              "question": "Does the packer use any LLM or ML model?",
+              "expected": "No \u2014 zero-dependency, deterministic, no LLM in the loop",
+              "answer": "No, the packer does not use any LLM or ML model. According to the constraints documentation, \"The packer pipeline is entirely deterministic with zero LLM or ML dependencies. This includes L3 gist generation, which uses algorithmic extraction rather than summarization.\" The architecture overview also states it follows a \"Zero-Dependency Principle\" where \"No LLM or ML model is used at any stage\" and \"All output is deterministic for the same input.\"\n\nThe only LLM usage mentioned is in the eval framework for fidelity measurement (LLM-as-judge), but this is separate from the packer pipeline itself.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q07",
+              "question": "What is the L3 token budget?",
+              "expected": "500 tokens",
+              "answer": "The L3 token budget is 500 tokens. When this budget is exceeded, the L3 generator uses a trim strategy that drops the lowest-priority lines from the PATTERNS and CONSTRAINTS sections, while preserving the ENTITIES, TOPOLOGY, and WARNINGS sections. The severity ranking for trimming is: PII highest, then IMMUTABLE, then star-marked fields, then other fields.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q08",
+              "question": "What license is ctxpack released under?",
+              "expected": "AGPL-3.0-or-later",
+              "answer": "ctxpack is released under AGPL-3.0-or-later (open-core model).",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q09",
+              "question": "Can the parser handle arbitrary Python files?",
+              "expected": "No \u2014 only .ctx format (line-oriented, section-based)",
+              "answer": "No, the parser cannot handle arbitrary Python files. According to the constraints documentation, \"The .ctx parser handles only .ctx format files \u2014 line-oriented, section-based text. It cannot parse arbitrary Python files, YAML files, or other formats.\" The parser is specifically designed for the .ctx format only, while the packer has separate parsers (yaml_parser, md_parser, json_parser) for input formats.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q10",
+              "question": "Does the conflict detector catch semantic contradictions?",
+              "expected": "No \u2014 only structural: null policy, type mismatch, retention periods, PII classification level",
+              "answer": "No, the conflict detector does not catch semantic contradictions. According to the documentation, it only detects \"structural conflicts\" and \"structural pattern mismatches.\" \n\nThe limitations explicitly state: \"Does NOT detect semantic contradictions \u2014 only structural pattern mismatches\" and \"Relies on field key naming conventions for cross-entity comparison.\"\n\nThe conflict detector focuses on detecting structural inconsistencies like:\n- Different retention periods for the same data class\n- Contradictions between never-null and nullable policies\n- Type mismatches for same field names across entities  \n- Different PII classification levels for the same field\n\nBut it does not analyze the semantic meaning or logical contradictions in the content itself.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q11",
+              "question": "Can L3 topology classification be fully customized per-domain without code changes?",
+              "expected": "Only hub_threshold is configurable; topology classification rules (hub/leaf/bridge) are hardcoded",
+              "answer": "No, L3 topology classification cannot be fully customized per-domain without code changes.\n\nAccording to the L3-GENERATOR entity documentation, only the `hub_threshold` parameter is configurable (which determines when an entity is classified as a hub based on inbound cross-references). The topology classification rules themselves are hardcoded:\n\n- **Hub**: Entity with >= 3 inbound cross-references (configurable via hub_threshold)\n- **Leaf**: Entity with 0 inbound cross-references  \n- **Bridge**: Entity with 1 to hub_threshold-1 inbound cross-references\n\nThe documentation explicitly states: \"Only hub_threshold is configurable; topology classification rules are hardcoded.\"",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q12",
+              "question": "If a field has certainty=INFERRED and --strict mode is on, what happens?",
+              "expected": "The field is suppressed from output entirely (strict mode drops all INFERRED fields)",
+              "answer": "Based on the context, when a field has certainty=INFERRED and strict mode is on, the field is **suppressed from output entirely**.\n\nThe compressor documentation states:\n\n> **strict_mode**: \"When strict=True, all fields with certainty=INFERRED are suppressed from output entirely\"\n\nThis is in contrast to the default enriched mode, where INFERRED fields are kept but annotated with an \"(inferred)\" suffix instead of being suppressed.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q13",
+              "question": "What happens when two sources define the same field with different types?",
+              "expected": "Type conflict warning is generated AND both sources are tracked in provenance",
+              "answer": "Based on the context, when two sources define the same field with different types, the **CONFLICT-DETECTOR** identifies this as a **type-mismatch** conflict.\n\nSpecifically:\n- The conflict detector extracts types from IDENTIFIER fields and compares them across entities and BELONGS-TO references\n- It detects \"same field name with different type annotations across entities (e.g. UUID vs INT)\"\n- This generates an **IRWarning** output with:\n  - **entity**: Concatenated entity names separated by plus sign (e.g. \"CUSTOMER+PAYMENT\")\n  - **message**: Human-readable conflict description\n  - **severity**: WARNING level\n\nThe system only detects structural pattern mismatches like this - it does NOT detect semantic contradictions, only structural conflicts based on field key naming conventions for cross-entity comparison.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q14",
+              "question": "How does the keyword index route a query about 'retention' to the right entity?",
+              "expected": "Semantic regex extracts 'retention' from field values, keyword index maps to sections containing the term",
+              "answer": "Based on the context, the keyword index routes a query about 'retention' through the following mechanism:\n\n1. **Keyword Extraction**: The MANIFEST's keyword routing system extracts 'retention' as a **semantic keyword** using a semantic regex that specifically identifies domain-relevant terms including \"retention, churn, pii, pci-dss, gdpr, immutable, nullable, cascade, encrypted, confidential, restricted, active, inactive, archived, deleted, pending, approved, unique, required, mandatory\".\n\n2. **Section Mapping**: The KEYWORD-INDEX maps keywords to sections, with each section containing \"Top keywords per section for MCP query routing\" across three categories:\n   - Structural (KV keys)\n   - Navigational (cross-reference targets)  \n   - **Semantic** (domain terms like 'retention')\n\n3. **Entity Resolution**: The ENTITY-INDEX then maps",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q15",
+              "question": "What is the entity-level salience scoring formula?",
+              "expected": "source_count * 1.0 + cross_refs * 2.0 + warning_count * 1.5 (golden source gets 1.5x multiplier, minimum score is 1.0)",
+              "answer": "The entity-level salience scoring formula is:\n\n**source_count * 1.0 + cross_refs * 2.0 + warning_count * 1.5**\n\nAdditionally, there is a golden source boost that applies a 1.5x multiplier when an entity has a GOLDEN-SOURCE field, and the minimum salience score is 1.0.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q16",
+              "question": "How does the serializer handle Unicode operators in ASCII mode?",
+              "expected": "Unicode operators are replaced with ASCII fallbacks: section-ctx to $CTX, plus-minus to ##, arrow to ->, negation to exclamation-mark, star to triple-asterisk, warning to WARN-colon, equivalence to ===, conflict to CONFLICT-colon",
+              "answer": "In ASCII mode, the serializer replaces Unicode operators with ASCII fallbacks for terminal compatibility using the following mappings:\n\n- `\u00a7CTX` \u2192 `$CTX` (section-ctx unicode)\n- Plus-minus unicode \u2192 `##` (section marker)\n- Arrow unicode \u2192 `->` (arrow)\n- Negation unicode \u2192 `!` (exclamation-mark)\n- Star unicode \u2192 `***` (emphasis)\n- Warning unicode \u2192 `WARN:` (warning)\n- Equivalence unicode \u2192 `===` (equivalence)\n- Conflict unicode \u2192 `CONFLICT:` (conflict)\n- `~>` stays the same (weak association, already ASCII)\n\nThis ensures the .ctx format remains readable in terminals that don't support Unicode characters.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q17",
+              "question": "What heuristic determines whether a YAML structure is classified as an entity?",
+              "expected": "Presence of keys like identifier, golden_source, match_rules, pii, retention, has_many, belongs_to, id, uuid, primary_key",
+              "answer": "Not found in context.\n\nThe provided context contains detailed information about the ctxpack architecture, pipeline components, and various processing stages, but it does not specify the heuristic or criteria used to determine whether a YAML structure should be classified as an entity during the parsing phase.",
+              "correct": false,
+              "llm_judge_correct": false,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q18",
+              "question": "What database does ctxpack use for storage?",
+              "expected": "NOT_IN_CONTEXT",
+              "answer": "Not found in context.\n\nHowever, the context does indicate that ctxpack is explicitly designed as a \"file-based compression codec\" with \"no database, no REST API, no streaming ingestion, and no real-time processing capabilities.\" It processes static file corpora from disk and outputs .ctx text files.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q19",
+              "question": "What is the REST API endpoint for packing?",
+              "expected": "NOT_IN_CONTEXT",
+              "answer": "Not found in context.\n\nThe documentation explicitly states that ctxpack \"has no database, no REST API, no streaming ingestion, and no real-time processing capabilities\" and is designed as a \"file-based compression codec\" that processes static file corpora from disk.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q20",
+              "question": "How does ctxpack handle real-time streaming from Kafka?",
+              "expected": "NOT_IN_CONTEXT",
+              "answer": "Not found in context.\n\nThe documentation indicates that ctxpack is a file-based compression codec that processes static file corpora from disk. It explicitly states that it \"has no database, no REST API, no streaming ingestion, and no real-time processing capabilities.\" The input is a directory of YAML, Markdown, and JSON files, and the output is .ctx text files.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            }
+          ]
+        }
+      },
+      "naive_summary": {
+        "tokens": 259,
+        "ratio": "8.4x",
+        "cost": "$0.0008",
+        "fidelity": 0.35,
+        "fidelity_details": {
+          "total": 20,
+          "correct": 7,
+          "score": 0.35,
+          "llm_judge_correct": 17,
+          "llm_judge_score": 0.85,
+          "by_difficulty": {
+            "easy": {
+              "total": 5,
+              "correct": 3,
+              "score": 0.6
+            },
+            "medium": {
+              "total": 8,
+              "correct": 1,
+              "score": 0.125
+            },
+            "hard": {
+              "total": 7,
+              "correct": 3,
+              "score": 0.429
+            }
+          },
+          "details": [
+            {
+              "id": "Q01",
+              "question": "What entity does COMPRESSOR depend on for cross-reference counting?",
+              "expected": "IR-PIPELINE (uses IREntity and IRField)",
+              "answer": "Not found in context.\n\nThe context describes COMPRESSOR as an alias for \"salience-scorer\" but does not specify what entity it depends on for cross-reference counting.",
+              "correct": false,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q02",
+              "question": "What is the relationship between L3-GENERATOR and COMPRESSOR?",
+              "expected": "L3-GENERATOR depends on COMPRESSOR's count_tokens() function",
+              "answer": "Not found in context.\n\nThe context mentions both L3-GENERATOR (also called gist-generator or l3) and COMPRESSOR (also called salience-scorer) as entity aliases, and describes L3 as an \"Ultra-compressed gist under 500 tokens with topology and constraint extraction\" that involves \"purely algorithmic extraction from L2 AST.\" However, the specific relationship between the L3-GENERATOR and COMPRESSOR components is not explicitly described in the provided context.",
+              "correct": false,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q03",
+              "question": "Which module consumes the MANIFEST entity index for query routing?",
+              "expected": "MCP hydration (query-adaptive section selection based on entity name)",
+              "answer": "Based on the context provided, the **MCP Server** consumes the MANIFEST entity index for query routing. The context specifically mentions \"MCP Server: Query-adaptive hydration via manifest\" as an integration point, indicating that the MCP Server uses the manifest for query-adaptive operations.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q04",
+              "question": "What is the full packer pipeline order?",
+              "expected": "discovery -> parse -> entity-resolution -> conflict-detection -> provenance-generation -> compression -> l3-generation -> manifest-generation",
+              "answer": "Not found in context.\n\nThe provided context mentions components like IR-PIPELINE, PARSER, SERIALIZER, COMPRESSOR, PACKER-PIPELINE, CONFLICT-DETECTOR, and L3-GENERATOR in the entity aliases, but it does not specify the full order or sequence of the packer pipeline stages.",
+              "correct": false,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q05",
+              "question": "Is the CTXDocument AST mutable or immutable?",
+              "expected": "Immutable (frozen dataclasses)",
+              "answer": "The CTXDocument AST is immutable. According to the context, \"The CTXDocument AST uses frozen (immutable) dataclasses\" and \"Immutability ensures the AST cannot be accidentally modified after parsing.\"",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q06",
+              "question": "Does the packer use any LLM or ML model?",
+              "expected": "No \u2014 zero-dependency, deterministic, no LLM in the loop",
+              "answer": "No, the packer does not use any LLM or ML model. According to the Zero-Dependency Principle, \"No LLM or ML model is used at any stage\" and \"All output is deterministic for the same input.\" The entire packer pipeline is pure Python with zero external dependencies.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q07",
+              "question": "What is the L3 token budget?",
+              "expected": "500 tokens",
+              "answer": "According to the context, the L3 (Abstract Gist) layer has a token budget of under 500 tokens.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q08",
+              "question": "What license is ctxpack released under?",
+              "expected": "AGPL-3.0-or-later",
+              "answer": "Not found in context.",
+              "correct": false,
+              "llm_judge_correct": false,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q09",
+              "question": "Can the parser handle arbitrary Python files?",
+              "expected": "No \u2014 only .ctx format (line-oriented, section-based)",
+              "answer": "Not found in context.\n\nThe provided context describes ctxpack's architecture and mentions that it uses \"a custom stdlib-only subset parser\" for YAML parsing, but it doesn't specify what types of files the parser can handle or whether it supports arbitrary Python files.",
+              "correct": false,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q10",
+              "question": "Does the conflict detector catch semantic contradictions?",
+              "expected": "No \u2014 only structural: null policy, type mismatch, retention periods, PII classification level",
+              "answer": "Not found in context.\n\nThe context mentions a CONFLICT-DETECTOR (also called contradiction-detector) as one of the entity aliases, but it does not provide any details about what types of conflicts or contradictions it detects, including whether it catches semantic contradictions specifically.",
+              "correct": false,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q11",
+              "question": "Can L3 topology classification be fully customized per-domain without code changes?",
+              "expected": "Only hub_threshold is configurable; topology classification rules (hub/leaf/bridge) are hardcoded",
+              "answer": "Not found in context.\n\nThe provided context explains that L3 generation is \"purely algorithmic extraction from L2 AST\" and mentions \"topology and constraint extraction,\" but it does not contain information about whether L3 topology classification can be customized per-domain without code changes.",
+              "correct": false,
+              "llm_judge_correct": false,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q12",
+              "question": "If a field has certainty=INFERRED and --strict mode is on, what happens?",
+              "expected": "The field is suppressed from output entirely (strict mode drops all INFERRED fields)",
+              "answer": "Not found in context.\n\nThe provided context describes the ctxpack architecture, compression layers, AST design, and general principles, but does not contain information about certainty fields, INFERRED values, or --strict mode behavior.",
+              "correct": false,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q13",
+              "question": "What happens when two sources define the same field with different types?",
+              "expected": "Type conflict warning is generated AND both sources are tracked in provenance",
+              "answer": "Not found in context.\n\nThe provided context describes the ctxpack architecture, compression layers, AST design, and integration points, but does not contain information about how conflicts or type mismatches between sources are handled when the same field is defined with different types.",
+              "correct": false,
+              "llm_judge_correct": false,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q14",
+              "question": "How does the keyword index route a query about 'retention' to the right entity?",
+              "expected": "Semantic regex extracts 'retention' from field values, keyword index maps to sections containing the term",
+              "answer": "Not found in context.\n\nThe provided context describes the ctxpack architecture, compression layers, AST design, and integration points, but does not contain information about how a keyword index routes queries about 'retention' or any other specific terms to entities.",
+              "correct": false,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q15",
+              "question": "What is the entity-level salience scoring formula?",
+              "expected": "source_count * 1.0 + cross_refs * 2.0 + warning_count * 1.5 (golden source gets 1.5x multiplier, minimum score is 1.0)",
+              "answer": "Not found in context.\n\nThe context mentions that L2 (Semantic Graph) includes \"salience scoring\" and that there is a \"COMPRESSOR\" component also called \"salience-scorer\", but it does not provide the actual formula used for entity-level salience scoring.",
+              "correct": false,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q16",
+              "question": "How does the serializer handle Unicode operators in ASCII mode?",
+              "expected": "Unicode operators are replaced with ASCII fallbacks: section-ctx to $CTX, plus-minus to ##, arrow to ->, negation to exclamation-mark, star to triple-asterisk, warning to WARN-colon, equivalence to ===, conflict to CONFLICT-colon",
+              "answer": "Not found in context.\n\nThe provided context describes the overall architecture of ctxpack, including its four-layer compression model, AST design, and zero-dependency principle, but it does not contain any information about how the serializer handles Unicode operators in ASCII mode.",
+              "correct": false,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q17",
+              "question": "What heuristic determines whether a YAML structure is classified as an entity?",
+              "expected": "Presence of keys like identifier, golden_source, match_rules, pii, retention, has_many, belongs_to, id, uuid, primary_key",
+              "answer": "Not found in context.\n\nThe provided context describes the ctxpack architecture, compression layers, AST design, and integration points, but does not contain information about the specific heuristic used to classify YAML structures as entities.",
+              "correct": false,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q18",
+              "question": "What database does ctxpack use for storage?",
+              "expected": "NOT_IN_CONTEXT",
+              "answer": "Not found in context.\n\nThe provided context describes ctxpack's architecture, compression layers, AST design, and zero-dependency principle, but does not mention any database being used for storage.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q19",
+              "question": "What is the REST API endpoint for packing?",
+              "expected": "NOT_IN_CONTEXT",
+              "answer": "Not found in context.\n\nThe provided context describes ctxpack's architecture, including CLI commands and MCP Server integration, but does not mention any REST API endpoints for packing operations.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q20",
+              "question": "How does ctxpack handle real-time streaming from Kafka?",
+              "expected": "NOT_IN_CONTEXT",
+              "answer": "Not found in context.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            }
+          ]
+        }
+      },
+      "llm_summary": {
+        "tokens": 167,
+        "ratio": "13.0x",
+        "cost": "$0.0005",
+        "summary_preview": "**ctxpack** is a deterministic domain knowledge packer converting corpus directories to structured .ctx files using four compression layers: L0 (raw), L1 (compressed prose), L2 (semantic graph), L3 (a...",
+        "fidelity": 0.55,
+        "fidelity_details": {
+          "total": 20,
+          "correct": 11,
+          "score": 0.55,
+          "llm_judge_correct": 15,
+          "llm_judge_score": 0.75,
+          "by_difficulty": {
+            "easy": {
+              "total": 5,
+              "correct": 4,
+              "score": 0.8
+            },
+            "medium": {
+              "total": 8,
+              "correct": 4,
+              "score": 0.5
+            },
+            "hard": {
+              "total": 7,
+              "correct": 3,
+              "score": 0.429
+            }
+          },
+          "details": [
+            {
+              "id": "Q01",
+              "question": "What entity does COMPRESSOR depend on for cross-reference counting?",
+              "expected": "IR-PIPELINE (uses IREntity and IRField)",
+              "answer": "Not found in context.\n\nThe context mentions that the COMPRESSOR (salience-scorer) uses cross-reference counting in its heuristic scoring formula (cross_refs*2.0), but it does not specify which entity or component provides the cross-reference data for this counting.",
+              "correct": false,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q02",
+              "question": "What is the relationship between L3-GENERATOR and COMPRESSOR?",
+              "expected": "L3-GENERATOR depends on COMPRESSOR's count_tokens() function",
+              "answer": "Based on the context, the L3-GENERATOR and COMPRESSOR are separate components in the ctxpack pipeline that work sequentially:\n\n1. **COMPRESSOR** operates earlier in the pipeline, using heuristic scoring (source_count*1.0 + cross_refs*2.0 + warnings*1.5) with various boosts to determine content salience and compression.\n\n2. **L3-GENERATOR** operates later, taking the compressed output and performing deterministic AST extraction to produce the abstract gist layer (L3) with structured sections (ENTITIES, TOPOLOGY, PATTERNS, CONSTRAINTS, WARNINGS) within a 500-token budget.\n\nThe COMPRESSOR determines what content is most salient for retention, while the L3-GENERATOR creates the final abstract representation from that compressed content.",
+              "correct": true,
+              "llm_judge_correct": false,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q03",
+              "question": "Which module consumes the MANIFEST entity index for query routing?",
+              "expected": "MCP hydration (query-adaptive section selection based on entity name)",
+              "answer": "Not found in context.\n\nThe context describes that the MANIFEST includes an ENTITY-INDEX component, but it does not specify which module consumes this entity index for query routing purposes.",
+              "correct": false,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q04",
+              "question": "What is the full packer pipeline order?",
+              "expected": "discovery -> parse -> entity-resolution -> conflict-detection -> provenance-generation -> compression -> l3-generation -> manifest-generation",
+              "answer": "Based on the context, the full packer pipeline order consists of 8 steps:\n\n1. discovery\n2. parse\n3. entity-resolution\n4. conflict-detection\n5. provenance\n6. compression\n7. l3\n8. manifest\n\nThis 8-step orchestrator is managed by the **PACKER-PIPELINE** component.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q05",
+              "question": "Is the CTXDocument AST mutable or immutable?",
+              "expected": "Immutable (frozen dataclasses)",
+              "answer": "Based on the context, the CTXDocument AST is **immutable**. The context explicitly states \"Immutable frozen dataclasses AST\" as one of the constraints of the ctxpack system.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q06",
+              "question": "Does the packer use any LLM or ML model?",
+              "expected": "No \u2014 zero-dependency, deterministic, no LLM in the loop",
+              "answer": "No, the packer does not use any LLM or ML model. The context explicitly states that ctxpack is \"Zero-dependency pure Python with no LLM/ML usage except eval framework.\"",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q07",
+              "question": "What is the L3 token budget?",
+              "expected": "500 tokens",
+              "answer": "The L3 token budget is 500 tokens.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q08",
+              "question": "What license is ctxpack released under?",
+              "expected": "AGPL-3.0-or-later",
+              "answer": "AGPL-3.0-or-later",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "easy"
+            },
+            {
+              "id": "Q09",
+              "question": "Can the parser handle arbitrary Python files?",
+              "expected": "No \u2014 only .ctx format (line-oriented, section-based)",
+              "answer": "Not found in context.\n\nThe context describes a parser (ctx-parser) that handles .ctx files with specific conformance levels and error/warning codes, but it doesn't specify whether it can handle arbitrary Python files or what file types it supports beyond .ctx files.",
+              "correct": false,
+              "llm_judge_correct": false,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q10",
+              "question": "Does the conflict detector catch semantic contradictions?",
+              "expected": "No \u2014 only structural: null policy, type mismatch, retention periods, PII classification level",
+              "answer": "Not found in context.\n\nThe context describes that the conflict detector catches \"retention, null-policy, type-mismatch, pii-classification conflicts via regex extraction,\" but does not mention semantic contradictions specifically.",
+              "correct": true,
+              "llm_judge_correct": false,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q11",
+              "question": "Can L3 topology classification be fully customized per-domain without code changes?",
+              "expected": "Only hub_threshold is configurable; topology classification rules (hub/leaf/bridge) are hardcoded",
+              "answer": "Not found in context.\n\nThe context mentions that L3-GENERATOR produces a TOPOLOGY section and uses deterministic AST extraction, but it doesn't specify whether topology classification can be customized per-domain without code changes.",
+              "correct": false,
+              "llm_judge_correct": false,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q12",
+              "question": "If a field has certainty=INFERRED and --strict mode is on, what happens?",
+              "expected": "The field is suppressed from output entirely (strict mode drops all INFERRED fields)",
+              "answer": "Not found in context.\n\nThe context mentions that the IR-PIPELINE has certainty tiers (EXPLICIT, INFERRED, UNCERTAIN) and that the salience-scorer has strict/enriched modes, but it doesn't specify what happens to INFERRED certainty fields when --strict mode is enabled.",
+              "correct": false,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q13",
+              "question": "What happens when two sources define the same field with different types?",
+              "expected": "Type conflict warning is generated AND both sources are tracked in provenance",
+              "answer": "Based on the context, when two sources define the same field with different types, the **CONFLICT-DETECTOR** identifies this as a **type-mismatch conflict**. The conflict detector uses regex extraction to detect various types of conflicts, including type-mismatch conflicts specifically.\n\nHowever, the context doesn't specify what action is taken after detecting the type-mismatch conflict (such as whether one type takes precedence, if a warning is generated, or how the conflict is resolved).",
+              "correct": false,
+              "llm_judge_correct": false,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q14",
+              "question": "How does the keyword index route a query about 'retention' to the right entity?",
+              "expected": "Semantic regex extracts 'retention' from field values, keyword index maps to sections containing the term",
+              "answer": "Not found in context.\n\nThe context mentions that the MANIFEST includes a KEYWORD-INDEX with a 15-keyword cap and semantic regex extraction, but it doesn't explain the specific routing mechanism for how queries about keywords like 'retention' are matched to entities.",
+              "correct": false,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q15",
+              "question": "What is the entity-level salience scoring formula?",
+              "expected": "source_count * 1.0 + cross_refs * 2.0 + warning_count * 1.5 (golden source gets 1.5x multiplier, minimum score is 1.0)",
+              "answer": "The entity-level salience scoring formula is:\n\n**source_count * 1.0 + cross_refs * 2.0 + warnings * 1.5**\n\nWith additional boosts:\n- **golden_source_boost**: 1.5x multiplier\n- **star_prefix_boost**: 2.0x multiplier\n\nThis heuristic scoring is implemented by the salience-scorer component and operates in strict/enriched modes.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q16",
+              "question": "How does the serializer handle Unicode operators in ASCII mode?",
+              "expected": "Unicode operators are replaced with ASCII fallbacks: section-ctx to $CTX, plus-minus to ##, arrow to ->, negation to exclamation-mark, star to triple-asterisk, warning to WARN-colon, equivalence to ===, conflict to CONFLICT-colon",
+              "answer": "Not found in context.\n\nThe context mentions that the serializer has \"default/canonical/ascii modes\" but does not provide specific details about how Unicode operators are handled in ASCII mode.",
+              "correct": false,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q17",
+              "question": "What heuristic determines whether a YAML structure is classified as an entity?",
+              "expected": "Presence of keys like identifier, golden_source, match_rules, pii, retention, has_many, belongs_to, id, uuid, primary_key",
+              "answer": "Not found in context.\n\nThe provided context describes the heuristic scoring system used by the salience-scorer component (source_count*1.0 + cross_refs*2.0 + warnings*1.5 with various boosts), but it does not specify the criteria or heuristics used to classify YAML structures as entities in the first place.",
+              "correct": false,
+              "llm_judge_correct": true,
+              "difficulty": "medium"
+            },
+            {
+              "id": "Q18",
+              "question": "What database does ctxpack use for storage?",
+              "expected": "NOT_IN_CONTEXT",
+              "answer": "Not found in context.\n\nThe context describes ctxpack as using \"file-based codec only\" and mentions \".ctx files\" as the output format, but does not specify any database system for storage.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q19",
+              "question": "What is the REST API endpoint for packing?",
+              "expected": "NOT_IN_CONTEXT",
+              "answer": "Not found in context.\n\nThe context describes ctxpack as a file-based codec with a command-line pipeline, but does not mention any REST API endpoints for packing operations.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            },
+            {
+              "id": "Q20",
+              "question": "How does ctxpack handle real-time streaming from Kafka?",
+              "expected": "NOT_IN_CONTEXT",
+              "answer": "Not found in context.\n\nThe provided context describes ctxpack as a file-based system that processes corpus directories and converts them to structured .ctx files. There is no mention of Kafka integration or real-time streaming capabilities in the domain knowledge provided.",
+              "correct": true,
+              "llm_judge_correct": true,
+              "difficulty": "hard"
+            }
+          ]
+        }
+      }
+    },
+    "config": {
+      "golden_set_path": "ctxpack/benchmarks/ctxpack_eval",
+      "baselines": [
+        "raw",
+        "naive",
+        "llm_summary",
+        "hand"
+      ],
+      "run_fidelity": true,
+      "run_conflicts": true,
+      "model": "claude-sonnet-4-20250514",
+      "provider": "anthropic"
+    },
+    "conflict_detection": {
+      "planted": 0,
+      "found": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    }
+  }
+}

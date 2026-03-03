@@ -1,0 +1,188 @@
+==========================================================================================
+  MODEL AFFINITY FAILURE ANALYSIS
+  Version: 0.3.0-alpha
+  Timestamp: 2026-02-23T23:50:44Z
+==========================================================================================
+
+-- Summary --
+
+Run                       Tokens   Rule   Judge   Easy    Med   Hard
+--------------------------------------------------------------------
+claude-sonnet-4.5-L2         139  100%   100%  100%  100%  100%
+claude-sonnet-4.5-L1         417  100%   100%  100%  100%  100%
+claude-haiku-4.5-L2          139  100%   100%  100%  100%  100%
+claude-haiku-4.5-L1          417  100%   100%  100%  100%  100%
+gpt-5.2-L2                   139   88%    92%   86%  100%   71%
+gpt-5.2-L1                   417   92%    92%   86%  100%   86%
+gpt-4.1-L2                   139   96%    96%  100%  100%   86%
+gpt-4.1-L1                   417   96%   100%  100%  100%   86%
+gpt-4o-L2                    139   88%    92%   86%  100%   71%
+gpt-4o-L1                    417   84%    88%   86%   91%   71%
+gpt-4o-mini-L2               139   92%    96%  100%   91%   86%
+gpt-4o-mini-L1               417   92%    96%  100%   91%   86%
+o3-L2                        139   88%    92%   86%   91%  100%
+o3-L1                        417   88%    92%   86%   91%  100%
+o4-mini-L2                   139   92%   100%  100%  100%  100%
+o4-mini-L1                   417   96%   100%  100%  100%  100%
+gpt-5.2-pro-L2               139  100%   100%  100%  100%  100%
+gpt-5.2-pro-L1               417   96%    96%  100%  100%   86%
+gemini-2.5-pro-L2             139   96%    92%   --    --    --
+gemini-2.5-pro-L1             417   92%    92%   --    --    --
+gemini-2.5-flash-L2           139   84%    92%   --    --    --
+gemini-2.5-flash-L1           417   72%    84%   --    --    --
+gemini-2.5-flash-lite-L2      139   84%    92%   --    --    --
+gemini-2.5-flash-lite-L1      417   84%    92%   --    --    --
+
+-- Per-Question Correctness Matrix (Judge) --
+
+    Q  Diff       Son-L2  Son-L1  Hai-L2  Hai-L1  5.2-L2  5.2-L1  4.1-L2  4.1-L1   4o-L2   4o-L1 mini-L2 mini-L1
+----------------------------------------------------------------------------------------------------------------
+  Q01  easy           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q02  medi           OK      OK      OK      OK      OK      OK      OK      OK      OK    FAIL      OK      OK
+  Q03  easy           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q04  easy           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q05  medi           OK      OK      OK      OK      OK      OK    FAIL      OK    FAIL    FAIL      OK      OK
+  Q06  medi           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q07  medi           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q08  medi           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q09  easy           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q10  easy           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q11  medi           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q12  medi           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q13  easy           OK      OK      OK      OK    FAIL    FAIL      OK      OK      OK      OK      OK      OK
+  Q14  medi           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q15  hard           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q16  medi           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q17  easy           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q18  medi           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q19  medi           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q20  hard           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q21  hard           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q22  hard           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q23  hard           OK      OK      OK      OK    FAIL    FAIL      OK      OK      OK      OK      OK      OK
+  Q24  hard           OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK      OK
+  Q25  hard           OK      OK      OK      OK      OK      OK      OK      OK    FAIL    FAIL    FAIL    FAIL
+
+-- L2 vs L1 Flip Analysis --
+
+  claude-sonnet-4.5:
+    Both correct:     25 questions
+    Both wrong:       0 questions  []
+    L2 wins (L1 fails): 0 questions  []
+    L1 wins (L2 fails): 0 questions  []
+
+  claude-haiku-4.5:
+    Both correct:     25 questions
+    Both wrong:       0 questions  []
+    L2 wins (L1 fails): 0 questions  []
+    L1 wins (L2 fails): 0 questions  []
+
+  gpt-5.2:
+    Both correct:     23 questions
+    Both wrong:       2 questions  ['Q13', 'Q23']
+    L2 wins (L1 fails): 0 questions  []
+    L1 wins (L2 fails): 0 questions  []
+
+    -- Both formats fail (hard for this model) --
+    Q13 [easy]: What is the SKU identifier type for products?
+      Expected: string, unique per merchant
+      L2 answer: The product SKU identifier type is **string**.
+      L1 answer: The product SKU identifier type is **string**.
+
+    Q23 [hard]: What happens to seasonal products at end of season?
+      Expected: auto-deactivated, reactivation requires manual review by merchandising
+      L2 answer: Seasonal products are automatically deactivated at the end of the season.
+      L1 answer: Seasonal products are automatically deactivated at the end of the season.
+
+  gpt-4.1:
+    Both correct:     24 questions
+    Both wrong:       0 questions  []
+    L2 wins (L1 fails): 0 questions  []
+    L1 wins (L2 fails): 1 questions  ['Q05']
+
+    -- L1 wins over L2 (notation barrier candidates) --
+    Q05 [medium]: What matching algorithm is used for name+address?
+      Expected: Jaro-Winkler with threshold > 0.92
+      L2 answer: Jaro-Winkler similarity with a threshold of 0.92, requiring manual review.
+      L1 answer: Jaro-Winkler similarity with a threshold of 0.92, requiring manual review.
+      Answer length: L2=10w, L1=10w
+
+  gpt-4o:
+    Both correct:     22 questions
+    Both wrong:       2 questions  ['Q05', 'Q25']
+    L2 wins (L1 fails): 1 questions  ['Q02']
+    L1 wins (L2 fails): 0 questions  []
+
+    -- L2 wins over L1 (attention dilution candidates) --
+    Q02 [medium]: What happens to churned customer data after 36 months?
+      Expected: anonymise
+      L2 answer: Churned customer data is anonymised after 36 months.
+      L1 answer: Not found in context.
+      Answer length: L2=8w, L1=4w
+
+    -- Both formats fail (hard for this model) --
+    Q05 [medium]: What matching algorithm is used for name+address?
+      Expected: Jaro-Winkler with threshold > 0.92
+      L2 answer: Jaro-Winkler similarity threshold 0.92, requiring manual review.
+      L1 answer: Jaro-Winkler similarity with a threshold of 0.92, requiring manual review.
+
+    Q25 [hard]: Can a PAYMENT exist without an associated ORDER?
+      Expected: No, order_id is mandatory (PAYMENT belongs to ORDER)
+      L2 answer: Not found in context.
+      L1 answer: Not found in context.
+
+  gpt-4o-mini:
+    Both correct:     24 questions
+    Both wrong:       1 questions  ['Q25']
+    L2 wins (L1 fails): 0 questions  []
+    L1 wins (L2 fails): 0 questions  []
+
+    -- Both formats fail (hard for this model) --
+    Q25 [hard]: Can a PAYMENT exist without an associated ORDER?
+      Expected: No, order_id is mandatory (PAYMENT belongs to ORDER)
+      L2 answer: Not found in context.
+      L1 answer: Not found in context.
+
+-- Cross-Model Hardness --
+
+  Questions with at least 1 failure (across 12 runs):
+    Q25 [hard] — fails 4/12: ['gpt-4o-L2', 'gpt-4o-L1', 'gpt-4o-mini-L2', 'gpt-4o-mini-L1']
+      Q: Can a PAYMENT exist without an associated ORDER?
+      Expected: No, order_id is mandatory (PAYMENT belongs to ORDER)
+    Q05 [medium] — fails 3/12: ['gpt-4.1-L2', 'gpt-4o-L2', 'gpt-4o-L1']
+      Q: What matching algorithm is used for name+address?
+      Expected: Jaro-Winkler with threshold > 0.92
+    Q13 [easy] — fails 2/12: ['gpt-5.2-L2', 'gpt-5.2-L1']
+      Q: What is the SKU identifier type for products?
+      Expected: string, unique per merchant
+    Q23 [hard] — fails 2/12: ['gpt-5.2-L2', 'gpt-5.2-L1']
+      Q: What happens to seasonal products at end of season?
+      Expected: auto-deactivated, reactivation requires manual review by merchandising
+    Q02 [medium] — fails 1/12: ['gpt-4o-L1']
+      Q: What happens to churned customer data after 36 months?
+      Expected: anonymise
+
+-- Mechanism Analysis --
+
+  Across all models:
+    L2-wins-over-L1 flips: 1
+    L1-wins-over-L2 flips: 1
+    Both-fail (format-independent): 5
+
+  FINDING: Complementary failure modes detected.
+  L2 and L1 fail on DIFFERENT questions, suggesting ensemble
+  context (serve both formats) could achieve higher fidelity
+  than either format alone.
+
+
+-- Ensemble Upper Bound --
+  (If we served both L2 and L1 and took the best answer per question)
+
+  claude-sonnet-4.5: L2=100%, L1=100%, ensemble=100% (25/25)
+  claude-haiku-4.5: L2=100%, L1=100%, ensemble=100% (25/25)
+  gpt-5.2: L2=92%, L1=92%, ensemble=92% (23/25)
+  gpt-4.1: L2=96%, L1=100%, ensemble=100% (25/25)
+  gpt-4o: L2=92%, L1=88%, ensemble=92% (23/25)
+  gpt-4o-mini: L2=96%, L1=96%, ensemble=96% (24/25)
+
+==========================================================================================

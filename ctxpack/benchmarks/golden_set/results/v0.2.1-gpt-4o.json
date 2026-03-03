@@ -1,0 +1,1054 @@
+{
+  "version": "0.2.1",
+  "timestamp": "2026-02-22T17:25:05.487580+00:00",
+  "baselines": {
+    "ctxpack_l2": {
+      "tokens": 124,
+      "ratio": "5.6x",
+      "cost": "$0.0003",
+      "fidelity": 0.88,
+      "fidelity_details": {
+        "total": 25,
+        "correct": 22,
+        "score": 0.88,
+        "llm_judge_correct": 23,
+        "llm_judge_score": 0.92,
+        "by_difficulty": {
+          "easy": {
+            "total": 7,
+            "correct": 6,
+            "score": 0.857
+          },
+          "medium": {
+            "total": 11,
+            "correct": 11,
+            "score": 1.0
+          },
+          "hard": {
+            "total": 7,
+            "correct": 5,
+            "score": 0.714
+          }
+        },
+        "details": [
+          {
+            "id": "Q01",
+            "question": "What is the golden source for customer data?",
+            "expected": "CRM (Salesforce)",
+            "answer": "Salesforce (CRM)",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q02",
+            "question": "What happens to churned customer data after 36 months?",
+            "expected": "anonymise",
+            "answer": "Churned customer data is anonymised after 36 months.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q03",
+            "question": "What type is the customer_id field?",
+            "expected": "UUID",
+            "answer": "UUID, immutable",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q04",
+            "question": "Is the customer_id field mutable?",
+            "expected": "No, it is immutable",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q05",
+            "question": "What matching algorithm is used for name+address?",
+            "expected": "Jaro-Winkler with threshold > 0.92",
+            "answer": "Jaro-Winkler similarity threshold 0.92, requiring manual review.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q06",
+            "question": "What PII classification level applies to customer email?",
+            "expected": "RESTRICTED",
+            "answer": "RESTRICTED",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q07",
+            "question": "What is the order status flow?",
+            "expected": "draft -> submitted -> processing -> shipped -> delivered",
+            "answer": "The order status flow is: draft \u2192 submitted \u2192 processing \u2192 shipped \u2192 delivered.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q08",
+            "question": "After which status can order line items no longer be edited?",
+            "expected": "submitted",
+            "answer": "After the status \"submitted,\" order line items can no longer be edited.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q09",
+            "question": "What decimal precision should be used for financial fields?",
+            "expected": "DECIMAL(19,4)",
+            "answer": "DECIMAL(19,4)",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q10",
+            "question": "What entity does ORDER belong to?",
+            "expected": "CUSTOMER (via customer_id)",
+            "answer": "@ENTITY-CUSTOMER",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q11",
+            "question": "What is the maximum staleness allowed for inventory data?",
+            "expected": "5 minutes",
+            "answer": "5 minutes.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q12",
+            "question": "What happens when an order exceeds $50,000?",
+            "expected": "auto-hold and alert",
+            "answer": "The order is automatically put on hold and an alert is triggered.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q13",
+            "question": "What is the SKU identifier type for products?",
+            "expected": "string, unique per merchant",
+            "answer": "The SKU identifier type for products is a string, unique per merchant.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q14",
+            "question": "How is inventory data synced?",
+            "expected": "Real-time via warehouse API (webhook + 5min poll fallback)",
+            "answer": "Inventory data is synced in real-time using a source from the warehouse API, with a method that includes a webhook and a 5-minute poll fallback.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q15",
+            "question": "Are there any conflicting retention policies?",
+            "expected": "Yes - CUSTOMER says 36 months for churned, regulatory requires 7 years for financial records",
+            "answer": "Yes, there is a known conflict between the customer retention policy (36 months for churned customers) and the regulatory requirement to retain financial records for 7 years.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q16",
+            "question": "What is the null policy for the email field?",
+            "expected": "never-null-for-active",
+            "answer": "The null policy for the email field is that it is never null for active customers.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q17",
+            "question": "How are timestamps stored and displayed?",
+            "expected": "Stored in UTC, displayed in customer locale",
+            "answer": "Timestamps are stored in UTC and displayed in the customer locale.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q18",
+            "question": "How are addresses normalised for US addresses?",
+            "expected": "Via SmartyStreets API, USPS format",
+            "answer": "Addresses are normalised using the SmartyStreets API and formatted according to USPS standards for US addresses.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q19",
+            "question": "What is the PII classification for payment card numbers?",
+            "expected": "HIGHLY-RESTRICTED",
+            "answer": "HIGHLY-RESTRICTED",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q20",
+            "question": "What is the minimum retention period for financial transaction data?",
+            "expected": "7 years (regulatory requirement)",
+            "answer": "7 years",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q21",
+            "question": "What is the customer return/refund policy?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q22",
+            "question": "What GDPR or CCPA compliance rules apply to customer data deletion?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q23",
+            "question": "What happens to seasonal products at end of season?",
+            "expected": "auto-deactivated, reactivation requires manual review by merchandising",
+            "answer": "Products with the catalog status \"seasonal\" are automatically deactivated at the end of the season. Reactivation requires manual review by the merchandising team.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q24",
+            "question": "What is the UK address format standard used for normalisation?",
+            "expected": "Royal Mail",
+            "answer": "Royal Mail",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q25",
+            "question": "Can a PAYMENT exist without an associated ORDER?",
+            "expected": "No, order_id is mandatory (PAYMENT belongs to ORDER)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          }
+        ]
+      }
+    },
+    "raw_stuffing": {
+      "tokens": 720,
+      "ratio": "1x",
+      "cost": "$0.0018",
+      "fidelity": 0.76,
+      "fidelity_details": {
+        "total": 25,
+        "correct": 19,
+        "score": 0.76,
+        "llm_judge_correct": 22,
+        "llm_judge_score": 0.88,
+        "by_difficulty": {
+          "easy": {
+            "total": 7,
+            "correct": 5,
+            "score": 0.714
+          },
+          "medium": {
+            "total": 11,
+            "correct": 9,
+            "score": 0.818
+          },
+          "hard": {
+            "total": 7,
+            "correct": 5,
+            "score": 0.714
+          }
+        },
+        "details": [
+          {
+            "id": "Q01",
+            "question": "What is the golden source for customer data?",
+            "expected": "CRM (Salesforce)",
+            "answer": "CRM (Salesforce)",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q02",
+            "question": "What happens to churned customer data after 36 months?",
+            "expected": "anonymise",
+            "answer": "Churned customer data is anonymised after 36 months.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q03",
+            "question": "What type is the customer_id field?",
+            "expected": "UUID",
+            "answer": "UUID",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q04",
+            "question": "Is the customer_id field mutable?",
+            "expected": "No, it is immutable",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q05",
+            "question": "What matching algorithm is used for name+address?",
+            "expected": "Jaro-Winkler with threshold > 0.92",
+            "answer": "Jaro-Winkler similarity with threshold 0.92.",
+            "correct": true,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q06",
+            "question": "What PII classification level applies to customer email?",
+            "expected": "RESTRICTED",
+            "answer": "RESTRICTED",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q07",
+            "question": "What is the order status flow?",
+            "expected": "draft -> submitted -> processing -> shipped -> delivered",
+            "answer": "draft -> submitted -> processing -> shipped -> delivered",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q08",
+            "question": "After which status can order line items no longer be edited?",
+            "expected": "submitted",
+            "answer": "Once an order is submitted, line items can no longer be edited.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q09",
+            "question": "What decimal precision should be used for financial fields?",
+            "expected": "DECIMAL(19,4)",
+            "answer": "DECIMAL(19,4)",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q10",
+            "question": "What entity does ORDER belong to?",
+            "expected": "CUSTOMER (via customer_id)",
+            "answer": "CUSTOMER",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q11",
+            "question": "What is the maximum staleness allowed for inventory data?",
+            "expected": "5 minutes",
+            "answer": "Max-5min-stale",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q12",
+            "question": "What happens when an order exceeds $50,000?",
+            "expected": "auto-hold and alert",
+            "answer": "The order is automatically held and an alert is triggered.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q13",
+            "question": "What is the SKU identifier type for products?",
+            "expected": "string, unique per merchant",
+            "answer": "The SKU identifier type for products is \"string\".",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q14",
+            "question": "How is inventory data synced?",
+            "expected": "Real-time via warehouse API (webhook + 5min poll fallback)",
+            "answer": "Inventory data is synced in real-time using a webhook with a 5-minute poll fallback.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q15",
+            "question": "Are there any conflicting retention policies?",
+            "expected": "Yes - CUSTOMER says 36 months for churned, regulatory requires 7 years for financial records",
+            "answer": "There is a known conflict between the customer retention policy (36 months for churned) and the regulatory requirement (7 years for financial records).",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q16",
+            "question": "What is the null policy for the email field?",
+            "expected": "never-null-for-active",
+            "answer": "The null policy for the email field is \"never-null-for-active\".",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q17",
+            "question": "How are timestamps stored and displayed?",
+            "expected": "Stored in UTC, displayed in customer locale",
+            "answer": "Timestamps are stored in UTC and displayed in the customer locale.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q18",
+            "question": "How are addresses normalised for US addresses?",
+            "expected": "Via SmartyStreets API, USPS format",
+            "answer": "Addresses are normalised using the \"SmartyStreets API\" and formatted according to USPS standards for US addresses.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q19",
+            "question": "What is the PII classification for payment card numbers?",
+            "expected": "HIGHLY-RESTRICTED",
+            "answer": "HIGHLY-RESTRICTED",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q20",
+            "question": "What is the minimum retention period for financial transaction data?",
+            "expected": "7 years (regulatory requirement)",
+            "answer": "7 years",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q21",
+            "question": "What is the customer return/refund policy?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q22",
+            "question": "What GDPR or CCPA compliance rules apply to customer data deletion?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q23",
+            "question": "What happens to seasonal products at end of season?",
+            "expected": "auto-deactivated, reactivation requires manual review by merchandising",
+            "answer": "Products with catalog status \"seasonal\" are automatically deactivated at the end of the season. Reactivation requires manual review by the merchandising team.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q24",
+            "question": "What is the UK address format standard used for normalisation?",
+            "expected": "Royal Mail",
+            "answer": "Royal-Mail",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q25",
+            "question": "Can a PAYMENT exist without an associated ORDER?",
+            "expected": "No, order_id is mandatory (PAYMENT belongs to ORDER)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          }
+        ]
+      }
+    },
+    "naive_summary": {
+      "tokens": 124,
+      "ratio": "5.6x",
+      "cost": "$0.0003",
+      "fidelity": 0.16,
+      "fidelity_details": {
+        "total": 25,
+        "correct": 4,
+        "score": 0.16,
+        "llm_judge_correct": 9,
+        "llm_judge_score": 0.36,
+        "by_difficulty": {
+          "easy": {
+            "total": 7,
+            "correct": 1,
+            "score": 0.143
+          },
+          "medium": {
+            "total": 11,
+            "correct": 1,
+            "score": 0.091
+          },
+          "hard": {
+            "total": 7,
+            "correct": 2,
+            "score": 0.286
+          }
+        },
+        "details": [
+          {
+            "id": "Q01",
+            "question": "What is the golden source for customer data?",
+            "expected": "CRM (Salesforce)",
+            "answer": "CRM (Salesforce)",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q02",
+            "question": "What happens to churned customer data after 36 months?",
+            "expected": "anonymise",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q03",
+            "question": "What type is the customer_id field?",
+            "expected": "UUID",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q04",
+            "question": "Is the customer_id field mutable?",
+            "expected": "No, it is immutable",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q05",
+            "question": "What matching algorithm is used for name+address?",
+            "expected": "Jaro-Winkler with threshold > 0.92",
+            "answer": "Jaro-Winkler similarity with threshold 0.92.",
+            "correct": true,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q06",
+            "question": "What PII classification level applies to customer email?",
+            "expected": "RESTRICTED",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q07",
+            "question": "What is the order status flow?",
+            "expected": "draft -> submitted -> processing -> shipped -> delivered",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q08",
+            "question": "After which status can order line items no longer be edited?",
+            "expected": "submitted",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q09",
+            "question": "What decimal precision should be used for financial fields?",
+            "expected": "DECIMAL(19,4)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q10",
+            "question": "What entity does ORDER belong to?",
+            "expected": "CUSTOMER (via customer_id)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q11",
+            "question": "What is the maximum staleness allowed for inventory data?",
+            "expected": "5 minutes",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q12",
+            "question": "What happens when an order exceeds $50,000?",
+            "expected": "auto-hold and alert",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q13",
+            "question": "What is the SKU identifier type for products?",
+            "expected": "string, unique per merchant",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q14",
+            "question": "How is inventory data synced?",
+            "expected": "Real-time via warehouse API (webhook + 5min poll fallback)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q15",
+            "question": "Are there any conflicting retention policies?",
+            "expected": "Yes - CUSTOMER says 36 months for churned, regulatory requires 7 years for financial records",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q16",
+            "question": "What is the null policy for the email field?",
+            "expected": "never-null-for-active",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q17",
+            "question": "How are timestamps stored and displayed?",
+            "expected": "Stored in UTC, displayed in customer locale",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q18",
+            "question": "How are addresses normalised for US addresses?",
+            "expected": "Via SmartyStreets API, USPS format",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q19",
+            "question": "What is the PII classification for payment card numbers?",
+            "expected": "HIGHLY-RESTRICTED",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q20",
+            "question": "What is the minimum retention period for financial transaction data?",
+            "expected": "7 years (regulatory requirement)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q21",
+            "question": "What is the customer return/refund policy?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q22",
+            "question": "What GDPR or CCPA compliance rules apply to customer data deletion?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q23",
+            "question": "What happens to seasonal products at end of season?",
+            "expected": "auto-deactivated, reactivation requires manual review by merchandising",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q24",
+            "question": "What is the UK address format standard used for normalisation?",
+            "expected": "Royal Mail",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q25",
+            "question": "Can a PAYMENT exist without an associated ORDER?",
+            "expected": "No, order_id is mandatory (PAYMENT belongs to ORDER)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          }
+        ]
+      }
+    },
+    "llm_summary": {
+      "tokens": 114,
+      "ratio": "6.1x",
+      "cost": "$0.0003",
+      "summary_preview": "The customer-data-platform focuses on entity-resolution-and-data-quality, authored by the data-engineering-team. Key entities include CUSTOMER (CRM Salesforce), ORDER (OMS OrderHub), PRODUCT (PIM Aken...",
+      "fidelity": 0.16,
+      "fidelity_details": {
+        "total": 25,
+        "correct": 4,
+        "score": 0.16,
+        "llm_judge_correct": 10,
+        "llm_judge_score": 0.4,
+        "by_difficulty": {
+          "easy": {
+            "total": 7,
+            "correct": 1,
+            "score": 0.143
+          },
+          "medium": {
+            "total": 11,
+            "correct": 1,
+            "score": 0.091
+          },
+          "hard": {
+            "total": 7,
+            "correct": 2,
+            "score": 0.286
+          }
+        },
+        "details": [
+          {
+            "id": "Q01",
+            "question": "What is the golden source for customer data?",
+            "expected": "CRM (Salesforce)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q02",
+            "question": "What happens to churned customer data after 36 months?",
+            "expected": "anonymise",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q03",
+            "question": "What type is the customer_id field?",
+            "expected": "UUID",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q04",
+            "question": "Is the customer_id field mutable?",
+            "expected": "No, it is immutable",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q05",
+            "question": "What matching algorithm is used for name+address?",
+            "expected": "Jaro-Winkler with threshold > 0.92",
+            "answer": "Jaro-Winkler >0.92",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q06",
+            "question": "What PII classification level applies to customer email?",
+            "expected": "RESTRICTED",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q07",
+            "question": "What is the order status flow?",
+            "expected": "draft -> submitted -> processing -> shipped -> delivered",
+            "answer": "draft -> submitted -> processing -> shipped -> delivered",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q08",
+            "question": "After which status can order line items no longer be edited?",
+            "expected": "submitted",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q09",
+            "question": "What decimal precision should be used for financial fields?",
+            "expected": "DECIMAL(19,4)",
+            "answer": "DECIMAL(19,4)",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q10",
+            "question": "What entity does ORDER belong to?",
+            "expected": "CUSTOMER (via customer_id)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q11",
+            "question": "What is the maximum staleness allowed for inventory data?",
+            "expected": "5 minutes",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q12",
+            "question": "What happens when an order exceeds $50,000?",
+            "expected": "auto-hold and alert",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q13",
+            "question": "What is the SKU identifier type for products?",
+            "expected": "string, unique per merchant",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q14",
+            "question": "How is inventory data synced?",
+            "expected": "Real-time via warehouse API (webhook + 5min poll fallback)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q15",
+            "question": "Are there any conflicting retention policies?",
+            "expected": "Yes - CUSTOMER says 36 months for churned, regulatory requires 7 years for financial records",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q16",
+            "question": "What is the null policy for the email field?",
+            "expected": "never-null-for-active",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q17",
+            "question": "How are timestamps stored and displayed?",
+            "expected": "Stored in UTC, displayed in customer locale",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "easy"
+          },
+          {
+            "id": "Q18",
+            "question": "How are addresses normalised for US addresses?",
+            "expected": "Via SmartyStreets API, USPS format",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q19",
+            "question": "What is the PII classification for payment card numbers?",
+            "expected": "HIGHLY-RESTRICTED",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "medium"
+          },
+          {
+            "id": "Q20",
+            "question": "What is the minimum retention period for financial transaction data?",
+            "expected": "7 years (regulatory requirement)",
+            "answer": "7 years",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q21",
+            "question": "What is the customer return/refund policy?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q22",
+            "question": "What GDPR or CCPA compliance rules apply to customer data deletion?",
+            "expected": "NOT_IN_CONTEXT",
+            "answer": "Not found in context.",
+            "correct": true,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q23",
+            "question": "What happens to seasonal products at end of season?",
+            "expected": "auto-deactivated, reactivation requires manual review by merchandising",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q24",
+            "question": "What is the UK address format standard used for normalisation?",
+            "expected": "Royal Mail",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": true,
+            "difficulty": "hard"
+          },
+          {
+            "id": "Q25",
+            "question": "Can a PAYMENT exist without an associated ORDER?",
+            "expected": "No, order_id is mandatory (PAYMENT belongs to ORDER)",
+            "answer": "Not found in context.",
+            "correct": false,
+            "llm_judge_correct": false,
+            "difficulty": "hard"
+          }
+        ]
+      }
+    }
+  },
+  "config": {
+    "golden_set_path": "C:\\Users\\kapil\\Documents\\CTX_mod\\ctxpack\\benchmarks\\golden_set",
+    "baselines": [
+      "raw",
+      "naive",
+      "llm_summary",
+      "hand"
+    ],
+    "run_fidelity": true,
+    "run_conflicts": true,
+    "model": "gpt-4o",
+    "provider": "openai"
+  },
+  "conflict_detection": {
+    "planted": 2,
+    "found": 3,
+    "precision": 0.33,
+    "recall": 0.5
+  }
+}
