@@ -1,0 +1,18 @@
+CtxPack
+Copyright 2026 Kapil Pant
+
+Licensed under the Apache License, Version 2.0.
+
+This product includes software developed with AI assistance (Anthropic Claude).
+
+Trademarks: "Claude" and "Anthropic" are trademarks of Anthropic, PBC.
+"GPT", "ChatGPT", and "OpenAI" are trademarks of OpenAI, Inc. "Gemini"
+and "Google" are trademarks of Google LLC. These names are used in this
+project solely for factual reference in benchmark evaluations and do not
+imply endorsement by or affiliation with their respective owners.
+
+The .ctx format specification (spec/CTXPACK-SPEC.md) is licensed under
+CC-BY-SA 4.0, separate from the Apache-2.0 code license.
+
+FDA drug label data used in real-world evaluations is sourced from the
+U.S. Food and Drug Administration (public domain, 17 U.S.C. 105).

@@ -145,6 +145,12 @@ Key policies:
 - All tests must pass before merge
 - Type hints on public functions
 
+## Disclaimer
+
+CtxPack is a research tool provided as-is. It is not a substitute for professional judgment in regulated industries. Users are responsible for validating compressed output against their source material before use in production systems. The authors make no warranties regarding the accuracy, completeness, or fitness of compressed output for any particular purpose. See the [NOTICE](NOTICE) file for trademark attributions.
+
+Benchmark results reference commercial LLM products by name for factual comparison purposes only. These references do not imply endorsement by or affiliation with Anthropic, OpenAI, or Google.
+
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
