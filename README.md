@@ -1,6 +1,6 @@
 # CtxPack
 
-**MP3 for LLM context** -- a deterministic compression codec for domain knowledge.
+**MP3 analogy for LLM context** -- a deterministic compression codec for domain knowledge.
 
 CtxPack takes structured corpora (YAML, Markdown, JSON) and compresses them into `.ctx`, a multi-resolution text format designed for how transformers consume information -- not how humans write it.
 
