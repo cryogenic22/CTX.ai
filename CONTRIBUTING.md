@@ -1,6 +1,6 @@
 # Contributing to CtxPack
 
-Thank you for your interest in contributing to CtxPack! This project is open-source under AGPL-3.0 and welcomes contributions from the community.
+Thank you for your interest in contributing to CtxPack! This project is open-source under Apache-2.0 and welcomes contributions from the community.
 
 ## Getting Started
 
@@ -103,4 +103,4 @@ tests/            # Test suite (461+ tests)
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under AGPL-3.0-or-later, consistent with the project license.
+By contributing, you agree that your contributions will be licensed under Apache-2.0, consistent with the project license.

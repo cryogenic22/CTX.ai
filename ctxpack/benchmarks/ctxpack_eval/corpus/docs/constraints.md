@@ -24,7 +24,7 @@ Input is a directory of YAML, Markdown, and JSON files. Output is .ctx text file
 
 ## License
 
-ctxpack is released under AGPL-3.0-or-later (open-core model).
+ctxpack is released under Apache-2.0 (open-core model).
 
 ## Parser Scope
 

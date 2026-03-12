@@ -84,7 +84,7 @@ class TestHeaderParsing:
         assert doc.header.layer == Layer.L2
         assert doc.header.get("DOMAIN") == "ai-infrastructure"
         assert doc.header.get("SCOPE") == "ctxpack-concept-development"
-        assert doc.header.get("AUTHOR") == "kapil-pant(SynaptyX-CEO)"
+        assert doc.header.get("AUTHOR") == "kapil-pant(Independent-Researcher)"
         assert doc.header.get("COMPRESSED") == "2026-02-21"
         assert doc.header.get("SOURCE_TOKENS") == "~40000"
         assert doc.header.get("TURNS") == "10"
@@ -207,12 +207,11 @@ class TestBodyParsing:
         assert "ARCHITECTURE" in section_names
         assert "SALIENCE_SCORER" in section_names
         assert "CTX-FORMAT-DESIGN" in section_names
-        assert "STRATEGY-DECISIONS" in section_names
         assert "REPO-STRUCTURE" in section_names
         assert "KEY-CITATIONS" in section_names
         assert "IMMEDIATE-NEXT-STEPS" in section_names
-        # At least 10 top-level sections
-        assert len(sections) >= 10
+        # At least 8 top-level sections
+        assert len(sections) >= 8
 
     def test_spec_l2_full_parse(self):
         """Parse CTXPACK-SPEC.L2.ctx and verify structure."""

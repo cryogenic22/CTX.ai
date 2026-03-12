@@ -46,7 +46,7 @@
 
 - id: Q08
   question: "What license is ctxpack released under?"
-  expected: "AGPL-3.0-or-later"
+  expected: "Apache-2.0"
   difficulty: easy
   entities: []
 

@@ -32,5 +32,11 @@ paper/*.docx
 # Generated scaling test corpora (regenerate with scaling_runner.py)
 ctxpack/benchmarks/scaling/scaling_corpora/
 
-# Working notes (not part of the project)
+# Working notes and internal files (not part of the project)
 rough_notes.md
+PHASE-B-REPORT.md
+reviewer_article.md
+report_combined.py
+demo_features.py
+paper/ctxpack-whitepaper.md
+paper/linkedin-post.md

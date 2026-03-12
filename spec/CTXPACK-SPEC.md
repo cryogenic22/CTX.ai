@@ -5,7 +5,7 @@
 **Status:** Draft
 **Version:** 1.0
 **Date:** 2026-02-21
-**Author:** Kapil Pant / SynaptyX
+**Author:** Kapil Pant
 **License:** CC-BY-SA 4.0
 
 ---
@@ -512,7 +512,7 @@ Declare that two names refer to the same entity:
 ```
 ENTITY-A≡ENTITY-B
 CtxPack≡ctxpack
-SynaptyX-CEO≡kapil-pant
+Independent-Researcher≡kapil-pant
 ```
 
 The `≡` operator (or `===` ASCII fallback) establishes coreference. Once declared, either name may be used interchangeably.
@@ -1341,7 +1341,7 @@ This appendix documents the theoretical basis for each major design decision in 
 The reference file `ctx_mod.ctx` was written before this formal specification. The following documents its compatibility:
 
 ### Valid Under Spec
-- Status line: `§CTX v1.0 L2 DOMAIN:ai-infrastructure SCOPE:ctxpack-concept-development AUTHOR:kapil-pant(SynaptyX-CEO)` — valid (multiple KEY:value fields on status line)
+- Status line: `§CTX v1.0 L2 DOMAIN:ai-infrastructure SCOPE:ctxpack-concept-development AUTHOR:kapil-pant(Independent-Researcher)` — valid (multiple KEY:value fields on status line)
 - `COMPRESSED:2026-02-21` — valid required field
 - `SOURCE_TOKENS:~40000` — valid required field
 - `TURNS:10` — valid recommended field

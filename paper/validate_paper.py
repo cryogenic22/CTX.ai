@@ -482,7 +482,7 @@ def main():
     # #7: Affiliation not blank
     check(
         "Affiliation is present (not blank)",
-        "Independent Researcher" in paper_text or "SynaptyX" in paper_text,
+        "Independent Researcher" in paper_text,
         "Reviewer round 2 #7: blank affiliation"
     )
 

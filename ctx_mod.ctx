@@ -1,4 +1,4 @@
-§CTX v1.0 L2 DOMAIN:ai-infrastructure SCOPE:ctxpack-concept-development AUTHOR:kapil-pant(SynaptyX-CEO)
+§CTX v1.0 L2 DOMAIN:ai-infrastructure SCOPE:ctxpack-concept-development AUTHOR:kapil-pant(Independent-Researcher)
 COMPRESSED:2026-02-21 SOURCE_TOKENS:~40000 TURNS:10
 
 ±GENESIS
@@ -156,29 +156,6 @@ OPPORTUNITY:attention-is-sparse+language-is-redundant+salience-is-non-uniform+po
   against-verbose-enterprise-docs(Confluence+emails+decks):dramatic(5-25x)
   VALUE-CONSTANT:structural-reorganisation-for-machine-readability(regardless-of-ratio)
   RATIO:varies-by-source-verbosity(lean-notes~1.3-5x|verbose-enterprise~5-25x)
-
-±STRATEGY-DECISIONS
-
-  ±IP-PROTECTION-CONSIDERED
-  OPTION-A:patents(Fraunhofer-playbook)→file-UK-first,PCT-within-12mo,specific-algorithms¬concepts
-  OPTION-B:open-source-thought-leadership(chosen)→arXiv+GitHub+benchmarks
-  RATIONALE:SynaptyX=consulting-firm¬licensing-company; credibility+visibility>patent-portfolio; if-Anthropic-builds-similar→validates-Kapil("approach-now-in-Claude-first-proposed-by-Kapil-Pant-2026")
-
-  ±GO-TO-MARKET
-  PUBLISH-AS:Kapil-Pant(personal-brand)+SynaptyX-credibility
-  SEQUENCE[
-    W1:LinkedIn-teaser("what-if-MP3-for-LLM-context"),
-    W2:arXiv-paper+GitHub-repo(clean-README+quickstart-notebook),
-    W3-4:blog-post+newsletter-submissions+community-engagement,
-    ONGOING:iterate-on-feedback+build-contributor-community
-  ]
-  WHITEPAPER-STRUCTURE:problem→MP3-analogy(hook)→architecture→implementation→benchmarks→discussion
-  LEAD-WITH:domain-knowledge-packer-first(widest-gap,zero-competition)→codebase-packer-second(improving-on-fragments)
-
-  ±COMMERCIAL-MODEL
-  open-core:open-source-codec+format-spec|paid-enterprise(SynaptyX-implementations+managed-service+consulting)
-  PLAYBOOK:Redis/MongoDB/Elastic→open-source-builds-market,company-captures-enterprise-value
-  SECTOR-TEMPLATES[data-engineering,financial-services,healthcare]→methodology-not-just-tooling
 
 ±REPO-STRUCTURE
 ctxpack/[

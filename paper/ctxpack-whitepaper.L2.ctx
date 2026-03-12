@@ -1,6 +1,6 @@
 §CTX v1.0 L2 DOMAIN:ctxpack-whitepaper
 COMPRESSED:2026-02-22 SOURCE_TOKENS:~12000 AUTHOR:Kapil-Pant(Independent-Researcher)
-LICENSE:AGPL-3.0 REPO:github.com/cryogenic22/CTX.ai
+LICENSE:Apache-2.0 REPO:github.com/cryogenic22/CTX.ai
 
 ±CORE-THESIS
 LLM-context→linear-cost($3-15/M-tokens)+quadratic-attention
