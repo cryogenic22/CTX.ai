@@ -2,14 +2,14 @@
 
 **Progressive hydration for cost-efficient LLM domain knowledge serving.**
 
-CtxPack is a deterministic knowledge compiler that structures domain files (YAML, Markdown, JSON) into an indexed knowledge base and serves relevant sections per query through progressive hydration — delivering 93% of frontier-model fidelity at 3.8% of the per-query token cost.
+CtxPack is a deterministic knowledge compiler that structures domain files (YAML, Markdown, JSON) into an indexed knowledge base and serves relevant sections per query through progressive hydration — matching RAG fidelity (86.7%) at 24x lower cost than raw context stuffing, with zero infrastructure requirements.
 
 ```
 Your domain knowledge:                     What CtxPack does:
-  23 YAML entity definitions                 1. Pack: resolve, dedup, detect conflicts
+  37 YAML entity definitions                 1. Pack: resolve, dedup, detect conflicts
   11 Markdown runbooks            ------>    2. Index: ultra-lean L3 directory (1.8K tokens)
-   5 governance rule files                   3. Serve: hydrate 1-3 sections per query
-  92,000 BPE tokens total                      3,500 tokens per query (26x cheaper)
+   5 governance rule files                   3. Serve: hydrate relevant sections per query
+  92,000 BPE tokens total                      ~3,900 tokens per query (24x cheaper)
 ```
 
 ## Why
@@ -26,17 +26,21 @@ Evaluated on a 92K-token enterprise corpus (37 entities, 30 questions), cross-mo
 
 | Method | BPE/Query | Fidelity | Cost/Query |
 |--------|:---------:|:--------:|:----------:|
-| Raw context stuffing | 92,482 | 87% | $1.39 |
-| **CtxPack hydrated** | **3,523** | **80%** | **$0.05** |
+| Raw context stuffing | 92,482 | 83.3% | $1.39 |
+| RAG (embed + top-5) | 3,917 | 86.7% | $0.059 |
+| **CtxPack hydrated** | **3,876** | **86.7%** | **$0.058** |
 
-Fidelity gap is stable at 7pp across model sizes:
+CtxPack matches RAG fidelity exactly while providing deterministic output, conflict detection, and provenance that RAG lacks. Both beat raw stuffing at 24x lower cost.
 
-| Model | Raw | Hydrated | Gap |
-|-------|:---:|:--------:|:---:|
-| Claude Opus 4.6 | 87% | 80% | 7pp |
-| Claude Haiku 4.5 | 77% | 70% | 7pp |
+By difficulty (Claude Opus 4.6):
 
-Easy/medium questions score identically (92%/92%). The gap comes from multi-hop questions requiring 4+ entity sections.
+| Difficulty | Raw | Hydrated | Questions |
+|------------|:---:|:--------:|:---------:|
+| Easy | 83% | 83% | 12 |
+| Medium | 89% | 89% | 9 |
+| Hard | 78% | **89%** | 9 |
+
+On hard multi-hop questions, re-hydration beats raw stuffing by 11 percentage points.
 
 ## Install
 
@@ -148,7 +152,7 @@ ctxpack/
     results/         # Clean eval results (definitive, scaling, model spread)
 spec/                # CTXPACK-SPEC v1.0, PEG grammar
 paper/               # Whitepaper v3, LinkedIn posts
-tests/               # 565 tests, ~8 seconds, no network calls
+tests/               # 586 tests, ~8 seconds, no network calls
 ```
 
 ## Tests
@@ -158,7 +162,7 @@ pip install pytest
 python -m pytest tests/ -x -q
 ```
 
-565 tests including 25 eval pipeline tests and 7 metric sanity guards. All deterministic, no API keys required.
+586 tests including 25 eval pipeline tests and 7 metric sanity guards. All deterministic, no API keys required.
 
 ### Metric sanity guards
 
@@ -221,7 +225,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, code style, and PR process.
 
 Key policies:
 - Zero external dependencies for `ctxpack/core/`
-- All 565 tests must pass before merge
+- All 586 tests must pass before merge
 - BPE tokens as primary metric for all compression/cost claims
 - Type hints on public functions
 
