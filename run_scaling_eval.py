@@ -97,8 +97,113 @@ def main():
           f" (judge_failures={raw_fidelity.judge_failures}, {raw_time:.0f}s)")
     print()
 
-    # ═══ Resolve cross-model judge (same as measure_fidelity uses) ═══
+    # ═══ ARM 1b: RAG Baseline ═══
     from ctxpack.benchmarks.metrics.fidelity import _resolve_judge_params, _INTER_CALL_DELAY
+    print("ARM 1b: RAG Baseline (chunk + embed + retrieve top-5)...")
+    from ctxpack.benchmarks.baselines.rag_baseline import (
+        chunk_corpus, embedding_retrieve, assemble_context,
+    )
+    rag_chunks = chunk_corpus(CORPUS, max_tokens=500)
+    openai_key = os.environ.get("OPENAI_API_KEY", "")
+    print(f"  Chunks: {len(rag_chunks)}")
+
+    t0 = time.time()
+    rag_details = []
+    rag_judge_failures = 0
+
+    for i, q in enumerate(questions):
+        q_id = q.get("id", "")
+        question_text = q.get("question", "")
+        expected = q.get("expected", "")
+        difficulty = q.get("difficulty", "medium")
+
+        # Retrieve top-5 chunks
+        retrieved = embedding_retrieve(
+            rag_chunks, question_text,
+            top_k=5, api_key=openai_key,
+        )
+        rag_context = assemble_context(retrieved)
+        rag_context_bpe = count_bpe_tokens(rag_context, model=eval_model)
+
+        # Answer with same model as other arms
+        time.sleep(_INTER_CALL_DELAY)
+        rag_answer = _ask_llm(question_text, rag_context,
+                              model=eval_model, api_key=api_key, provider=provider)
+
+    # Resolve judge for RAG arm
+    j_model_rag, j_key_rag, j_provider_rag = _resolve_judge_params(
+        None, None, None, eval_model, api_key, provider
+    )
+
+    rag_details = []
+    rag_judge_failures = 0
+    t0 = time.time()
+
+    for i, q in enumerate(questions):
+        q_id = q.get("id", "")
+        question_text = q.get("question", "")
+        expected = q.get("expected", "")
+        difficulty = q.get("difficulty", "medium")
+
+        retrieved = embedding_retrieve(
+            rag_chunks, question_text,
+            top_k=5, api_key=openai_key,
+        )
+        rag_context = assemble_context(retrieved)
+        rag_context_bpe = count_bpe_tokens(rag_context, model=eval_model)
+
+        time.sleep(_INTER_CALL_DELAY)
+        rag_answer = _ask_llm(question_text, rag_context,
+                              model=eval_model, api_key=api_key, provider=provider)
+
+        rag_rule = _grade_answer(rag_answer, expected)
+        time.sleep(_INTER_CALL_DELAY)
+        judge_resp, judge_err = _llm_judge(
+            question_text, expected, rag_answer,
+            model=j_model_rag, api_key=j_key_rag, provider=j_provider_rag,
+        )
+        if judge_err:
+            rag_judge_correct = False
+            rag_judge_failures += 1
+        else:
+            rag_judge_correct = (
+                "CORRECT" in judge_resp.upper()
+                and "INCORRECT" not in judge_resp.upper()
+            )
+
+        rag_details.append({
+            "id": q_id, "difficulty": difficulty,
+            "bpe_context": rag_context_bpe,
+            "correct_rule": rag_rule, "correct_judge": rag_judge_correct,
+            "chunks_retrieved": len(retrieved),
+            "answer": rag_answer[:500],
+        })
+
+        status = "Y" if rag_judge_correct else "N"
+        print(f"  [{i+1}/30] {q_id} {rag_context_bpe:>6} BPE  judge={status}")
+
+    rag_time = time.time() - t0
+    rag_total = len(rag_details)
+    rag_avg_bpe = sum(d["bpe_context"] for d in rag_details) / rag_total if rag_total else 0
+    rag_rule_pct = sum(1 for d in rag_details if d["correct_rule"]) / rag_total * 100 if rag_total else 0
+    rag_judge_pct = sum(1 for d in rag_details if d["correct_judge"]) / rag_total * 100 if rag_total else 0
+
+    results["methods"].append({
+        "method": "rag_baseline",
+        "bpe_per_query": int(rag_avg_bpe),
+        "fidelity_rule": round(rag_rule_pct, 1),
+        "fidelity_judge": round(rag_judge_pct, 1),
+        "judge_failures": rag_judge_failures,
+        "cost_per_query": f"${estimate_cost(int(rag_avg_bpe), model=eval_model).cost_per_query:.4f}",
+        "wall_time_s": round(rag_time, 1),
+    })
+    results["rag_details"] = rag_details
+
+    print(f"  RAG: {rag_rule_pct:.0f}% rule, {rag_judge_pct:.0f}% judge, avg {rag_avg_bpe:.0f} BPE"
+          f" (judge_failures={rag_judge_failures}, {rag_time:.0f}s)")
+    print()
+
+    # ═══ Resolve cross-model judge for hydration arm ═══
     j_model, j_key, j_provider = _resolve_judge_params(
         None, None, None, eval_model, api_key, provider
     )
