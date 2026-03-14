@@ -1,0 +1,196 @@
+entity: Warehouse
+description: "Represents a physical fulfillment center or storage facility used by a merchant to store and ship products. Each merchant has at least one warehouse, and products may have inventory distributed across multiple warehouses to optimize shipping times and costs. The warehouse entity stores location information used by the shipping optimization algorithm to select the nearest warehouse to the customer's shipping address. Warehouses can be merchant-operated or ShopStream Fulfillment Network (SFN) facilities. SFN warehouses are operated by ShopStream and offer merchants reduced shipping costs and faster delivery through pre-positioned inventory."
+
+aliases:
+  - FulfillmentCenter
+  - DistributionCenter
+  - DC
+  - StorageFacility
+
+identifier:
+  field: warehouse_id
+  type: UUID v4
+  description: Globally unique warehouse identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: warehouse-management-service
+
+relationships:
+  - type: belongs_to
+    target: Merchant
+    foreign_key: merchant_id
+    description: The merchant that operates or is assigned to this warehouse.
+    cardinality: "1"
+    on_delete: RESTRICT
+
+  - type: has_many
+    target: Inventory
+    foreign_key: warehouse_id
+    description: Inventory records for all variants stored at this warehouse.
+    cardinality: "0..*"
+    cascade_delete: false
+
+  - type: has_many
+    target: Shipment
+    foreign_key: origin_warehouse_id
+    description: Shipments dispatched from this warehouse.
+    cardinality: "0..*"
+    cascade_delete: false
+
+fields:
+  - name: warehouse_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: merchant_id
+    type: UUID
+    description: Reference to the merchant.
+    nullable: false
+    pii: false
+
+  - name: name
+    type: VARCHAR(200)
+    description: Human-readable warehouse name (e.g., "East Coast DC", "Austin Warehouse #2").
+    nullable: false
+    pii: false
+
+  - name: code
+    type: VARCHAR(20)
+    description: Short code for internal reference (e.g., "EAST-01", "SFN-LAX-03").
+    nullable: false
+    pii: false
+    constraints:
+      - UNIQUE
+      - uppercase, alphanumeric and hyphens
+
+  - name: warehouse_type
+    type: ENUM
+    description: Operational type of the warehouse.
+    nullable: false
+    allowed_values:
+      - MERCHANT_OPERATED
+      - SFN_FACILITY
+      - THIRD_PARTY_LOGISTICS
+      - DROP_SHIP
+
+  - name: address_line1
+    type: VARCHAR(200)
+    description: Street address.
+    nullable: false
+    pii: false
+
+  - name: address_line2
+    type: VARCHAR(200)
+    description: Additional address details.
+    nullable: true
+    pii: false
+
+  - name: city
+    type: VARCHAR(100)
+    description: City.
+    nullable: false
+    pii: false
+
+  - name: state_province
+    type: VARCHAR(100)
+    description: State or province.
+    nullable: false
+    pii: false
+
+  - name: postal_code
+    type: VARCHAR(20)
+    description: Postal or ZIP code.
+    nullable: false
+    pii: false
+
+  - name: country
+    type: VARCHAR(2)
+    description: ISO 3166-1 alpha-2 country code.
+    nullable: false
+    pii: false
+
+  - name: latitude
+    type: DECIMAL(10,7)
+    description: Geographic latitude.
+    nullable: false
+    pii: false
+
+  - name: longitude
+    type: DECIMAL(10,7)
+    description: Geographic longitude.
+    nullable: false
+    pii: false
+
+  - name: timezone
+    type: VARCHAR(50)
+    description: IANA timezone identifier (e.g., "America/New_York").
+    nullable: false
+    pii: false
+
+  - name: operating_hours
+    type: JSON
+    description: "Weekly operating schedule as JSON. Keys are day names, values specify shift start/end times. Affects shipping cutoff time calculations."
+    nullable: true
+    pii: false
+
+  - name: shipping_cutoff_time
+    type: TIME
+    description: "Daily cutoff time for same-day shipping. Orders confirmed before this time ship the same business day; orders after ship the next business day."
+    nullable: true
+    pii: false
+
+  - name: is_active
+    type: BOOLEAN
+    description: Whether this warehouse is currently operational.
+    nullable: false
+    default: true
+    pii: false
+
+  - name: capacity_sqft
+    type: INTEGER
+    description: Total warehouse capacity in square feet.
+    nullable: true
+    pii: false
+
+  - name: utilization_pct
+    type: DECIMAL(5,2)
+    description: Current utilization percentage (0-100). Updated daily.
+    nullable: true
+    pii: false
+
+  - name: priority
+    type: INTEGER
+    description: "Fulfillment priority (1 = highest). When multiple warehouses have stock, orders are allocated to the highest-priority warehouse with available inventory nearest to the customer."
+    nullable: false
+    default: 1
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Warehouse records are retained for 5 years after deactivation. Active warehouses are retained indefinitely."
+  full_retention_period: 5 years after deactivation
+
+data_quality:
+  - rule: warehouse code must be unique across the platform
+    severity: ERROR
+  - rule: latitude and longitude must be valid coordinates
+    severity: ERROR
+  - rule: SFN facilities must have shipping_cutoff_time set
+    severity: ERROR
+
+golden_source: warehouse-management-service

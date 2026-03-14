@@ -1,0 +1,176 @@
+entity: TaxRule
+description: "Defines tax calculation rules for a specific jurisdiction and product category combination. Tax rules are used during checkout to compute the tax amount for each order line item based on the customer's shipping address and the product's tax category. The ShopStream platform supports sales tax (US), VAT (EU/UK), GST (Canada/Australia), and consumption tax (Japan). Tax rules are maintained by the platform's finance team and are updated whenever tax legislation changes. The tax engine evaluates rules in priority order, applying the first matching rule for each jurisdiction/category pair. For US sales tax, the platform integrates with Avalara for real-time rate lookups by ZIP code. For other regions, rates are maintained manually and reviewed quarterly."
+
+aliases:
+  - TaxRate
+  - TaxConfiguration
+  - TaxPolicy
+  - JurisdictionTax
+
+identifier:
+  field: tax_rule_id
+  type: UUID v4
+  description: Globally unique tax rule identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: tax-service
+
+relationships:
+  - type: references
+    target: Category
+    description: "Tax rules reference product tax categories (not the Category entity directly). The product's tax_category field determines which tax rule applies."
+
+fields:
+  - name: tax_rule_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: jurisdiction_country
+    type: VARCHAR(2)
+    description: ISO 3166-1 alpha-2 country code.
+    nullable: false
+    pii: false
+
+  - name: jurisdiction_state
+    type: VARCHAR(100)
+    description: State or province. NULL means the rule applies country-wide.
+    nullable: true
+    pii: false
+
+  - name: jurisdiction_city
+    type: VARCHAR(100)
+    description: City for city-level tax overrides. NULL means state/country level.
+    nullable: true
+    pii: false
+
+  - name: jurisdiction_postal_code
+    type: VARCHAR(20)
+    description: Postal code for ZIP-level tax rates. NULL means broader jurisdiction.
+    nullable: true
+    pii: false
+
+  - name: tax_type
+    type: ENUM
+    description: Type of tax.
+    nullable: false
+    allowed_values:
+      - SALES_TAX
+      - VAT
+      - GST
+      - CONSUMPTION_TAX
+      - EXCISE_TAX
+
+  - name: product_tax_category
+    type: ENUM
+    description: The product tax category this rule applies to.
+    nullable: false
+    allowed_values:
+      - STANDARD
+      - REDUCED
+      - ZERO_RATED
+      - EXEMPT
+      - DIGITAL_GOODS
+      - FOOD_AND_BEVERAGE
+
+  - name: rate
+    type: DECIMAL(7,5)
+    description: "Tax rate as a decimal (e.g., 0.08750 for 8.75%). For compound taxes (e.g., GST + PST in Canada), separate rules exist for each component."
+    nullable: false
+    pii: false
+    constraints:
+      - ">= 0"
+      - "<= 1"
+
+  - name: rate_name
+    type: VARCHAR(100)
+    description: Human-readable name for the tax rate (e.g., "California State Sales Tax", "UK Standard VAT").
+    nullable: false
+    pii: false
+
+  - name: is_compound
+    type: BOOLEAN
+    description: Whether this tax is calculated on top of other taxes (compound tax).
+    nullable: false
+    default: false
+    pii: false
+
+  - name: includes_shipping
+    type: BOOLEAN
+    description: Whether this tax applies to the shipping amount as well as products.
+    nullable: false
+    default: false
+    pii: false
+
+  - name: priority
+    type: INTEGER
+    description: "Rule evaluation priority. Lower number = higher priority. When multiple rules match, the highest priority rule is applied."
+    nullable: false
+    default: 100
+    pii: false
+
+  - name: effective_from
+    type: DATE
+    description: Date this tax rate becomes effective.
+    nullable: false
+    pii: false
+
+  - name: effective_until
+    type: DATE
+    description: Date this tax rate expires. NULL for indefinite.
+    nullable: true
+    pii: false
+
+  - name: is_active
+    type: BOOLEAN
+    description: Whether this rule is currently active.
+    nullable: false
+    default: true
+    pii: false
+
+  - name: source
+    type: ENUM
+    description: Where this tax rate was sourced from.
+    nullable: false
+    allowed_values:
+      - AVALARA
+      - MANUAL
+      - GOVERNMENT_API
+
+  - name: last_verified_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When this rate was last verified against the authoritative source.
+    nullable: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Tax rules are retained for 10 years (matching invoice and payment retention) to support tax audit requirements. Historical rules (expired effective_until) are retained but marked inactive."
+  full_retention_period: 10 years
+  legal_basis: Legal obligation (tax compliance)
+
+data_quality:
+  - rule: rate must be between 0 and 1
+    severity: ERROR
+  - rule: effective_until must be after effective_from when set
+    severity: ERROR
+  - rule: no overlapping rules for the same jurisdiction and product_tax_category
+    severity: ERROR
+  - rule: manually sourced rates should be verified at least quarterly
+    severity: WARNING
+
+golden_source: tax-service

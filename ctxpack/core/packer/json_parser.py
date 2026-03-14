@@ -352,9 +352,8 @@ def _compress_value(val: Any) -> str:
     if isinstance(val, (int, float)):
         return str(val)
     if isinstance(val, str):
-        if " " in val:
-            return val.replace(" ", "-").replace("_", "-")
-        return val
+        # Preserve spaces in values for BPE efficiency; only convert underscores
+        return val.replace("_", "-")
     if isinstance(val, list):
         items = [_compress_value(v) for v in val]
         return "+".join(items)

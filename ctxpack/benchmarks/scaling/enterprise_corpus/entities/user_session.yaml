@@ -1,0 +1,178 @@
+entity: UserSession
+description: "Tracks active and historical authenticated sessions for customers and merchants on the ShopStream platform. A session is created when a user logs in and terminated when they log out, the session expires, or it is revoked by an administrator. Sessions use JWT tokens with a 30-minute access token lifetime and a 7-day refresh token lifetime. Each session records the device type, IP address, and geographic location for security monitoring. Concurrent session limits are enforced: customers can have up to 5 active sessions, merchants up to 3. When the limit is exceeded, the oldest session is terminated. Suspicious session activity (e.g., simultaneous sessions from different countries) triggers an automated security alert and may result in session revocation pending identity verification."
+
+aliases:
+  - Session
+  - LoginSession
+  - AuthSession
+  - UserLogin
+
+identifier:
+  field: session_id
+  type: UUID v4
+  description: Globally unique session identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: auth-service
+
+relationships:
+  - type: belongs_to
+    target: Customer
+    foreign_key: user_id
+    description: The user (customer or merchant) who initiated this session.
+    cardinality: "1"
+    on_delete: CASCADE
+
+fields:
+  - name: session_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: user_id
+    type: UUID
+    description: Reference to the authenticated user.
+    nullable: false
+    pii: false
+
+  - name: user_type
+    type: ENUM
+    description: Type of user.
+    nullable: false
+    allowed_values:
+      - CUSTOMER
+      - MERCHANT
+      - ADMIN
+
+  - name: status
+    type: ENUM
+    description: Current session status.
+    nullable: false
+    default: ACTIVE
+    allowed_values:
+      - ACTIVE
+      - EXPIRED
+      - REVOKED
+      - LOGGED_OUT
+
+  - name: access_token_hash
+    type: VARCHAR(64)
+    description: SHA-256 hash of the current access token (for validation without storing the token).
+    nullable: false
+    pii: false
+
+  - name: refresh_token_hash
+    type: VARCHAR(64)
+    description: SHA-256 hash of the refresh token.
+    nullable: false
+    pii: false
+
+  - name: ip_address
+    type: VARCHAR(45)
+    description: IP address at session creation.
+    nullable: false
+    pii: true
+    pii_category: ONLINE_IDENTIFIER
+
+  - name: user_agent
+    type: TEXT
+    description: Browser or app user agent string.
+    nullable: true
+    pii: true
+    pii_category: ONLINE_IDENTIFIER
+
+  - name: device_type
+    type: ENUM
+    description: Detected device type.
+    nullable: true
+    allowed_values:
+      - DESKTOP
+      - MOBILE
+      - TABLET
+      - API_CLIENT
+
+  - name: os
+    type: VARCHAR(50)
+    description: Detected operating system.
+    nullable: true
+    pii: false
+
+  - name: browser
+    type: VARCHAR(50)
+    description: Detected browser name and version.
+    nullable: true
+    pii: false
+
+  - name: country
+    type: VARCHAR(2)
+    description: Geo-located country from IP address.
+    nullable: true
+    pii: false
+
+  - name: city
+    type: VARCHAR(100)
+    description: Geo-located city from IP address.
+    nullable: true
+    pii: true
+    pii_category: QUASI_IDENTIFIER
+
+  - name: mfa_verified
+    type: BOOLEAN
+    description: Whether multi-factor authentication was completed for this session.
+    nullable: false
+    default: false
+    pii: false
+
+  - name: last_activity_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Timestamp of the last API request using this session.
+    nullable: false
+    pii: false
+
+  - name: expires_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the refresh token expires (absolute session lifetime).
+    nullable: false
+    pii: false
+
+  - name: revoked_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the session was revoked (by admin or security system).
+    nullable: true
+    pii: false
+
+  - name: revocation_reason
+    type: VARCHAR(500)
+    description: Reason for session revocation.
+    nullable: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Session start timestamp (login time).
+    nullable: false
+    pii: false
+
+  - name: ended_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Session end timestamp (logout, expiration, or revocation).
+    nullable: true
+    pii: false
+
+retention:
+  policy: "Session records are retained for 1 year after session end. PII fields (ip_address, user_agent, city) are scrubbed after 90 days. Session metadata (counts, durations) are aggregated in analytics and retained for 3 years."
+  pii_scrub_window: 90 days
+  full_retention_period: 1 year
+
+data_quality:
+  - rule: active sessions must not exceed concurrent limit (5 for customers, 3 for merchants)
+    severity: WARNING
+  - rule: expires_at must be in the future for ACTIVE sessions
+    severity: ERROR
+  - rule: ended_at must be set for non-ACTIVE sessions
+    severity: ERROR
+
+golden_source: auth-service

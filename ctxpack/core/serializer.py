@@ -255,18 +255,12 @@ def _ascii_replace(text: str) -> str:
     return text
 
 
-# Regex to identify word-separator hyphens in values.
-# Matches hyphens between lowercase/uppercase letter sequences (word boundaries).
-# Preserves hyphens in: technical identifiers (snake_case-like), version numbers,
-# operator chains (→, ~>), and bracketed content.
-_WORD_HYPHEN_RE = re.compile(r"(?<=[a-zA-Z])(-+)(?=[a-zA-Z])")
-
-# Patterns that indicate a structural/technical identifier — skip dehyphenation
-_STRUCTURAL_PATTERNS = re.compile(
-    r"^[A-Z][A-Z0-9_-]*$"  # ALL-CAPS identifiers like CRM-Salesforce
-    r"|^\(.*\)$"  # parenthesized expressions
-    r"|^@"  # cross-references
-    r"|^\["  # inline lists
+# Patterns that should NEVER be dehyphenated
+_PRESERVE_HYPHEN_RE = re.compile(
+    r"@ENTITY-[\w-]+"    # cross-references: @ENTITY-CUSTOMER
+    r"|@[\w-]+"          # other cross-refs
+    r"|\d+-\d+"          # version/number ranges: 1-N, 36-months
+    r"|[A-Z][A-Z0-9_]+-[A-Z][A-Z0-9_]+"  # ALL-CAPS identifiers: SOURCE_TOKENS
 )
 
 
@@ -274,24 +268,37 @@ def _dehyphenate_value(value: str) -> str:
     """Replace word-separator hyphens with spaces in KV values for BPE efficiency.
 
     Hyphens between words (e.g., "Customer-matching-critical") tokenize ~40% worse
-    in BPE than spaces ("Customer matching critical"). This transform only affects
-    prose-like value segments, preserving structural identifiers, cross-references,
-    and operator chains.
+    in BPE than spaces ("Customer matching critical"). This is aggressive but safe:
+    we protect cross-references (@ENTITY-X), number ranges (1-N), and ALL-CAPS
+    identifiers, then replace all other hyphens with spaces.
+
+    Also converts comma-hyphen (,-) to comma-space (, ) since the compressor
+    produces this pattern extensively.
     """
-    # Split on common delimiters to process segments independently
-    # Preserves operators (→, ~>, >>), brackets, parentheses
-    segments = re.split(r"([→~>|,\[\]()]+)", value)
-    result_parts = []
-    for seg in segments:
-        # Skip empty, single-char, or structural segments
-        if not seg or len(seg) <= 1 or _STRUCTURAL_PATTERNS.match(seg.strip()):
-            result_parts.append(seg)
-            continue
-        # Only dehyphenate segments that look like prose (contain lowercase letters)
-        if any(c.islower() for c in seg):
-            seg = _WORD_HYPHEN_RE.sub(" ", seg)
-        result_parts.append(seg)
-    return "".join(result_parts)
+    # Step 1: Protect patterns that must keep hyphens
+    protected: list[tuple[str, str]] = []
+    counter = 0
+
+    def _protect(m: re.Match) -> str:
+        nonlocal counter
+        placeholder = f"\x00P{counter}\x00"
+        protected.append((placeholder, m.group(0)))
+        counter += 1
+        return placeholder
+
+    result = _PRESERVE_HYPHEN_RE.sub(_protect, value)
+
+    # Step 2: Replace all remaining hyphens with spaces
+    result = result.replace("-", " ")
+
+    # Step 3: Clean up double spaces from comma-hyphen patterns
+    result = re.sub(r"  +", " ", result)
+
+    # Step 4: Restore protected patterns
+    for placeholder, original in protected:
+        result = result.replace(placeholder, original)
+
+    return result
 
 
 # ── Natural Language (L1) serializer ──

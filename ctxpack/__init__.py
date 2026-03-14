@@ -1,3 +1,3 @@
-"""CtxPack — deterministic parser for the .ctx context compression format."""
+"""CtxPack — MP3 for LLM context: multi-resolution compression codec for domain knowledge."""
 
-__version__ = "0.1.0"
+__version__ = "0.3.0"

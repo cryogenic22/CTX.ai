@@ -1,0 +1,279 @@
+entity: Merchant
+description: "Represents a seller on the ShopStream marketplace. Merchants are businesses or individuals that list products, fulfill orders, and receive settlement payments through the platform. Each merchant undergoes a verification process before their products become visible on the storefront. Merchants are assigned a dedicated account manager and have access to the Merchant Portal for managing inventory, orders, and analytics. The merchant entity is the root of the seller-side domain, linking to stores, products, settlements, and API credentials. Merchant data is considered business-confidential and is subject to different access controls than customer data. Commission rates are negotiated per merchant and stored as part of the merchant agreement. The platform supports tiered commission structures based on monthly GMV thresholds."
+
+aliases:
+  - Seller
+  - Vendor
+  - Supplier
+  - Partner
+
+identifier:
+  field: merchant_id
+  type: UUID v4
+  description: Globally unique merchant identifier assigned during onboarding.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: merchant-service
+
+relationships:
+  - type: has_many
+    target: MerchantStore
+    foreign_key: merchant_id
+    description: Physical or virtual storefronts operated by this merchant.
+    cardinality: "1..*"
+    cascade_delete: true
+
+  - type: has_many
+    target: Product
+    foreign_key: merchant_id
+    description: Products listed by this merchant.
+    cardinality: "0..*"
+    cascade_delete: true
+
+  - type: has_many
+    target: Order
+    foreign_key: merchant_id
+    description: Orders placed with this merchant.
+    cardinality: "0..*"
+    cascade_delete: false
+
+  - type: has_many
+    target: APIKey
+    foreign_key: merchant_id
+    description: API credentials issued to this merchant for integration.
+    cardinality: "0..*"
+    cascade_delete: true
+
+  - type: has_many
+    target: WebhookEvent
+    foreign_key: merchant_id
+    description: Webhook event subscriptions configured by this merchant.
+    cardinality: "0..*"
+    cascade_delete: true
+
+  - type: has_many
+    target: Warehouse
+    foreign_key: merchant_id
+    description: Warehouses or fulfillment centers used by this merchant.
+    cardinality: "1..*"
+    cascade_delete: false
+
+fields:
+  - name: merchant_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: business_name
+    type: VARCHAR(300)
+    description: Registered business name as it appears on legal documents.
+    nullable: false
+    pii: false
+
+  - name: display_name
+    type: VARCHAR(200)
+    description: Public-facing name shown on the storefront and product pages.
+    nullable: false
+    pii: false
+
+  - name: slug
+    type: VARCHAR(250)
+    description: URL-friendly unique identifier for the merchant's storefront page.
+    nullable: false
+    pii: false
+    constraints:
+      - UNIQUE
+      - lowercase, hyphens only
+
+  - name: email
+    type: VARCHAR(255)
+    description: Primary business contact email address.
+    nullable: false
+    pii: true
+    pii_category: BUSINESS_CONTACT
+
+  - name: phone
+    type: VARCHAR(20)
+    description: Primary business phone number in E.164 format.
+    nullable: true
+    pii: true
+    pii_category: BUSINESS_CONTACT
+
+  - name: status
+    type: ENUM
+    description: "Merchant account lifecycle status. New merchants start in PENDING_VERIFICATION. ACTIVE merchants can list products and receive orders. SUSPENDED merchants cannot receive new orders but existing orders continue to be fulfilled. TERMINATED merchants are permanently removed from the platform."
+    nullable: false
+    default: PENDING_VERIFICATION
+    allowed_values:
+      - PENDING_VERIFICATION
+      - ACTIVE
+      - SUSPENDED
+      - UNDER_REVIEW
+      - TERMINATED
+
+  - name: verification_status
+    type: ENUM
+    description: Status of the merchant's identity and business verification.
+    nullable: false
+    default: UNVERIFIED
+    allowed_values:
+      - UNVERIFIED
+      - DOCUMENTS_SUBMITTED
+      - VERIFIED
+      - VERIFICATION_FAILED
+
+  - name: business_type
+    type: ENUM
+    description: Legal structure of the merchant's business.
+    nullable: false
+    allowed_values:
+      - SOLE_PROPRIETOR
+      - LLC
+      - CORPORATION
+      - PARTNERSHIP
+      - NON_PROFIT
+
+  - name: tax_id
+    type: VARCHAR(50)
+    description: "Tax identification number (EIN in US, VAT number in EU). Required for settlement processing and tax reporting. Encrypted at rest."
+    nullable: false
+    pii: true
+    pii_category: FINANCIAL
+    encryption: AES-256
+
+  - name: country
+    type: VARCHAR(2)
+    description: ISO 3166-1 alpha-2 country code of the merchant's registered business address.
+    nullable: false
+    pii: false
+
+  - name: currency
+    type: VARCHAR(3)
+    description: ISO 4217 settlement currency. Determines the currency for commission calculations and payouts.
+    nullable: false
+    default: USD
+    pii: false
+
+  - name: commission_rate
+    type: DECIMAL(5,4)
+    description: "Platform commission rate as a decimal (e.g., 0.1500 for 15%). Applied to the order subtotal (before tax and shipping). Negotiated per merchant and documented in the merchant agreement. Default rate for new merchants is 15%."
+    nullable: false
+    default: 0.1500
+    pii: false
+
+  - name: commission_tiers
+    type: JSON
+    description: "Optional tiered commission structure as JSON array. Each tier specifies a monthly_gmv_threshold and rate. Example: [{\"threshold\": 0, \"rate\": 0.15}, {\"threshold\": 50000, \"rate\": 0.12}, {\"threshold\": 200000, \"rate\": 0.10}] When set, overrides the flat commission_rate."
+    nullable: true
+    pii: false
+
+  - name: settlement_schedule
+    type: ENUM
+    description: Frequency of settlement payouts.
+    nullable: false
+    default: BIWEEKLY
+    allowed_values:
+      - DAILY
+      - WEEKLY
+      - BIWEEKLY
+      - MONTHLY
+
+  - name: bank_account_last_four
+    type: VARCHAR(4)
+    description: Last four digits of the merchant's bank account for settlement payouts.
+    nullable: true
+    pii: true
+    pii_category: FINANCIAL
+
+  - name: bank_routing_number
+    type: VARCHAR(20)
+    description: Bank routing number for ACH settlement transfers. Encrypted at rest.
+    nullable: true
+    pii: true
+    pii_category: FINANCIAL
+    encryption: AES-256
+
+  - name: account_manager_email
+    type: VARCHAR(255)
+    description: Email of the assigned ShopStream account manager.
+    nullable: true
+    pii: false
+
+  - name: onboarded_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Timestamp when the merchant completed onboarding and was activated.
+    nullable: true
+    pii: false
+
+  - name: suspended_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Timestamp of last suspension, if applicable.
+    nullable: true
+    pii: false
+
+  - name: suspension_reason
+    type: TEXT
+    description: Reason for merchant suspension. Required when status is SUSPENDED.
+    nullable: true
+    pii: false
+
+  - name: average_fulfillment_days
+    type: DECIMAL(4,1)
+    description: "Rolling 90-day average fulfillment time in days (from order confirmed to shipped). Displayed on the merchant's storefront. Merchants with averages above 7 days receive a warning; above 14 days triggers review."
+    nullable: true
+    pii: false
+
+  - name: rating
+    type: DECIMAL(3,2)
+    description: "Average merchant rating (1.00-5.00) based on customer feedback across all products. Recalculated daily."
+    nullable: true
+    pii: false
+
+  - name: total_products
+    type: INTEGER
+    description: Cached count of active products listed by this merchant.
+    nullable: false
+    default: 0
+    pii: false
+
+  - name: total_orders
+    type: INTEGER
+    description: Cached lifetime order count for this merchant.
+    nullable: false
+    default: 0
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Merchant records are retained for 10 years after account termination to support financial audit and legal dispute resolution. PII fields (tax_id, bank_account_last_four, bank_routing_number) are scrubbed 5 years after termination. Business name and transaction history are retained for the full period."
+  pii_scrub_window: 5 years after termination
+  full_retention_period: 10 years after termination
+  legal_basis: Legal obligation (tax reporting), contractual necessity
+
+data_quality:
+  - rule: merchant must have at least one MerchantStore
+    severity: ERROR
+  - rule: commission_rate must be between 0 and 1
+    severity: ERROR
+  - rule: tax_id must be valid for the merchant's country
+    severity: ERROR
+  - rule: settlement_schedule must be set for ACTIVE merchants
+    severity: ERROR
+  - rule: average_fulfillment_days above 14 triggers review
+    severity: WARNING
+
+golden_source: merchant-service

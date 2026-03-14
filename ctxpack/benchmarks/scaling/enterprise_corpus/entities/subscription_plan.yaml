@@ -1,0 +1,141 @@
+entity: SubscriptionPlan
+description: "Defines the terms, pricing, and benefits of a subscription offering on the ShopStream platform. Plans are created by the platform team (for ShopStream Plus) or by merchants (for product subscriptions). Each plan specifies a billing cycle, price, and set of benefits or features. Plans can be active or archived; archived plans are no longer available for new subscriptions but continue to apply to existing subscribers until they renew or change plans. Plan changes take effect at the next billing cycle."
+
+aliases:
+  - Plan
+  - MembershipTier
+  - SubscriptionTier
+  - PricingPlan
+
+identifier:
+  field: plan_id
+  type: UUID v4
+  description: Globally unique plan identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: subscription-service
+
+relationships:
+  - type: has_many
+    target: Subscription
+    foreign_key: plan_id
+    description: Active subscriptions on this plan.
+    cardinality: "0..*"
+    cascade_delete: false
+
+fields:
+  - name: plan_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: name
+    type: VARCHAR(200)
+    description: Display name of the plan (e.g., "ShopStream Plus Monthly", "Coffee Subscribe & Save").
+    nullable: false
+    pii: false
+
+  - name: slug
+    type: VARCHAR(250)
+    description: URL-friendly identifier.
+    nullable: false
+    pii: false
+    constraints:
+      - UNIQUE
+
+  - name: plan_type
+    type: ENUM
+    description: Type of subscription this plan supports.
+    nullable: false
+    allowed_values:
+      - SHOPSTREAM_PLUS
+      - PRODUCT_SUBSCRIPTION
+
+  - name: description
+    type: TEXT
+    description: Detailed description of the plan and its benefits.
+    nullable: true
+    pii: false
+
+  - name: price
+    type: DECIMAL(10,2)
+    description: Price per billing cycle.
+    nullable: false
+    pii: false
+
+  - name: currency
+    type: VARCHAR(3)
+    description: ISO 4217 currency code.
+    nullable: false
+    default: USD
+    pii: false
+
+  - name: billing_cycle
+    type: ENUM
+    description: Billing frequency.
+    nullable: false
+    allowed_values:
+      - WEEKLY
+      - BIWEEKLY
+      - MONTHLY
+      - QUARTERLY
+      - ANNUALLY
+
+  - name: trial_days
+    type: INTEGER
+    description: Number of free trial days for new subscribers. 0 means no trial.
+    nullable: false
+    default: 0
+    pii: false
+
+  - name: benefits
+    type: JSON
+    description: "JSON array of benefits included in this plan. Each benefit has a name, description, and optional value. Example: [{\"name\": \"free_express_shipping\", \"description\": \"Free express shipping on all orders\"}, {\"name\": \"exclusive_discounts\", \"description\": \"10% off all purchases\", \"value\": 10}]"
+    nullable: true
+    pii: false
+
+  - name: max_subscribers
+    type: INTEGER
+    description: Maximum number of active subscribers (NULL for unlimited).
+    nullable: true
+    pii: false
+
+  - name: is_active
+    type: BOOLEAN
+    description: Whether this plan is available for new subscriptions.
+    nullable: false
+    default: true
+    pii: false
+
+  - name: merchant_id
+    type: UUID
+    description: Reference to the merchant (NULL for platform-level plans like ShopStream Plus).
+    nullable: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Plan records are retained indefinitely. Archived plans remain in the system for historical reference."
+  full_retention_period: Indefinite
+
+data_quality:
+  - rule: price must be greater than 0
+    severity: ERROR
+  - rule: trial_days must be between 0 and 90
+    severity: WARNING
+
+golden_source: subscription-service

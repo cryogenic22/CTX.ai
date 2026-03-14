@@ -1,0 +1,196 @@
+entity: ProductVariant
+description: "Represents a specific purchasable configuration of a parent Product, defined by one or more option values (e.g., Size=Large, Color=Blue). A variant is the actual unit that a customer adds to their cart and that inventory is tracked against. Each variant has its own SKU, price (optionally overriding the parent product's base price), and inventory levels. Variants are created by the merchant when setting up a product and can be individually activated or deactivated. The variant's SKU is unique within a merchant's catalog and is used for warehouse management, barcode scanning, and supplier communications."
+
+aliases:
+  - SKU
+  - Variant
+  - ProductSKU
+  - ItemVariant
+
+identifier:
+  field: variant_id
+  type: UUID v4
+  description: Globally unique variant identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: catalog-service
+
+relationships:
+  - type: belongs_to
+    target: Product
+    foreign_key: product_id
+    description: The parent product this variant belongs to.
+    cardinality: "1"
+    on_delete: CASCADE
+
+  - type: has_many
+    target: Inventory
+    foreign_key: variant_id
+    description: Inventory records per warehouse for this variant.
+    cardinality: "0..*"
+    cascade_delete: true
+
+  - type: has_many
+    target: OrderLine
+    foreign_key: variant_id
+    description: Order lines referencing this variant.
+    cardinality: "0..*"
+    cascade_delete: false
+
+fields:
+  - name: variant_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: product_id
+    type: UUID
+    description: Reference to the parent product.
+    nullable: false
+    pii: false
+
+  - name: sku
+    type: VARCHAR(50)
+    description: "Stock Keeping Unit code. Unique within the merchant's catalog. Used for inventory management, warehouse operations, and supplier communications. Format is merchant-defined but typically follows a pattern like BRAND-CATEGORY-SIZE-COLOR (e.g., NK-RUN-L-BLU)."
+    nullable: false
+    pii: false
+    constraints:
+      - UNIQUE per merchant
+      - Max 50 characters
+      - Alphanumeric and hyphens only
+
+  - name: barcode
+    type: VARCHAR(20)
+    description: UPC, EAN, or ISBN barcode. Used for warehouse scanning.
+    nullable: true
+    pii: false
+
+  - name: title
+    type: VARCHAR(200)
+    description: "Variant-specific title, typically the option values concatenated (e.g., \"Large / Navy Blue\"). If null, the parent product title is used."
+    nullable: true
+    pii: false
+
+  - name: price
+    type: DECIMAL(10,2)
+    description: "Variant-specific price. Overrides the parent product's base_price when set. NULL means use the parent product's base_price."
+    nullable: true
+    pii: false
+
+  - name: compare_at_price
+    type: DECIMAL(10,2)
+    description: Variant-specific compare-at price for sale display.
+    nullable: true
+    pii: false
+
+  - name: cost_price
+    type: DECIMAL(10,2)
+    description: Variant-specific cost price for margin calculations.
+    nullable: true
+    pii: false
+
+  - name: option1_name
+    type: VARCHAR(50)
+    description: Name of the first option axis (e.g., "Size", "Color").
+    nullable: true
+    pii: false
+
+  - name: option1_value
+    type: VARCHAR(100)
+    description: Value of the first option (e.g., "Large", "Blue").
+    nullable: true
+    pii: false
+
+  - name: option2_name
+    type: VARCHAR(50)
+    description: Name of the second option axis, if applicable.
+    nullable: true
+    pii: false
+
+  - name: option2_value
+    type: VARCHAR(100)
+    description: Value of the second option.
+    nullable: true
+    pii: false
+
+  - name: option3_name
+    type: VARCHAR(50)
+    description: Name of the third option axis, if applicable. Max 3 options per variant.
+    nullable: true
+    pii: false
+
+  - name: option3_value
+    type: VARCHAR(100)
+    description: Value of the third option.
+    nullable: true
+    pii: false
+
+  - name: weight_grams
+    type: INTEGER
+    description: Variant-specific weight, overriding the product weight when set.
+    nullable: true
+    pii: false
+
+  - name: is_active
+    type: BOOLEAN
+    description: Whether this variant is available for purchase.
+    nullable: false
+    default: true
+    pii: false
+
+  - name: track_inventory
+    type: BOOLEAN
+    description: "Whether inventory is tracked for this variant. When true, the variant cannot be purchased if total inventory across all warehouses is zero. When false, the variant is always considered in stock (e.g., digital goods)."
+    nullable: false
+    default: true
+    pii: false
+
+  - name: requires_shipping
+    type: BOOLEAN
+    description: Override of the parent product's requires_shipping flag.
+    nullable: true
+    pii: false
+
+  - name: position
+    type: INTEGER
+    description: Display order of this variant within the product's variant list.
+    nullable: false
+    default: 0
+    pii: false
+
+  - name: image_url
+    type: VARCHAR(2000)
+    description: URL of the variant-specific image, if different from the product's main image.
+    nullable: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Variant records follow the parent Product retention policy."
+  full_retention_period: 5 years after product archival
+
+data_quality:
+  - rule: sku must be unique within the merchant's catalog
+    severity: ERROR
+  - rule: price must be greater than 0 when set
+    severity: ERROR
+  - rule: at least one option must be defined (option1_name and option1_value)
+    severity: WARNING
+  - rule: variant combination (option values) must be unique within the product
+    severity: ERROR
+
+golden_source: catalog-service

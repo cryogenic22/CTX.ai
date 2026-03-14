@@ -2,18 +2,93 @@
 
 Supports both Anthropic (Claude) and OpenAI (GPT) APIs.
 Configure via .env or environment variables.
+
+v0.4 fixes:
+- Retry with exponential backoff on transient HTTP errors (429, 500, 502, 503, 504)
+- Error detection in judge (judge_error flag, judge_failures count)
+- Cross-model judging: auto-select GPT-4o when OPENAI_API_KEY available
+- max_tokens=512 for answer calls (was 200)
+- Rate-limit-aware inter-call delay (0.5s)
 """
 
 from __future__ import annotations
 
+import logging
 import os
+import time
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, Callable, Optional
+from urllib.error import HTTPError
+
+logger = logging.getLogger(__name__)
 
 # Identical system message for both providers — eliminates cross-model prompt asymmetry
 QA_SYSTEM_MSG = "You are a precise Q&A assistant. Answer concisely based only on the provided context."
 JUDGE_SYSTEM_MSG = "You are an expert grader evaluating answer correctness."
 
+# Transient HTTP status codes that should trigger retry
+_TRANSIENT_CODES = frozenset({429, 500, 502, 503, 504})
+
+# Inter-call delay to avoid API bursting (seconds)
+_INTER_CALL_DELAY = 0.5
+
+
+# ---------------------------------------------------------------------------
+# Retry wrapper
+# ---------------------------------------------------------------------------
+
+def _retry_api_call(
+    fn: Callable[[], str],
+    *,
+    max_retries: int = 5,
+    base_delay: float = 2.0,
+) -> str:
+    """Execute *fn* with exponential backoff on transient HTTP errors.
+
+    Args:
+        fn: Zero-argument callable that performs the API call and returns a string.
+        max_retries: Maximum number of retry attempts (default 5).
+        base_delay: Initial delay in seconds; doubles each retry (2, 4, 8, 16, 32).
+
+    Returns:
+        The string result from *fn*, or an "(error: ...)" string on permanent failure.
+    """
+    last_error: Exception | None = None
+
+    for attempt in range(max_retries + 1):  # attempt 0 is the initial call
+        try:
+            return fn()
+        except HTTPError as e:
+            last_error = e
+            if e.code not in _TRANSIENT_CODES:
+                # Non-transient (400, 401, 403, etc.) — fail immediately
+                logger.warning("Non-transient HTTP %d — not retrying", e.code)
+                return f"(error: HTTP {e.code} {e.msg})"
+
+            if attempt < max_retries:
+                delay = base_delay * (2 ** attempt)
+                logger.info(
+                    "Transient HTTP %d on attempt %d/%d — retrying in %.1fs",
+                    e.code, attempt + 1, max_retries, delay,
+                )
+                time.sleep(delay)
+            # else: fall through to return error after loop
+        except Exception as e:
+            # Non-HTTP exceptions (timeout, connection reset, etc.) — fail immediately
+            last_error = e
+            return f"(error: {e})"
+
+    # All retries exhausted
+    if last_error is not None:
+        if isinstance(last_error, HTTPError):
+            return f"(error: HTTP {last_error.code} {last_error.msg})"
+        return f"(error: {last_error})"
+    return "(error: unknown)"
+
+
+# ---------------------------------------------------------------------------
+# Data classes
+# ---------------------------------------------------------------------------
 
 @dataclass
 class FidelityResult:
@@ -25,6 +100,7 @@ class FidelityResult:
     answer: str = ""
     correct: bool = False
     llm_judge_correct: bool = False
+    judge_error: bool = False
     difficulty: str = "medium"
 
 
@@ -37,6 +113,7 @@ class FidelityMetrics:
     score: float = 0.0
     llm_judge_correct: int = 0
     llm_judge_score: float = 0.0
+    judge_failures: int = 0
     results: list[FidelityResult] = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -46,6 +123,7 @@ class FidelityMetrics:
             "score": round(self.score, 3),
             "llm_judge_correct": self.llm_judge_correct,
             "llm_judge_score": round(self.llm_judge_score, 3),
+            "judge_failures": self.judge_failures,
             "by_difficulty": self._by_difficulty(),
             "details": [
                 {
@@ -55,6 +133,7 @@ class FidelityMetrics:
                     "answer": r.answer,
                     "correct": r.correct,
                     "llm_judge_correct": r.llm_judge_correct,
+                    "judge_error": r.judge_error,
                     "difficulty": r.difficulty,
                 }
                 for r in self.results
@@ -76,6 +155,10 @@ class FidelityMetrics:
         return out
 
 
+# ---------------------------------------------------------------------------
+# Question loader
+# ---------------------------------------------------------------------------
+
 def load_questions(questions_path: str) -> list[dict[str, Any]]:
     """Load questions from a YAML file."""
     from ctxpack.core.packer.yaml_parser import yaml_parse
@@ -84,8 +167,15 @@ def load_questions(questions_path: str) -> list[dict[str, Any]]:
         data = yaml_parse(f.read(), filename=questions_path)
     if isinstance(data, list):
         return data
+    # Support questions nested under a 'questions' key
+    if isinstance(data, dict) and "questions" in data:
+        return data["questions"]
     return []
 
+
+# ---------------------------------------------------------------------------
+# Provider detection
+# ---------------------------------------------------------------------------
 
 def _detect_provider() -> tuple[str, str, str]:
     """Detect which LLM provider to use from environment.
@@ -126,6 +216,45 @@ def _detect_provider() -> tuple[str, str, str]:
     return "none", "", ""
 
 
+# ---------------------------------------------------------------------------
+# Judge auto-selection
+# ---------------------------------------------------------------------------
+
+def _resolve_judge_params(
+    judge_model: str | None,
+    judge_api_key: str | None,
+    judge_provider: str | None,
+    answer_model: str,
+    answer_key: str | None,
+    answer_provider: str | None,
+) -> tuple[str, str, str]:
+    """Resolve judge model/key/provider with cross-model default.
+
+    If no explicit judge params are given AND OPENAI_API_KEY is available,
+    default to GPT-4o as judge (cheap, fast, different rate-limit pool).
+    Otherwise fall back to self-judging with the answerer model.
+    """
+    if judge_model or judge_api_key or judge_provider:
+        # Explicit judge params — honour them, fill gaps from answerer
+        return (
+            judge_model or answer_model,
+            judge_api_key or answer_key or "",
+            judge_provider or answer_provider or "anthropic",
+        )
+
+    # Auto-select: prefer GPT-4o cross-model judge when key is available
+    openai_key = os.environ.get("OPENAI_API_KEY", "")
+    if openai_key and answer_provider != "openai":
+        return "gpt-4o", openai_key, "openai"
+
+    # Fallback: self-judge
+    return answer_model, answer_key or "", answer_provider or "anthropic"
+
+
+# ---------------------------------------------------------------------------
+# Main entry point
+# ---------------------------------------------------------------------------
+
 def measure_fidelity(
     questions: list[dict],
     context: str,
@@ -143,7 +272,8 @@ def measure_fidelity(
 
     Cross-model judging: when judge_model/judge_api_key/judge_provider are
     set, the LLM-as-judge uses a DIFFERENT model from the answerer.
-    Default remains self-judging for backward compatibility.
+    Default: if OPENAI_API_KEY is available, use GPT-4o as judge.
+    Fallback: self-judge with same model.
     """
     # Resolve provider and key
     if not provider or not api_key:
@@ -155,10 +285,11 @@ def measure_fidelity(
     if not model:
         model = "claude-sonnet-4-20250514" if provider == "anthropic" else "gpt-4o"
 
-    # Resolve judge parameters — defaults to self-judging
-    j_model = judge_model or model
-    j_key = judge_api_key or api_key
-    j_provider = judge_provider or provider
+    # Resolve judge parameters — cross-model default
+    j_model, j_key, j_provider = _resolve_judge_params(
+        judge_model, judge_api_key, judge_provider,
+        model, api_key, provider,
+    )
 
     results: list[FidelityResult] = []
 
@@ -171,6 +302,8 @@ def measure_fidelity(
         )
 
         if api_key:
+            # Inter-call delay to avoid API bursting
+            time.sleep(_INTER_CALL_DELAY)
             answer = _ask_llm(
                 q["question"], context,
                 model=model, api_key=api_key, provider=provider,
@@ -184,13 +317,39 @@ def measure_fidelity(
         results.append(result)
 
     # LLM-as-judge: second pass grading for answers that have been collected
+    judge_failures = 0
     if j_key:
         for r in results:
             if r.answer and not r.answer.startswith("(skipped"):
-                r.llm_judge_correct = _llm_judge(
+                # Inter-call delay to avoid API bursting
+                time.sleep(_INTER_CALL_DELAY)
+                judge_resp, is_error = _llm_judge(
                     r.question, r.expected, r.answer,
                     model=j_model, api_key=j_key, provider=j_provider,
                 )
+                if is_error:
+                    r.judge_error = True
+                    r.llm_judge_correct = False
+                    judge_failures += 1
+                else:
+                    r.llm_judge_correct = (
+                        "CORRECT" in judge_resp.upper()
+                        and "INCORRECT" not in judge_resp.upper()
+                    )
+
+    # Warn if >20% of judge calls failed
+    judged_count = sum(
+        1 for r in results
+        if r.answer and not r.answer.startswith("(skipped")
+    )
+    if judged_count > 0 and judge_failures / judged_count > 0.2:
+        import warnings
+        warnings.warn(
+            f"Judge failure rate {judge_failures}/{judged_count} "
+            f"({judge_failures / judged_count:.0%}) exceeds 20% threshold. "
+            f"Results may be unreliable.",
+            stacklevel=2,
+        )
 
     total = len(results)
     correct = sum(1 for r in results if r.correct)
@@ -201,9 +360,14 @@ def measure_fidelity(
         score=correct / total if total > 0 else 0.0,
         llm_judge_correct=llm_correct,
         llm_judge_score=llm_correct / total if total > 0 else 0.0,
+        judge_failures=judge_failures,
         results=results,
     )
 
+
+# ---------------------------------------------------------------------------
+# LLM-as-judge
+# ---------------------------------------------------------------------------
 
 def _llm_judge(
     question: str,
@@ -213,10 +377,11 @@ def _llm_judge(
     model: str,
     api_key: str,
     provider: str,
-) -> bool:
+) -> tuple[str, bool]:
     """Use LLM as judge to grade answer correctness.
 
-    Returns True if the LLM judge considers the answer correct.
+    Returns (response_text, is_error) tuple.
+    - is_error is True if the response starts with "(error:" or is empty.
     """
     prompt = (
         f"You are an expert grader. Given a question, the expected answer, and "
@@ -240,8 +405,7 @@ def _llm_judge(
         # Gemini thinking models (Pro) consume reasoning tokens against
         # maxOutputTokens, making short judge responses unreliable.
         # Use OpenAI as cross-model judge when available; fall back to Flash.
-        import os as _os
-        openai_key = _os.environ.get("OPENAI_API_KEY", "")
+        openai_key = os.environ.get("OPENAI_API_KEY", "")
         if openai_key:
             resp = _ask_openai_raw(prompt, model="gpt-4o", api_key=openai_key)
         else:
@@ -251,8 +415,14 @@ def _llm_judge(
     else:
         resp = _ask_anthropic_raw(prompt, model=model, api_key=api_key)
 
-    return "CORRECT" in resp.upper() and "INCORRECT" not in resp.upper()
+    # Detect error responses
+    is_error = resp.startswith("(error:") or resp == ""
+    return resp, is_error
 
+
+# ---------------------------------------------------------------------------
+# LLM API callers (with retry)
+# ---------------------------------------------------------------------------
 
 def _ask_llm(
     question: str,
@@ -282,39 +452,38 @@ def _build_prompt(question: str, context: str) -> str:
 
 
 def _ask_anthropic(question: str, context: str, *, model: str, api_key: str) -> str:
-    """Call Anthropic Messages API."""
+    """Call Anthropic Messages API with retry on transient errors."""
     import json
     import urllib.request
 
     prompt = _build_prompt(question, context)
 
-    payload = json.dumps({
-        "model": model,
-        "max_tokens": 200,
-        "temperature": 0,
-        "system": QA_SYSTEM_MSG,
-        "messages": [{"role": "user", "content": prompt}],
-    }).encode("utf-8")
+    def _call() -> str:
+        payload = json.dumps({
+            "model": model,
+            "max_tokens": 512,
+            "temperature": 0,
+            "system": QA_SYSTEM_MSG,
+            "messages": [{"role": "user", "content": prompt}],
+        }).encode("utf-8")
 
-    req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages",
-        data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-        },
-    )
+        req = urllib.request.Request(
+            "https://api.anthropic.com/v1/messages",
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+            },
+        )
 
-    try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             if "content" in data and data["content"]:
                 return data["content"][0].get("text", "")
-    except Exception as e:
-        return f"(error: {e})"
+        return ""
 
-    return ""
+    return _retry_api_call(_call)
 
 
 def _ask_openai(question: str, context: str, *, model: str, api_key: str) -> str:
@@ -329,7 +498,7 @@ def _ask_openai(question: str, context: str, *, model: str, api_key: str) -> str
         {"role": "user", "content": prompt},
     ]
 
-    return _openai_chat(messages, model=model, api_key=api_key, max_tokens=200)
+    return _openai_chat(messages, model=model, api_key=api_key, max_tokens=512)
 
 
 def _ask_anthropic_raw(prompt: str, *, model: str, api_key: str) -> str:
@@ -337,33 +506,32 @@ def _ask_anthropic_raw(prompt: str, *, model: str, api_key: str) -> str:
     import json
     import urllib.request
 
-    payload = json.dumps({
-        "model": model,
-        "max_tokens": 10,
-        "temperature": 0,
-        "system": JUDGE_SYSTEM_MSG,
-        "messages": [{"role": "user", "content": prompt}],
-    }).encode("utf-8")
+    def _call() -> str:
+        payload = json.dumps({
+            "model": model,
+            "max_tokens": 10,
+            "temperature": 0,
+            "system": JUDGE_SYSTEM_MSG,
+            "messages": [{"role": "user", "content": prompt}],
+        }).encode("utf-8")
 
-    req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages",
-        data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-        },
-    )
+        req = urllib.request.Request(
+            "https://api.anthropic.com/v1/messages",
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+            },
+        )
 
-    try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             if "content" in data and data["content"]:
                 return data["content"][0].get("text", "")
-    except Exception as e:
-        return f"(error: {e})"
+        return ""
 
-    return ""
+    return _retry_api_call(_call)
 
 
 def _ask_openai_raw(prompt: str, *, model: str, api_key: str) -> str:
@@ -381,13 +549,15 @@ def _openai_chat(
     *,
     model: str,
     api_key: str,
-    max_tokens: int = 200,
+    max_tokens: int = 512,
 ) -> str:
     """Call OpenAI Chat Completions API, handling both legacy and new param names.
 
     Newer models (gpt-5, o3, o4-mini) require ``max_completion_tokens``
     instead of ``max_tokens``. We try the preferred param first based on
     model name, falling back on 400 errors.
+
+    Wraps the HTTP call in _retry_api_call for transient error resilience.
     """
     import json
     import urllib.request
@@ -414,7 +584,7 @@ def _openai_chat(
             body["temperature"] = 0
         return json.dumps(body).encode("utf-8")
 
-    def _call(payload: bytes) -> str:
+    def _do_call(payload: bytes) -> str:
         req = urllib.request.Request(
             "https://api.openai.com/v1/chat/completions",
             data=payload,
@@ -430,19 +600,17 @@ def _openai_chat(
                 return choices[0].get("message", {}).get("content", "")
         return ""
 
-    # Try preferred style first
-    try:
-        return _call(_build_payload(new_style=use_new))
-    except urllib.error.HTTPError as e:
-        if e.code == 400:
-            # Retry with the other style
-            try:
-                return _call(_build_payload(new_style=not use_new))
-            except Exception as e2:
-                return f"(error: {e2})"
-        return f"(error: {e})"
-    except Exception as e:
-        return f"(error: {e})"
+    def _call() -> str:
+        """Try preferred param style, fall back to the other on HTTP 400."""
+        try:
+            return _do_call(_build_payload(new_style=use_new))
+        except HTTPError as e:
+            if e.code == 400:
+                # 400 = wrong param style, try the other — this is NOT transient
+                return _do_call(_build_payload(new_style=not use_new))
+            raise  # Let _retry_api_call handle transient codes
+
+    return _retry_api_call(_call)
 
 
 GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
@@ -455,7 +623,7 @@ def _gemini_generate(
     api_key: str,
     max_tokens: int = 300,
 ) -> str:
-    """Call Gemini generateContent REST API."""
+    """Call Gemini generateContent REST API with retry on transient errors."""
     import json
     import urllib.request
 
@@ -465,22 +633,22 @@ def _gemini_generate(
     # against maxOutputTokens, so use a higher budget for Pro models
     effective_max = max_tokens * 5 if "pro" in model else max_tokens
 
-    payload = json.dumps({
-        "systemInstruction": {"parts": [{"text": system}]},
-        "contents": [{"parts": [{"text": user_prompt}]}],
-        "generationConfig": {
-            "maxOutputTokens": effective_max,
-            "temperature": 0,
-        },
-    }).encode("utf-8")
+    def _call() -> str:
+        payload = json.dumps({
+            "systemInstruction": {"parts": [{"text": system}]},
+            "contents": [{"parts": [{"text": user_prompt}]}],
+            "generationConfig": {
+                "maxOutputTokens": effective_max,
+                "temperature": 0,
+            },
+        }).encode("utf-8")
 
-    req = urllib.request.Request(
-        url,
-        data=payload,
-        headers={"Content-Type": "application/json"},
-    )
+        req = urllib.request.Request(
+            url,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+        )
 
-    try:
         with urllib.request.urlopen(req, timeout=120) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             candidates = data.get("candidates", [])
@@ -488,22 +656,25 @@ def _gemini_generate(
                 parts = candidates[0].get("content", {}).get("parts", [])
                 if parts:
                     return parts[0].get("text", "")
-    except Exception as e:
-        return f"(error: {e})"
+        return ""
 
-    return ""
+    return _retry_api_call(_call)
 
 
 def _ask_google(question: str, context: str, *, model: str, api_key: str) -> str:
     """Call Google Gemini API for Q&A."""
     prompt = _build_prompt(question, context)
-    return _gemini_generate(model, QA_SYSTEM_MSG, prompt, api_key, max_tokens=200)
+    return _gemini_generate(model, QA_SYSTEM_MSG, prompt, api_key, max_tokens=512)
 
 
 def _ask_google_raw(prompt: str, *, model: str, api_key: str) -> str:
     """Call Google Gemini API with a raw prompt (no context wrapper)."""
     return _gemini_generate(model, JUDGE_SYSTEM_MSG, prompt, api_key, max_tokens=10)
 
+
+# ---------------------------------------------------------------------------
+# Rule-based grading (unchanged)
+# ---------------------------------------------------------------------------
 
 def _grade_answer(answer: str, expected: str) -> bool:
     """Grade by checking if expected keywords appear in the answer."""

@@ -1,0 +1,161 @@
+entity: PlatformFee
+description: "Records fees charged by ShopStream to merchants beyond the standard commission. Platform fees cover value-added services such as payment processing, fraud protection, ShopStream Fulfillment Network (SFN) usage, advertising, and premium support. Fees are accrued during the settlement period and deducted from the merchant's settlement payout. Each fee record links to a specific order or service event that triggered the fee. Platform fees are distinct from commissions (which are percentage-based on GMV) and represent fixed or variable charges for specific services. Fee structures are documented in the merchant's service agreement and can be viewed in the Merchant Portal's billing section."
+
+aliases:
+  - ServiceFee
+  - TransactionFee
+  - MerchantFee
+  - PlatformCharge
+
+identifier:
+  field: fee_id
+  type: UUID v4
+  description: Globally unique fee identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: billing-service
+
+relationships:
+  - type: belongs_to
+    target: Merchant
+    foreign_key: merchant_id
+    description: The merchant being charged.
+    cardinality: "1"
+    on_delete: RESTRICT
+
+  - type: belongs_to
+    target: Settlement
+    foreign_key: settlement_id
+    description: The settlement period this fee is included in.
+    cardinality: "0..1"
+
+fields:
+  - name: fee_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: merchant_id
+    type: UUID
+    description: Reference to the merchant.
+    nullable: false
+    pii: false
+
+  - name: settlement_id
+    type: UUID
+    description: Reference to the settlement this fee is deducted from.
+    nullable: true
+    pii: false
+
+  - name: fee_type
+    type: ENUM
+    description: Type of platform fee.
+    nullable: false
+    allowed_values:
+      - PAYMENT_PROCESSING
+      - FRAUD_PROTECTION
+      - SFN_FULFILLMENT
+      - SFN_STORAGE
+      - ADVERTISING
+      - PREMIUM_SUPPORT
+      - LISTING_FEE
+      - CHARGEBACK_FEE
+      - CURRENCY_CONVERSION
+      - LABEL_PRINTING
+
+  - name: amount
+    type: DECIMAL(10,2)
+    description: Fee amount in the merchant's settlement currency.
+    nullable: false
+    pii: false
+    constraints:
+      - ">= 0"
+
+  - name: currency
+    type: VARCHAR(3)
+    description: Fee currency.
+    nullable: false
+    pii: false
+
+  - name: description
+    type: VARCHAR(500)
+    description: Human-readable description of the fee.
+    nullable: false
+    pii: false
+
+  - name: related_entity_type
+    type: VARCHAR(50)
+    description: Entity type that triggered this fee (e.g., "Order", "Shipment").
+    nullable: true
+    pii: false
+
+  - name: related_entity_id
+    type: UUID
+    description: ID of the triggering entity.
+    nullable: true
+    pii: false
+
+  - name: fee_rate
+    type: DECIMAL(7,5)
+    description: Rate used to calculate the fee (e.g., 0.02900 for 2.9% payment processing).
+    nullable: true
+    pii: false
+
+  - name: fee_fixed_component
+    type: DECIMAL(10,2)
+    description: Fixed component of the fee (e.g., $0.30 per transaction).
+    nullable: true
+    pii: false
+
+  - name: status
+    type: ENUM
+    description: Fee processing status.
+    nullable: false
+    default: ACCRUED
+    allowed_values:
+      - ACCRUED
+      - SETTLED
+      - WAIVED
+      - DISPUTED
+
+  - name: accrued_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the fee was accrued.
+    nullable: false
+    pii: false
+
+  - name: settled_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the fee was included in a settlement payout.
+    nullable: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Fee records are retained for 10 years to match settlement and financial audit requirements."
+  full_retention_period: 10 years
+  legal_basis: Financial regulations
+
+data_quality:
+  - rule: amount must be non-negative
+    severity: ERROR
+  - rule: SETTLED fees must have settlement_id set
+    severity: ERROR
+  - rule: fee_rate for PAYMENT_PROCESSING must match merchant's agreed rate
+    severity: WARNING
+
+golden_source: billing-service

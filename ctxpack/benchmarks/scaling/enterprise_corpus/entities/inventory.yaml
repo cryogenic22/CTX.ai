@@ -1,0 +1,181 @@
+entity: Inventory
+description: "Tracks the stock level of a specific product variant at a specific warehouse. The inventory entity is the junction between ProductVariant and Warehouse, maintaining real-time counts of available, reserved, and incoming stock. Inventory is decremented when an order is confirmed (moving units from available to reserved) and further decremented when a shipment is created (moving units from reserved to shipped). Returns and restocking increment the available count. The inventory system uses optimistic locking to prevent overselling during high-traffic periods. A separate background process reconciles physical counts with system counts on a weekly basis. Inventory alerts are triggered when available stock falls below the reorder_threshold, notifying the merchant via email and webhook."
+
+aliases:
+  - Stock
+  - StockLevel
+  - InventoryLevel
+  - WarehouseStock
+
+identifier:
+  field: inventory_id
+  type: UUID v4
+  description: Unique identifier for this inventory record (variant + warehouse combination).
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: inventory-service
+
+relationships:
+  - type: belongs_to
+    target: ProductVariant
+    foreign_key: variant_id
+    description: The product variant this inventory record tracks.
+    cardinality: "1"
+    on_delete: CASCADE
+
+  - type: belongs_to
+    target: Warehouse
+    foreign_key: warehouse_id
+    description: The warehouse where this stock is located.
+    cardinality: "1"
+    on_delete: RESTRICT
+
+fields:
+  - name: inventory_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: variant_id
+    type: UUID
+    description: Reference to the product variant.
+    nullable: false
+    pii: false
+
+  - name: warehouse_id
+    type: UUID
+    description: Reference to the warehouse.
+    nullable: false
+    pii: false
+
+  - name: available_quantity
+    type: INTEGER
+    description: "Units available for sale. Decremented when an order is placed and payment is confirmed. Incremented when stock is received or returns are restocked. This is the quantity displayed to customers on the storefront."
+    nullable: false
+    default: 0
+    pii: false
+    constraints:
+      - ">= 0"
+
+  - name: reserved_quantity
+    type: INTEGER
+    description: "Units reserved for confirmed orders awaiting fulfillment. These units are no longer available for sale but have not yet shipped. Reserved quantity is decremented when the shipment is dispatched."
+    nullable: false
+    default: 0
+    pii: false
+    constraints:
+      - ">= 0"
+
+  - name: incoming_quantity
+    type: INTEGER
+    description: "Units expected to arrive from supplier purchase orders. Not yet available for sale. Moved to available_quantity when the receiving process confirms arrival at the warehouse."
+    nullable: false
+    default: 0
+    pii: false
+    constraints:
+      - ">= 0"
+
+  - name: damaged_quantity
+    type: INTEGER
+    description: Units marked as damaged during receiving or quality inspection. Not available for sale.
+    nullable: false
+    default: 0
+    pii: false
+    constraints:
+      - ">= 0"
+
+  - name: reorder_threshold
+    type: INTEGER
+    description: "When available_quantity falls to or below this level, a reorder alert is triggered. Set by the merchant per variant per warehouse. Default is 10 for most products."
+    nullable: false
+    default: 10
+    pii: false
+    constraints:
+      - ">= 0"
+
+  - name: reorder_quantity
+    type: INTEGER
+    description: Suggested quantity to reorder when the threshold is triggered.
+    nullable: true
+    pii: false
+
+  - name: max_quantity
+    type: INTEGER
+    description: Maximum stock capacity for this variant at this warehouse. Used for space planning.
+    nullable: true
+    pii: false
+
+  - name: bin_location
+    type: VARCHAR(50)
+    description: "Physical location within the warehouse (e.g., \"A3-R5-S2\" for Aisle 3, Rack 5, Shelf 2). Used by warehouse staff for picking."
+    nullable: true
+    pii: false
+
+  - name: last_counted_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Timestamp of the last physical count reconciliation.
+    nullable: true
+    pii: false
+
+  - name: last_counted_quantity
+    type: INTEGER
+    description: The quantity recorded during the last physical count.
+    nullable: true
+    pii: false
+
+  - name: count_discrepancy
+    type: INTEGER
+    description: Difference between system count and last physical count (physical - system).
+    nullable: true
+    pii: false
+
+  - name: version
+    type: INTEGER
+    description: Optimistic locking version number. Incremented on every update.
+    nullable: false
+    default: 1
+    pii: false
+
+  - name: is_active
+    type: BOOLEAN
+    description: Whether this inventory record is actively tracked.
+    nullable: false
+    default: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Active inventory records are retained indefinitely. Historical inventory snapshots are stored daily in the data warehouse and retained for 3 years. Deactivated inventory records are retained for 1 year."
+  full_retention_period: Indefinite (active), 1 year (deactivated)
+
+data_quality:
+  - rule: available_quantity must not be negative
+    severity: ERROR
+  - rule: reserved_quantity must not be negative
+    severity: ERROR
+  - rule: variant_id + warehouse_id combination must be unique
+    severity: ERROR
+  - rule: count_discrepancy exceeding 10% of system count triggers audit
+    severity: WARNING
+  - rule: last_counted_at should be within the past 7 days
+    severity: WARNING
+
+golden_source: inventory-service
+sync_targets:
+  - storefront (real-time availability)
+  - data-warehouse (daily snapshots)
+  - merchant-portal

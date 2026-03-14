@@ -1,0 +1,144 @@
+entity: AuditLog
+description: "Records all significant state changes and administrative actions on the ShopStream platform for security, compliance, and debugging purposes. Audit logs are append-only and immutable; once created, they cannot be modified or deleted (except through the automated retention cleanup process). Every entity mutation (create, update, delete) generates an audit log entry capturing the actor, action, affected entity, and a before/after diff of changed fields. Administrative actions like merchant suspension, payment dispute resolution, and permission changes are also logged. Audit logs are stored in a separate, write-optimized database (currently Amazon Timestream) and replicated to the data warehouse for analysis. Access to audit logs is restricted to the security team and senior engineers. Audit log queries support investigation of security incidents, data breach forensics, and regulatory compliance audits."
+
+aliases:
+  - AuditTrail
+  - ChangeLog
+  - ActivityLog
+  - EventLog
+
+identifier:
+  field: audit_log_id
+  type: UUID v4
+  description: Globally unique audit log entry identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: audit-service
+
+fields:
+  - name: audit_log_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: timestamp
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the action occurred. Microsecond precision.
+    nullable: false
+    pii: false
+
+  - name: actor_type
+    type: ENUM
+    description: Type of entity that performed the action.
+    nullable: false
+    allowed_values:
+      - CUSTOMER
+      - MERCHANT
+      - ADMIN
+      - SYSTEM
+      - API_KEY
+
+  - name: actor_id
+    type: VARCHAR(100)
+    description: Identifier of the actor (customer_id, merchant_id, admin email, API key ID).
+    nullable: false
+    pii: true
+    pii_category: QUASI_IDENTIFIER
+
+  - name: action
+    type: ENUM
+    description: Type of action performed.
+    nullable: false
+    allowed_values:
+      - CREATE
+      - UPDATE
+      - DELETE
+      - LOGIN
+      - LOGOUT
+      - PERMISSION_CHANGE
+      - EXPORT
+      - BULK_OPERATION
+      - CONFIGURATION_CHANGE
+
+  - name: entity_type
+    type: VARCHAR(50)
+    description: Type of the affected entity (e.g., "Customer", "Order", "Product").
+    nullable: false
+    pii: false
+
+  - name: entity_id
+    type: VARCHAR(100)
+    description: Identifier of the affected entity.
+    nullable: false
+    pii: false
+
+  - name: changes
+    type: JSON
+    description: "JSON object containing before/after values of changed fields. Format: {\"field_name\": {\"before\": old_value, \"after\": new_value}}. PII field values are masked in the diff (e.g., \"email\": {\"before\": \"j***@example.com\", \"after\": \"k***@example.com\"})."
+    nullable: true
+    pii: true
+    pii_category: INDIRECT
+
+  - name: ip_address
+    type: VARCHAR(45)
+    description: IP address of the actor at the time of the action.
+    nullable: true
+    pii: true
+    pii_category: ONLINE_IDENTIFIER
+
+  - name: user_agent
+    type: TEXT
+    description: Browser or API client user agent string.
+    nullable: true
+    pii: true
+    pii_category: ONLINE_IDENTIFIER
+
+  - name: request_id
+    type: VARCHAR(100)
+    description: Correlation ID linking this log entry to the originating API request.
+    nullable: true
+    pii: false
+
+  - name: service_name
+    type: VARCHAR(100)
+    description: The microservice that generated this audit log entry.
+    nullable: false
+    pii: false
+
+  - name: severity
+    type: ENUM
+    description: Severity level of the logged action.
+    nullable: false
+    default: INFO
+    allowed_values:
+      - INFO
+      - WARNING
+      - CRITICAL
+
+  - name: metadata
+    type: JSON
+    description: Additional context-specific metadata.
+    nullable: true
+    pii: false
+
+retention:
+  policy: "Audit logs are retained for 7 years per regulatory requirements. Security- related entries (LOGIN, PERMISSION_CHANGE, CRITICAL severity) are retained for 10 years. PII fields (actor_id, ip_address, user_agent, changes) are retained for 3 years, then the entries are anonymized but retained for the remaining period."
+  pii_retention: 3 years
+  full_retention_period: 7 years (10 years for security events)
+  legal_basis: Legal obligation (SOC 2, GDPR accountability)
+
+data_quality:
+  - rule: audit logs must be immutable (no updates or deletes)
+    severity: ERROR
+  - rule: timestamp must be within 1 second of actual event time
+    severity: WARNING
+  - rule: entity_type must reference a known entity
+    severity: WARNING
+  - rule: PII fields in changes must be masked
+    severity: ERROR
+
+golden_source: audit-service
+storage: Amazon Timestream (primary), Snowflake (replica)

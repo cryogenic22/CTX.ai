@@ -1,0 +1,178 @@
+entity: Review
+description: "Represents a customer review of a product purchased on the ShopStream platform. Reviews consist of a star rating (1-5), optional title, and optional text body. Customers can also upload images with their reviews. Reviews are subject to moderation before publication: automated filters check for profanity, spam, and policy violations, followed by human review for flagged content. Only customers who have purchased and received the product can submit a review (verified purchase requirement). Reviews are displayed on product pages and contribute to the product's average rating and the merchant's overall seller rating. Merchants can respond to reviews publicly. Reviews are a key trust signal and cannot be edited after submission; customers must delete and resubmit if they want to change their review."
+
+aliases:
+  - ProductReview
+  - Rating
+  - CustomerReview
+  - Feedback
+
+identifier:
+  field: review_id
+  type: UUID v4
+  description: Globally unique review identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: reviews-service
+
+relationships:
+  - type: belongs_to
+    target: Customer
+    foreign_key: customer_id
+    description: The customer who wrote this review.
+    cardinality: "1"
+    on_delete: RESTRICT
+
+  - type: belongs_to
+    target: Product
+    foreign_key: product_id
+    description: The product being reviewed.
+    cardinality: "1"
+    on_delete: CASCADE
+
+  - type: belongs_to
+    target: Order
+    foreign_key: order_id
+    description: The order through which the customer purchased the product.
+    cardinality: "1"
+
+fields:
+  - name: review_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: customer_id
+    type: UUID
+    description: Reference to the reviewing customer.
+    nullable: false
+    pii: false
+
+  - name: product_id
+    type: UUID
+    description: Reference to the reviewed product.
+    nullable: false
+    pii: false
+
+  - name: order_id
+    type: UUID
+    description: Reference to the purchase order (for verified purchase validation).
+    nullable: false
+    pii: false
+
+  - name: rating
+    type: INTEGER
+    description: Star rating from 1 (worst) to 5 (best).
+    nullable: false
+    pii: false
+    constraints:
+      - ">= 1"
+      - "<= 5"
+
+  - name: title
+    type: VARCHAR(200)
+    description: Optional review title/headline.
+    nullable: true
+    pii: false
+
+  - name: body
+    type: TEXT
+    description: "Review text body. Max 5,000 characters. Subject to profanity and spam filtering. May contain PII if the customer includes personal details."
+    nullable: true
+    pii: true
+    pii_category: FREETEXT
+    constraints:
+      - Max 5000 characters
+
+  - name: images
+    type: JSON
+    description: JSON array of image URLs uploaded with the review. Max 5 images.
+    nullable: true
+    pii: false
+
+  - name: verified_purchase
+    type: BOOLEAN
+    description: Whether the reviewer purchased this product through ShopStream.
+    nullable: false
+    default: true
+    pii: false
+
+  - name: moderation_status
+    type: ENUM
+    description: Review moderation state.
+    nullable: false
+    default: PENDING
+    allowed_values:
+      - PENDING
+      - APPROVED
+      - REJECTED
+      - FLAGGED
+
+  - name: moderation_reason
+    type: VARCHAR(500)
+    description: Reason for rejection or flagging.
+    nullable: true
+    pii: false
+
+  - name: helpful_count
+    type: INTEGER
+    description: Number of customers who marked this review as helpful.
+    nullable: false
+    default: 0
+    pii: false
+
+  - name: merchant_response
+    type: TEXT
+    description: Optional public response from the merchant.
+    nullable: true
+    pii: false
+
+  - name: merchant_responded_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the merchant responded.
+    nullable: true
+    pii: false
+
+  - name: display_name
+    type: VARCHAR(100)
+    description: "Name displayed with the review. Defaults to the customer's first name and last initial (e.g., \"John D.\"). Customers can choose to display a different name."
+    nullable: false
+    pii: true
+    pii_category: QUASI_IDENTIFIER
+
+  - name: published_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the review was published (after moderation approval).
+    nullable: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp (review submission time).
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Reviews are retained for the lifetime of the product plus 2 years. When a product is archived, reviews remain visible for 2 years before being archived. PII fields (body, display_name) in archived reviews are anonymized."
+  full_retention_period: Product lifetime + 2 years
+
+data_quality:
+  - rule: rating must be between 1 and 5
+    severity: ERROR
+  - rule: customer must have a DELIVERED order for the product (verified purchase)
+    severity: ERROR
+  - rule: one review per customer per product
+    severity: ERROR
+  - rule: review body must not exceed 5000 characters
+    severity: WARNING
+
+golden_source: reviews-service

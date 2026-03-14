@@ -1,0 +1,299 @@
+entity: Order
+description: "Represents a purchase transaction initiated by a customer on the ShopStream platform. An order is created when a customer completes checkout and transitions through a defined lifecycle of statuses from PENDING through DELIVERED or CANCELLED. Each order belongs to exactly one customer and one merchant, contains one or more order lines, and is associated with exactly one payment record. Orders are the central transactional entity in the platform and serve as the primary join key for revenue reporting, merchant settlement, and customer lifetime value calculations. Orders placed through the marketplace may involve multiple merchants, in which case a parent order is created with child sub-orders per merchant."
+
+aliases:
+  - Purchase
+  - Transaction
+  - SalesOrder
+  - CheckoutOrder
+
+identifier:
+  field: order_id
+  type: UUID v4
+  description: "Globally unique order identifier assigned at checkout completion. The order_id is used across all systems: OMS, payment gateway, warehouse management, and analytics. A human-readable order_number is also generated for customer-facing communications."
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: order-management-service
+
+relationships:
+  - type: belongs_to
+    target: Customer
+    foreign_key: customer_id
+    description: The customer who placed this order. Required.
+    cardinality: "1"
+    on_delete: RESTRICT
+
+  - type: belongs_to
+    target: Merchant
+    foreign_key: merchant_id
+    description: The merchant fulfilling this order or sub-order.
+    cardinality: "1"
+    on_delete: RESTRICT
+
+  - type: has_many
+    target: OrderLine
+    foreign_key: order_id
+    description: Individual line items within this order. Minimum one line per order.
+    cardinality: "1..*"
+    cascade_delete: true
+
+  - type: has_one
+    target: Payment
+    foreign_key: order_id
+    description: The payment transaction associated with this order.
+    cardinality: "1"
+    cascade_delete: false
+
+  - type: has_many
+    target: Shipment
+    foreign_key: order_id
+    description: "Shipments created to fulfill this order. An order may be split into multiple shipments if items ship from different warehouses."
+    cardinality: "0..*"
+    cascade_delete: false
+
+  - type: has_one
+    target: Invoice
+    foreign_key: order_id
+    description: The invoice generated for this order after payment confirmation.
+    cardinality: "0..1"
+    cascade_delete: false
+
+  - type: has_many
+    target: Refund
+    foreign_key: order_id
+    description: Refunds issued against this order (partial or full).
+    cardinality: "0..*"
+    cascade_delete: false
+
+  - type: has_one
+    target: Coupon
+    foreign_key: applied_coupon_id
+    description: Optional coupon applied at checkout.
+    cardinality: "0..1"
+
+fields:
+  - name: order_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: order_number
+    type: VARCHAR(20)
+    description: "Human-readable order number displayed to customers and merchants. Format: SS-YYYYMMDD-XXXXXX where SS is a region prefix, YYYYMMDD is the order date, and XXXXXX is a sequential counter. Example: US-20250315-000142."
+    nullable: false
+    pii: false
+    constraints:
+      - UNIQUE
+      - IMMUTABLE
+
+  - name: customer_id
+    type: UUID
+    description: Reference to the ordering customer.
+    nullable: false
+    pii: false
+
+  - name: merchant_id
+    type: UUID
+    description: Reference to the fulfilling merchant.
+    nullable: false
+    pii: false
+
+  - name: status
+    type: ENUM
+    description: "Current lifecycle status. Transitions follow a defined state machine: PENDING → CONFIRMED → PROCESSING → SHIPPED → DELIVERED. Cancellations: PENDING/CONFIRMED → CANCELLED. Returns: DELIVERED → RETURN_REQUESTED → RETURNED."
+    nullable: false
+    default: PENDING
+    allowed_values:
+      - PENDING
+      - CONFIRMED
+      - PROCESSING
+      - PARTIALLY_SHIPPED
+      - SHIPPED
+      - DELIVERED
+      - CANCELLED
+      - RETURN_REQUESTED
+      - RETURNED
+      - FAILED
+
+  - name: order_type
+    type: ENUM
+    description: Classification of the order type.
+    nullable: false
+    default: STANDARD
+    allowed_values:
+      - STANDARD
+      - SUBSCRIPTION
+      - PRE_ORDER
+      - BACKORDER
+      - MARKETPLACE
+
+  - name: subtotal
+    type: DECIMAL(12,2)
+    description: Sum of all line item amounts before tax, shipping, and discounts.
+    nullable: false
+    pii: false
+    constraints:
+      - ">= 0"
+
+  - name: tax_amount
+    type: DECIMAL(12,2)
+    description: Total tax calculated based on shipping address jurisdiction and product tax categories.
+    nullable: false
+    pii: false
+    constraints:
+      - ">= 0"
+
+  - name: shipping_amount
+    type: DECIMAL(12,2)
+    description: Shipping cost charged to the customer. May be zero for free shipping promotions.
+    nullable: false
+    default: 0.00
+    pii: false
+    constraints:
+      - ">= 0"
+
+  - name: discount_amount
+    type: DECIMAL(12,2)
+    description: Total discount applied from coupons, promotions, or loyalty points.
+    nullable: false
+    default: 0.00
+    pii: false
+    constraints:
+      - ">= 0"
+
+  - name: total_amount
+    type: DECIMAL(12,2)
+    description: "Final amount charged: subtotal + tax_amount + shipping_amount - discount_amount. This is the amount captured by the payment processor."
+    nullable: false
+    pii: false
+    constraints:
+      - ">= 0"
+      - "= subtotal + tax_amount + shipping_amount - discount_amount"
+
+  - name: currency
+    type: VARCHAR(3)
+    description: ISO 4217 currency code. Determined by the customer's billing address country.
+    nullable: false
+    default: USD
+    pii: false
+
+  - name: shipping_address_id
+    type: UUID
+    description: Reference to the CustomerAddress used for shipping.
+    nullable: true
+    pii: false
+
+  - name: billing_address_id
+    type: UUID
+    description: Reference to the CustomerAddress used for billing.
+    nullable: false
+    pii: false
+
+  - name: applied_coupon_id
+    type: UUID
+    description: Reference to the Coupon applied at checkout, if any.
+    nullable: true
+    pii: false
+
+  - name: notes
+    type: TEXT
+    description: Optional order notes from the customer (e.g., delivery instructions).
+    nullable: true
+    pii: true
+    pii_category: FREETEXT
+
+  - name: ip_address
+    type: VARCHAR(45)
+    description: IP address of the client at the time of order placement. Stored for fraud detection.
+    nullable: true
+    pii: true
+    pii_category: ONLINE_IDENTIFIER
+
+  - name: user_agent
+    type: TEXT
+    description: Browser/app user agent string at order time.
+    nullable: true
+    pii: true
+    pii_category: ONLINE_IDENTIFIER
+
+  - name: placed_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Timestamp when the order was placed (checkout completed).
+    nullable: false
+    pii: false
+
+  - name: confirmed_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Timestamp when payment was confirmed and order moved to CONFIRMED.
+    nullable: true
+    pii: false
+
+  - name: shipped_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Timestamp when the last shipment was dispatched.
+    nullable: true
+    pii: false
+
+  - name: delivered_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Timestamp when delivery was confirmed (carrier scan or customer confirmation).
+    nullable: true
+    pii: false
+
+  - name: cancelled_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Timestamp of cancellation, if applicable.
+    nullable: true
+    pii: false
+
+  - name: cancellation_reason
+    type: VARCHAR(500)
+    description: Reason for cancellation. Required when status is CANCELLED.
+    nullable: true
+    pii: false
+
+  - name: parent_order_id
+    type: UUID
+    description: "For marketplace orders split across merchants, this references the parent order. NULL for non-marketplace orders or for the parent order itself."
+    nullable: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Order records are retained for 7 years after the order date to satisfy financial reporting and tax audit requirements. PII fields (notes, ip_address, user_agent) are scrubbed after 2 years. The order_id, amounts, and status are retained for the full period."
+  pii_scrub_window: 2 years
+  full_retention_period: 7 years
+  legal_basis: Legal obligation (tax reporting), contractual necessity
+
+data_quality:
+  - rule: total_amount must equal subtotal + tax_amount + shipping_amount - discount_amount
+    severity: ERROR
+  - rule: order must have at least one OrderLine
+    severity: ERROR
+  - rule: cancelled_at must be set when status is CANCELLED
+    severity: ERROR
+  - rule: placed_at must be before confirmed_at, shipped_at, delivered_at
+    severity: ERROR
+  - rule: marketplace orders must have parent_order_id set for sub-orders
+    severity: WARNING
+
+golden_source: order-management-service
+sync_targets:
+  - data-warehouse (Snowflake)
+  - analytics-pipeline (dbt)
+  - merchant-portal
+  - customer-service-tool

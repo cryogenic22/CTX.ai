@@ -1,0 +1,173 @@
+entity: Cart
+description: "Represents a shopping cart containing items a customer intends to purchase. Carts are created automatically when a customer adds their first item and persist until the customer completes checkout (converting the cart to an order), explicitly empties the cart, or the cart expires after 30 days of inactivity. Carts support both authenticated customers (cart is linked to customer_id) and anonymous visitors (cart is linked to a session_id). When an anonymous visitor registers or logs in, their anonymous cart is merged with any existing authenticated cart. Cart data is stored in Redis for low-latency access and periodically snapshotted to PostgreSQL for analytics (abandoned cart recovery, conversion funnel analysis). The cart service validates inventory availability, applies pricing rules, and calculates estimated tax and shipping at display time. Cart abandonment emails are triggered when an authenticated customer's cart has been inactive for 24 hours and contains at least one item."
+
+aliases:
+  - ShoppingCart
+  - Basket
+  - CartSession
+  - ShoppingBasket
+
+identifier:
+  field: cart_id
+  type: UUID v4
+  description: Globally unique cart identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: cart-service
+
+relationships:
+  - type: belongs_to
+    target: Customer
+    foreign_key: customer_id
+    description: The authenticated customer owning this cart (NULL for anonymous carts).
+    cardinality: "0..1"
+
+fields:
+  - name: cart_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: customer_id
+    type: UUID
+    description: Reference to the authenticated customer. NULL for anonymous carts.
+    nullable: true
+    pii: false
+
+  - name: session_id
+    type: VARCHAR(100)
+    description: Anonymous session identifier (cookie-based) for unauthenticated carts.
+    nullable: true
+    pii: true
+    pii_category: ONLINE_IDENTIFIER
+
+  - name: status
+    type: ENUM
+    description: Cart lifecycle status.
+    nullable: false
+    default: ACTIVE
+    allowed_values:
+      - ACTIVE
+      - CONVERTED
+      - ABANDONED
+      - MERGED
+      - EXPIRED
+
+  - name: items
+    type: JSON
+    description: "JSON array of cart items. Each item contains: variant_id, product_id, quantity, unit_price, title, sku, image_url. Updated in real-time as the customer adds/removes/modifies items."
+    nullable: false
+    default: "[]"
+    pii: false
+
+  - name: item_count
+    type: INTEGER
+    description: Total number of unique items in the cart.
+    nullable: false
+    default: 0
+    pii: false
+
+  - name: total_quantity
+    type: INTEGER
+    description: Sum of all item quantities.
+    nullable: false
+    default: 0
+    pii: false
+
+  - name: subtotal
+    type: DECIMAL(12,2)
+    description: Sum of all line item totals before tax, shipping, and discounts.
+    nullable: false
+    default: 0.00
+    pii: false
+
+  - name: estimated_tax
+    type: DECIMAL(10,2)
+    description: Estimated tax based on default shipping address (recalculated at checkout).
+    nullable: true
+    pii: false
+
+  - name: estimated_shipping
+    type: DECIMAL(10,2)
+    description: Estimated shipping cost.
+    nullable: true
+    pii: false
+
+  - name: discount_amount
+    type: DECIMAL(10,2)
+    description: Applied discount amount from automatic promotions.
+    nullable: false
+    default: 0.00
+    pii: false
+
+  - name: applied_coupon_code
+    type: VARCHAR(50)
+    description: Coupon code applied to the cart, if any.
+    nullable: true
+    pii: false
+
+  - name: currency
+    type: VARCHAR(3)
+    description: Cart currency (based on customer preference or geo-location).
+    nullable: false
+    default: USD
+    pii: false
+
+  - name: converted_order_id
+    type: UUID
+    description: Reference to the order created when the cart was converted at checkout.
+    nullable: true
+    pii: false
+
+  - name: abandonment_email_sent
+    type: BOOLEAN
+    description: Whether the abandonment recovery email has been sent.
+    nullable: false
+    default: false
+    pii: false
+
+  - name: last_activity_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Timestamp of the last cart modification.
+    nullable: false
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+  - name: expires_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the cart expires (30 days after last_activity_at).
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Active carts are retained in Redis indefinitely (with TTL-based eviction). PostgreSQL snapshots of converted carts are retained for 1 year. Abandoned and expired cart data is retained for 90 days for analytics."
+  full_retention_period: 1 year (converted), 90 days (abandoned/expired)
+
+data_quality:
+  - rule: authenticated carts must have customer_id set
+    severity: ERROR
+  - rule: anonymous carts must have session_id set
+    severity: ERROR
+  - rule: item_count must match the length of the items array
+    severity: ERROR
+  - rule: subtotal must match the sum of item prices * quantities
+    severity: ERROR
+
+golden_source: cart-service
+storage:
+  primary: Redis (real-time)
+  snapshot: PostgreSQL (analytics)

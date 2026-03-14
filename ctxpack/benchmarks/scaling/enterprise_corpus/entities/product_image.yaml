@@ -1,0 +1,151 @@
+entity: ProductImage
+description: "Stores metadata for images associated with a product listing. Each product can have up to 10 images, with one designated as the primary image. Images are uploaded by merchants through the Merchant Portal or API and are processed by an image pipeline that generates multiple size variants (thumbnail 150x150, small 400x400, medium 800x800, large 1200x1200, zoom 2400x2400) and converts them to WebP format for optimal performance. Original images are retained in S3 for re-processing if needed. Image URLs are served through CloudFront CDN. Images must meet quality standards: minimum 800x800 pixels, maximum 20MB file size, white or transparent background recommended for the primary image. Products with fewer than 3 images receive a lower search ranking penalty."
+
+aliases:
+  - Image
+  - ProductPhoto
+  - ListingImage
+  - MediaAsset
+
+identifier:
+  field: image_id
+  type: UUID v4
+  description: Globally unique image identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: media-service
+
+relationships:
+  - type: belongs_to
+    target: Product
+    foreign_key: product_id
+    description: The product this image belongs to.
+    cardinality: "1"
+    on_delete: CASCADE
+
+fields:
+  - name: image_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: product_id
+    type: UUID
+    description: Reference to the parent product.
+    nullable: false
+    pii: false
+
+  - name: variant_id
+    type: UUID
+    description: Reference to a specific variant, if this image is variant-specific.
+    nullable: true
+    pii: false
+
+  - name: original_url
+    type: VARCHAR(2000)
+    description: S3 URL of the original uploaded image.
+    nullable: false
+    pii: false
+
+  - name: cdn_url
+    type: VARCHAR(2000)
+    description: CloudFront CDN URL for the processed image.
+    nullable: false
+    pii: false
+
+  - name: thumbnail_url
+    type: VARCHAR(2000)
+    description: URL for the 150x150 thumbnail variant.
+    nullable: false
+    pii: false
+
+  - name: alt_text
+    type: VARCHAR(500)
+    description: Accessibility alt text for the image.
+    nullable: true
+    pii: false
+
+  - name: position
+    type: INTEGER
+    description: Display order (0 = primary image).
+    nullable: false
+    default: 0
+    pii: false
+
+  - name: is_primary
+    type: BOOLEAN
+    description: Whether this is the product's primary/hero image.
+    nullable: false
+    default: false
+    pii: false
+
+  - name: width
+    type: INTEGER
+    description: Original image width in pixels.
+    nullable: false
+    pii: false
+
+  - name: height
+    type: INTEGER
+    description: Original image height in pixels.
+    nullable: false
+    pii: false
+
+  - name: file_size_bytes
+    type: INTEGER
+    description: Original file size in bytes.
+    nullable: false
+    pii: false
+
+  - name: format
+    type: ENUM
+    description: Original image format.
+    nullable: false
+    allowed_values:
+      - JPEG
+      - PNG
+      - WEBP
+      - GIF
+      - TIFF
+
+  - name: processing_status
+    type: ENUM
+    description: Status of image processing pipeline.
+    nullable: false
+    default: PENDING
+    allowed_values:
+      - PENDING
+      - PROCESSING
+      - COMPLETED
+      - FAILED
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Upload timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Image records and files follow the Product retention policy. Originals are retained in S3 Glacier after 1 year for cost optimization."
+  full_retention_period: Follows Product entity
+
+data_quality:
+  - rule: exactly one primary image per product
+    severity: ERROR
+  - rule: original dimensions must be at least 800x800
+    severity: WARNING
+  - rule: file_size_bytes must not exceed 20MB (20971520 bytes)
+    severity: ERROR
+  - rule: product should have at least 3 images
+    severity: WARNING
+
+golden_source: media-service

@@ -837,12 +837,16 @@ def _compress_value(val: Any) -> str:
 
 
 def _compress_scalar(val: Any) -> str:
-    """Compress a scalar value, hyphenating multi-word strings."""
+    """Compress a scalar value, preserving spaces for BPE efficiency.
+
+    Spaces in prose values are kept as-is. Only structural identifiers
+    (keys, entity names) are hyphenated. This avoids the BPE inflation
+    problem where hyphenated words tokenize ~40% worse than spaced words.
+    """
     s = str(val)
-    # If it already looks compressed (no spaces, has hyphens) keep as-is
-    if " " not in s:
-        return s
-    return _hyphenate(s)
+    # Commas followed by space → comma-space (preserve for readability)
+    # Underscores → hyphens (structural convention)
+    return s.replace("_", "-")
 
 
 def _hyphenate(text: str) -> str:

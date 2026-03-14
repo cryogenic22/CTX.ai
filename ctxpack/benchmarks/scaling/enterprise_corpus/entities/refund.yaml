@@ -1,0 +1,206 @@
+entity: Refund
+description: "Represents a refund issued against an order or specific order line items. Refunds can be partial (specific items or amounts) or full (entire order amount). A refund is always linked to the original payment and is processed through the same payment gateway. Refund processing is initiated by customer service agents or automatically by the system for specific scenarios (e.g., merchant fails to ship within the SLA). Refunds are subject to the platform's refund policy, which varies by merchant and product category. The maximum refund window is 90 days from delivery for most categories, with exceptions for electronics (30 days) and perishable goods (7 days). Refund amounts are deducted from the merchant's next settlement."
+
+aliases:
+  - Return
+  - Reimbursement
+  - CreditNote
+  - Chargeback
+
+identifier:
+  field: refund_id
+  type: UUID v4
+  description: Globally unique refund identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: payment-service
+
+relationships:
+  - type: belongs_to
+    target: Order
+    foreign_key: order_id
+    description: The order this refund is issued against.
+    cardinality: "1"
+    on_delete: RESTRICT
+
+  - type: belongs_to
+    target: Payment
+    foreign_key: payment_id
+    description: The original payment being refunded.
+    cardinality: "1"
+    on_delete: RESTRICT
+
+  - type: belongs_to
+    target: Customer
+    foreign_key: customer_id
+    description: The customer receiving the refund.
+    cardinality: "1"
+
+fields:
+  - name: refund_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: order_id
+    type: UUID
+    description: Reference to the original order.
+    nullable: false
+    pii: false
+
+  - name: payment_id
+    type: UUID
+    description: Reference to the original payment.
+    nullable: false
+    pii: false
+
+  - name: customer_id
+    type: UUID
+    description: Reference to the customer receiving the refund.
+    nullable: false
+    pii: false
+
+  - name: refund_type
+    type: ENUM
+    description: Whether this is a full or partial refund.
+    nullable: false
+    allowed_values:
+      - FULL
+      - PARTIAL
+      - LINE_ITEM
+
+  - name: status
+    type: ENUM
+    description: "Refund processing status. REQUESTED → APPROVED → PROCESSING → COMPLETED. REJECTED refunds are denied by the merchant or automated policy checks."
+    nullable: false
+    default: REQUESTED
+    allowed_values:
+      - REQUESTED
+      - APPROVED
+      - PROCESSING
+      - COMPLETED
+      - REJECTED
+      - FAILED
+
+  - name: amount
+    type: DECIMAL(12,2)
+    description: Refund amount in the original order's currency. Must not exceed the original payment amount minus any prior refunds.
+    nullable: false
+    pii: false
+    constraints:
+      - "> 0"
+      - "<= remaining refundable amount"
+
+  - name: currency
+    type: VARCHAR(3)
+    description: ISO 4217 currency code matching the original order.
+    nullable: false
+    pii: false
+
+  - name: reason
+    type: ENUM
+    description: Categorized reason for the refund.
+    nullable: false
+    allowed_values:
+      - CUSTOMER_REQUEST
+      - DAMAGED_ITEM
+      - WRONG_ITEM
+      - LATE_DELIVERY
+      - MERCHANT_CANCELLED
+      - QUALITY_ISSUE
+      - DUPLICATE_CHARGE
+      - FRAUD
+      - OTHER
+
+  - name: reason_detail
+    type: TEXT
+    description: Free-text explanation of the refund reason.
+    nullable: true
+    pii: true
+    pii_category: FREETEXT
+
+  - name: refunded_line_items
+    type: JSON
+    description: "For LINE_ITEM refunds, a JSON array specifying which order lines and quantities are being refunded. Example: [{\"order_line_id\": \"uuid\", \"quantity\": 1, \"amount\": 29.99}]"
+    nullable: true
+    pii: false
+
+  - name: gateway_refund_id
+    type: VARCHAR(100)
+    description: Refund transaction identifier from the payment gateway.
+    nullable: true
+    pii: false
+
+  - name: restock_inventory
+    type: BOOLEAN
+    description: Whether returned items should be restocked in inventory.
+    nullable: false
+    default: true
+    pii: false
+
+  - name: initiated_by
+    type: ENUM
+    description: Who initiated the refund request.
+    nullable: false
+    allowed_values:
+      - CUSTOMER
+      - MERCHANT
+      - PLATFORM
+      - SYSTEM
+
+  - name: agent_id
+    type: VARCHAR(100)
+    description: ID of the customer service agent who processed the refund, if applicable.
+    nullable: true
+    pii: false
+
+  - name: requested_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the refund was requested.
+    nullable: false
+    pii: false
+
+  - name: approved_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the refund was approved.
+    nullable: true
+    pii: false
+
+  - name: completed_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the refund was successfully processed by the payment gateway.
+    nullable: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Refund records are retained for 10 years to match the Payment entity retention policy. PII fields (reason_detail) are scrubbed after 3 years."
+  pii_scrub_window: 3 years
+  full_retention_period: 10 years
+  legal_basis: Legal obligation (financial regulations)
+
+data_quality:
+  - rule: refund amount must not exceed remaining refundable amount on the payment
+    severity: ERROR
+  - rule: currency must match the original order currency
+    severity: ERROR
+  - rule: completed_at must be set when status is COMPLETED
+    severity: ERROR
+  - rule: gateway_refund_id must be set when status is COMPLETED
+    severity: ERROR
+
+golden_source: payment-service

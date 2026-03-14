@@ -1,0 +1,146 @@
+entity: Discount
+description: "Represents an automatic discount or promotion that is applied to qualifying orders without requiring a coupon code. Discounts are configured by merchants or the platform and are applied automatically at checkout when eligibility conditions are met. Unlike coupons, discounts do not require customer input and can stack with coupons (if the coupon is marked as stackable). Discounts can target specific products, categories, or customer segments. Common discount types include volume discounts (buy 3 get 10% off), bundle discounts (buy product A and B together for $X), seasonal sale pricing, and customer segment discounts (first-time buyer discount, loyalty tier pricing)."
+
+aliases:
+  - Promotion
+  - AutoDiscount
+  - SalePrice
+  - SpecialOffer
+
+identifier:
+  field: discount_id
+  type: UUID v4
+  description: Globally unique discount identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: promotions-service
+
+relationships:
+  - type: belongs_to
+    target: Merchant
+    foreign_key: merchant_id
+    description: The merchant running this promotion (NULL for platform-wide discounts).
+    cardinality: "0..1"
+
+fields:
+  - name: discount_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: merchant_id
+    type: UUID
+    description: Reference to the merchant, or NULL for platform-wide discounts.
+    nullable: true
+    pii: false
+
+  - name: name
+    type: VARCHAR(200)
+    description: Internal name for the discount (e.g., "Summer Sale 2025", "Buy 3 Save 10%").
+    nullable: false
+    pii: false
+
+  - name: description
+    type: TEXT
+    description: Description of the discount terms, displayed to customers.
+    nullable: true
+    pii: false
+
+  - name: discount_type
+    type: ENUM
+    description: How the discount is calculated.
+    nullable: false
+    allowed_values:
+      - PERCENTAGE
+      - FIXED_AMOUNT
+      - BUY_X_GET_Y
+      - VOLUME_PRICING
+      - BUNDLE
+      - FREE_SHIPPING
+
+  - name: discount_value
+    type: DECIMAL(10,2)
+    description: Discount amount or percentage (interpretation depends on discount_type).
+    nullable: false
+    pii: false
+
+  - name: conditions
+    type: JSON
+    description: "JSON object defining eligibility conditions. Keys may include: min_quantity, min_order_amount, applicable_product_ids, applicable_category_ids, customer_segments, buy_quantity, get_quantity."
+    nullable: true
+    pii: false
+
+  - name: priority
+    type: INTEGER
+    description: "Priority for conflict resolution when multiple discounts apply. Lower number = higher priority. Only the highest-priority applicable discount is applied per line item."
+    nullable: false
+    default: 100
+    pii: false
+
+  - name: stackable
+    type: BOOLEAN
+    description: Whether this discount can stack with other discounts and coupons.
+    nullable: false
+    default: false
+    pii: false
+
+  - name: maximum_discount_amount
+    type: DECIMAL(10,2)
+    description: Cap on the discount for percentage-based discounts.
+    nullable: true
+    pii: false
+
+  - name: starts_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the discount becomes active.
+    nullable: false
+    pii: false
+
+  - name: expires_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the discount expires.
+    nullable: true
+    pii: false
+
+  - name: is_active
+    type: BOOLEAN
+    description: Whether the discount is currently active.
+    nullable: false
+    default: true
+    pii: false
+
+  - name: usage_count
+    type: INTEGER
+    description: Number of times this discount has been applied.
+    nullable: false
+    default: 0
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Discount records are retained for 3 years after expiration."
+  full_retention_period: 3 years after expiration
+
+data_quality:
+  - rule: discount_value must be positive
+    severity: ERROR
+  - rule: for PERCENTAGE type, value must be between 0 and 100
+    severity: ERROR
+  - rule: expires_at must be after starts_at when set
+    severity: ERROR
+
+golden_source: promotions-service

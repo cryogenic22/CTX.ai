@@ -54,6 +54,7 @@ def pack(
     min_tokens_per_entity: int = 0,
     template: Optional[str] = None,
     randomize_order: bool = False,
+    preset: str = "",
 ) -> PackResult:
     """Pack a corpus directory into a CTXDocument (L2).
 
@@ -63,6 +64,7 @@ def pack(
     Args:
         max_ratio: Maximum compression ratio (e.g. 10.0). 0 = no limit.
         min_tokens_per_entity: Minimum token budget per entity. 0 = no limit.
+        preset: Named compression preset ("conservative", "balanced", "aggressive").
     """
     # 1. Discovery
     disc = discover(corpus_dir, domain=domain, scope=scope, author=author)
@@ -124,7 +126,8 @@ def pack(
     doc = compress(corpus, strict=strict,
                    max_ratio=max_ratio,
                    min_tokens_per_entity=min_tokens_per_entity,
-                   randomize_order=randomize_order)
+                   randomize_order=randomize_order,
+                   preset=preset)
 
     # 7. L3 generation (if requested)
     if layers is None:

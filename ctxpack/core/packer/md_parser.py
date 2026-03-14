@@ -237,13 +237,13 @@ _FILLER_WORDS = {
 
 
 def _compress_prose(text: str) -> str:
-    """Strip filler words and hyphenate for L2 notation."""
+    """Strip filler words, preserving spaces for BPE efficiency.
+
+    Keeps spaces between words instead of hyphenating — hyphens cause
+    BPE tokenizers to fragment words, inflating token count by ~40%.
+    """
     words = text.split()
     kept = [w for w in words if w.lower().rstrip(".,;:!?") not in _FILLER_WORDS]
     if not kept:
-        return _hyphenate(text)
-    result = "-".join(kept)
-    # Clean up punctuation artifacts
-    result = re.sub(r"[-]+", "-", result)
-    result = result.strip("-")
-    return result
+        return text
+    return " ".join(kept)

@@ -1,0 +1,231 @@
+entity: Shipment
+description: "Represents a physical package dispatched from a warehouse to fulfill all or part of an order. A single order may result in multiple shipments when items are stored in different warehouses or when the order is partially fulfilled due to stock availability. Each shipment contains one or more shipment items (which map to order lines) and is assigned a carrier and tracking number. Shipment creation triggers inventory reservation decrements and generates customer notification emails. The shipment lifecycle is tracked through carrier integration webhooks that update status in near-real-time. Shipment data is critical for customer experience (delivery tracking), merchant performance metrics (fulfillment SLA), and financial reconciliation (shipping cost allocation)."
+
+aliases:
+  - Package
+  - Delivery
+  - Fulfillment
+  - Parcel
+
+identifier:
+  field: shipment_id
+  type: UUID v4
+  description: Globally unique shipment identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: fulfillment-service
+
+relationships:
+  - type: belongs_to
+    target: Order
+    foreign_key: order_id
+    description: The order being fulfilled by this shipment.
+    cardinality: "1"
+    on_delete: RESTRICT
+
+  - type: belongs_to
+    target: Warehouse
+    foreign_key: origin_warehouse_id
+    description: The warehouse from which this shipment originates.
+    cardinality: "1"
+
+  - type: has_many
+    target: ShipmentTracking
+    foreign_key: shipment_id
+    description: Tracking events from the carrier for this shipment.
+    cardinality: "0..*"
+    cascade_delete: true
+
+fields:
+  - name: shipment_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: order_id
+    type: UUID
+    description: Reference to the parent order.
+    nullable: false
+    pii: false
+
+  - name: origin_warehouse_id
+    type: UUID
+    description: Reference to the originating warehouse.
+    nullable: false
+    pii: false
+
+  - name: shipment_number
+    type: VARCHAR(30)
+    description: "Human-readable shipment number. Format: SH-YYYYMMDD-XXXXXX."
+    nullable: false
+    pii: false
+    constraints:
+      - UNIQUE
+
+  - name: status
+    type: ENUM
+    description: "Current shipment status, updated via carrier webhooks. CREATED → LABEL_PRINTED → PICKED_UP → IN_TRANSIT → OUT_FOR_DELIVERY → DELIVERED. Exception statuses: RETURNED_TO_SENDER, LOST, DAMAGED."
+    nullable: false
+    default: CREATED
+    allowed_values:
+      - CREATED
+      - LABEL_PRINTED
+      - PICKED_UP
+      - IN_TRANSIT
+      - OUT_FOR_DELIVERY
+      - DELIVERED
+      - DELIVERY_ATTEMPTED
+      - RETURNED_TO_SENDER
+      - LOST
+      - DAMAGED
+
+  - name: carrier
+    type: ENUM
+    description: Shipping carrier used for this shipment.
+    nullable: false
+    allowed_values:
+      - USPS
+      - UPS
+      - FEDEX
+      - DHL
+      - CANADA_POST
+      - ROYAL_MAIL
+      - SHOPSTREAM_LOCAL
+
+  - name: service_level
+    type: ENUM
+    description: Shipping speed/service selected.
+    nullable: false
+    allowed_values:
+      - ECONOMY
+      - STANDARD
+      - EXPRESS
+      - OVERNIGHT
+      - SAME_DAY
+
+  - name: tracking_number
+    type: VARCHAR(100)
+    description: Carrier-assigned tracking number.
+    nullable: true
+    pii: false
+
+  - name: tracking_url
+    type: VARCHAR(2000)
+    description: Full URL for customer tracking page.
+    nullable: true
+    pii: false
+
+  - name: shipped_items
+    type: JSON
+    description: "JSON array of items in this shipment. Each entry contains order_line_id, variant_id, sku, quantity. Example: [{\"order_line_id\": \"uuid\", \"variant_id\": \"uuid\", \"sku\": \"NK-RUN-L-BLU\", \"quantity\": 2}]"
+    nullable: false
+    pii: false
+
+  - name: weight_grams
+    type: INTEGER
+    description: Total package weight in grams.
+    nullable: true
+    pii: false
+
+  - name: dimensions_cm
+    type: JSON
+    description: Package dimensions as JSON (length, width, height in cm).
+    nullable: true
+    pii: false
+
+  - name: shipping_cost
+    type: DECIMAL(10,2)
+    description: Actual shipping cost charged by the carrier.
+    nullable: true
+    pii: false
+
+  - name: insurance_amount
+    type: DECIMAL(10,2)
+    description: Declared value for shipping insurance.
+    nullable: true
+    pii: false
+
+  - name: recipient_name
+    type: VARCHAR(200)
+    description: Name of the recipient on the shipping label.
+    nullable: false
+    pii: true
+    pii_category: DIRECT_IDENTIFIER
+
+  - name: recipient_address
+    type: JSON
+    description: "Full shipping address as JSON (line1, line2, city, state, postal_code, country). Snapshotted from the order's shipping address at shipment creation."
+    nullable: false
+    pii: true
+    pii_category: DIRECT_IDENTIFIER
+
+  - name: recipient_phone
+    type: VARCHAR(20)
+    description: Contact phone for delivery issues.
+    nullable: true
+    pii: true
+    pii_category: DIRECT_IDENTIFIER
+
+  - name: label_created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the shipping label was generated.
+    nullable: true
+    pii: false
+
+  - name: picked_up_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the carrier picked up the package.
+    nullable: true
+    pii: false
+
+  - name: delivered_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the package was delivered.
+    nullable: true
+    pii: false
+
+  - name: estimated_delivery_date
+    type: DATE
+    description: Carrier's estimated delivery date.
+    nullable: true
+    pii: false
+
+  - name: delivery_signature
+    type: VARCHAR(200)
+    description: Name of the person who signed for the delivery, if applicable.
+    nullable: true
+    pii: true
+    pii_category: DIRECT_IDENTIFIER
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Shipment records are retained for 5 years after delivery. PII fields (recipient_name, recipient_address, recipient_phone, delivery_signature) are scrubbed 2 years after delivery."
+  pii_scrub_window: 2 years after delivery
+  full_retention_period: 5 years after delivery
+  legal_basis: Contractual necessity, consumer protection
+
+data_quality:
+  - rule: tracking_number must be set before status can advance past LABEL_PRINTED
+    severity: ERROR
+  - rule: shipped_items quantities must not exceed corresponding order line quantities
+    severity: ERROR
+  - rule: delivered_at must be set when status is DELIVERED
+    severity: ERROR
+  - rule: estimated_delivery_date should not be more than 30 days from label_created_at
+    severity: WARNING
+
+golden_source: fulfillment-service

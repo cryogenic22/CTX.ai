@@ -1,0 +1,164 @@
+entity: WebhookEvent
+description: "Represents a webhook notification sent to a merchant's registered endpoint when significant events occur on the platform. Merchants configure webhook subscriptions specifying which event types they want to receive and the URL to deliver them to. Each webhook event contains a JSON payload with the relevant entity data, a unique event ID for idempotency, and an HMAC-SHA256 signature for payload verification. The webhook delivery system implements retry logic with exponential backoff: failed deliveries are retried up to 8 times over 48 hours (immediately, 1 min, 5 min, 30 min, 2 hr, 8 hr, 24 hr, 48 hr). After all retries are exhausted, the event is marked as FAILED and the merchant is notified via email. Merchants can replay failed events through the Merchant Portal or API. The webhook system processes approximately 2 million events per day across all merchants."
+
+aliases:
+  - Webhook
+  - EventNotification
+  - WebhookDelivery
+  - IntegrationEvent
+
+identifier:
+  field: webhook_event_id
+  type: UUID v4
+  description: Globally unique webhook event identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: webhook-service
+
+relationships:
+  - type: belongs_to
+    target: Merchant
+    foreign_key: merchant_id
+    description: The merchant this webhook is delivered to.
+    cardinality: "1"
+
+fields:
+  - name: webhook_event_id
+    type: UUID
+    description: Primary identifier and idempotency key.
+    nullable: false
+    pii: false
+
+  - name: merchant_id
+    type: UUID
+    description: Reference to the merchant.
+    nullable: false
+    pii: false
+
+  - name: event_type
+    type: VARCHAR(100)
+    description: "Type of event. Uses dot notation: \"order.created\", \"order.updated\", \"order.cancelled\", \"payment.captured\", \"payment.failed\", \"shipment.created\", \"shipment.delivered\", \"inventory.low_stock\", \"product.updated\", \"refund.completed\", \"subscription.renewed\", \"subscription.cancelled\"."
+    nullable: false
+    pii: false
+
+  - name: payload
+    type: JSON
+    description: "JSON payload containing the event data. Includes the full entity state at the time of the event plus metadata (event_id, event_type, timestamp, api_version). PII fields in the payload are included as the merchant has a data processing agreement."
+    nullable: false
+    pii: true
+    pii_category: INDIRECT
+
+  - name: endpoint_url
+    type: VARCHAR(2000)
+    description: The merchant's webhook endpoint URL this event was delivered to.
+    nullable: false
+    pii: false
+
+  - name: delivery_status
+    type: ENUM
+    description: Current delivery status.
+    nullable: false
+    default: PENDING
+    allowed_values:
+      - PENDING
+      - DELIVERED
+      - FAILED
+      - RETRYING
+
+  - name: http_status_code
+    type: INTEGER
+    description: HTTP response status code from the last delivery attempt.
+    nullable: true
+    pii: false
+
+  - name: response_body
+    type: TEXT
+    description: Response body from the last delivery attempt (truncated to 1000 chars).
+    nullable: true
+    pii: false
+
+  - name: attempt_count
+    type: INTEGER
+    description: Number of delivery attempts made.
+    nullable: false
+    default: 0
+    pii: false
+
+  - name: max_attempts
+    type: INTEGER
+    description: Maximum number of delivery attempts before marking as FAILED.
+    nullable: false
+    default: 8
+    pii: false
+
+  - name: next_retry_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the next delivery retry is scheduled.
+    nullable: true
+    pii: false
+
+  - name: signature
+    type: VARCHAR(64)
+    description: HMAC-SHA256 signature of the payload for verification by the merchant.
+    nullable: false
+    pii: false
+
+  - name: api_version
+    type: VARCHAR(20)
+    description: API version used for the payload format (e.g., "2025-01-15").
+    nullable: false
+    pii: false
+
+  - name: related_entity_type
+    type: VARCHAR(50)
+    description: Type of entity that triggered this event.
+    nullable: false
+    pii: false
+
+  - name: related_entity_id
+    type: UUID
+    description: ID of the entity that triggered this event.
+    nullable: false
+    pii: false
+
+  - name: first_attempted_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the first delivery attempt was made.
+    nullable: true
+    pii: false
+
+  - name: delivered_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the event was successfully delivered.
+    nullable: true
+    pii: false
+
+  - name: failed_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the event was marked as permanently failed.
+    nullable: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Webhook event records are retained for 90 days. Successful deliveries are cleaned up after 30 days. Failed events are retained for 90 days to allow merchant investigation and replay."
+  full_retention_period: 90 days
+
+data_quality:
+  - rule: endpoint_url must be HTTPS
+    severity: ERROR
+  - rule: attempt_count must not exceed max_attempts
+    severity: ERROR
+  - rule: delivered_at must be set when status is DELIVERED
+    severity: ERROR
+  - rule: failed_at must be set when status is FAILED
+    severity: ERROR
+
+golden_source: webhook-service

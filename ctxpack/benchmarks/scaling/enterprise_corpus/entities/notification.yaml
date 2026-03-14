@@ -1,0 +1,176 @@
+entity: Notification
+description: "Represents a message sent to a customer or merchant through one of the platform's communication channels (email, SMS, push notification, or in-app). Notifications are triggered by events in the order lifecycle, subscription renewals, promotional campaigns, and system alerts. Each notification is generated from a template that supports localization and personalization with dynamic variables. The notification service tracks delivery status, open rates, and click-through rates for analytics and deliverability monitoring. Notifications respect customer communication preferences and marketing consent settings. Transactional notifications (order confirmation, shipping updates) are always sent regardless of marketing consent. Marketing notifications require explicit opt-in per GDPR and CAN-SPAM requirements."
+
+aliases:
+  - Message
+  - Alert
+  - Communication
+  - Email
+
+identifier:
+  field: notification_id
+  type: UUID v4
+  description: Globally unique notification identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: notification-service
+
+relationships:
+  - type: belongs_to
+    target: Customer
+    foreign_key: recipient_id
+    description: The customer or merchant receiving the notification.
+    cardinality: "1"
+
+fields:
+  - name: notification_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: recipient_id
+    type: UUID
+    description: Reference to the customer or merchant receiving the notification.
+    nullable: false
+    pii: false
+
+  - name: recipient_type
+    type: ENUM
+    description: Whether the recipient is a customer or merchant.
+    nullable: false
+    allowed_values:
+      - CUSTOMER
+      - MERCHANT
+
+  - name: channel
+    type: ENUM
+    description: Communication channel.
+    nullable: false
+    allowed_values:
+      - EMAIL
+      - SMS
+      - PUSH
+      - IN_APP
+
+  - name: notification_type
+    type: ENUM
+    description: Whether this is a transactional or marketing notification.
+    nullable: false
+    allowed_values:
+      - TRANSACTIONAL
+      - MARKETING
+      - SYSTEM
+
+  - name: template_id
+    type: VARCHAR(100)
+    description: Reference to the notification template used.
+    nullable: false
+    pii: false
+
+  - name: subject
+    type: VARCHAR(500)
+    description: Email subject line or notification title.
+    nullable: true
+    pii: false
+
+  - name: body_preview
+    type: VARCHAR(500)
+    description: First 500 characters of the notification body for logging purposes.
+    nullable: true
+    pii: true
+    pii_category: FREETEXT
+
+  - name: recipient_email
+    type: VARCHAR(255)
+    description: Email address used for EMAIL channel notifications.
+    nullable: true
+    pii: true
+    pii_category: DIRECT_IDENTIFIER
+
+  - name: recipient_phone
+    type: VARCHAR(20)
+    description: Phone number used for SMS notifications.
+    nullable: true
+    pii: true
+    pii_category: DIRECT_IDENTIFIER
+
+  - name: status
+    type: ENUM
+    description: Delivery status of the notification.
+    nullable: false
+    default: QUEUED
+    allowed_values:
+      - QUEUED
+      - SENT
+      - DELIVERED
+      - OPENED
+      - CLICKED
+      - BOUNCED
+      - FAILED
+      - UNSUBSCRIBED
+
+  - name: sent_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the notification was sent.
+    nullable: true
+    pii: false
+
+  - name: delivered_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When delivery was confirmed.
+    nullable: true
+    pii: false
+
+  - name: opened_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the notification was opened (tracked via pixel for email).
+    nullable: true
+    pii: false
+
+  - name: clicked_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When a link in the notification was clicked.
+    nullable: true
+    pii: false
+
+  - name: failure_reason
+    type: VARCHAR(500)
+    description: Reason for delivery failure (bounce, invalid address, etc.).
+    nullable: true
+    pii: false
+
+  - name: related_entity_type
+    type: VARCHAR(50)
+    description: Type of the entity that triggered this notification (e.g., "Order", "Shipment").
+    nullable: true
+    pii: false
+
+  - name: related_entity_id
+    type: UUID
+    description: ID of the entity that triggered this notification.
+    nullable: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Notification records are retained for 2 years. PII fields (recipient_email, recipient_phone, body_preview) are scrubbed after 90 days. Aggregated delivery metrics are retained for 3 years in the analytics warehouse."
+  pii_scrub_window: 90 days
+  full_retention_period: 2 years
+
+data_quality:
+  - rule: MARKETING notifications must respect customer marketing_consent
+    severity: ERROR
+  - rule: recipient_email must be set for EMAIL channel
+    severity: ERROR
+  - rule: recipient_phone must be set for SMS channel
+    severity: ERROR
+
+golden_source: notification-service

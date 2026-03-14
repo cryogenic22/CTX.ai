@@ -1,0 +1,207 @@
+entity: Subscription
+description: "Represents a recurring subscription held by a customer on the ShopStream platform. Subscriptions are used for two purposes: (1) the ShopStream Plus premium membership program, which offers benefits like free express shipping, exclusive discounts, and early access to sales; and (2) product subscriptions where customers opt for recurring delivery of consumable products at a discounted rate (Subscribe & Save). Each subscription is linked to a subscription plan that defines pricing, billing cycle, and benefits. Subscriptions automatically renew at the end of each billing period unless cancelled by the customer. Failed renewal payments trigger a grace period of 7 days with retry attempts before the subscription is suspended."
+
+aliases:
+  - Membership
+  - RecurringOrder
+  - SubscribeAndSave
+  - ShopStreamPlus
+
+identifier:
+  field: subscription_id
+  type: UUID v4
+  description: Globally unique subscription identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: subscription-service
+
+relationships:
+  - type: belongs_to
+    target: Customer
+    foreign_key: customer_id
+    description: The customer holding this subscription.
+    cardinality: "1"
+    on_delete: RESTRICT
+
+  - type: belongs_to
+    target: SubscriptionPlan
+    foreign_key: plan_id
+    description: The plan that defines this subscription's terms.
+    cardinality: "1"
+
+  - type: belongs_to
+    target: PaymentMethod
+    foreign_key: payment_method_id
+    description: The payment method used for recurring billing.
+    cardinality: "1"
+
+fields:
+  - name: subscription_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: customer_id
+    type: UUID
+    description: Reference to the subscribing customer.
+    nullable: false
+    pii: false
+
+  - name: plan_id
+    type: UUID
+    description: Reference to the subscription plan.
+    nullable: false
+    pii: false
+
+  - name: payment_method_id
+    type: UUID
+    description: Reference to the payment method for billing.
+    nullable: false
+    pii: false
+
+  - name: subscription_type
+    type: ENUM
+    description: Type of subscription.
+    nullable: false
+    allowed_values:
+      - SHOPSTREAM_PLUS
+      - PRODUCT_SUBSCRIPTION
+
+  - name: status
+    type: ENUM
+    description: "Current subscription status. ACTIVE subscriptions auto-renew. PAUSED subscriptions skip the next billing cycle but are not cancelled. GRACE_PERIOD means a renewal payment failed and retry is in progress. CANCELLED means the customer or system terminated the subscription."
+    nullable: false
+    default: ACTIVE
+    allowed_values:
+      - ACTIVE
+      - PAUSED
+      - GRACE_PERIOD
+      - CANCELLED
+      - EXPIRED
+
+  - name: billing_amount
+    type: DECIMAL(10,2)
+    description: Amount charged per billing cycle.
+    nullable: false
+    pii: false
+
+  - name: currency
+    type: VARCHAR(3)
+    description: ISO 4217 currency code.
+    nullable: false
+    pii: false
+
+  - name: billing_cycle
+    type: ENUM
+    description: Frequency of billing and renewal.
+    nullable: false
+    allowed_values:
+      - WEEKLY
+      - BIWEEKLY
+      - MONTHLY
+      - QUARTERLY
+      - ANNUALLY
+
+  - name: current_period_start
+    type: TIMESTAMP WITH TIME ZONE
+    description: Start of the current billing period.
+    nullable: false
+    pii: false
+
+  - name: current_period_end
+    type: TIMESTAMP WITH TIME ZONE
+    description: End of the current billing period (next renewal date).
+    nullable: false
+    pii: false
+
+  - name: trial_end_date
+    type: DATE
+    description: End date of the free trial period, if applicable.
+    nullable: true
+    pii: false
+
+  - name: cancelled_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Timestamp of cancellation.
+    nullable: true
+    pii: false
+
+  - name: cancellation_reason
+    type: VARCHAR(500)
+    description: Reason for cancellation as selected or provided by the customer.
+    nullable: true
+    pii: false
+
+  - name: cancel_at_period_end
+    type: BOOLEAN
+    description: "If true, the subscription will be cancelled at the end of the current billing period rather than immediately. Benefits continue until period end."
+    nullable: false
+    default: false
+    pii: false
+
+  - name: renewal_count
+    type: INTEGER
+    description: Number of successful renewals since subscription start.
+    nullable: false
+    default: 0
+    pii: false
+
+  - name: failed_payment_count
+    type: INTEGER
+    description: Consecutive failed payment attempts. Reset to 0 on successful payment.
+    nullable: false
+    default: 0
+    pii: false
+
+  - name: product_variant_id
+    type: UUID
+    description: "For PRODUCT_SUBSCRIPTION type, reference to the product variant being delivered. NULL for SHOPSTREAM_PLUS subscriptions."
+    nullable: true
+    pii: false
+
+  - name: delivery_quantity
+    type: INTEGER
+    description: Quantity delivered per cycle for product subscriptions.
+    nullable: true
+    pii: false
+
+  - name: delivery_address_id
+    type: UUID
+    description: Reference to the CustomerAddress for product delivery.
+    nullable: true
+    pii: false
+
+  - name: discount_percentage
+    type: DECIMAL(5,2)
+    description: "Subscribe & Save discount percentage applied to the product price. Typically 5% for monthly, 10% for quarterly, 15% for annual subscriptions."
+    nullable: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Subscription records are retained for 5 years after cancellation or expiration. Active subscriptions are retained indefinitely."
+  full_retention_period: 5 years after termination
+
+data_quality:
+  - rule: current_period_end must be after current_period_start
+    severity: ERROR
+  - rule: product_variant_id must be set for PRODUCT_SUBSCRIPTION type
+    severity: ERROR
+  - rule: failed_payment_count exceeding 3 should trigger GRACE_PERIOD status
+    severity: WARNING
+
+golden_source: subscription-service

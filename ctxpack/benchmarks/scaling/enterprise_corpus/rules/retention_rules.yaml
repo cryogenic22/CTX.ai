@@ -1,0 +1,284 @@
+# ShopStream Data Retention Rules
+# Last updated: 2025-12-01
+# Approved by: Data Protection Officer (DPO)
+# Review cycle: Annual (next review: 2026-12-01)
+#
+# These rules define how long data is retained for each entity and when PII
+# fields are scrubbed. Rules are enforced by the shopstream-data-lifecycle
+# service running daily at 02:00 UTC.
+
+retention_rules:
+
+  - entity: Customer
+    full_retention_period: "7 years"
+    retention_start_event: "last_order_date OR account_deletion, whichever is later"
+    pii_scrub:
+      enabled: true
+      scrub_window: "30 days after account deletion"
+      scrub_fields:
+        - email
+        - first_name
+        - last_name
+        - phone_number
+        - date_of_birth
+      scrub_method: SET_NULL
+    legal_basis:
+      - "Contractual necessity (active account)"
+      - "Legitimate interest (financial reporting)"
+    notes: "Customer records are never hard-deleted. PII is nullified but the customer_id and non-PII fields are retained for financial reporting and order history integrity."
+
+  - entity: CustomerAddress
+    full_retention_period: "7 years (follows Customer)"
+    retention_start_event: "follows parent Customer entity"
+    pii_scrub:
+      enabled: true
+      scrub_window: "immediate on customer account deletion"
+      scrub_fields:
+        - first_name
+        - last_name
+        - address_line1
+        - address_line2
+        - city
+        - state_province
+        - postal_code
+        - phone
+        - latitude
+        - longitude
+      scrub_method: SET_NULL
+    legal_basis:
+      - "Contractual necessity"
+    notes: "Address snapshots in Order and Shipment entities are retained separately and follow their own retention schedules."
+
+  - entity: Order
+    full_retention_period: "7 years"
+    retention_start_event: "order placed_at date"
+    pii_scrub:
+      enabled: true
+      scrub_window: "2 years after order date"
+      scrub_fields:
+        - notes
+        - ip_address
+        - user_agent
+      scrub_method: SET_NULL
+    legal_basis:
+      - "Legal obligation (tax reporting)"
+      - "Contractual necessity"
+
+  - entity: OrderLine
+    full_retention_period: "7 years (follows Order)"
+    retention_start_event: "follows parent Order entity"
+    pii_scrub:
+      enabled: true
+      scrub_window: "2 years (follows Order)"
+      scrub_fields:
+        - gift_message
+      scrub_method: SET_NULL
+
+  - entity: Payment
+    full_retention_period: "10 years"
+    retention_start_event: "payment created_at date"
+    pii_scrub:
+      enabled: true
+      scrub_window: "3 years after payment date"
+      scrub_fields:
+        - card_last_four
+        - card_exp_month
+        - card_exp_year
+        - billing_name
+      scrub_method: SET_NULL
+    legal_basis:
+      - "Legal obligation (PCI-DSS)"
+      - "Legal obligation (financial regulations)"
+    notes: "Payment records have a longer retention period than Orders due to PCI-DSS and financial audit requirements. Gateway transaction IDs and amounts are retained for the full 10-year period."
+
+  - entity: Refund
+    full_retention_period: "10 years"
+    retention_start_event: "refund created_at date"
+    pii_scrub:
+      enabled: true
+      scrub_window: "3 years"
+      scrub_fields:
+        - reason_detail
+      scrub_method: SET_NULL
+    legal_basis:
+      - "Legal obligation (financial regulations)"
+
+  - entity: PaymentMethod
+    full_retention_period: "7 years (audit trail)"
+    retention_start_event: "deletion or customer account deletion"
+    pii_scrub:
+      enabled: true
+      scrub_window: "immediate on deletion"
+      scrub_fields:
+        - gateway_token
+        - card_last_four
+        - card_exp_month
+        - card_exp_year
+        - billing_name
+        - fingerprint
+      scrub_method: SET_NULL
+    legal_basis:
+      - "PCI-DSS compliance"
+    notes: "Gateway token is revoked with the payment provider on deletion. The audit trail retains the payment_method_id reference."
+
+  - entity: Merchant
+    full_retention_period: "10 years after termination"
+    retention_start_event: "merchant account termination date"
+    pii_scrub:
+      enabled: true
+      scrub_window: "5 years after termination"
+      scrub_fields:
+        - email
+        - phone
+        - tax_id
+        - bank_account_last_four
+        - bank_routing_number
+      scrub_method: SET_NULL
+    legal_basis:
+      - "Legal obligation (tax reporting)"
+      - "Contractual necessity"
+
+  - entity: Invoice
+    full_retention_period: "10 years"
+    retention_start_event: "invoice issued_at date"
+    pii_scrub:
+      enabled: false
+    legal_basis:
+      - "Legal obligation (tax compliance)"
+    notes: "Invoice PII (billing address, tax IDs) is retained for the full period as it is required for tax audit purposes."
+
+  - entity: Shipment
+    full_retention_period: "5 years after delivery"
+    retention_start_event: "shipment delivered_at date"
+    pii_scrub:
+      enabled: true
+      scrub_window: "2 years after delivery"
+      scrub_fields:
+        - recipient_name
+        - recipient_address
+        - recipient_phone
+        - delivery_signature
+      scrub_method: SET_NULL
+    legal_basis:
+      - "Contractual necessity"
+      - "Consumer protection"
+
+  - entity: ShipmentTracking
+    full_retention_period: "2 years after delivery"
+    retention_start_event: "parent shipment delivery date"
+    pii_scrub:
+      enabled: false
+
+  - entity: Subscription
+    full_retention_period: "5 years after cancellation"
+    retention_start_event: "subscription cancelled_at or expired date"
+    pii_scrub:
+      enabled: false
+
+  - entity: UserSession
+    full_retention_period: "1 year"
+    retention_start_event: "session ended_at date"
+    pii_scrub:
+      enabled: true
+      scrub_window: "90 days"
+      scrub_fields:
+        - ip_address
+        - user_agent
+        - city
+      scrub_method: SET_NULL
+    legal_basis:
+      - "Security monitoring (legitimate interest)"
+
+  - entity: Notification
+    full_retention_period: "2 years"
+    retention_start_event: "notification created_at date"
+    pii_scrub:
+      enabled: true
+      scrub_window: "90 days"
+      scrub_fields:
+        - recipient_email
+        - recipient_phone
+        - body_preview
+      scrub_method: SET_NULL
+
+  - entity: AuditLog
+    full_retention_period: "7 years (10 years for security events)"
+    retention_start_event: "audit log timestamp"
+    pii_scrub:
+      enabled: true
+      scrub_window: "3 years"
+      scrub_fields:
+        - actor_id
+        - ip_address
+        - user_agent
+        - changes
+      scrub_method: ANONYMIZE
+    legal_basis:
+      - "Legal obligation (SOC 2)"
+      - "GDPR accountability"
+    notes: "Security-related entries (LOGIN, PERMISSION_CHANGE, CRITICAL severity) are retained for 10 years. PII is anonymized (not nullified) to preserve audit trail integrity."
+
+  - entity: WebhookEvent
+    full_retention_period: "90 days"
+    retention_start_event: "event created_at date"
+    pii_scrub:
+      enabled: true
+      scrub_window: "90 days (at deletion)"
+      scrub_fields:
+        - payload
+      scrub_method: DELETE
+
+  - entity: SearchQuery
+    full_retention_period: "2 years"
+    retention_start_event: "query created_at date"
+    pii_scrub:
+      enabled: true
+      scrub_window: "90 days"
+      scrub_fields:
+        - query_text
+        - session_id
+      scrub_method: HASH
+    notes: "Search queries are hashed (not nullified) to preserve aggregate search analytics while removing identifiable search behavior."
+
+  - entity: Cart
+    full_retention_period: "1 year (converted), 90 days (abandoned/expired)"
+    retention_start_event: "cart conversion or expiry date"
+    pii_scrub:
+      enabled: true
+      scrub_window: "at expiry/deletion"
+      scrub_fields:
+        - session_id
+      scrub_method: SET_NULL
+
+  - entity: ReturnRequest
+    full_retention_period: "5 years"
+    retention_start_event: "return completed_at date"
+    pii_scrub:
+      enabled: true
+      scrub_window: "2 years"
+      scrub_fields:
+        - reason_detail
+      scrub_method: SET_NULL
+
+  - entity: Review
+    full_retention_period: "product lifetime + 2 years"
+    retention_start_event: "parent product archival date"
+    pii_scrub:
+      enabled: true
+      scrub_window: "at review archival"
+      scrub_fields:
+        - body
+        - display_name
+      scrub_method: ANONYMIZE
+
+# Scrub methods:
+#   SET_NULL: Replace field value with NULL
+#   HASH: Replace field value with SHA-256 hash (for aggregation)
+#   ANONYMIZE: Replace with generic value (e.g., "Deleted User")
+#   DELETE: Remove the entire record
+
+# Enforcement:
+#   The shopstream-data-lifecycle service queries for records past their
+#   scrub_window or retention_period and applies the appropriate action.
+#   All actions are logged in AuditLog with actor_type: SYSTEM.
+#   The service runs daily at 02:00 UTC with a 4-hour SLA for completion.

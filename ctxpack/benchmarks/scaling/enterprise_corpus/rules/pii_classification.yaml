@@ -1,0 +1,292 @@
+# ShopStream PII Classification Registry
+# Last updated: 2025-11-15
+# Maintained by: Data Protection Officer (DPO)
+#
+# This registry classifies all PII fields across the platform by entity,
+# category, sensitivity level, and applicable regulations. It serves as the
+# authoritative source for PII identification and handling requirements.
+
+pii_categories:
+  DIRECT_IDENTIFIER:
+    description: "Data that can directly identify a specific individual without combination with other data. Highest sensitivity level."
+    sensitivity: CRITICAL
+    regulations:
+      - GDPR (personal data)
+      - CCPA (personal information)
+      - PCI-DSS (where applicable to cardholder data)
+    handling:
+      encryption_at_rest: AES-256 (required)
+      encryption_in_transit: TLS 1.3 (required)
+      access_control: Minimum necessary, role-based
+      audit_logging: All access logged
+      masking_in_tools: Partial masking by default (unmask on demand)
+
+  QUASI_IDENTIFIER:
+    description: "Data that cannot identify an individual alone but can when combined with other quasi-identifiers (e.g., ZIP code + date of birth + gender can identify 87% of US population per Sweeney 2002)."
+    sensitivity: HIGH
+    regulations:
+      - GDPR (personal data when combined)
+      - CCPA (personal information)
+    handling:
+      encryption_at_rest: AES-256 (required)
+      encryption_in_transit: TLS 1.3 (required)
+      access_control: Role-based
+      audit_logging: Bulk access logged
+      masking_in_tools: Not masked by default
+
+  FINANCIAL:
+    description: "Financial account information including card numbers, bank accounts, and tax identification numbers. Subject to PCI-DSS for payment card data."
+    sensitivity: CRITICAL
+    regulations:
+      - PCI-DSS Level 1
+      - GDPR (special category where applicable)
+      - Financial regulations (SOX, Dodd-Frank where applicable)
+    handling:
+      encryption_at_rest: AES-256 with dedicated KMS key (required)
+      encryption_in_transit: TLS 1.3 (required)
+      access_control: Strict need-to-know, separate CDE network
+      audit_logging: All access logged with enhanced detail
+      masking_in_tools: Always masked, no unmask for non-PCI personnel
+      tokenization: Required for card numbers (never stored raw)
+
+  ONLINE_IDENTIFIER:
+    description: "Digital identifiers that can track or identify a user's online activity. Includes IP addresses, device fingerprints, and session identifiers."
+    sensitivity: MEDIUM
+    regulations:
+      - GDPR (personal data)
+      - ePrivacy Directive (cookies and tracking)
+    handling:
+      encryption_at_rest: AES-256 (recommended)
+      encryption_in_transit: TLS 1.3 (required)
+      access_control: Role-based
+      audit_logging: Bulk access logged
+      masking_in_tools: Not masked by default
+
+  FREETEXT:
+    description: "Free-form text fields that may contain PII embedded in the content (e.g., a customer writing their phone number in order notes). These fields are treated as potentially containing PII even though they are not structured PII fields."
+    sensitivity: HIGH
+    regulations:
+      - GDPR (may contain personal data)
+      - CCPA (may contain personal information)
+    handling:
+      encryption_at_rest: AES-256 (required)
+      encryption_in_transit: TLS 1.3 (required)
+      access_control: Role-based
+      audit_logging: Bulk access logged
+      masking_in_tools: Not masked (content too variable for automated masking)
+
+  BEHAVIORAL:
+    description: "Data about a user's behavior on the platform, such as search queries, browsing history, and purchase patterns. PII under GDPR when linked to an identifiable individual."
+    sensitivity: MEDIUM
+    regulations:
+      - GDPR (personal data when linked to individual)
+      - ePrivacy Directive
+    handling:
+      encryption_at_rest: Standard encryption
+      encryption_in_transit: TLS 1.3 (required)
+      access_control: Standard role-based
+      audit_logging: Bulk access logged
+
+  BUSINESS_CONTACT:
+    description: "Business contact information for merchants and business accounts. Lower sensitivity than personal PII as it represents business entities, but still protected under data protection regulations."
+    sensitivity: MEDIUM
+    regulations:
+      - GDPR (may still constitute personal data for sole proprietors)
+    handling:
+      encryption_at_rest: Standard encryption
+      encryption_in_transit: TLS 1.3 (required)
+      access_control: Standard role-based
+      audit_logging: Not required for individual access
+
+pii_field_registry:
+
+  Customer:
+    - field: email
+      category: DIRECT_IDENTIFIER
+      examples: ["john.doe@email.com"]
+      scrub_method: SET_NULL
+      scrub_timeline: "30 days after account deletion"
+
+    - field: first_name
+      category: DIRECT_IDENTIFIER
+      examples: ["John"]
+      scrub_method: SET_NULL
+      scrub_timeline: "30 days after account deletion"
+
+    - field: last_name
+      category: DIRECT_IDENTIFIER
+      examples: ["Doe"]
+      scrub_method: SET_NULL
+      scrub_timeline: "30 days after account deletion"
+
+    - field: phone_number
+      category: DIRECT_IDENTIFIER
+      examples: ["+14155552671"]
+      scrub_method: SET_NULL
+      scrub_timeline: "30 days after account deletion"
+
+    - field: date_of_birth
+      category: QUASI_IDENTIFIER
+      examples: ["1990-05-15"]
+      scrub_method: SET_NULL
+      scrub_timeline: "30 days after account deletion"
+
+  CustomerAddress:
+    - field: first_name
+      category: DIRECT_IDENTIFIER
+    - field: last_name
+      category: DIRECT_IDENTIFIER
+    - field: address_line1
+      category: DIRECT_IDENTIFIER
+      examples: ["123 Main Street"]
+    - field: address_line2
+      category: DIRECT_IDENTIFIER
+    - field: city
+      category: QUASI_IDENTIFIER
+    - field: state_province
+      category: QUASI_IDENTIFIER
+    - field: postal_code
+      category: QUASI_IDENTIFIER
+    - field: phone
+      category: DIRECT_IDENTIFIER
+    - field: latitude
+      category: QUASI_IDENTIFIER
+    - field: longitude
+      category: QUASI_IDENTIFIER
+
+  Order:
+    - field: notes
+      category: FREETEXT
+      scrub_timeline: "2 years after order"
+    - field: ip_address
+      category: ONLINE_IDENTIFIER
+      scrub_timeline: "2 years after order"
+    - field: user_agent
+      category: ONLINE_IDENTIFIER
+      scrub_timeline: "2 years after order"
+
+  Payment:
+    - field: card_last_four
+      category: FINANCIAL
+      scrub_timeline: "3 years"
+    - field: card_exp_month
+      category: FINANCIAL
+      scrub_timeline: "3 years"
+    - field: card_exp_year
+      category: FINANCIAL
+      scrub_timeline: "3 years"
+    - field: billing_name
+      category: DIRECT_IDENTIFIER
+      scrub_timeline: "3 years"
+
+  PaymentMethod:
+    - field: gateway_token
+      category: FINANCIAL
+      notes: "Encrypted with dedicated KMS key"
+    - field: card_last_four
+      category: FINANCIAL
+    - field: card_exp_month
+      category: FINANCIAL
+    - field: card_exp_year
+      category: FINANCIAL
+    - field: billing_name
+      category: DIRECT_IDENTIFIER
+    - field: fingerprint
+      category: FINANCIAL
+
+  Merchant:
+    - field: email
+      category: BUSINESS_CONTACT
+    - field: phone
+      category: BUSINESS_CONTACT
+    - field: tax_id
+      category: FINANCIAL
+      notes: "Encrypted at rest with AES-256"
+    - field: bank_account_last_four
+      category: FINANCIAL
+    - field: bank_routing_number
+      category: FINANCIAL
+      notes: "Encrypted at rest with AES-256"
+
+  Shipment:
+    - field: recipient_name
+      category: DIRECT_IDENTIFIER
+    - field: recipient_address
+      category: DIRECT_IDENTIFIER
+    - field: recipient_phone
+      category: DIRECT_IDENTIFIER
+    - field: delivery_signature
+      category: DIRECT_IDENTIFIER
+
+  Review:
+    - field: body
+      category: FREETEXT
+    - field: display_name
+      category: QUASI_IDENTIFIER
+
+  Notification:
+    - field: body_preview
+      category: FREETEXT
+    - field: recipient_email
+      category: DIRECT_IDENTIFIER
+    - field: recipient_phone
+      category: DIRECT_IDENTIFIER
+
+  AuditLog:
+    - field: actor_id
+      category: QUASI_IDENTIFIER
+    - field: changes
+      category: INDIRECT
+      notes: "PII values in changes are pre-masked before storage"
+    - field: ip_address
+      category: ONLINE_IDENTIFIER
+    - field: user_agent
+      category: ONLINE_IDENTIFIER
+
+  UserSession:
+    - field: ip_address
+      category: ONLINE_IDENTIFIER
+    - field: user_agent
+      category: ONLINE_IDENTIFIER
+    - field: city
+      category: QUASI_IDENTIFIER
+
+  SearchQuery:
+    - field: query_text
+      category: BEHAVIORAL
+    - field: session_id
+      category: ONLINE_IDENTIFIER
+
+  WebhookEvent:
+    - field: payload
+      category: INDIRECT
+      notes: "May contain PII from the underlying entity"
+
+  Cart:
+    - field: session_id
+      category: ONLINE_IDENTIFIER
+
+  Invoice:
+    - field: billing_address
+      category: DIRECT_IDENTIFIER
+      notes: "Retained for full invoice retention period (tax compliance)"
+    - field: merchant_tax_id
+      category: FINANCIAL
+    - field: customer_tax_id
+      category: FINANCIAL
+
+  ReturnRequest:
+    - field: reason_detail
+      category: FREETEXT
+
+  OrderLine:
+    - field: gift_message
+      category: FREETEXT
+
+# Total PII fields tracked: 63 across 17 entities
+# DIRECT_IDENTIFIER: 24 fields
+# QUASI_IDENTIFIER: 10 fields
+# FINANCIAL: 14 fields
+# ONLINE_IDENTIFIER: 9 fields
+# FREETEXT: 5 fields
+# BEHAVIORAL: 1 field

@@ -1,0 +1,196 @@
+entity: Coupon
+description: "Represents a promotional code that customers can apply at checkout for a discount. Coupons are created by merchants or the platform and have configurable rules for eligibility, discount type, usage limits, and validity periods. Coupons can provide a percentage discount, a fixed amount discount, or free shipping. Each coupon has a unique code that customers enter during checkout. Coupon validation occurs at cart-level and order-level, checking eligibility criteria including minimum order amount, applicable product categories, customer eligibility (new vs. returning), and usage limits. Coupons are distinct from automatic discounts (which are applied without a code) and from loyalty point redemptions."
+
+aliases:
+  - PromoCode
+  - DiscountCode
+  - Voucher
+  - PromotionCode
+
+identifier:
+  field: coupon_id
+  type: UUID v4
+  description: Globally unique coupon identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: promotions-service
+
+relationships:
+  - type: belongs_to
+    target: Merchant
+    foreign_key: merchant_id
+    description: The merchant offering this coupon (NULL for platform-wide coupons).
+    cardinality: "0..1"
+
+  - type: has_many
+    target: Order
+    foreign_key: applied_coupon_id
+    description: Orders where this coupon was applied.
+    cardinality: "0..*"
+
+fields:
+  - name: coupon_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: code
+    type: VARCHAR(50)
+    description: "The coupon code customers enter at checkout. Case-insensitive. Must be unique across all active coupons. Format: alphanumeric and hyphens, 4-50 characters."
+    nullable: false
+    pii: false
+    constraints:
+      - UNIQUE (among active coupons)
+      - 4-50 characters
+      - Alphanumeric and hyphens
+
+  - name: merchant_id
+    type: UUID
+    description: Reference to the merchant, or NULL for platform-wide coupons.
+    nullable: true
+    pii: false
+
+  - name: description
+    type: VARCHAR(500)
+    description: Internal description of the coupon's purpose and target audience.
+    nullable: true
+    pii: false
+
+  - name: discount_type
+    type: ENUM
+    description: Type of discount provided.
+    nullable: false
+    allowed_values:
+      - PERCENTAGE
+      - FIXED_AMOUNT
+      - FREE_SHIPPING
+
+  - name: discount_value
+    type: DECIMAL(10,2)
+    description: "Discount value. For PERCENTAGE, this is the percentage (e.g., 15.00 for 15%). For FIXED_AMOUNT, this is the dollar amount. Ignored for FREE_SHIPPING."
+    nullable: false
+    pii: false
+
+  - name: currency
+    type: VARCHAR(3)
+    description: Currency for FIXED_AMOUNT discounts. Ignored for PERCENTAGE and FREE_SHIPPING.
+    nullable: true
+    pii: false
+
+  - name: minimum_order_amount
+    type: DECIMAL(10,2)
+    description: Minimum order subtotal required to use this coupon. NULL means no minimum.
+    nullable: true
+    pii: false
+
+  - name: maximum_discount_amount
+    type: DECIMAL(10,2)
+    description: "Cap on the discount amount for PERCENTAGE coupons. For example, a 20% off coupon with a $50 max discount caps the savings at $50 regardless of order size. NULL means no cap."
+    nullable: true
+    pii: false
+
+  - name: usage_limit_total
+    type: INTEGER
+    description: Maximum total uses across all customers. NULL for unlimited.
+    nullable: true
+    pii: false
+
+  - name: usage_limit_per_customer
+    type: INTEGER
+    description: Maximum uses per customer. Default is 1.
+    nullable: false
+    default: 1
+    pii: false
+
+  - name: usage_count
+    type: INTEGER
+    description: Current total usage count.
+    nullable: false
+    default: 0
+    pii: false
+
+  - name: applicable_categories
+    type: JSON
+    description: "JSON array of category_ids this coupon applies to. NULL means all categories. When specified, only order lines in these categories receive the discount."
+    nullable: true
+    pii: false
+
+  - name: applicable_products
+    type: JSON
+    description: JSON array of product_ids this coupon applies to. NULL means all products.
+    nullable: true
+    pii: false
+
+  - name: customer_eligibility
+    type: ENUM
+    description: Which customers can use this coupon.
+    nullable: false
+    default: ALL
+    allowed_values:
+      - ALL
+      - NEW_CUSTOMERS_ONLY
+      - RETURNING_CUSTOMERS_ONLY
+      - SPECIFIC_CUSTOMERS
+
+  - name: eligible_customer_ids
+    type: JSON
+    description: JSON array of customer_ids for SPECIFIC_CUSTOMERS eligibility.
+    nullable: true
+    pii: false
+
+  - name: starts_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the coupon becomes active.
+    nullable: false
+    pii: false
+
+  - name: expires_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the coupon expires. NULL for no expiration.
+    nullable: true
+    pii: false
+
+  - name: is_active
+    type: BOOLEAN
+    description: Whether the coupon is currently active (can be manually deactivated).
+    nullable: false
+    default: true
+    pii: false
+
+  - name: stackable
+    type: BOOLEAN
+    description: "Whether this coupon can be combined with other coupons. Currently only one coupon per order is supported, so this field is reserved for future use."
+    nullable: false
+    default: false
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Coupon records are retained for 3 years after expiration. Active coupons without expiration are retained indefinitely."
+  full_retention_period: 3 years after expiration
+
+data_quality:
+  - rule: coupon code must be unique among active coupons
+    severity: ERROR
+  - rule: expires_at must be after starts_at when set
+    severity: ERROR
+  - rule: usage_count must not exceed usage_limit_total
+    severity: ERROR
+  - rule: discount_value must be between 0 and 100 for PERCENTAGE type
+    severity: ERROR
+
+golden_source: promotions-service

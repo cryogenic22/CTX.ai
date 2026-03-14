@@ -1,0 +1,179 @@
+entity: MerchantStore
+description: "Represents a physical retail location or virtual storefront operated by a merchant on the ShopStream platform. Each merchant must have at least one store, which serves as the public-facing presence on the marketplace. Physical stores are used for buy-online-pickup-in-store (BOPIS) fulfillment and local delivery. Virtual stores are the default for online-only merchants. Store information is displayed on product pages and in search results to help customers identify the seller. Each store has its own operating hours, return policy, and shipping zones."
+
+aliases:
+  - Store
+  - Storefront
+  - Shop
+  - RetailLocation
+
+identifier:
+  field: store_id
+  type: UUID v4
+  description: Globally unique store identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: merchant-service
+
+relationships:
+  - type: belongs_to
+    target: Merchant
+    foreign_key: merchant_id
+    description: The merchant that owns and operates this store.
+    cardinality: "1"
+    on_delete: CASCADE
+
+fields:
+  - name: store_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: merchant_id
+    type: UUID
+    description: Reference to the owning merchant.
+    nullable: false
+    pii: false
+
+  - name: store_name
+    type: VARCHAR(200)
+    description: Public display name of the store.
+    nullable: false
+    pii: false
+
+  - name: store_type
+    type: ENUM
+    description: Whether this is a physical or virtual storefront.
+    nullable: false
+    allowed_values:
+      - PHYSICAL
+      - VIRTUAL
+      - HYBRID
+
+  - name: address_line1
+    type: VARCHAR(200)
+    description: Street address of the physical store.
+    nullable: true
+    pii: false
+
+  - name: address_line2
+    type: VARCHAR(200)
+    description: Additional address information (suite, floor, etc.).
+    nullable: true
+    pii: false
+
+  - name: city
+    type: VARCHAR(100)
+    description: City of the store location.
+    nullable: true
+    pii: false
+
+  - name: state_province
+    type: VARCHAR(100)
+    description: State or province.
+    nullable: true
+    pii: false
+
+  - name: postal_code
+    type: VARCHAR(20)
+    description: Postal or ZIP code.
+    nullable: true
+    pii: false
+
+  - name: country
+    type: VARCHAR(2)
+    description: ISO 3166-1 alpha-2 country code.
+    nullable: true
+    pii: false
+
+  - name: latitude
+    type: DECIMAL(10,7)
+    description: Geographic latitude for map display and proximity search.
+    nullable: true
+    pii: false
+
+  - name: longitude
+    type: DECIMAL(10,7)
+    description: Geographic longitude for map display and proximity search.
+    nullable: true
+    pii: false
+
+  - name: phone
+    type: VARCHAR(20)
+    description: Store contact phone number.
+    nullable: true
+    pii: false
+
+  - name: email
+    type: VARCHAR(255)
+    description: Store contact email address.
+    nullable: true
+    pii: false
+
+  - name: operating_hours
+    type: JSON
+    description: "Weekly operating hours as JSON object. Keys are day names (monday-sunday), values are objects with \"open\" and \"close\" times in HH:MM format, or \"closed\": true for days the store is not open."
+    nullable: true
+    pii: false
+
+  - name: return_policy
+    type: TEXT
+    description: "Store-specific return policy text. Overrides the platform default if set. Must comply with platform minimum standards (minimum 14-day return window)."
+    nullable: true
+    pii: false
+
+  - name: supports_bopis
+    type: BOOLEAN
+    description: Whether this store supports buy-online-pickup-in-store.
+    nullable: false
+    default: false
+    pii: false
+
+  - name: supports_local_delivery
+    type: BOOLEAN
+    description: Whether this store offers local delivery within a defined radius.
+    nullable: false
+    default: false
+    pii: false
+
+  - name: local_delivery_radius_km
+    type: DECIMAL(6,2)
+    description: Maximum delivery radius in kilometers for local delivery.
+    nullable: true
+    pii: false
+
+  - name: is_active
+    type: BOOLEAN
+    description: Whether this store is currently active and visible.
+    nullable: false
+    default: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: Store records follow the parent Merchant retention policy.
+  full_retention_period: 10 years after merchant termination
+
+data_quality:
+  - rule: physical stores must have a complete address
+    severity: ERROR
+  - rule: latitude and longitude must be valid coordinates
+    severity: WARNING
+  - rule: local_delivery_radius_km must be set when supports_local_delivery is true
+    severity: ERROR
+
+golden_source: merchant-service

@@ -1,0 +1,126 @@
+entity: ExchangeRate
+description: "Stores historical and current exchange rates between currency pairs used for multi-currency pricing and settlement calculations. Exchange rates are fetched from the European Central Bank (ECB) and OpenExchangeRates API every hour during business hours and every 4 hours overnight. Each record represents a point-in-time rate for a specific source-target currency pair. The platform uses mid-market rates with a configurable markup (currently 1.5%) for customer-facing conversions. Merchant settlements use the rate locked at the time of order placement. Historical rates are retained for financial reporting and dispute resolution. The base currency for all conversions is USD; cross-rates between non-USD currencies are calculated via the USD intermediary."
+
+aliases:
+  - FXRate
+  - CurrencyRate
+  - ConversionRate
+  - ForexRate
+
+identifier:
+  field: exchange_rate_id
+  type: UUID v4
+  description: Unique identifier for this exchange rate record.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: finance-service
+
+relationships:
+  - type: references
+    target: Currency
+    foreign_key: source_currency
+    description: The source (from) currency.
+    cardinality: "1"
+
+  - type: references
+    target: Currency
+    foreign_key: target_currency
+    description: The target (to) currency.
+    cardinality: "1"
+
+fields:
+  - name: exchange_rate_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: source_currency
+    type: VARCHAR(3)
+    description: ISO 4217 source currency code.
+    nullable: false
+    pii: false
+
+  - name: target_currency
+    type: VARCHAR(3)
+    description: ISO 4217 target currency code.
+    nullable: false
+    pii: false
+
+  - name: mid_market_rate
+    type: DECIMAL(15,8)
+    description: Mid-market exchange rate (1 unit of source = X units of target).
+    nullable: false
+    pii: false
+
+  - name: buy_rate
+    type: DECIMAL(15,8)
+    description: Rate including the platform markup, used for customer-facing conversions.
+    nullable: false
+    pii: false
+
+  - name: sell_rate
+    type: DECIMAL(15,8)
+    description: Rate for converting from target back to source (for refunds).
+    nullable: false
+    pii: false
+
+  - name: markup_percentage
+    type: DECIMAL(5,4)
+    description: Markup applied to mid-market rate (e.g., 0.0150 for 1.5%).
+    nullable: false
+    default: 0.0150
+    pii: false
+
+  - name: source_api
+    type: ENUM
+    description: API source of this rate.
+    nullable: false
+    allowed_values:
+      - ECB
+      - OPEN_EXCHANGE_RATES
+      - MANUAL
+
+  - name: effective_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When this rate became effective.
+    nullable: false
+    pii: false
+
+  - name: expires_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When this rate was superseded by a newer rate.
+    nullable: true
+    pii: false
+
+  - name: is_current
+    type: BOOLEAN
+    description: Whether this is the currently active rate for this currency pair.
+    nullable: false
+    default: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Exchange rate records are retained for 7 years to support financial reporting and settlement dispute resolution."
+  full_retention_period: 7 years
+  legal_basis: Financial reporting requirements
+
+data_quality:
+  - rule: mid_market_rate must be positive
+    severity: ERROR
+  - rule: buy_rate must be >= mid_market_rate for the platform's benefit
+    severity: ERROR
+  - rule: exactly one is_current = true record per currency pair
+    severity: ERROR
+  - rule: rate change exceeding 5% from previous rate triggers alert
+    severity: WARNING
+
+golden_source: finance-service

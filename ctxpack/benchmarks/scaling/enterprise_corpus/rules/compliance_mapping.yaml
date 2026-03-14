@@ -1,0 +1,239 @@
+# ShopStream Compliance Mapping
+# Maps regulatory requirements to platform entities, controls, and evidence.
+# Last updated: 2025-10-15
+# Approved by: General Counsel, CISO, DPO
+
+regulations:
+
+  - regulation: GDPR
+    full_name: General Data Protection Regulation (EU) 2016/679
+    applicable_regions: [EU, EEA, UK]
+    applicable_data: All personal data of EU/EEA/UK data subjects
+    data_protection_authority: Irish DPC (lead), plus local authorities
+
+    requirements:
+      - id: GDPR-ART-5
+        title: Principles relating to processing of personal data
+        controls:
+          - name: Lawfulness
+            implementation: "Each entity's retention policy documents the legal basis for processing. Legal bases include: consent (marketing), contractual necessity (order fulfillment), legal obligation (tax reporting), and legitimate interest (fraud prevention, analytics)."
+            evidence: "Entity YAML definitions (retention.legal_basis field)"
+
+          - name: Purpose limitation
+            implementation: "PII fields are documented with their purpose in entity definitions. Data is not processed beyond the stated purpose without additional legal basis."
+            evidence: "PII classification registry, entity field descriptions"
+
+          - name: Data minimization
+            implementation: "Entity definitions specify nullable: true for optional fields. Only mandatory PII is collected at registration (email, name)."
+            evidence: "Entity YAML definitions"
+
+          - name: Accuracy
+            implementation: "Customers can update their profile at any time. Address verification via SmartyStreets. Email verification at registration and on change."
+            evidence: "Data quality rules (DQ-CUST series)"
+
+          - name: Storage limitation
+            implementation: "Retention rules define maximum retention periods per entity. Automated PII scrubbing by the data lifecycle service."
+            evidence: "retention_rules.yaml, data lifecycle service logs"
+
+          - name: Integrity and confidentiality
+            implementation: "Encryption at rest (AES-256), encryption in transit (TLS 1.3), role-based access control, audit logging of all data access."
+            evidence: "access_control.yaml, encryption configuration, audit logs"
+
+      - id: GDPR-ART-12-14
+        title: Transparent information and communication
+        controls:
+          - name: Privacy Policy
+            implementation: "Published at shopstream.com/privacy, updated quarterly"
+            evidence: "Privacy policy document, version history"
+
+          - name: Cookie Notice
+            implementation: "OneTrust cookie consent banner on all pages"
+            evidence: "OneTrust configuration"
+
+      - id: GDPR-ART-15
+        title: Right of access
+        controls:
+          - name: Data Export
+            implementation: "Customers can export all their data via Settings > Privacy > Download My Data. Export includes profile, orders, reviews, addresses, sessions. Processing within 30 days (typical: 48 hours)."
+            evidence: "Data export feature, AuditLog entries for EXPORT actions"
+            entities: [Customer, Order, OrderLine, Review, CustomerAddress, PaymentMethod, UserSession, Notification]
+
+      - id: GDPR-ART-16
+        title: Right to rectification
+        controls:
+          - name: Profile Edit
+            implementation: "Customers can edit profile fields at any time via account settings"
+            evidence: "Profile edit feature, AuditLog entries for UPDATE actions"
+            entities: [Customer, CustomerAddress]
+
+      - id: GDPR-ART-17
+        title: Right to erasure
+        controls:
+          - name: Account Deletion
+            implementation: "Customers can delete their account via Settings > Account > Delete Account. PII nullified within 30 days. Non-PII retained for financial reporting as permitted by Article 17(3)(b) — legal obligation."
+            evidence: "Account deletion feature, retention_rules.yaml, data lifecycle logs"
+            entities: [Customer, CustomerAddress, PaymentMethod, UserSession, Wishlist, Cart]
+            exceptions:
+              - "Order and Payment records retained with PII scrubbed (legal obligation)"
+              - "Invoice records retained with billing address (tax compliance)"
+
+      - id: GDPR-ART-20
+        title: Right to data portability
+        controls:
+          - name: Data Export (JSON)
+            implementation: "Same as Article 15 export; data provided in machine-readable JSON format"
+            evidence: "Data export feature"
+
+      - id: GDPR-ART-21
+        title: Right to object
+        controls:
+          - name: Marketing Opt-Out
+            implementation: "marketing_consent field on Customer entity. Can be toggled via profile, email unsubscribe link, or support request. Transactional communications not affected."
+            evidence: "Consent management feature, Notification service logic"
+
+      - id: GDPR-ART-25
+        title: Data protection by design and by default
+        controls:
+          - name: Privacy by Default
+            implementation: "marketing_consent defaults to false. Minimal data collected at registration. PII fields marked in entity definitions with pii: true. Retention limits defined per entity."
+            evidence: "Entity YAML definitions, application defaults"
+
+      - id: GDPR-ART-30
+        title: Records of processing activities
+        controls:
+          - name: ROPA
+            implementation: "Entity YAML definitions serve as the record of processing activities, documenting: data categories (fields), purposes (description), recipients (sync_targets), retention periods, and legal bases."
+            evidence: "Entity YAML definitions in this corpus"
+
+      - id: GDPR-ART-32
+        title: Security of processing
+        controls:
+          - name: Technical measures
+            implementation: "Encryption, access control, audit logging, network segmentation"
+            evidence: "access_control.yaml, pii_classification.yaml, platform architecture docs"
+
+      - id: GDPR-ART-33
+        title: Notification of data breach to supervisory authority
+        controls:
+          - name: Breach Response
+            implementation: "Incident response playbook (INC-006) includes breach notification procedures. DPO notified within 1 hour. Supervisory authority notified within 72 hours if risk to data subjects."
+            evidence: "incident-response.md (INC-006), breach notification template"
+
+      - id: GDPR-ART-35
+        title: Data protection impact assessment
+        controls:
+          - name: DPIA Process
+            implementation: "DPIAs required for new processing activities or significant changes. Conducted by the data platform team with DPO review."
+            evidence: "DPIA templates and completed assessments (Confluence)"
+
+  - regulation: PCI-DSS
+    full_name: Payment Card Industry Data Security Standard v4.0
+    applicable_data: Cardholder data and sensitive authentication data
+    certification_level: Level 1 (>6M transactions/year)
+
+    requirements:
+      - id: PCI-REQ-3
+        title: Protect stored account data
+        controls:
+          - name: Tokenization
+            implementation: "Card numbers are tokenized by Stripe/Adyen at the browser level. Raw PANs never enter ShopStream systems. Only tokens, last four digits, brand, and expiration are stored."
+            evidence: "Payment entity definition (field types), Stripe integration config"
+            entities: [Payment, PaymentMethod]
+
+          - name: Encryption
+            implementation: "Stored payment data encrypted with AES-256. Keys managed by AWS KMS. Key rotation annually."
+            evidence: "KMS key policy, encryption at rest config"
+
+      - id: PCI-REQ-4
+        title: Encrypt transmission of cardholder data
+        controls:
+          - name: TLS 1.3
+            implementation: "All API endpoints require TLS 1.3. HSTS enabled."
+            evidence: "TLS configuration, SSL Labs scan results"
+
+      - id: PCI-REQ-7
+        title: Restrict access to system components
+        controls:
+          - name: CDE Segmentation
+            implementation: "payment-service runs in isolated subnet. Network security groups restrict access to necessary services only."
+            evidence: "VPC config, security group rules"
+
+          - name: Access Control
+            implementation: "Payment data accessible only by payment-service service account. No human access to production payment databases."
+            evidence: "access_control.yaml (FINANCIAL category handling)"
+
+      - id: PCI-REQ-10
+        title: Log and monitor all access
+        controls:
+          - name: Audit Trail
+            implementation: "All access to payment data logged in AuditLog. Enhanced logging for payment-service with full request/response capture."
+            evidence: "AuditLog entity, audit service configuration"
+
+  - regulation: CCPA
+    full_name: California Consumer Privacy Act
+    applicable_regions: [California, US]
+    applicable_data: Personal information of California residents
+
+    requirements:
+      - id: CCPA-1798-100
+        title: Right to know
+        controls:
+          - name: Data categories disclosure
+            implementation: "Privacy policy lists all categories of personal information collected"
+            evidence: "Privacy policy"
+          - name: Data access request
+            implementation: "Same as GDPR Article 15 data export"
+            evidence: "Data export feature"
+
+      - id: CCPA-1798-105
+        title: Right to delete
+        controls:
+          - name: Account deletion
+            implementation: "Same as GDPR Article 17 account deletion"
+            evidence: "Account deletion feature"
+
+      - id: CCPA-1798-120
+        title: Right to opt-out of sale
+        controls:
+          - name: Do Not Sell
+            implementation: "ShopStream does not sell personal information. \"Do Not Sell\" link in footer redirects to privacy policy explaining this."
+            evidence: "Privacy policy, footer link"
+
+  - regulation: SOC2
+    full_name: SOC 2 Type II (AICPA Trust Services Criteria)
+    applicable_scope: All ShopStream systems processing customer and merchant data
+
+    requirements:
+      - id: SOC2-CC6
+        title: Logical and Physical Access Controls
+        controls:
+          - name: RBAC
+            implementation: "Role-based access control as defined in access_control.yaml"
+            evidence: "access_control.yaml, identity provider configuration"
+
+      - id: SOC2-CC7
+        title: System Operations
+        controls:
+          - name: Monitoring
+            implementation: "Datadog monitoring, PagerDuty alerting, incident response procedures"
+            evidence: "incident-response.md, Datadog dashboards"
+
+      - id: SOC2-CC8
+        title: Change Management
+        controls:
+          - name: CI/CD
+            implementation: "GitHub Actions, ArgoCD, code review required, staging environment"
+            evidence: "CI/CD pipeline configuration, PR review policy"
+
+      - id: SOC2-CC9
+        title: Risk Mitigation
+        controls:
+          - name: Data Quality
+            implementation: "Data quality rules enforced at application and warehouse levels"
+            evidence: "data_quality_rules.yaml, dbt test results"
+
+# Compliance audit schedule:
+# - PCI-DSS: Annual on-site audit (Q1), quarterly ASV scans
+# - SOC 2: Annual audit (Q2)
+# - GDPR: Continuous compliance monitoring, annual DPIA review
+# - CCPA: Annual privacy policy review

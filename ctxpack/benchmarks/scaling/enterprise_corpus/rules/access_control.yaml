@@ -1,0 +1,337 @@
+# ShopStream Access Control Policy
+# Defines role-based access control (RBAC) for data access across the platform.
+# Last updated: 2025-11-01
+# Approved by: CISO + DPO
+
+access_control_model: RBAC
+principle: least_privilege
+
+roles:
+
+  - role: platform_engineer
+    description: "Engineers responsible for developing and maintaining platform services. Can access system data needed for debugging and development. Production PII access requires justification and is logged."
+    access:
+      - entity: "*"
+        operations: [READ]
+        environment: [STAGING, SANDBOX]
+        restrictions: none
+
+      - entity: "*"
+        operations: [READ]
+        environment: [PRODUCTION]
+        restrictions:
+          - "PII fields masked by default"
+          - "Bulk read (>100 records) requires approval"
+          - "All access logged in AuditLog"
+          - "Time-limited access (8 hours per session)"
+
+      - entity: [AuditLog]
+        operations: []
+        environment: [PRODUCTION]
+        restrictions:
+          - "No direct access; use audit dashboard"
+
+    data_warehouse_access:
+      schemas: [raw, staging, intermediate, marts]
+      pii_access: false
+      notes: "Use compliance schema for PII-free data"
+
+  - role: data_engineer
+    description: "Members of the data platform team responsible for ETL pipelines, data warehouse management, and analytics infrastructure."
+    access:
+      - entity: "*"
+        operations: [READ]
+        environment: [PRODUCTION]
+        restrictions:
+          - "Read-only access to production databases via read replicas"
+          - "PII fields accessible for pipeline debugging"
+          - "All access logged"
+
+    data_warehouse_access:
+      schemas: [raw, staging, intermediate, marts, compliance]
+      pii_access: true
+      restrictions:
+        - "PII queries must include purpose justification"
+        - "Bulk PII exports (>1000 records) require DPO approval"
+
+  - role: customer_service_l1
+    description: "Tier 1 customer service agents handling routine inquiries."
+    access:
+      - entity: Customer
+        operations: [READ]
+        fields: [customer_id, email, first_name, last_name, status, loyalty_tier, created_at]
+        restrictions:
+          - "Email partially masked (j***@example.com)"
+          - "Can unmask with reason code"
+
+      - entity: Order
+        operations: [READ]
+        fields: [order_id, order_number, status, total_amount, currency, placed_at, delivered_at]
+        restrictions:
+          - "Limited to the specific customer being assisted"
+
+      - entity: Shipment
+        operations: [READ]
+        fields: [shipment_id, status, carrier, tracking_number, estimated_delivery_date, delivered_at]
+
+      - entity: Review
+        operations: [READ]
+
+    data_warehouse_access:
+      schemas: []
+      pii_access: false
+
+  - role: customer_service_l2
+    description: "Tier 2 customer service agents handling escalations, refunds, and returns."
+    access:
+      - entity: Customer
+        operations: [READ]
+        fields: "*"
+        restrictions:
+          - "Full profile visible"
+          - "PII unmask logged"
+
+      - entity: Order
+        operations: [READ]
+        fields: "*"
+
+      - entity: Payment
+        operations: [READ]
+        fields: [payment_id, status, amount, currency, card_brand, card_last_four, authorized_at, captured_at]
+        restrictions:
+          - "card_last_four visible for verification"
+
+      - entity: Refund
+        operations: [READ, CREATE]
+        restrictions:
+          - "Refund amount limit: $100 per refund"
+          - "Maximum 3 refunds per customer per day"
+
+      - entity: ReturnRequest
+        operations: [READ, CREATE, UPDATE]
+        restrictions:
+          - "Can create and approve returns"
+
+      - entity: Shipment
+        operations: [READ]
+        fields: "*"
+
+    data_warehouse_access:
+      schemas: []
+      pii_access: false
+
+  - role: customer_service_l3
+    description: "Tier 3 customer service leads with elevated privileges."
+    access:
+      - entity: Customer
+        operations: [READ, UPDATE]
+        restrictions:
+          - "Can update customer status (suspend, reactivate)"
+          - "Can initiate account merge"
+
+      - entity: Order
+        operations: [READ, UPDATE]
+        restrictions:
+          - "Can cancel orders in any pre-delivery status"
+
+      - entity: Refund
+        operations: [READ, CREATE]
+        restrictions:
+          - "Refund amount limit: $500 per refund"
+          - "Can override return policy"
+
+      - entity: ReturnRequest
+        operations: [READ, CREATE, UPDATE]
+        restrictions:
+          - "Can approve returns outside standard policy"
+
+      - entity: Payment
+        operations: [READ]
+        fields: "*"
+
+      - entity: Subscription
+        operations: [READ, UPDATE]
+        restrictions:
+          - "Can cancel subscriptions"
+          - "Can extend trial periods"
+
+    data_warehouse_access:
+      schemas: []
+      pii_access: false
+
+  - role: customer_service_manager
+    description: "Customer service managers with full access for oversight and escalation."
+    access:
+      - entity: [Customer, Order, Payment, Refund, ReturnRequest, Subscription, Shipment, Review]
+        operations: [READ, CREATE, UPDATE]
+        restrictions:
+          - "No refund amount limit"
+          - "Can process bulk operations"
+          - "Can initiate account deletion"
+
+    data_warehouse_access:
+      schemas: [marts, compliance]
+      pii_access: false
+
+  - role: merchant_admin
+    description: "Merchant administrators managing their own storefront via Portal or API. Access is scoped to the merchant's own data."
+    access:
+      - entity: Merchant
+        operations: [READ, UPDATE]
+        scope: "own merchant_id only"
+        restrictions:
+          - "Cannot modify commission_rate or settlement_schedule"
+
+      - entity: MerchantStore
+        operations: [READ, CREATE, UPDATE, DELETE]
+        scope: "own merchant_id only"
+
+      - entity: Product
+        operations: [READ, CREATE, UPDATE, DELETE]
+        scope: "own merchant_id only"
+
+      - entity: ProductVariant
+        operations: [READ, CREATE, UPDATE, DELETE]
+        scope: "own merchant_id only"
+
+      - entity: Inventory
+        operations: [READ, UPDATE]
+        scope: "own merchant_id only"
+
+      - entity: Order
+        operations: [READ, UPDATE]
+        scope: "own merchant_id only"
+        restrictions:
+          - "Can update to PROCESSING, create shipments"
+          - "Cannot modify order amounts"
+
+      - entity: Settlement
+        operations: [READ]
+        scope: "own merchant_id only"
+
+      - entity: APIKey
+        operations: [READ, CREATE, UPDATE, DELETE]
+        scope: "own merchant_id only"
+
+      - entity: WebhookEvent
+        operations: [READ]
+        scope: "own merchant_id only"
+
+      - entity: Review
+        operations: [READ]
+        scope: "own merchant_id products only"
+        restrictions:
+          - "Can respond to reviews (merchant_response field)"
+
+    data_warehouse_access:
+      schemas: []
+      pii_access: false
+
+  - role: finance_team
+    description: "Finance team members responsible for settlements, invoicing, and reporting."
+    access:
+      - entity: [Settlement, Invoice, PlatformFee, Payment, Refund]
+        operations: [READ]
+        fields: "*"
+
+      - entity: Merchant
+        operations: [READ]
+        fields: [merchant_id, business_name, display_name, commission_rate, settlement_schedule, currency, country]
+
+      - entity: Order
+        operations: [READ]
+        fields: [order_id, order_number, subtotal, tax_amount, shipping_amount, discount_amount, total_amount, currency, status]
+
+    data_warehouse_access:
+      schemas: [marts]
+      pii_access: false
+      specific_tables:
+        - "marts.fct_settlements"
+        - "marts.fct_revenue"
+        - "marts.dim_merchants"
+
+  - role: security_team
+    description: "Security team with elevated access for incident investigation and audit."
+    access:
+      - entity: AuditLog
+        operations: [READ]
+        fields: "*"
+        restrictions:
+          - "Full access including PII fields"
+          - "Can query historical data"
+
+      - entity: UserSession
+        operations: [READ, UPDATE]
+        restrictions:
+          - "Can revoke sessions"
+
+      - entity: APIKey
+        operations: [READ, UPDATE]
+        restrictions:
+          - "Can suspend/revoke API keys"
+
+      - entity: "*"
+        operations: [READ]
+        restrictions:
+          - "Investigation access; requires incident ticket"
+          - "Time-limited (24 hours per authorization)"
+
+    data_warehouse_access:
+      schemas: [raw, staging, intermediate, marts, compliance]
+      pii_access: true
+
+  - role: dpo
+    description: "Data Protection Officer with oversight access for compliance."
+    access:
+      - entity: "*"
+        operations: [READ]
+        restrictions:
+          - "Full read access for compliance auditing"
+          - "Can authorize bulk PII access for other roles"
+          - "Can initiate data deletion requests"
+
+    data_warehouse_access:
+      schemas: [raw, staging, intermediate, marts, compliance]
+      pii_access: true
+
+# API Key Scope Mapping
+api_key_scopes:
+  "catalog:read":
+    entities: [Product, ProductVariant, Category, ProductImage]
+    operations: [READ]
+  "catalog:write":
+    entities: [Product, ProductVariant, ProductImage]
+    operations: [CREATE, UPDATE, DELETE]
+  "orders:read":
+    entities: [Order, OrderLine, Shipment, ShipmentTracking]
+    operations: [READ]
+  "orders:write":
+    entities: [Order, Shipment]
+    operations: [UPDATE, CREATE]
+  "inventory:read":
+    entities: [Inventory, Warehouse]
+    operations: [READ]
+  "inventory:write":
+    entities: [Inventory]
+    operations: [UPDATE]
+  "customers:read":
+    entities: [Customer]
+    operations: [READ]
+    restrictions: "Limited to merchant's own customers"
+  "payments:read":
+    entities: [Payment, Settlement, PlatformFee]
+    operations: [READ]
+  "webhooks:manage":
+    entities: [WebhookEvent]
+    operations: [READ, CREATE, UPDATE, DELETE]
+  "analytics:read":
+    entities: []
+    restrictions: "Access to pre-built analytics endpoints only"
+
+# Audit Requirements
+audit_requirements:
+  - "All PII field access must be logged with actor, entity, field, and timestamp"
+  - "Bulk data access (>100 records) must include a justification reason"
+  - "API key usage is logged with key_id, endpoint, and response code"
+  - "Failed access attempts are logged and trigger alerts after 5 failures"
+  - "Access logs are retained per AuditLog retention policy (7-10 years)"

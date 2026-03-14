@@ -1,0 +1,186 @@
+entity: CustomerAddress
+description: "Represents a shipping or billing address stored in a customer's address book. Customers can maintain multiple addresses and designate one as default for shipping and one as default for billing. Addresses are validated at entry time using the SmartyStreets address verification API, which standardizes formatting and verifies deliverability. Addresses are used during checkout for tax calculation (based on shipping address jurisdiction), shipping cost estimation, and as the destination for shipments. Address data is PII and subject to GDPR right-to-erasure requests. When a customer deletes their account, addresses are retained in anonymized form on historical orders (as snapshots in the Order and Shipment entities) but removed from the customer_addresses table."
+
+aliases:
+  - Address
+  - ShippingAddress
+  - BillingAddress
+  - DeliveryAddress
+
+identifier:
+  field: address_id
+  type: UUID v4
+  description: Globally unique address identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: identity-service
+
+relationships:
+  - type: belongs_to
+    target: Customer
+    foreign_key: customer_id
+    description: The customer who owns this address.
+    cardinality: "1"
+    on_delete: CASCADE
+
+fields:
+  - name: address_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: customer_id
+    type: UUID
+    description: Reference to the owning customer.
+    nullable: false
+    pii: false
+
+  - name: label
+    type: VARCHAR(50)
+    description: Customer-defined label (e.g., "Home", "Office", "Mom's House").
+    nullable: true
+    pii: false
+
+  - name: address_type
+    type: ENUM
+    description: Whether this address is used for shipping, billing, or both.
+    nullable: false
+    default: BOTH
+    allowed_values:
+      - SHIPPING
+      - BILLING
+      - BOTH
+
+  - name: is_default_shipping
+    type: BOOLEAN
+    description: Whether this is the customer's default shipping address.
+    nullable: false
+    default: false
+    pii: false
+
+  - name: is_default_billing
+    type: BOOLEAN
+    description: Whether this is the customer's default billing address.
+    nullable: false
+    default: false
+    pii: false
+
+  - name: first_name
+    type: VARCHAR(100)
+    description: Recipient first name.
+    nullable: false
+    pii: true
+    pii_category: DIRECT_IDENTIFIER
+
+  - name: last_name
+    type: VARCHAR(100)
+    description: Recipient last name.
+    nullable: false
+    pii: true
+    pii_category: DIRECT_IDENTIFIER
+
+  - name: company
+    type: VARCHAR(200)
+    description: Company name for business addresses.
+    nullable: true
+    pii: false
+
+  - name: address_line1
+    type: VARCHAR(200)
+    description: Primary street address.
+    nullable: false
+    pii: true
+    pii_category: DIRECT_IDENTIFIER
+
+  - name: address_line2
+    type: VARCHAR(200)
+    description: Apartment, suite, unit number, etc.
+    nullable: true
+    pii: true
+    pii_category: DIRECT_IDENTIFIER
+
+  - name: city
+    type: VARCHAR(100)
+    description: City or town.
+    nullable: false
+    pii: true
+    pii_category: QUASI_IDENTIFIER
+
+  - name: state_province
+    type: VARCHAR(100)
+    description: State, province, or region.
+    nullable: false
+    pii: true
+    pii_category: QUASI_IDENTIFIER
+
+  - name: postal_code
+    type: VARCHAR(20)
+    description: Postal or ZIP code.
+    nullable: false
+    pii: true
+    pii_category: QUASI_IDENTIFIER
+
+  - name: country
+    type: VARCHAR(2)
+    description: ISO 3166-1 alpha-2 country code.
+    nullable: false
+    pii: false
+
+  - name: phone
+    type: VARCHAR(20)
+    description: Contact phone for delivery. E.164 format.
+    nullable: true
+    pii: true
+    pii_category: DIRECT_IDENTIFIER
+
+  - name: is_verified
+    type: BOOLEAN
+    description: Whether the address has been verified by the SmartyStreets API.
+    nullable: false
+    default: false
+    pii: false
+
+  - name: latitude
+    type: DECIMAL(10,7)
+    description: Geocoded latitude for shipping zone determination.
+    nullable: true
+    pii: true
+    pii_category: QUASI_IDENTIFIER
+
+  - name: longitude
+    type: DECIMAL(10,7)
+    description: Geocoded longitude.
+    nullable: true
+    pii: true
+    pii_category: QUASI_IDENTIFIER
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Address records are deleted when the customer deletes the address or their account. Addresses on historical orders and shipments are retained as snapshots within those entities (not as references to this table). The address table itself follows the Customer retention policy."
+  full_retention_period: Follows Customer entity (7 years)
+
+data_quality:
+  - rule: at most one default shipping address per customer
+    severity: ERROR
+  - rule: at most one default billing address per customer
+    severity: ERROR
+  - rule: country must be a valid ISO 3166-1 alpha-2 code
+    severity: ERROR
+  - rule: phone must be E.164 format when provided
+    severity: WARNING
+
+golden_source: identity-service

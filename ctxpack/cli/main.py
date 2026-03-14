@@ -87,6 +87,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="Output in natural language (L1) format")
     p_pack.add_argument("--template",
                         help="Domain template name (e.g. pharma, data-platform) or path to template YAML")
+    p_pack.add_argument("--preset", choices=["conservative", "balanced", "aggressive"],
+                        default="",
+                        help="Compression preset (overrides --max-ratio and --min-tokens-per-entity)")
 
     # eval
     p_eval = sub.add_parser("eval", help="Run evaluation against golden set")
@@ -114,6 +117,16 @@ def main(argv: list[str] | None = None) -> int:
     p_bench.add_argument("--json", action="store_true", dest="json_output",
                          help="Output as JSON")
 
+    # hydrate
+    p_hydrate = sub.add_parser("hydrate", help="Hydrate sections from a .ctx file")
+    p_hydrate.add_argument("file", help="Path to .ctx file")
+    p_hydrate.add_argument("--section", help="Section name(s) to hydrate (comma-separated)")
+    p_hydrate.add_argument("--query", help="Keyword query for section matching")
+    p_hydrate.add_argument("--list", action="store_true", dest="list_sections",
+                           help="List available sections with token counts")
+    p_hydrate.add_argument("--max-sections", type=int, default=5,
+                           help="Max sections to return for query mode (default: 5)")
+
     # scaling
     p_scale = sub.add_parser("scaling", help="Run scaling curve experiment")
     p_scale.add_argument("--skip-fidelity", action="store_true",
@@ -140,6 +153,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_eval(args)
         elif args.command == "diff":
             return _cmd_diff(args)
+        elif args.command == "hydrate":
+            return _cmd_hydrate(args)
         elif args.command == "bench":
             return _cmd_bench(args)
         elif args.command == "scaling":
@@ -226,6 +241,7 @@ def _cmd_pack(args: argparse.Namespace) -> int:
         max_ratio=args.max_ratio,
         min_tokens_per_entity=args.min_tokens_per_entity,
         template=args.template,
+        preset=args.preset,
     )
 
     output_text = serialize(result.document, ascii_mode=args.ascii,
@@ -273,6 +289,47 @@ def _cmd_pack(args: argparse.Namespace) -> int:
     else:
         print(output_text, end="")
 
+    return 0
+
+
+def _cmd_hydrate(args: argparse.Namespace) -> int:
+    from ..core.hydrator import hydrate_by_name, hydrate_by_query, list_sections
+    from ..core.serializer import serialize_section
+
+    text = _read_file(args.file)
+    doc = parse(text, level=2, filename=args.file)
+
+    if args.list_sections:
+        sections = list_sections(doc)
+        print(f"Sections in {args.file}:")
+        for s in sections:
+            print(f"  {s['name']:40s} ~{s['tokens']:>4d} tokens")
+        print(f"\nTotal: {len(sections)} sections")
+        return 0
+
+    if args.section:
+        names = [n.strip() for n in args.section.split(",")]
+        result = hydrate_by_name(doc, names)
+    elif args.query:
+        result = hydrate_by_query(doc, args.query, max_sections=args.max_sections)
+    else:
+        print("Provide --section, --query, or --list", file=sys.stderr)
+        return 1
+
+    # Print header
+    if result.header_text:
+        print(result.header_text)
+        print()
+
+    # Print matched sections
+    for section in result.sections:
+        for line in serialize_section(section):
+            print(line)
+        print()
+
+    # Summary to stderr
+    print(f"[{len(result.sections)}/{result.sections_available} sections, "
+          f"~{result.tokens_injected} tokens]", file=sys.stderr)
     return 0
 
 

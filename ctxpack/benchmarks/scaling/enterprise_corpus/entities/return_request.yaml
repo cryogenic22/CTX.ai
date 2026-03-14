@@ -1,0 +1,212 @@
+entity: ReturnRequest
+description: "Represents a formal request from a customer to return one or more items from a delivered order. Return requests are the precursor to refunds; a return must be approved and the items received back at the warehouse before a refund is processed (except for \"returnless refunds\" for low-value items). The return process follows these steps: (1) customer initiates return request, (2) system validates eligibility (within return window, item is returnable), (3) merchant or auto-rules approve/reject, (4) return shipping label is generated, (5) customer ships items back, (6) warehouse receives and inspects items, (7) refund is processed. Return windows vary by product category: 30 days for most items, 14 days for electronics and opened software, 7 days for perishable goods, and 90 days for ShopStream Plus members. Some product categories are non-returnable (e.g., personalized items, intimate apparel, hazardous materials)."
+
+aliases:
+  - RMA
+  - ReturnMerchandiseAuthorization
+  - ReturnOrder
+  - ProductReturn
+
+identifier:
+  field: return_id
+  type: UUID v4
+  description: Globally unique return request identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: returns-service
+
+relationships:
+  - type: belongs_to
+    target: Order
+    foreign_key: order_id
+    description: The original order.
+    cardinality: "1"
+    on_delete: RESTRICT
+
+  - type: belongs_to
+    target: Customer
+    foreign_key: customer_id
+    description: The customer initiating the return.
+    cardinality: "1"
+
+  - type: has_one
+    target: Refund
+    foreign_key: return_id
+    description: The refund issued upon return completion.
+    cardinality: "0..1"
+
+  - type: has_one
+    target: Shipment
+    foreign_key: return_shipment_id
+    description: The return shipment from customer back to warehouse.
+    cardinality: "0..1"
+
+fields:
+  - name: return_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: return_number
+    type: VARCHAR(20)
+    description: Human-readable return number. Format: RMA-YYYYMMDD-XXXXXX.
+    nullable: false
+    pii: false
+    constraints:
+      - UNIQUE
+
+  - name: order_id
+    type: UUID
+    description: Reference to the original order.
+    nullable: false
+    pii: false
+
+  - name: customer_id
+    type: UUID
+    description: Reference to the customer.
+    nullable: false
+    pii: false
+
+  - name: status
+    type: ENUM
+    description: "Return request lifecycle status."
+    nullable: false
+    default: REQUESTED
+    allowed_values:
+      - REQUESTED
+      - APPROVED
+      - REJECTED
+      - LABEL_SENT
+      - IN_TRANSIT
+      - RECEIVED
+      - INSPECTING
+      - COMPLETED
+      - CANCELLED
+
+  - name: return_items
+    type: JSON
+    description: "JSON array of items being returned. Each item includes order_line_id, variant_id, quantity, reason, and condition."
+    nullable: false
+    pii: false
+
+  - name: reason
+    type: ENUM
+    description: Primary reason for the return.
+    nullable: false
+    allowed_values:
+      - DEFECTIVE
+      - WRONG_ITEM
+      - NOT_AS_DESCRIBED
+      - CHANGED_MIND
+      - TOO_LARGE
+      - TOO_SMALL
+      - ARRIVED_LATE
+      - DAMAGED_IN_SHIPPING
+      - OTHER
+
+  - name: reason_detail
+    type: TEXT
+    description: Customer's detailed explanation of the return reason.
+    nullable: true
+    pii: true
+    pii_category: FREETEXT
+
+  - name: return_method
+    type: ENUM
+    description: How the items will be returned.
+    nullable: false
+    allowed_values:
+      - SHIP_BACK
+      - DROP_OFF
+      - RETURNLESS_REFUND
+      - PICKUP
+
+  - name: return_shipping_label_url
+    type: VARCHAR(2000)
+    description: URL for the prepaid return shipping label.
+    nullable: true
+    pii: false
+
+  - name: return_tracking_number
+    type: VARCHAR(100)
+    description: Tracking number for the return shipment.
+    nullable: true
+    pii: false
+
+  - name: inspection_notes
+    type: TEXT
+    description: Notes from warehouse inspection of returned items.
+    nullable: true
+    pii: false
+
+  - name: inspection_result
+    type: ENUM
+    description: Result of warehouse inspection.
+    nullable: true
+    allowed_values:
+      - PASS
+      - FAIL_DAMAGED
+      - FAIL_USED
+      - FAIL_MISSING_PARTS
+      - FAIL_WRONG_ITEM
+
+  - name: refund_amount
+    type: DECIMAL(12,2)
+    description: Amount to be refunded upon return completion.
+    nullable: true
+    pii: false
+
+  - name: restocking_fee
+    type: DECIMAL(10,2)
+    description: Restocking fee deducted from the refund (if applicable).
+    nullable: false
+    default: 0.00
+    pii: false
+
+  - name: approved_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the return was approved.
+    nullable: true
+    pii: false
+
+  - name: received_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the returned items were received at the warehouse.
+    nullable: true
+    pii: false
+
+  - name: completed_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the return was completed (refund issued).
+    nullable: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Return request records are retained for 5 years after completion. PII fields (reason_detail) are scrubbed after 2 years."
+  pii_scrub_window: 2 years
+  full_retention_period: 5 years
+
+data_quality:
+  - rule: return must be within the applicable return window for the product category
+    severity: ERROR
+  - rule: refund_amount must not exceed the original order line amounts
+    severity: ERROR
+  - rule: COMPLETED status requires inspection_result to be set
+    severity: ERROR
+
+golden_source: returns-service

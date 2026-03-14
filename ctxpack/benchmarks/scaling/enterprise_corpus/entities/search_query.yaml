@@ -1,0 +1,141 @@
+entity: SearchQuery
+description: "Records customer search queries on the ShopStream storefront for analytics, search relevance improvement, and merchandising optimization. Each record captures the search term, applied filters, result count, and whether the search led to a product click or purchase. Search query data is used to: (1) identify trending search terms for the merchandising team, (2) detect zero-result queries that indicate catalog gaps, (3) build search synonym mappings, (4) train the search relevance model, and (5) power the autocomplete suggestion system. Search queries are stored in Elasticsearch for real-time analytics and replicated to Snowflake for historical trend analysis. Customer identifiers are optional; anonymous search data is retained with only the session_id for behavioral analysis."
+
+aliases:
+  - SearchLog
+  - SearchEvent
+  - QueryLog
+  - SiteSearch
+
+identifier:
+  field: query_id
+  type: UUID v4
+  description: Globally unique search query identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: search-service
+
+relationships:
+  - type: belongs_to
+    target: Customer
+    foreign_key: customer_id
+    description: The customer who performed the search (NULL for anonymous).
+    cardinality: "0..1"
+
+fields:
+  - name: query_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: customer_id
+    type: UUID
+    description: Reference to the customer (NULL for anonymous searches).
+    nullable: true
+    pii: false
+
+  - name: session_id
+    type: VARCHAR(100)
+    description: Session identifier for anonymous search tracking.
+    nullable: true
+    pii: true
+    pii_category: ONLINE_IDENTIFIER
+
+  - name: query_text
+    type: VARCHAR(500)
+    description: The search term entered by the customer.
+    nullable: false
+    pii: true
+    pii_category: BEHAVIORAL
+
+  - name: normalized_query
+    type: VARCHAR(500)
+    description: Lowercased, stemmed, and spell-corrected version of the query.
+    nullable: false
+    pii: false
+
+  - name: filters_applied
+    type: JSON
+    description: "JSON object of search filters applied (category, price_range, brand, rating, shipping_speed, etc.)."
+    nullable: true
+    pii: false
+
+  - name: sort_by
+    type: VARCHAR(50)
+    description: Sort order selected (relevance, price_asc, price_desc, rating, newest).
+    nullable: false
+    default: relevance
+    pii: false
+
+  - name: result_count
+    type: INTEGER
+    description: Total number of search results returned.
+    nullable: false
+    pii: false
+
+  - name: page_number
+    type: INTEGER
+    description: Page of results viewed (1-based).
+    nullable: false
+    default: 1
+    pii: false
+
+  - name: clicked_product_ids
+    type: JSON
+    description: JSON array of product_ids the customer clicked from results.
+    nullable: true
+    pii: false
+
+  - name: converted_order_id
+    type: UUID
+    description: Order ID if this search session led to a purchase.
+    nullable: true
+    pii: false
+
+  - name: response_time_ms
+    type: INTEGER
+    description: Search response time in milliseconds.
+    nullable: false
+    pii: false
+
+  - name: search_source
+    type: ENUM
+    description: Where the search was initiated from.
+    nullable: false
+    allowed_values:
+      - SEARCH_BAR
+      - CATEGORY_BROWSE
+      - AUTOCOMPLETE
+      - VOICE_SEARCH
+      - URL_DIRECT
+
+  - name: device_type
+    type: ENUM
+    description: Device type.
+    nullable: true
+    allowed_values:
+      - DESKTOP
+      - MOBILE
+      - TABLET
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Search timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Search query records are retained for 2 years for analytics. PII fields (query_text, session_id) are anonymized after 90 days. Aggregated search trends are retained for 5 years."
+  pii_scrub_window: 90 days
+  full_retention_period: 2 years
+
+data_quality:
+  - rule: response_time_ms above 500ms triggers performance alert
+    severity: WARNING
+  - rule: result_count of 0 triggers catalog gap alert
+    severity: WARNING
+
+golden_source: search-service

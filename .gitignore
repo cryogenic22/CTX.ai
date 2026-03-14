@@ -34,6 +34,7 @@ ctxpack/benchmarks/scaling/scaling_corpora/
 
 # Working notes and internal files (not part of the project)
 rough_notes.md
+*_gitignore*
 PHASE-B-REPORT.md
 reviewer_article.md
 report_combined.py

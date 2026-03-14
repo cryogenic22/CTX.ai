@@ -1,0 +1,126 @@
+entity: Currency
+description: "Represents a supported currency on the ShopStream platform. The platform supports multi-currency pricing, allowing merchants to list products in their local currency and customers to view prices and pay in their preferred currency. Currency conversion is handled at checkout time using the ExchangeRate entity. The platform currently supports 22 currencies across North America, Europe, Asia-Pacific, and Latin America. Each currency has defined formatting rules (symbol position, decimal places, thousands separator) used for consistent price display across the storefront, emails, and invoices. The base currency for platform reporting and settlement calculations is USD."
+
+aliases:
+  - SupportedCurrency
+  - CurrencyConfig
+  - MoneyUnit
+
+identifier:
+  field: currency_code
+  type: VARCHAR(3)
+  description: ISO 4217 three-letter currency code (e.g., USD, EUR, GBP).
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: finance-service
+
+relationships:
+  - type: has_many
+    target: ExchangeRate
+    foreign_key: source_currency
+    description: Exchange rates from this currency to others.
+    cardinality: "0..*"
+
+fields:
+  - name: currency_code
+    type: VARCHAR(3)
+    description: ISO 4217 currency code. Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: name
+    type: VARCHAR(100)
+    description: Full currency name (e.g., "United States Dollar", "Euro").
+    nullable: false
+    pii: false
+
+  - name: symbol
+    type: VARCHAR(5)
+    description: Currency symbol (e.g., "$", "€", "£", "¥").
+    nullable: false
+    pii: false
+
+  - name: symbol_position
+    type: ENUM
+    description: Whether the symbol appears before or after the amount.
+    nullable: false
+    default: BEFORE
+    allowed_values:
+      - BEFORE
+      - AFTER
+
+  - name: decimal_places
+    type: INTEGER
+    description: "Number of decimal places for this currency. Most currencies use 2. JPY and KRW use 0. BHD and KWD use 3."
+    nullable: false
+    default: 2
+    pii: false
+
+  - name: decimal_separator
+    type: VARCHAR(1)
+    description: Character used as decimal separator ("." or ",").
+    nullable: false
+    default: "."
+    pii: false
+
+  - name: thousands_separator
+    type: VARCHAR(1)
+    description: Character used as thousands separator ("," or "." or " ").
+    nullable: false
+    default: ","
+    pii: false
+
+  - name: is_active
+    type: BOOLEAN
+    description: Whether this currency is currently available for transactions.
+    nullable: false
+    default: true
+    pii: false
+
+  - name: is_base_currency
+    type: BOOLEAN
+    description: Whether this is the platform's base currency (USD). Only one currency can be base.
+    nullable: false
+    default: false
+    pii: false
+
+  - name: supported_regions
+    type: JSON
+    description: JSON array of ISO 3166-1 country codes where this currency is available.
+    nullable: true
+    pii: false
+
+  - name: min_transaction_amount
+    type: DECIMAL(10,2)
+    description: Minimum transaction amount in this currency (gateway requirement).
+    nullable: false
+    default: 0.50
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: Currency records are retained indefinitely.
+  full_retention_period: Indefinite
+
+data_quality:
+  - rule: currency_code must be a valid ISO 4217 code
+    severity: ERROR
+  - rule: exactly one currency must be marked as is_base_currency
+    severity: ERROR
+  - rule: decimal_places must match ISO 4217 specification
+    severity: WARNING
+
+golden_source: finance-service

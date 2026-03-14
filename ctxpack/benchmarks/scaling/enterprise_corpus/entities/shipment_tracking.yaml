@@ -1,0 +1,121 @@
+entity: ShipmentTracking
+description: "Records individual tracking events for a shipment as reported by the carrier. Events are received via carrier webhook integrations and stored chronologically. Each event represents a status update in the shipment's journey from warehouse to customer doorstep. Tracking events are used to update the parent Shipment status, trigger customer notifications, calculate delivery performance metrics, and support customer service inquiries. The platform aggregates tracking data from all carriers into a normalized format for consistent customer experience."
+
+aliases:
+  - TrackingEvent
+  - CarrierEvent
+  - DeliveryEvent
+  - TrackingUpdate
+
+identifier:
+  field: tracking_event_id
+  type: UUID v4
+  description: Unique identifier for this tracking event.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: fulfillment-service
+
+relationships:
+  - type: belongs_to
+    target: Shipment
+    foreign_key: shipment_id
+    description: The shipment this tracking event belongs to.
+    cardinality: "1"
+    on_delete: CASCADE
+
+fields:
+  - name: tracking_event_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: shipment_id
+    type: UUID
+    description: Reference to the parent shipment.
+    nullable: false
+    pii: false
+
+  - name: event_type
+    type: ENUM
+    description: Normalized event type.
+    nullable: false
+    allowed_values:
+      - LABEL_CREATED
+      - PICKED_UP
+      - ARRIVED_AT_FACILITY
+      - DEPARTED_FACILITY
+      - IN_TRANSIT
+      - OUT_FOR_DELIVERY
+      - DELIVERED
+      - DELIVERY_ATTEMPTED
+      - EXCEPTION
+      - RETURNED
+
+  - name: event_description
+    type: VARCHAR(500)
+    description: Human-readable description of the event as provided by the carrier.
+    nullable: false
+    pii: false
+
+  - name: location_city
+    type: VARCHAR(100)
+    description: City where the event occurred.
+    nullable: true
+    pii: false
+
+  - name: location_state
+    type: VARCHAR(100)
+    description: State/province where the event occurred.
+    nullable: true
+    pii: false
+
+  - name: location_country
+    type: VARCHAR(2)
+    description: Country where the event occurred.
+    nullable: true
+    pii: false
+
+  - name: location_postal_code
+    type: VARCHAR(20)
+    description: Postal code of the event location.
+    nullable: true
+    pii: false
+
+  - name: carrier_status_code
+    type: VARCHAR(50)
+    description: Raw status code from the carrier's API.
+    nullable: true
+    pii: false
+
+  - name: event_timestamp
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the event occurred (as reported by the carrier).
+    nullable: false
+    pii: false
+
+  - name: received_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When ShopStream received this tracking event.
+    nullable: false
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Tracking events are retained for 2 years after the shipment delivery date. Aggregated delivery metrics are retained longer in the analytics warehouse."
+  full_retention_period: 2 years after delivery
+
+data_quality:
+  - rule: event_timestamp must not be in the future
+    severity: WARNING
+  - rule: events for a shipment should be chronologically ordered by event_timestamp
+    severity: WARNING
+
+golden_source: fulfillment-service

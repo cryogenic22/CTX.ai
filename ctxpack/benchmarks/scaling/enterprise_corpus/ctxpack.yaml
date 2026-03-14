@@ -1,0 +1,24 @@
+domain: e-commerce-data-platform
+scope: enterprise-data-platform-full
+author: platform-team
+version: "2.1"
+description: "Complete domain knowledge corpus for the ShopStream e-commerce data platform. Covers 28 core entities, operational runbooks, data governance policies, and data quality rules across the order management, payment processing, inventory, merchant management, and customer data domains."
+
+sources:
+  - path: entities/
+    type: yaml
+    description: Entity definitions with field schemas, relationships, and policies
+  - path: docs/
+    type: markdown
+    description: Operational runbooks, onboarding guides, and architecture documentation
+  - path: rules/
+    type: yaml
+    description: Data governance rules, PII classification, retention policies
+
+settings:
+  salience_threshold: 0.3
+  dedup_strategy: merge
+  conflict_mode: flag
+  enrichment: true
+  pii_redaction: false
+  max_tokens: 8000

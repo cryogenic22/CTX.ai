@@ -1,0 +1,199 @@
+entity: Settlement
+description: "Represents a periodic financial settlement between ShopStream and a merchant. At the end of each settlement period (determined by the merchant's settlement_schedule), the platform calculates the net amount owed to the merchant by summing order payments received, subtracting platform commissions, refund amounts, and any chargebacks or fees. The settlement amount is then transferred to the merchant's registered bank account via ACH (US), SEPA (EU), or wire transfer (international). Settlement records are critical for financial reconciliation between ShopStream's internal accounting system and the merchant's records. Each settlement includes a detailed breakdown of all orders, refunds, commissions, and adjustments within the settlement period. Merchants can view pending and completed settlements through the Merchant Portal's Finance section."
+
+aliases:
+  - Payout
+  - MerchantPayout
+  - SettlementReport
+  - DisbursementReport
+
+identifier:
+  field: settlement_id
+  type: UUID v4
+  description: Globally unique settlement identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: settlement-service
+
+relationships:
+  - type: belongs_to
+    target: Merchant
+    foreign_key: merchant_id
+    description: The merchant receiving this settlement.
+    cardinality: "1"
+    on_delete: RESTRICT
+
+fields:
+  - name: settlement_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: merchant_id
+    type: UUID
+    description: Reference to the merchant.
+    nullable: false
+    pii: false
+
+  - name: settlement_number
+    type: VARCHAR(30)
+    description: "Human-readable settlement reference. Format: STL-YYYYMMDD-MXXXX where M is the merchant's short code and XXXX is a sequential counter."
+    nullable: false
+    pii: false
+    constraints:
+      - UNIQUE
+
+  - name: period_start
+    type: DATE
+    description: Start of the settlement period (inclusive).
+    nullable: false
+    pii: false
+
+  - name: period_end
+    type: DATE
+    description: End of the settlement period (inclusive).
+    nullable: false
+    pii: false
+
+  - name: status
+    type: ENUM
+    description: Settlement processing status.
+    nullable: false
+    default: CALCULATING
+    allowed_values:
+      - CALCULATING
+      - PENDING_APPROVAL
+      - APPROVED
+      - PROCESSING
+      - PAID
+      - FAILED
+      - ON_HOLD
+
+  - name: gross_amount
+    type: DECIMAL(14,2)
+    description: Total order payments received during the settlement period.
+    nullable: false
+    pii: false
+
+  - name: commission_amount
+    type: DECIMAL(14,2)
+    description: Total platform commission deducted.
+    nullable: false
+    pii: false
+
+  - name: refund_amount
+    type: DECIMAL(14,2)
+    description: Total refunds issued during the settlement period.
+    nullable: false
+    pii: false
+
+  - name: chargeback_amount
+    type: DECIMAL(14,2)
+    description: Total chargebacks during the settlement period.
+    nullable: false
+    default: 0.00
+    pii: false
+
+  - name: adjustment_amount
+    type: DECIMAL(14,2)
+    description: "Manual adjustments (positive or negative) applied by the finance team. Includes corrections, promotional credits, and fee waivers."
+    nullable: false
+    default: 0.00
+    pii: false
+
+  - name: net_amount
+    type: DECIMAL(14,2)
+    description: "Final settlement amount: gross_amount - commission_amount - refund_amount - chargeback_amount + adjustment_amount. This is the amount transferred to the merchant."
+    nullable: false
+    pii: false
+
+  - name: currency
+    type: VARCHAR(3)
+    description: Settlement currency (merchant's configured settlement currency).
+    nullable: false
+    pii: false
+
+  - name: order_count
+    type: INTEGER
+    description: Number of orders included in this settlement.
+    nullable: false
+    pii: false
+
+  - name: refund_count
+    type: INTEGER
+    description: Number of refunds included in this settlement.
+    nullable: false
+    pii: false
+
+  - name: transfer_method
+    type: ENUM
+    description: Method used to transfer funds to the merchant.
+    nullable: false
+    allowed_values:
+      - ACH
+      - SEPA
+      - WIRE_TRANSFER
+      - PAYPAL
+
+  - name: transfer_reference
+    type: VARCHAR(100)
+    description: Bank transfer reference number.
+    nullable: true
+    pii: false
+
+  - name: bank_account_last_four
+    type: VARCHAR(4)
+    description: Last four digits of the destination bank account.
+    nullable: true
+    pii: true
+    pii_category: FINANCIAL
+
+  - name: approved_by
+    type: VARCHAR(255)
+    description: Email of the finance team member who approved the settlement.
+    nullable: true
+    pii: false
+
+  - name: paid_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the settlement was paid (funds transferred).
+    nullable: true
+    pii: false
+
+  - name: report_url
+    type: VARCHAR(2000)
+    description: S3 URL of the detailed settlement report PDF.
+    nullable: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Settlement records and reports are retained for 10 years to support financial auditing and tax compliance."
+  full_retention_period: 10 years
+  legal_basis: Legal obligation (financial regulations)
+
+data_quality:
+  - rule: net_amount must equal gross_amount - commission_amount - refund_amount - chargeback_amount + adjustment_amount
+    severity: ERROR
+  - rule: period_end must be after period_start
+    severity: ERROR
+  - rule: paid_at must be set when status is PAID
+    severity: ERROR
+  - rule: settlement periods must not overlap for the same merchant
+    severity: ERROR
+
+golden_source: settlement-service

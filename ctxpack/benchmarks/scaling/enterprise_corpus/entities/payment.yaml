@@ -1,0 +1,271 @@
+entity: Payment
+description: "Records a payment transaction associated with an order on the ShopStream platform. Each order has exactly one payment record, though the payment may be attempted multiple times before succeeding (each attempt is logged as a PaymentAttempt in the payment gateway's own records). The Payment entity captures the final successful charge or the last failed attempt. Payment processing is handled by a PCI-DSS compliant payment gateway (currently Stripe, with Adyen as a failover). Raw card numbers are never stored in ShopStream systems; only tokenized references are persisted. The Payment entity is critical for financial reconciliation, merchant settlement calculations, and refund processing."
+
+aliases:
+  - PaymentTransaction
+  - Charge
+  - PaymentRecord
+
+identifier:
+  field: payment_id
+  type: UUID v4
+  description: "Unique identifier for this payment record. Assigned by the payment service when the payment intent is created, before the actual charge attempt."
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: payment-service
+
+relationships:
+  - type: belongs_to
+    target: Order
+    foreign_key: order_id
+    description: The order this payment is for.
+    cardinality: "1"
+    on_delete: RESTRICT
+
+  - type: belongs_to
+    target: Customer
+    foreign_key: customer_id
+    description: The customer making the payment.
+    cardinality: "1"
+    on_delete: RESTRICT
+
+  - type: belongs_to
+    target: PaymentMethod
+    foreign_key: payment_method_id
+    description: The stored payment method used (if customer used a saved method).
+    cardinality: "0..1"
+
+  - type: has_many
+    target: Refund
+    foreign_key: payment_id
+    description: Refunds issued against this payment.
+    cardinality: "0..*"
+    cascade_delete: false
+
+fields:
+  - name: payment_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: order_id
+    type: UUID
+    description: Reference to the associated order.
+    nullable: false
+    pii: false
+
+  - name: customer_id
+    type: UUID
+    description: Reference to the paying customer.
+    nullable: false
+    pii: false
+
+  - name: payment_method_id
+    type: UUID
+    description: Reference to the saved payment method, if applicable.
+    nullable: true
+    pii: false
+
+  - name: gateway
+    type: ENUM
+    description: Payment gateway used to process this transaction.
+    nullable: false
+    allowed_values:
+      - STRIPE
+      - ADYEN
+      - PAYPAL
+      - APPLE_PAY
+      - GOOGLE_PAY
+    pii: false
+
+  - name: gateway_transaction_id
+    type: VARCHAR(100)
+    description: "Transaction identifier from the payment gateway (e.g., Stripe's pi_xxx or ch_xxx). Used for reconciliation and dispute resolution."
+    nullable: true
+    pii: false
+
+  - name: payment_type
+    type: ENUM
+    description: The type of payment instrument used.
+    nullable: false
+    allowed_values:
+      - CREDIT_CARD
+      - DEBIT_CARD
+      - BANK_TRANSFER
+      - DIGITAL_WALLET
+      - BUY_NOW_PAY_LATER
+      - GIFT_CARD
+      - STORE_CREDIT
+    pii: false
+
+  - name: status
+    type: ENUM
+    description: "Current status of the payment. The happy path is: PENDING → AUTHORIZED → CAPTURED → SETTLED. Failed payments: PENDING → FAILED. Cancelled before capture: AUTHORIZED → VOIDED."
+    nullable: false
+    default: PENDING
+    allowed_values:
+      - PENDING
+      - AUTHORIZED
+      - CAPTURED
+      - SETTLED
+      - FAILED
+      - VOIDED
+      - DISPUTED
+      - REFUNDED
+      - PARTIALLY_REFUNDED
+
+  - name: amount
+    type: DECIMAL(12,2)
+    description: "The total amount charged, matching the order's total_amount. In the order's currency."
+    nullable: false
+    pii: false
+    constraints:
+      - "> 0"
+
+  - name: currency
+    type: VARCHAR(3)
+    description: ISO 4217 currency code matching the order currency.
+    nullable: false
+    pii: false
+
+  - name: card_last_four
+    type: VARCHAR(4)
+    description: Last four digits of the card number, for display purposes only.
+    nullable: true
+    pii: true
+    pii_category: FINANCIAL
+
+  - name: card_brand
+    type: VARCHAR(20)
+    description: Card network brand (Visa, Mastercard, Amex, Discover, etc.).
+    nullable: true
+    pii: false
+
+  - name: card_exp_month
+    type: INTEGER
+    description: Card expiration month (1-12).
+    nullable: true
+    pii: true
+    pii_category: FINANCIAL
+
+  - name: card_exp_year
+    type: INTEGER
+    description: Card expiration year (4-digit).
+    nullable: true
+    pii: true
+    pii_category: FINANCIAL
+
+  - name: billing_name
+    type: VARCHAR(200)
+    description: Name on the payment instrument as provided by the customer.
+    nullable: true
+    pii: true
+    pii_category: DIRECT_IDENTIFIER
+
+  - name: fraud_score
+    type: DECIMAL(5,2)
+    description: "Risk score from the fraud detection system (0-100). Scores above 80 trigger manual review. Scores above 95 auto-decline. Calculated by the Sift Science integration at authorization time."
+    nullable: true
+    pii: false
+    constraints:
+      - ">= 0"
+      - "<= 100"
+
+  - name: fraud_review_status
+    type: ENUM
+    description: Status of manual fraud review, if triggered.
+    nullable: true
+    allowed_values:
+      - PENDING_REVIEW
+      - APPROVED
+      - DECLINED
+      - ESCALATED
+
+  - name: three_ds_status
+    type: ENUM
+    description: Result of 3D Secure authentication, if applicable.
+    nullable: true
+    allowed_values:
+      - AUTHENTICATED
+      - ATTEMPTED
+      - FAILED
+      - NOT_ENROLLED
+      - NOT_REQUIRED
+
+  - name: authorized_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Timestamp when the payment was authorized.
+    nullable: true
+    pii: false
+
+  - name: captured_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Timestamp when the payment was captured (funds actually charged).
+    nullable: true
+    pii: false
+
+  - name: settled_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Timestamp when the funds were settled to the merchant.
+    nullable: true
+    pii: false
+
+  - name: failed_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Timestamp of payment failure, if applicable.
+    nullable: true
+    pii: false
+
+  - name: failure_reason
+    type: VARCHAR(500)
+    description: "Reason for payment failure from the gateway (e.g., \"insufficient_funds\", \"card_declined\", \"expired_card\")."
+    nullable: true
+    pii: false
+
+  - name: idempotency_key
+    type: VARCHAR(100)
+    description: "Client-generated idempotency key to prevent duplicate charges. Must be unique per payment attempt."
+    nullable: false
+    pii: false
+    constraints:
+      - UNIQUE
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Payment records are retained for 10 years to comply with PCI-DSS requirements and financial audit obligations. PII fields (card_last_four, card_exp_month, card_exp_year, billing_name) are retained for 3 years, then scrubbed. The gateway_transaction_id and amounts are retained for the full 10-year period."
+  pii_scrub_window: 3 years
+  full_retention_period: 10 years
+  legal_basis: Legal obligation (PCI-DSS, financial regulations)
+
+data_quality:
+  - rule: amount must match the associated order's total_amount
+    severity: ERROR
+  - rule: currency must match the associated order's currency
+    severity: ERROR
+  - rule: gateway_transaction_id must be set when status is CAPTURED or SETTLED
+    severity: ERROR
+  - rule: fraud_score must be between 0 and 100
+    severity: ERROR
+  - rule: idempotency_key must be unique across all payment records
+    severity: ERROR
+
+golden_source: payment-service
+pci_scope: true
+encryption:
+  at_rest: AES-256
+  in_transit: TLS 1.3
+  key_management: AWS KMS

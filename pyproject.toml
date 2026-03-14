@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68.0"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "ctxpack"
@@ -12,17 +12,37 @@ license-files = ["LICENSE"]
 requires-python = ">=3.10"
 dependencies = []
 authors = [
-    {name = "Kapil Pant", email = "kapilpant@gmail.com"},
+    {name = "Kapil Pant"},
+]
+keywords = [
+    "llm",
+    "context",
+    "compression",
+    "tokenizer",
+    "ctx",
+    "domain-knowledge",
+    "rag",
+    "context-engineering",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
-    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Topic :: Text Processing :: General",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
+
+[project.urls]
+Homepage = "https://github.com/cryogenic22/CTX.ai"
+Repository = "https://github.com/cryogenic22/CTX.ai"
+Documentation = "https://github.com/cryogenic22/CTX.ai#readme"
+Issues = "https://github.com/cryogenic22/CTX.ai/issues"
 
 [project.scripts]
 ctxpack = "ctxpack.cli.main:main"
+
+[tool.setuptools.packages.find]
+include = ["ctxpack*"]
+exclude = ["tests*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

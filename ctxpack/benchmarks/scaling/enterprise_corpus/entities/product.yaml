@@ -1,0 +1,247 @@
+entity: Product
+description: "Represents a sellable item listed on the ShopStream marketplace by a merchant. Products are the core catalog entity and serve as the parent for product variants, which represent specific purchasable configurations (e.g., size/color combinations). A product without at least one active variant cannot be purchased. Products are organized into a hierarchical category tree and may belong to multiple categories. Each product is owned by exactly one merchant, and product visibility is controlled by both the merchant (who can activate/deactivate) and the platform (which can suspend products that violate policies). Product data is syndicated to the search index (Elasticsearch), the recommendation engine, and the storefront CDN. The product catalog supports internationalization with per-locale titles and descriptions."
+
+aliases:
+  - Item
+  - Listing
+  - CatalogItem
+  - SKU Parent
+
+identifier:
+  field: product_id
+  type: UUID v4
+  description: "Globally unique product identifier. Immutable. Assigned by the catalog service at product creation time."
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: catalog-service
+
+relationships:
+  - type: belongs_to
+    target: Merchant
+    foreign_key: merchant_id
+    description: The merchant who owns and lists this product.
+    cardinality: "1"
+    on_delete: CASCADE
+
+  - type: has_many
+    target: ProductVariant
+    foreign_key: product_id
+    description: Purchasable variants of this product (size, color, etc.).
+    cardinality: "1..*"
+    cascade_delete: true
+
+  - type: has_many
+    target: Category
+    through: product_categories
+    description: "Categories this product belongs to. A product must belong to at least one leaf category. Products can appear in up to 5 categories."
+    cardinality: "1..5"
+
+  - type: has_many
+    target: Review
+    foreign_key: product_id
+    description: Customer reviews for this product.
+    cardinality: "0..*"
+    cascade_delete: true
+
+fields:
+  - name: product_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: merchant_id
+    type: UUID
+    description: Reference to the owning merchant.
+    nullable: false
+    pii: false
+
+  - name: title
+    type: VARCHAR(500)
+    description: "Product title displayed in search results and product detail pages. Should be descriptive but concise. Max 500 characters. Must not contain HTML or promotional text like \"SALE\" or \"FREE SHIPPING\"."
+    nullable: false
+    pii: false
+    constraints:
+      - Max 500 characters
+      - No HTML tags
+      - No promotional keywords
+
+  - name: slug
+    type: VARCHAR(600)
+    description: URL-friendly version of the title, auto-generated. Unique per merchant.
+    nullable: false
+    pii: false
+    constraints:
+      - UNIQUE per merchant
+      - lowercase, hyphens only
+
+  - name: description
+    type: TEXT
+    description: "Full product description. Supports a limited subset of Markdown (bold, italic, lists, headings). Max 10,000 characters. Indexed for full-text search."
+    nullable: true
+    pii: false
+    constraints:
+      - Max 10000 characters
+
+  - name: short_description
+    type: VARCHAR(500)
+    description: Brief summary shown in search results and category pages. Max 500 chars.
+    nullable: true
+    pii: false
+
+  - name: status
+    type: ENUM
+    description: "Product lifecycle status. DRAFT products are only visible to the merchant. ACTIVE products are visible on the storefront. SUSPENDED products have been flagged by platform moderation. ARCHIVED products are soft-deleted."
+    nullable: false
+    default: DRAFT
+    allowed_values:
+      - DRAFT
+      - ACTIVE
+      - SUSPENDED
+      - ARCHIVED
+
+  - name: brand
+    type: VARCHAR(200)
+    description: Brand or manufacturer name. Used for faceted search filtering.
+    nullable: true
+    pii: false
+
+  - name: base_price
+    type: DECIMAL(10,2)
+    description: "Default price before variant-level adjustments. Variants may override this with their own price. In the merchant's base currency."
+    nullable: false
+    pii: false
+    constraints:
+      - ">= 0.01"
+
+  - name: compare_at_price
+    type: DECIMAL(10,2)
+    description: "Original price shown with a strikethrough when the product is on sale. Must be greater than base_price when set."
+    nullable: true
+    pii: false
+
+  - name: cost_price
+    type: DECIMAL(10,2)
+    description: "Merchant's cost/wholesale price. Used for margin calculations in analytics. Not visible to customers. Confidential to the merchant."
+    nullable: true
+    pii: false
+
+  - name: tax_category
+    type: ENUM
+    description: Tax classification that determines applicable tax rates.
+    nullable: false
+    default: STANDARD
+    allowed_values:
+      - STANDARD
+      - REDUCED
+      - ZERO_RATED
+      - EXEMPT
+      - DIGITAL_GOODS
+      - FOOD_AND_BEVERAGE
+
+  - name: weight_grams
+    type: INTEGER
+    description: Product weight in grams. Used for shipping cost calculation.
+    nullable: true
+    pii: false
+
+  - name: dimensions_cm
+    type: JSON
+    description: "Product dimensions as JSON object with keys: length, width, height (in cm). Used for shipping cost calculation and warehouse bin assignment."
+    nullable: true
+    pii: false
+
+  - name: requires_shipping
+    type: BOOLEAN
+    description: Whether this product requires physical shipping (false for digital goods).
+    nullable: false
+    default: true
+    pii: false
+
+  - name: is_age_restricted
+    type: BOOLEAN
+    description: Whether purchase requires age verification (e.g., alcohol, tobacco).
+    nullable: false
+    default: false
+    pii: false
+
+  - name: average_rating
+    type: DECIMAL(3,2)
+    description: "Cached average star rating (1.00-5.00), recalculated when new reviews are approved. NULL if no reviews exist."
+    nullable: true
+    pii: false
+
+  - name: review_count
+    type: INTEGER
+    description: Cached count of approved reviews.
+    nullable: false
+    default: 0
+    pii: false
+
+  - name: tags
+    type: JSON
+    description: Array of string tags for additional categorization and search filtering.
+    nullable: true
+    pii: false
+
+  - name: metadata
+    type: JSON
+    description: "Flexible key-value metadata for merchant-specific attributes not covered by standard fields. Max 10 keys, 500 chars per value."
+    nullable: true
+    pii: false
+
+  - name: seo_title
+    type: VARCHAR(70)
+    description: Custom title for search engine results pages (SERP).
+    nullable: true
+    pii: false
+
+  - name: seo_description
+    type: VARCHAR(160)
+    description: Custom meta description for SERP.
+    nullable: true
+    pii: false
+
+  - name: published_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the product was first made ACTIVE and visible on the storefront.
+    nullable: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Product records are retained for 5 years after archival. Active products are retained indefinitely while the merchant account is active. When a merchant account is terminated, their products are archived and the 5-year clock begins."
+  full_retention_period: 5 years after archival
+  legal_basis: Contractual necessity, consumer protection regulations
+
+data_quality:
+  - rule: product must have at least one active ProductVariant to be ACTIVE
+    severity: ERROR
+  - rule: base_price must be greater than 0
+    severity: ERROR
+  - rule: compare_at_price must be greater than base_price when set
+    severity: WARNING
+  - rule: title must not contain HTML tags
+    severity: ERROR
+  - rule: product must belong to at least one Category
+    severity: ERROR
+
+golden_source: catalog-service
+sync_targets:
+  - search-index (Elasticsearch)
+  - recommendation-engine
+  - storefront-cdn
+  - data-warehouse (Snowflake)

@@ -1,0 +1,971 @@
+{
+  "experiment": "definitive_eval_v0.4.0",
+  "timestamp": "2026-03-13T21:35:08.494393+00:00",
+  "model": "claude-opus-4-6",
+  "source": {
+    "bpe_tokens": 4580,
+    "word_tokens": 2209
+  },
+  "methods": [
+    {
+      "method": "raw_stuffing",
+      "bpe_tokens": 4580,
+      "word_tokens": 2209,
+      "bpe_compression": "1.00x",
+      "fidelity_rule": 75.0,
+      "fidelity_judge": 90.0,
+      "cost_per_query": "$0.0687",
+      "model": "claude-opus-4-6",
+      "details": [
+        {
+          "id": "Q01",
+          "correct": false,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q02",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q03",
+          "correct": false,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q04",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q05",
+          "correct": true,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q06",
+          "correct": true,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q07",
+          "correct": true,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q08",
+          "correct": true,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q09",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q10",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q11",
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q12",
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q13",
+          "correct": false,
+          "judge": true,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q14",
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q15",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q16",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q17",
+          "correct": false,
+          "judge": false,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q18",
+          "correct": false,
+          "judge": false,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q19",
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q20",
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        }
+      ]
+    },
+    {
+      "method": "ctxpack_l2",
+      "bpe_tokens": 3859,
+      "word_tokens": 1269,
+      "bpe_compression": "1.19x",
+      "fidelity_rule": 80.0,
+      "fidelity_judge": 85.0,
+      "cost_per_query": "$0.0579",
+      "model": "claude-opus-4-6",
+      "details": [
+        {
+          "id": "Q01",
+          "correct": false,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q02",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q03",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q04",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q05",
+          "correct": true,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q06",
+          "correct": true,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q07",
+          "correct": true,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q08",
+          "correct": true,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q09",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q10",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q11",
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q12",
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q13",
+          "correct": false,
+          "judge": false,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q14",
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q15",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q16",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q17",
+          "correct": false,
+          "judge": false,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q18",
+          "correct": false,
+          "judge": false,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q19",
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q20",
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        }
+      ]
+    },
+    {
+      "method": "ctxpack_nl_prose",
+      "bpe_tokens": 4068,
+      "word_tokens": 1678,
+      "bpe_compression": "1.13x",
+      "fidelity_rule": 85.0,
+      "fidelity_judge": 90.0,
+      "cost_per_query": "$0.0610",
+      "model": "claude-opus-4-6",
+      "details": [
+        {
+          "id": "Q01",
+          "correct": true,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q02",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q03",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q04",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q05",
+          "correct": true,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q06",
+          "correct": true,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q07",
+          "correct": true,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q08",
+          "correct": true,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q09",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q10",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q11",
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q12",
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q13",
+          "correct": false,
+          "judge": true,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q14",
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q15",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q16",
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q17",
+          "correct": false,
+          "judge": false,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q18",
+          "correct": false,
+          "judge": false,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q19",
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q20",
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        }
+      ]
+    },
+    {
+      "method": "ctxpack_nl_hydrated",
+      "bpe_tokens": 808,
+      "word_tokens": 0,
+      "bpe_compression": "5.66x",
+      "fidelity_rule": 65.0,
+      "fidelity_judge": 75.0,
+      "cost_per_query": "$0.0121",
+      "model": "claude-opus-4-6",
+      "details": [
+        {
+          "id": "Q01",
+          "sections": [
+            "ENTITY-COMPRESSOR"
+          ],
+          "bpe_total": 670,
+          "correct": false,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q02",
+          "sections": [
+            "ENTITY-L3-GENERATOR",
+            "ENTITY-COMPRESSOR",
+            "ENTITY-PACKER-PIPELINE"
+          ],
+          "bpe_total": 1443,
+          "correct": false,
+          "judge": false,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q03",
+          "sections": [
+            "ENTITY-MANIFEST",
+            "ENTITY-IR-PIPELINE",
+            "INTEGRATION-POINTS"
+          ],
+          "bpe_total": 1112,
+          "correct": false,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q04",
+          "sections": [
+            "ENTITY-PACKER-PIPELINE",
+            "ENTITY-IR-PIPELINE",
+            "FOUR-LAYER-MODEL"
+          ],
+          "bpe_total": 1202,
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q05",
+          "sections": [
+            "IMMUTABLE-AST",
+            "AST-DESIGN"
+          ],
+          "bpe_total": 465,
+          "correct": true,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q06",
+          "sections": [
+            "NO-LLM-IN-PACKER"
+          ],
+          "bpe_total": 375,
+          "correct": true,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q07",
+          "sections": [
+            "ENTITY-L3-GENERATOR",
+            "L3-REQUIRED-SECTIONS"
+          ],
+          "bpe_total": 670,
+          "correct": true,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q08",
+          "sections": [
+            "LICENSE"
+          ],
+          "bpe_total": 316,
+          "correct": true,
+          "judge": true,
+          "difficulty": "easy"
+        },
+        {
+          "id": "Q09",
+          "sections": [
+            "PARSER-SCOPE",
+            "ENTITY-PARSER"
+          ],
+          "bpe_total": 731,
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q10",
+          "sections": [
+            "ENTITY-CONFLICT-DETECTOR"
+          ],
+          "bpe_total": 658,
+          "correct": false,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q11",
+          "sections": [
+            "ENTITY-L3-GENERATOR",
+            "L3-REQUIRED-SECTIONS",
+            "FOUR-LAYER-MODEL"
+          ],
+          "bpe_total": 793,
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q12",
+          "sections": [
+            "ENTITY-SERIALIZER",
+            "ENTITY-PARSER",
+            "ERROR-CODES"
+          ],
+          "bpe_total": 1042,
+          "correct": false,
+          "judge": false,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q13",
+          "sections": [
+            "ENTITY-CONFLICT-DETECTOR",
+            "ERROR-CODES",
+            "WARNING-CODES"
+          ],
+          "bpe_total": 831,
+          "correct": true,
+          "judge": false,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q14",
+          "sections": [
+            "ENTITY-MANIFEST",
+            "OVERVIEW",
+            "ENTITY-IR-PIPELINE"
+          ],
+          "bpe_total": 1084,
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q15",
+          "sections": [
+            "ENTITY-IR-PIPELINE",
+            "ENTITY-COMPRESSOR",
+            "ENTITY-MANIFEST"
+          ],
+          "bpe_total": 1404,
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q16",
+          "sections": [
+            "ENTITY-SERIALIZER"
+          ],
+          "bpe_total": 590,
+          "correct": true,
+          "judge": true,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q17",
+          "sections": [
+            "PARSER-SCOPE",
+            "AST-DESIGN",
+            "ENTITY-PARSER"
+          ],
+          "bpe_total": 849,
+          "correct": false,
+          "judge": false,
+          "difficulty": "medium"
+        },
+        {
+          "id": "Q18",
+          "sections": [
+            "OVERVIEW",
+            "FILE-BASED-CODEC",
+            "ZERO-DEPENDENCY-PRINCIPLE"
+          ],
+          "bpe_total": 553,
+          "correct": false,
+          "judge": false,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q19",
+          "sections": [
+            "ENTITY-PACKER-PIPELINE",
+            "INTEGRATION-POINTS",
+            "NO-LLM-IN-PACKER"
+          ],
+          "bpe_total": 880,
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        },
+        {
+          "id": "Q20",
+          "sections": [
+            "NONE"
+          ],
+          "bpe_total": 510,
+          "correct": true,
+          "judge": true,
+          "difficulty": "hard"
+        }
+      ]
+    }
+  ],
+  "hydration_details": [
+    {
+      "id": "Q01",
+      "question": "What entity does COMPRESSOR depend on for cross-reference counting?",
+      "expected": "IR-PIPELINE (uses IREntity and IRField)",
+      "difficulty": "easy",
+      "sections_requested": [
+        "ENTITY-COMPRESSOR"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 415,
+      "bpe_total": 670,
+      "correct_rule": false,
+      "correct_judge": true,
+      "answer": "Based on the context, the **Compressor** depends on the **Ir Pipeline** (via one-to-one), as indicated by its \"Depends On\" field.\n\nFor **cross-reference counting** specifically, the Cross Reference Index uses a data structure described as a **dict mapping entity-name to inbound reference count**, with single-pass O(1) lookup via precompiled regex scanning all field values. The cross-reference counting is not described as depending on a separate entity per se\u2014it is an internal mechanism of the Compressor itself that scans field values for references across entities.\n\nSo while the Compressor's architectural dependency is on the **Ir Pipeline**, its cross-reference counting is an internal function that indexes references across all entities rather than depending on a specific external entity for that purpose."
+    },
+    {
+      "id": "Q02",
+      "question": "What is the relationship between L3-GENERATOR and COMPRESSOR?",
+      "expected": "L3-GENERATOR depends on COMPRESSOR's count_tokens() function",
+      "difficulty": "medium",
+      "sections_requested": [
+        "ENTITY-L3-GENERATOR",
+        "ENTITY-COMPRESSOR",
+        "ENTITY-PACKER-PIPELINE"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 1188,
+      "bpe_total": 1443,
+      "correct_rule": false,
+      "correct_judge": false,
+      "answer": "The **L3 Generator** **depends on** the **Compressor** via a **one-to-one** relationship."
+    },
+    {
+      "id": "Q03",
+      "question": "Which module consumes the MANIFEST entity index for query routing?",
+      "expected": "MCP hydration (query-adaptive section selection based on entity name)",
+      "difficulty": "medium",
+      "sections_requested": [
+        "ENTITY-MANIFEST",
+        "ENTITY-IR-PIPELINE",
+        "INTEGRATION-POINTS"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 857,
+      "bpe_total": 1112,
+      "correct_rule": false,
+      "correct_judge": true,
+      "answer": "The **MCP Server** consumes the Manifest entity index for query routing, performing **query-adaptive hydration via manifest entity/keyword indexes**."
+    },
+    {
+      "id": "Q04",
+      "question": "What is the full packer pipeline order?",
+      "expected": "discovery -> parse -> entity-resolution -> conflict-detection -> provenance-generation -> compression -> l3-generation -> manifest-generation",
+      "difficulty": "medium",
+      "sections_requested": [
+        "ENTITY-PACKER-PIPELINE",
+        "ENTITY-IR-PIPELINE",
+        "FOUR-LAYER-MODEL"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 947,
+      "bpe_total": 1202,
+      "correct_rule": true,
+      "correct_judge": true,
+      "answer": "The full packer pipeline order is:\n\n1. **Discovery** \u2014 Scan corpus directory, find YAML/MD/JSON files, read ctxpack.yaml config\n2. **Parse** \u2014 Parse YAML, Markdown, and JSON files into IREntity and IRField objects\n3. **Entity Resolution** \u2014 Merge duplicate entities, resolve aliases, infer bidirectional relationships\n4. **Conflict Detection** \u2014 Find retention, null-policy, type, and PII conflicts, emit IRWarning objects\n5. **Provenance Generation** \u2014 Map fields to source file locations (companion .ctx.prov or inline SRC: mode)\n6. **Compression** \u2014 IR to CTXDocument AST with heuristic salience scoring\n7. **L3 Generation** *(optional)* \u2014 Extract ultra-compressed gist layer from L2 AST\n8. **Manifest Generation** *("
+    },
+    {
+      "id": "Q05",
+      "question": "Is the CTXDocument AST mutable or immutable?",
+      "expected": "Immutable (frozen dataclasses)",
+      "difficulty": "easy",
+      "sections_requested": [
+        "IMMUTABLE-AST",
+        "AST-DESIGN"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 210,
+      "bpe_total": 465,
+      "correct_rule": true,
+      "correct_judge": true,
+      "answer": "The CTXDocument AST is **immutable**. It uses frozen (immutable) dataclasses, and once parsed, the AST cannot be modified. Any transformation produces a new AST."
+    },
+    {
+      "id": "Q06",
+      "question": "Does the packer use any LLM or ML model?",
+      "expected": "No \u2014 zero-dependency, deterministic, no LLM in the loop",
+      "difficulty": "easy",
+      "sections_requested": [
+        "NO-LLM-IN-PACKER"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 120,
+      "bpe_total": 375,
+      "correct_rule": true,
+      "correct_judge": true,
+      "answer": "**No.** The packer pipeline is entirely deterministic with zero LLM or ML dependencies. This includes L3 gist generation, which uses algorithmic extraction rather than summarization. The only LLM usage is in the **evaluation framework** for fidelity measurement (LLM-as-judge), which is separate from the packer itself."
+    },
+    {
+      "id": "Q07",
+      "question": "What is the L3 token budget?",
+      "expected": "500 tokens",
+      "difficulty": "easy",
+      "sections_requested": [
+        "ENTITY-L3-GENERATOR",
+        "L3-REQUIRED-SECTIONS"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 415,
+      "bpe_total": 670,
+      "correct_rule": true,
+      "correct_judge": true,
+      "answer": "The L3 token budget is **500 tokens**."
+    },
+    {
+      "id": "Q08",
+      "question": "What license is ctxpack released under?",
+      "expected": "Apache-2.0",
+      "difficulty": "easy",
+      "sections_requested": [
+        "LICENSE"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 61,
+      "bpe_total": 316,
+      "correct_rule": true,
+      "correct_judge": true,
+      "answer": "ctxpack is released under the **Apache-2.0** license (open-core model)."
+    },
+    {
+      "id": "Q09",
+      "question": "Can the parser handle arbitrary Python files?",
+      "expected": "No \u2014 only .ctx format (line-oriented, section-based)",
+      "difficulty": "medium",
+      "sections_requested": [
+        "PARSER-SCOPE",
+        "ENTITY-PARSER"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 476,
+      "bpe_total": 731,
+      "correct_rule": true,
+      "correct_judge": true,
+      "answer": "**No.** The `.ctx` parser handles only `.ctx` format files \u2014 line-oriented, section-based text. It **cannot parse arbitrary Python files**, YAML files, or other formats. Separate parsers (e.g., `yaml_parser`, `md_parser`, `json_parser`) handle other input formats."
+    },
+    {
+      "id": "Q10",
+      "question": "Does the conflict detector catch semantic contradictions?",
+      "expected": "No \u2014 only structural: null policy, type mismatch, retention periods, PII classification level",
+      "difficulty": "medium",
+      "sections_requested": [
+        "ENTITY-CONFLICT-DETECTOR"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 403,
+      "bpe_total": 658,
+      "correct_rule": false,
+      "correct_judge": true,
+      "answer": "No. The conflict detector does **not** detect semantic contradictions \u2014 it only detects structural pattern mismatches. This is explicitly listed as one of its limitations."
+    },
+    {
+      "id": "Q11",
+      "question": "Can L3 topology classification be fully customized per-domain without code changes?",
+      "expected": "Only hub_threshold is configurable; topology classification rules (hub/leaf/bridge) are hardcoded",
+      "difficulty": "hard",
+      "sections_requested": [
+        "ENTITY-L3-GENERATOR",
+        "L3-REQUIRED-SECTIONS",
+        "FOUR-LAYER-MODEL"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 538,
+      "bpe_total": 793,
+      "correct_rule": true,
+      "correct_judge": true,
+      "answer": "**No.** Topology classification cannot be fully customized without code changes. According to the L3 Generator specification, only the **hub-threshold** parameter is configurable. The topology classification rules themselves (hub, leaf, bridge definitions) are **hardcoded**. So while you can adjust the threshold for what counts as a hub (e.g., changing it from 3 to another value), the underlying classification logic requires code changes to modify."
+    },
+    {
+      "id": "Q12",
+      "question": "If a field has certainty=INFERRED and --strict mode is on, what happens?",
+      "expected": "The field is suppressed from output entirely (strict mode drops all INFERRED fields)",
+      "difficulty": "hard",
+      "sections_requested": [
+        "ENTITY-SERIALIZER",
+        "ENTITY-PARSER",
+        "ERROR-CODES"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 787,
+      "bpe_total": 1042,
+      "correct_rule": false,
+      "correct_judge": false,
+      "answer": "Not found in context."
+    },
+    {
+      "id": "Q13",
+      "question": "What happens when two sources define the same field with different types?",
+      "expected": "Type conflict warning is generated AND both sources are tracked in provenance",
+      "difficulty": "hard",
+      "sections_requested": [
+        "ENTITY-CONFLICT-DETECTOR",
+        "ERROR-CODES",
+        "WARNING-CODES"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 576,
+      "bpe_total": 831,
+      "correct_rule": true,
+      "correct_judge": false,
+      "answer": "## Type Mismatch Detection\n\nWhen two sources define the same field with different types, the **type-mismatch** conflict detector identifies this. It **detects the same field name with different type annotations across entities** (e.g., UUID vs INT).\n\n**Method**: It extracts types from IDENTIFIER fields and compares them across entities and BELONGS-TO references.\n\n**Output**: An `IRWarning` with:\n- **entity**: Concatenated entity names separated by a plus sign (e.g., CUSTOMER, PAYMENT)\n- **message**: A human-readable conflict description\n- **severity**: WARNING level\n\n**Important limitation**: This detector only catches **structural pattern mismatches**, not semantic contradictions, and relies on field key naming conventions for cross-entity comparison."
+    },
+    {
+      "id": "Q14",
+      "question": "How does the keyword index route a query about 'retention' to the right entity?",
+      "expected": "Semantic regex extracts 'retention' from field values, keyword index maps to sections containing the term",
+      "difficulty": "hard",
+      "sections_requested": [
+        "ENTITY-MANIFEST",
+        "OVERVIEW",
+        "ENTITY-IR-PIPELINE"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 829,
+      "bpe_total": 1084,
+      "correct_rule": true,
+      "correct_judge": true,
+      "answer": "## Keyword Index Routing for 'retention'\n\nBased on the context, the keyword routing mechanism works as follows:\n\n1. **Semantic regex extraction**: The Keyword Index uses a **semantic-regex** pattern that explicitly extracts domain-relevant terms, including `retention`, from section field values. This falls under the **semantic** keyword category (described as \"domain-relevant terms extracted from field values\").\n\n2. **Per-section keyword mapping**: The Keyword Index maps **top keywords per section** (capped at 15 keywords per section) for MCP query routing. Keywords are categorized into three types:\n   - **Structural**: KV keys like IDENTIFIER, STATUS-MACHINE\n   - **Navigational**: Cross-reference targets\n   - **Semantic**: Domain-relevant terms like `retention`\n\n3. **Routing flow**: When a query mentions \"retention,\" the keyword index matches it against the pre"
+    },
+    {
+      "id": "Q15",
+      "question": "What is the entity-level salience scoring formula?",
+      "expected": "source_count * 1.0 + cross_refs * 2.0 + warning_count * 1.5 (golden source gets 1.5x multiplier, minimum score is 1.0)",
+      "difficulty": "medium",
+      "sections_requested": [
+        "ENTITY-IR-PIPELINE",
+        "ENTITY-COMPRESSOR",
+        "ENTITY-MANIFEST"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 1149,
+      "bpe_total": 1404,
+      "correct_rule": true,
+      "correct_judge": true,
+      "answer": "The entity-level salience scoring formula is:\n\n**`source-count * 1.0 + cross-refs * 2.0 + warning-count * 1.5`**\n\nAdditionally:\n- A **golden-source-boost** of **1.5x multiplier** is applied when the entity has a GOLDEN-SOURCE field.\n- The **minimum** salience score is **1.0**."
+    },
+    {
+      "id": "Q16",
+      "question": "How does the serializer handle Unicode operators in ASCII mode?",
+      "expected": "Unicode operators are replaced with ASCII fallbacks: section-ctx to $CTX, plus-minus to ##, arrow to ->, negation to exclamation-mark, star to triple-asterisk, warning to WARN-colon, equivalence to ===, conflict to CONFLICT-colon",
+      "difficulty": "medium",
+      "sections_requested": [
+        "ENTITY-SERIALIZER"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 335,
+      "bpe_total": 590,
+      "correct_rule": true,
+      "correct_judge": true,
+      "answer": "In ASCII mode, the serializer replaces Unicode operators with ASCII fallbacks for terminal compatibility. The specific mappings are:\n\n- **Section context marker**: `$CTX` replaces the Unicode section-ctx symbol\n- **Section marker**: `##` replaces the plus-minus Unicode symbol\n- **Arrow**: `->` replaces the Unicode arrow symbol\n- **Negation**: `!` (exclamation mark) replaces the Unicode negation symbol\n- **Emphasis**: `***` replaces the Unicode star symbol\n- **Warning**: `WARN:` replaces the Unicode warning symbol\n- **Equivalence**: `===` replaces the Unicode equivalence symbol\n- **Conflict**: `CONFLICT:` replaces the Unicode conflict symbol\n- **Weak association**: remains the same (already ASCII)"
+    },
+    {
+      "id": "Q17",
+      "question": "What heuristic determines whether a YAML structure is classified as an entity?",
+      "expected": "Presence of keys like identifier, golden_source, match_rules, pii, retention, has_many, belongs_to, id, uuid, primary_key",
+      "difficulty": "medium",
+      "sections_requested": [
+        "PARSER-SCOPE",
+        "AST-DESIGN",
+        "ENTITY-PARSER"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 594,
+      "bpe_total": 849,
+      "correct_rule": false,
+      "correct_judge": false,
+      "answer": "Not found in context."
+    },
+    {
+      "id": "Q18",
+      "question": "What database does ctxpack use for storage?",
+      "expected": "NOT_IN_CONTEXT",
+      "difficulty": "hard",
+      "sections_requested": [
+        "OVERVIEW",
+        "FILE-BASED-CODEC",
+        "ZERO-DEPENDENCY-PRINCIPLE"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 298,
+      "bpe_total": 553,
+      "correct_rule": false,
+      "correct_judge": false,
+      "answer": "ctxpack does **not** use a database. The context explicitly states it has **no** database, REST API, streaming ingestion, or real-time processing capabilities. It is a **file-based** compression codec that processes static file corpora from disk, with input being directory files (YAML, Markdown, JSON) and output being `.ctx` text files."
+    },
+    {
+      "id": "Q19",
+      "question": "What is the REST API endpoint for packing?",
+      "expected": "NOT_IN_CONTEXT",
+      "difficulty": "hard",
+      "sections_requested": [
+        "ENTITY-PACKER-PIPELINE",
+        "INTEGRATION-POINTS",
+        "NO-LLM-IN-PACKER"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 625,
+      "bpe_total": 880,
+      "correct_rule": true,
+      "correct_judge": true,
+      "answer": "Not found in context.\n\nThe context describes integration points via **CLI** (`ctxpack pack`), **MCP Server**, and **Library** (`pack()` function), but no REST API endpoint is mentioned."
+    },
+    {
+      "id": "Q20",
+      "question": "How does ctxpack handle real-time streaming from Kafka?",
+      "expected": "NOT_IN_CONTEXT",
+      "difficulty": "hard",
+      "sections_requested": [
+        "NONE"
+      ],
+      "bpe_l3": 255,
+      "bpe_hydrated": 255,
+      "bpe_total": 510,
+      "correct_rule": true,
+      "correct_judge": true,
+      "answer": "Not found in context.\n\nBased on the available sections and entities, ctxpack appears to be a context packing/serialization tool focused on AST design, file-based codecs, deterministic output, and a four-layer model architecture. There is no section or entity related to real-time streaming, Kafka, or any message broker integration. This capability does not appear to be part of ctxpack's domain."
+    }
+  ]
+}

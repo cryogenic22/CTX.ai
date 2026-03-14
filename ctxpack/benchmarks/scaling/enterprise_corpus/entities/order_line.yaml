@@ -1,0 +1,191 @@
+entity: OrderLine
+description: "Represents a single line item within an order, linking a specific product variant to a quantity and unit price. Each order contains at least one order line. The order line captures the price at the time of purchase (which may differ from the current product price), the quantity ordered, and any line-level discounts applied. Order lines are immutable after the order is confirmed; quantity adjustments after confirmation require a cancellation and re-order or a partial refund. The line item total is calculated as unit_price * quantity - line_discount_amount."
+
+aliases:
+  - LineItem
+  - OrderItem
+  - OrderDetail
+  - BasketItem
+
+identifier:
+  field: order_line_id
+  type: UUID v4
+  description: Unique identifier for this line item within the order.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: order-management-service
+
+relationships:
+  - type: belongs_to
+    target: Order
+    foreign_key: order_id
+    description: The parent order containing this line item.
+    cardinality: "1"
+    on_delete: CASCADE
+
+  - type: belongs_to
+    target: ProductVariant
+    foreign_key: variant_id
+    description: The specific product variant being purchased.
+    cardinality: "1"
+    on_delete: RESTRICT
+
+  - type: belongs_to
+    target: Product
+    foreign_key: product_id
+    description: The parent product (denormalized from variant for reporting efficiency).
+    cardinality: "1"
+    on_delete: RESTRICT
+
+fields:
+  - name: order_line_id
+    type: UUID
+    description: Primary identifier for this line item.
+    nullable: false
+    pii: false
+
+  - name: order_id
+    type: UUID
+    description: Reference to the parent order.
+    nullable: false
+    pii: false
+
+  - name: product_id
+    type: UUID
+    description: Reference to the product (denormalized from variant).
+    nullable: false
+    pii: false
+
+  - name: variant_id
+    type: UUID
+    description: Reference to the specific product variant (size, color, etc.).
+    nullable: false
+    pii: false
+
+  - name: product_name
+    type: VARCHAR(500)
+    description: "Snapshot of the product name at order time. Stored to preserve historical accuracy even if the product is later renamed or deleted."
+    nullable: false
+    pii: false
+
+  - name: variant_name
+    type: VARCHAR(200)
+    description: Snapshot of the variant descriptor (e.g., "Large / Navy Blue").
+    nullable: true
+    pii: false
+
+  - name: sku
+    type: VARCHAR(50)
+    description: Stock keeping unit code, snapshotted from the variant at order time.
+    nullable: false
+    pii: false
+
+  - name: quantity
+    type: INTEGER
+    description: Number of units ordered. Must be at least 1.
+    nullable: false
+    constraints:
+      - ">= 1"
+      - "<= 999"
+    pii: false
+
+  - name: unit_price
+    type: DECIMAL(10,2)
+    description: "Price per unit at the time of purchase, in the order's currency. This is the price AFTER any product-level or merchant-level discounts but BEFORE line-level discounts and before tax."
+    nullable: false
+    pii: false
+    constraints:
+      - ">= 0"
+
+  - name: line_discount_amount
+    type: DECIMAL(10,2)
+    description: "Discount amount applied to this specific line item from promotions, bundle pricing, or volume discounts. Does not include order-level coupon discounts which are tracked on the Order entity."
+    nullable: false
+    default: 0.00
+    pii: false
+    constraints:
+      - ">= 0"
+
+  - name: line_total
+    type: DECIMAL(12,2)
+    description: "Calculated total for this line: (unit_price * quantity) - line_discount_amount. This amount is before tax."
+    nullable: false
+    pii: false
+    constraints:
+      - ">= 0"
+      - "= unit_price * quantity - line_discount_amount"
+
+  - name: tax_rate
+    type: DECIMAL(5,4)
+    description: "Applicable tax rate for this line item, determined by the product's tax category and the shipping address jurisdiction. Stored as a decimal (e.g., 0.0875 for 8.75%)."
+    nullable: false
+    pii: false
+
+  - name: tax_amount
+    type: DECIMAL(10,2)
+    description: Tax calculated for this line item (line_total * tax_rate).
+    nullable: false
+    pii: false
+
+  - name: fulfillment_status
+    type: ENUM
+    description: Fulfillment status of this specific line item.
+    nullable: false
+    default: UNFULFILLED
+    allowed_values:
+      - UNFULFILLED
+      - PARTIALLY_FULFILLED
+      - FULFILLED
+      - RETURNED
+      - CANCELLED
+
+  - name: weight_grams
+    type: INTEGER
+    description: Weight per unit in grams, used for shipping calculation.
+    nullable: true
+    pii: false
+
+  - name: is_gift
+    type: BOOLEAN
+    description: Whether this item is marked as a gift (affects packing slip).
+    nullable: false
+    default: false
+    pii: false
+
+  - name: gift_message
+    type: VARCHAR(500)
+    description: Optional gift message for this line item.
+    nullable: true
+    pii: true
+    pii_category: FREETEXT
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Timestamp when this line item was created.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Order line records follow the parent Order retention policy (7 years). PII fields (gift_message) are scrubbed at the same 2-year window as Order PII fields."
+  pii_scrub_window: 2 years
+  full_retention_period: 7 years
+
+data_quality:
+  - rule: line_total must equal unit_price * quantity - line_discount_amount
+    severity: ERROR
+  - rule: tax_amount must equal line_total * tax_rate (within rounding tolerance of $0.01)
+    severity: WARNING
+  - rule: quantity must be between 1 and 999
+    severity: ERROR
+  - rule: product_id and variant_id must reference existing products
+    severity: ERROR
+
+golden_source: order-management-service

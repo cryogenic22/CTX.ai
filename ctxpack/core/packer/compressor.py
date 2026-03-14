@@ -32,6 +32,7 @@ def compress(
     max_ratio: float = 0,
     min_tokens_per_entity: int = 0,
     randomize_order: bool = False,
+    preset: str = "",
 ) -> CTXDocument:
     """Compress an IRCorpus into a CTXDocument AST (L2).
 
@@ -48,9 +49,34 @@ def compress(
         strict: Suppress INFERRED fields entirely.
         max_ratio: Maximum compression ratio (e.g. 10.0). 0 = no limit.
         min_tokens_per_entity: Minimum token budget per entity. 0 = no limit.
+        preset: Named compression preset ("conservative", "balanced", "aggressive").
+                If set, overrides max_ratio and min_tokens_per_entity.
     """
-    # Score salience
-    _score_entities(corpus)
+    # Apply preset if specified
+    budget_map: dict[str, dict[str, str]] | None = None
+    if preset:
+        from .budget import PRESETS, allocate
+        if preset not in PRESETS:
+            from .budget import PRESETS as _p
+            available = ", ".join(sorted(_p.keys()))
+            raise ValueError(f"Unknown preset '{preset}'. Available: {available}")
+        config = PRESETS[preset]
+        max_ratio = config.max_ratio
+        min_tokens_per_entity = config.min_tokens_per_entity
+
+        # Score salience first (needed by allocate)
+        _score_entities(corpus)
+
+        # Run budget allocation
+        entity_budgets = allocate(corpus, preset=preset)
+        # Build lookup: entity_name -> {field_key -> action}
+        budget_map = {}
+        for eb in entity_budgets:
+            field_actions = {fd.field.key: fd.action for fd in eb.field_decisions}
+            budget_map[eb.entity.name] = field_actions
+    else:
+        # Score salience
+        _score_entities(corpus)
 
     # Sort entities by descending salience (or randomize for ablation)
     if randomize_order:
@@ -63,7 +89,9 @@ def compress(
     # Build sections
     sections = []
     for entity in corpus.entities:
-        sections.append(_entity_to_section(entity, strict=strict))
+        field_actions = budget_map.get(entity.name) if budget_map else None
+        sections.append(_entity_to_section(entity, strict=strict,
+                                            field_actions=field_actions))
 
     # Standalone rules
     if corpus.standalone_rules:
@@ -189,8 +217,20 @@ def _score_field(field: IRField) -> None:
 # ── Section Building ──
 
 
-def _entity_to_section(entity: IREntity, *, strict: bool = False) -> Section:
-    """Convert an IREntity to a Section node."""
+def _entity_to_section(
+    entity: IREntity,
+    *,
+    strict: bool = False,
+    field_actions: dict[str, str] | None = None,
+) -> Section:
+    """Convert an IREntity to a Section node.
+
+    Args:
+        entity: The entity to convert.
+        strict: Suppress INFERRED fields entirely.
+        field_actions: Optional dict of field_key → action ("include", "abbreviate", "drop")
+                       from the budget allocator. If None, all fields are included.
+    """
     children = []
 
     # Single-pass partition: extract golden source, then sort remainder
@@ -209,6 +249,17 @@ def _entity_to_section(entity: IREntity, *, strict: bool = False) -> Section:
         # In strict mode, suppress inferred fields entirely
         if strict and field.certainty == Certainty.INFERRED:
             continue
+
+        # Budget-based field action
+        if field_actions is not None:
+            action = field_actions.get(field.key, "include")
+            if action == "drop":
+                continue
+            if action == "abbreviate":
+                value = _abbreviate_value(field.value)
+                children.append(KeyValue(key=field.key, value=value))
+                continue
+
         # In enriched mode (default), annotate inferred fields
         value = field.value
         if field.certainty == Certainty.INFERRED:
@@ -472,6 +523,24 @@ def _dehyphenate(value: str) -> str:
             result_parts.append(token.replace("-", " "))
 
     return " ".join(result_parts)
+
+
+def _abbreviate_value(value: str) -> str:
+    """Truncate a value to its first clause for aggressive compression.
+
+    Preserves cross-references and key structural tokens.
+    Splits on common clause delimiters: |, →, comma-space.
+    """
+    # Split on clause delimiters, keep first
+    for delim in ("|", "→", ","):
+        if delim in value:
+            first = value.split(delim)[0].strip()
+            if first:
+                return first + "…"
+    # If no delimiter, truncate to ~40 chars
+    if len(value) > 40:
+        return value[:37] + "…"
+    return value
 
 
 def _annotate_inferred(value: str) -> str:

@@ -1,0 +1,331 @@
+# ShopStream Data Quality Rules
+# These rules are enforced at the application layer (real-time) and
+# in the data warehouse (batch dbt tests). Each rule has a unique ID
+# for tracking and alerting purposes.
+
+rules:
+
+  # === Customer Domain ===
+
+  - id: DQ-CUST-001
+    entity: Customer
+    rule: "email must be unique among active (non-deleted) customers"
+    severity: ERROR
+    enforcement: APPLICATION
+    implementation: "UNIQUE constraint on (email) WHERE deleted_at IS NULL"
+    dbt_test: unique_active_customer_email
+
+  - id: DQ-CUST-002
+    entity: Customer
+    rule: "phone_number must be E.164 format when provided"
+    severity: WARNING
+    enforcement: APPLICATION
+    validation: "regex: ^\\+[1-9]\\d{1,14}$"
+
+  - id: DQ-CUST-003
+    entity: Customer
+    rule: "date_of_birth must be at least 13 years before current date"
+    severity: ERROR
+    enforcement: APPLICATION
+    validation: "date_of_birth <= CURRENT_DATE - INTERVAL '13 years'"
+    legal_reference: "COPPA compliance"
+
+  - id: DQ-CUST-004
+    entity: Customer
+    rule: "loyalty_points must not be negative"
+    severity: ERROR
+    enforcement: APPLICATION
+    validation: "loyalty_points >= 0"
+    implementation: "CHECK constraint"
+
+  - id: DQ-CUST-005
+    entity: Customer
+    rule: "email must be RFC 5322 compliant"
+    severity: ERROR
+    enforcement: APPLICATION
+    validation: "RFC 5322 email regex validation"
+
+  # === Order Domain ===
+
+  - id: DQ-ORD-001
+    entity: Order
+    rule: "total_amount must equal subtotal + tax_amount + shipping_amount - discount_amount"
+    severity: ERROR
+    enforcement: APPLICATION
+    validation: "ABS(total_amount - (subtotal + tax_amount + shipping_amount - discount_amount)) < 0.01"
+    dbt_test: test_order_total_integrity
+
+  - id: DQ-ORD-002
+    entity: Order
+    rule: "order must have at least one OrderLine"
+    severity: ERROR
+    enforcement: APPLICATION
+    dbt_test: test_order_has_lines
+
+  - id: DQ-ORD-003
+    entity: Order
+    rule: "cancelled_at must be set when status is CANCELLED"
+    severity: ERROR
+    enforcement: APPLICATION
+    validation: "IF status = 'CANCELLED' THEN cancelled_at IS NOT NULL"
+
+  - id: DQ-ORD-004
+    entity: Order
+    rule: "timestamp ordering: placed_at <= confirmed_at <= shipped_at <= delivered_at"
+    severity: ERROR
+    enforcement: APPLICATION
+    dbt_test: test_order_timestamp_ordering
+
+  - id: DQ-ORD-005
+    entity: Order
+    rule: "marketplace sub-orders must have parent_order_id set"
+    severity: WARNING
+    enforcement: BATCH
+    dbt_test: test_marketplace_parent_reference
+
+  - id: DQ-ORD-006
+    entity: OrderLine
+    rule: "line_total must equal unit_price * quantity - line_discount_amount"
+    severity: ERROR
+    enforcement: APPLICATION
+    validation: "ABS(line_total - (unit_price * quantity - line_discount_amount)) < 0.01"
+
+  - id: DQ-ORD-007
+    entity: OrderLine
+    rule: "quantity must be between 1 and 999"
+    severity: ERROR
+    enforcement: APPLICATION
+    validation: "quantity >= 1 AND quantity <= 999"
+
+  - id: DQ-ORD-008
+    entity: OrderLine
+    rule: "tax_amount must approximately equal line_total * tax_rate"
+    severity: WARNING
+    enforcement: BATCH
+    validation: "ABS(tax_amount - line_total * tax_rate) < 0.02"
+    dbt_test: test_line_tax_calculation
+
+  # === Payment Domain ===
+
+  - id: DQ-PAY-001
+    entity: Payment
+    rule: "payment amount must match associated order total_amount"
+    severity: ERROR
+    enforcement: APPLICATION
+    dbt_test: test_payment_order_match
+
+  - id: DQ-PAY-002
+    entity: Payment
+    rule: "payment currency must match order currency"
+    severity: ERROR
+    enforcement: APPLICATION
+
+  - id: DQ-PAY-003
+    entity: Payment
+    rule: "gateway_transaction_id must be set when status is CAPTURED or SETTLED"
+    severity: ERROR
+    enforcement: APPLICATION
+
+  - id: DQ-PAY-004
+    entity: Payment
+    rule: "fraud_score must be between 0 and 100"
+    severity: ERROR
+    enforcement: APPLICATION
+    validation: "fraud_score >= 0 AND fraud_score <= 100"
+
+  - id: DQ-PAY-005
+    entity: Payment
+    rule: "idempotency_key must be unique across all payment records"
+    severity: ERROR
+    enforcement: APPLICATION
+    implementation: "UNIQUE constraint"
+
+  - id: DQ-PAY-006
+    entity: Refund
+    rule: "refund amount must not exceed remaining refundable amount"
+    severity: ERROR
+    enforcement: APPLICATION
+    validation: "refund.amount <= payment.amount - SUM(prior_refunds.amount)"
+    dbt_test: test_refund_amount_bounds
+
+  - id: DQ-PAY-007
+    entity: Refund
+    rule: "refund currency must match original order currency"
+    severity: ERROR
+    enforcement: APPLICATION
+
+  # === Inventory Domain ===
+
+  - id: DQ-INV-001
+    entity: Inventory
+    rule: "available_quantity must not be negative"
+    severity: ERROR
+    enforcement: APPLICATION
+    validation: "available_quantity >= 0"
+    dbt_test: test_inventory_non_negative
+
+  - id: DQ-INV-002
+    entity: Inventory
+    rule: "reserved_quantity must not be negative"
+    severity: ERROR
+    enforcement: APPLICATION
+    validation: "reserved_quantity >= 0"
+
+  - id: DQ-INV-003
+    entity: Inventory
+    rule: "variant_id + warehouse_id combination must be unique"
+    severity: ERROR
+    enforcement: APPLICATION
+    implementation: "UNIQUE constraint on (variant_id, warehouse_id)"
+
+  - id: DQ-INV-004
+    entity: Inventory
+    rule: "count_discrepancy exceeding 10% of system count triggers audit"
+    severity: WARNING
+    enforcement: BATCH
+    validation: "ABS(count_discrepancy) / NULLIF(available_quantity + reserved_quantity, 0) > 0.10"
+    dbt_test: test_inventory_discrepancy
+
+  - id: DQ-INV-005
+    entity: Inventory
+    rule: "last_counted_at should be within the past 7 days"
+    severity: WARNING
+    enforcement: BATCH
+    validation: "last_counted_at >= CURRENT_DATE - INTERVAL '7 days'"
+
+  # === Merchant Domain ===
+
+  - id: DQ-MER-001
+    entity: Merchant
+    rule: "merchant must have at least one MerchantStore"
+    severity: ERROR
+    enforcement: APPLICATION
+    dbt_test: test_merchant_has_store
+
+  - id: DQ-MER-002
+    entity: Merchant
+    rule: "commission_rate must be between 0 and 1"
+    severity: ERROR
+    enforcement: APPLICATION
+    validation: "commission_rate >= 0 AND commission_rate <= 1"
+
+  - id: DQ-MER-003
+    entity: Merchant
+    rule: "tax_id must be valid for the merchant's country"
+    severity: ERROR
+    enforcement: APPLICATION
+    notes: "Validated during onboarding verification process"
+
+  - id: DQ-MER-004
+    entity: Merchant
+    rule: "average_fulfillment_days above 14 triggers review"
+    severity: WARNING
+    enforcement: BATCH
+    validation: "average_fulfillment_days > 14"
+
+  # === Product Domain ===
+
+  - id: DQ-PRD-001
+    entity: Product
+    rule: "ACTIVE product must have at least one active ProductVariant"
+    severity: ERROR
+    enforcement: APPLICATION
+    dbt_test: test_active_product_has_variant
+
+  - id: DQ-PRD-002
+    entity: Product
+    rule: "base_price must be greater than 0"
+    severity: ERROR
+    enforcement: APPLICATION
+    validation: "base_price > 0"
+
+  - id: DQ-PRD-003
+    entity: Product
+    rule: "compare_at_price must be greater than base_price when set"
+    severity: WARNING
+    enforcement: APPLICATION
+
+  - id: DQ-PRD-004
+    entity: Product
+    rule: "title must not contain HTML tags"
+    severity: ERROR
+    enforcement: APPLICATION
+    validation: "title NOT LIKE '%<%>%'"
+
+  - id: DQ-PRD-005
+    entity: Product
+    rule: "product must belong to at least one Category"
+    severity: ERROR
+    enforcement: APPLICATION
+
+  - id: DQ-PRD-006
+    entity: ProductVariant
+    rule: "SKU must be unique within the merchant's catalog"
+    severity: ERROR
+    enforcement: APPLICATION
+    implementation: "UNIQUE constraint on (merchant_id, sku)"
+
+  # === Financial Domain ===
+
+  - id: DQ-FIN-001
+    entity: Settlement
+    rule: "net_amount = gross_amount - commission_amount - refund_amount - chargeback_amount + adjustment_amount"
+    severity: ERROR
+    enforcement: APPLICATION
+    dbt_test: test_settlement_calculation
+
+  - id: DQ-FIN-002
+    entity: Settlement
+    rule: "settlement periods must not overlap for the same merchant"
+    severity: ERROR
+    enforcement: BATCH
+    dbt_test: test_settlement_no_overlap
+
+  - id: DQ-FIN-003
+    entity: Invoice
+    rule: "invoice_number must be unique per merchant and sequential"
+    severity: ERROR
+    enforcement: APPLICATION
+
+  - id: DQ-FIN-004
+    entity: Invoice
+    rule: "total_amount = subtotal + tax_amount + shipping_amount - discount_amount"
+    severity: ERROR
+    enforcement: APPLICATION
+
+  # === Cross-Entity Rules ===
+
+  - id: DQ-XENT-001
+    entities: [Order, Payment]
+    rule: "every CONFIRMED order must have a corresponding AUTHORIZED or CAPTURED payment"
+    severity: ERROR
+    enforcement: BATCH
+    dbt_test: test_order_payment_existence
+
+  - id: DQ-XENT-002
+    entities: [Order, Shipment]
+    rule: "SHIPPED orders must have at least one shipment with tracking_number"
+    severity: ERROR
+    enforcement: BATCH
+    dbt_test: test_shipped_order_has_shipment
+
+  - id: DQ-XENT-003
+    entities: [Inventory, ProductVariant]
+    rule: "every active ProductVariant with track_inventory=true must have at least one Inventory record"
+    severity: WARNING
+    enforcement: BATCH
+    dbt_test: test_variant_has_inventory
+
+  - id: DQ-XENT-004
+    entities: [Settlement, Order, Refund]
+    rule: "settlement gross_amount must match sum of order payments in the period"
+    severity: ERROR
+    enforcement: BATCH
+    dbt_test: test_settlement_reconciliation
+
+# Summary:
+# Total rules: 40
+# ERROR severity: 30
+# WARNING severity: 10
+# Application-enforced: 28
+# Batch-enforced (dbt): 12

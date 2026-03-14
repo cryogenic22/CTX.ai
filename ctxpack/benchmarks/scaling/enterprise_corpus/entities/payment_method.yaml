@@ -1,0 +1,177 @@
+entity: PaymentMethod
+description: "Represents a saved payment instrument in a customer's account. Payment methods are tokenized through the payment gateway (Stripe or Adyen) and only the token and display-safe metadata (last four digits, card brand, expiration) are stored in ShopStream systems. Raw card numbers, CVVs, and full account numbers are never stored or transmitted through ShopStream infrastructure, in compliance with PCI-DSS Level 1 requirements. Customers can save multiple payment methods and designate one as their default. Payment methods are used for one-click checkout, subscription billing, and recurring orders. When a payment method's card expires, the system attempts automatic card update through the gateway's Account Updater service."
+
+aliases:
+  - SavedCard
+  - PaymentInstrument
+  - WalletEntry
+  - BillingMethod
+
+identifier:
+  field: payment_method_id
+  type: UUID v4
+  description: Globally unique payment method identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: payment-service
+
+relationships:
+  - type: belongs_to
+    target: Customer
+    foreign_key: customer_id
+    description: The customer who owns this payment method.
+    cardinality: "1"
+    on_delete: CASCADE
+
+  - type: has_many
+    target: Payment
+    foreign_key: payment_method_id
+    description: Payments made using this payment method.
+    cardinality: "0..*"
+    cascade_delete: false
+
+  - type: has_many
+    target: Subscription
+    foreign_key: payment_method_id
+    description: Subscriptions billed to this payment method.
+    cardinality: "0..*"
+    cascade_delete: false
+
+fields:
+  - name: payment_method_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: customer_id
+    type: UUID
+    description: Reference to the owning customer.
+    nullable: false
+    pii: false
+
+  - name: gateway
+    type: ENUM
+    description: Payment gateway that tokenized this method.
+    nullable: false
+    allowed_values:
+      - STRIPE
+      - ADYEN
+      - PAYPAL
+    pii: false
+
+  - name: gateway_token
+    type: VARCHAR(200)
+    description: "Tokenized reference from the payment gateway (e.g., Stripe's pm_xxx or cus_xxx/src_xxx). Used for charging without re-entering card details."
+    nullable: false
+    pii: true
+    pii_category: FINANCIAL
+    encryption: AES-256
+
+  - name: payment_type
+    type: ENUM
+    description: Type of payment instrument.
+    nullable: false
+    allowed_values:
+      - CREDIT_CARD
+      - DEBIT_CARD
+      - BANK_ACCOUNT
+      - PAYPAL
+      - APPLE_PAY
+      - GOOGLE_PAY
+
+  - name: card_brand
+    type: VARCHAR(20)
+    description: Card network (Visa, Mastercard, Amex, Discover, etc.).
+    nullable: true
+    pii: false
+
+  - name: card_last_four
+    type: VARCHAR(4)
+    description: Last four digits of the card for display purposes.
+    nullable: true
+    pii: true
+    pii_category: FINANCIAL
+
+  - name: card_exp_month
+    type: INTEGER
+    description: Card expiration month (1-12).
+    nullable: true
+    pii: true
+    pii_category: FINANCIAL
+
+  - name: card_exp_year
+    type: INTEGER
+    description: Card expiration year (4-digit).
+    nullable: true
+    pii: true
+    pii_category: FINANCIAL
+
+  - name: billing_name
+    type: VARCHAR(200)
+    description: Cardholder name.
+    nullable: true
+    pii: true
+    pii_category: DIRECT_IDENTIFIER
+
+  - name: billing_address_id
+    type: UUID
+    description: Reference to the billing address associated with this payment method.
+    nullable: true
+    pii: false
+
+  - name: is_default
+    type: BOOLEAN
+    description: Whether this is the customer's default payment method.
+    nullable: false
+    default: false
+    pii: false
+
+  - name: is_active
+    type: BOOLEAN
+    description: Whether this payment method is active and usable. Set to false when expired or revoked.
+    nullable: false
+    default: true
+    pii: false
+
+  - name: fingerprint
+    type: VARCHAR(100)
+    description: "Card fingerprint hash for deduplication. Two different customers with the same card will have the same fingerprint. Used to detect shared/stolen cards."
+    nullable: true
+    pii: true
+    pii_category: FINANCIAL
+
+  - name: last_used_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Timestamp of the last successful payment with this method.
+    nullable: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Payment method records are deleted when the customer removes the method or deletes their account. The gateway token is revoked immediately. Historical payment records referencing this method retain the payment_method_id but the token is no longer valid. Records of deleted payment methods are retained in audit logs for 3 years."
+  full_retention_period: Follows Customer entity (7 years for audit)
+
+data_quality:
+  - rule: at most one default payment method per customer
+    severity: ERROR
+  - rule: gateway_token must be valid and not expired
+    severity: ERROR
+  - rule: card_exp_year/month must not be in the past for active methods
+    severity: WARNING
+
+golden_source: payment-service
+pci_scope: true

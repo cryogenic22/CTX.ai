@@ -1,0 +1,106 @@
+entity: Wishlist
+description: "Represents a customer's saved list of products they are interested in purchasing in the future. Each customer has one default wishlist and can create up to 10 named wishlists (e.g., \"Birthday Ideas\", \"Home Office Setup\"). Wishlists serve multiple business purposes: (1) customers can save items for later purchase, (2) wishlists can be shared with others for gift-giving, (3) wishlist data feeds the recommendation engine and marketing campaigns, and (4) price drop notifications are triggered when items on a customer's wishlist go on sale. Wishlist items that go out of stock are flagged but not removed; the customer is notified when the item is back in stock. Wishlist analytics (add rates, conversion rates, most-wishlisted products) are available to merchants through the analytics dashboard."
+
+aliases:
+  - SavedItems
+  - Favorites
+  - WantList
+  - SaveForLater
+
+identifier:
+  field: wishlist_id
+  type: UUID v4
+  description: Globally unique wishlist identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: wishlist-service
+
+relationships:
+  - type: belongs_to
+    target: Customer
+    foreign_key: customer_id
+    description: The customer who owns this wishlist.
+    cardinality: "1"
+    on_delete: CASCADE
+
+fields:
+  - name: wishlist_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: customer_id
+    type: UUID
+    description: Reference to the owning customer.
+    nullable: false
+    pii: false
+
+  - name: name
+    type: VARCHAR(200)
+    description: Wishlist name. Default wishlist is named "My Wishlist".
+    nullable: false
+    default: My Wishlist
+    pii: false
+
+  - name: is_default
+    type: BOOLEAN
+    description: Whether this is the customer's default wishlist.
+    nullable: false
+    default: false
+    pii: false
+
+  - name: is_public
+    type: BOOLEAN
+    description: Whether this wishlist is publicly shareable via link.
+    nullable: false
+    default: false
+    pii: false
+
+  - name: share_token
+    type: VARCHAR(32)
+    description: Unique token for the public share URL.
+    nullable: true
+    pii: false
+
+  - name: items
+    type: JSON
+    description: "JSON array of wishlist items. Each item contains: product_id, variant_id, added_at, notes, price_at_add (price when added for price drop detection), is_available (current stock status)."
+    nullable: false
+    default: "[]"
+    pii: false
+
+  - name: item_count
+    type: INTEGER
+    description: Number of items in the wishlist.
+    nullable: false
+    default: 0
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Wishlist records follow the Customer retention policy. When a customer deletes their account, wishlists are deleted. Anonymized wishlist data (product_ids only) is retained for 1 year for analytics."
+  full_retention_period: Follows Customer entity
+
+data_quality:
+  - rule: at most one default wishlist per customer
+    severity: ERROR
+  - rule: customer can have at most 10 wishlists
+    severity: WARNING
+  - rule: item_count must match the length of the items array
+    severity: ERROR
+
+golden_source: wishlist-service

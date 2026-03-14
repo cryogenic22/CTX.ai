@@ -1,0 +1,148 @@
+entity: APIKey
+description: "Represents an API credential issued to a merchant for programmatic integration with the ShopStream platform. API keys are used by merchants to manage their catalog, process orders, update inventory, and configure webhooks through the ShopStream REST API. Each API key has a defined set of scopes that restrict which API endpoints it can access. API keys consist of a public key (used as the identifier in API requests) and a secret key (used for request signing). The secret key is displayed only once at creation time and stored as a bcrypt hash; it cannot be retrieved later. Merchants can create multiple API keys for different integration purposes (e.g., one for the ERP system, one for the shipping provider). API keys are subject to rate limiting based on the merchant's tier: Standard merchants get 100 requests/minute, Premium merchants get 500 requests/minute, and Enterprise merchants get 2000 requests/minute."
+
+aliases:
+  - APICredential
+  - IntegrationKey
+  - APIToken
+  - AccessKey
+
+identifier:
+  field: api_key_id
+  type: UUID v4
+  description: Internal identifier for this API key record.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: api-gateway
+
+relationships:
+  - type: belongs_to
+    target: Merchant
+    foreign_key: merchant_id
+    description: The merchant this API key belongs to.
+    cardinality: "1"
+    on_delete: CASCADE
+
+fields:
+  - name: api_key_id
+    type: UUID
+    description: Internal primary identifier.
+    nullable: false
+    pii: false
+
+  - name: merchant_id
+    type: UUID
+    description: Reference to the owning merchant.
+    nullable: false
+    pii: false
+
+  - name: public_key
+    type: VARCHAR(50)
+    description: "Public portion of the API key, used in the X-API-Key header. Format: sk_live_XXXXXXXXXXXXXXXXXXXX (production) or sk_test_XXXXXXXXXXXXXXXXXXXX (sandbox)."
+    nullable: false
+    pii: false
+    constraints:
+      - UNIQUE
+
+  - name: secret_key_hash
+    type: VARCHAR(72)
+    description: Bcrypt hash of the secret key. The raw secret is never stored.
+    nullable: false
+    pii: false
+
+  - name: name
+    type: VARCHAR(200)
+    description: Merchant-defined name for this key (e.g., "ERP Integration", "Shipping Provider").
+    nullable: false
+    pii: false
+
+  - name: environment
+    type: ENUM
+    description: Whether this key is for production or sandbox.
+    nullable: false
+    allowed_values:
+      - PRODUCTION
+      - SANDBOX
+
+  - name: scopes
+    type: JSON
+    description: "JSON array of API scopes granted to this key. Each scope is a string like \"catalog:read\", \"catalog:write\", \"orders:read\", \"orders:write\", \"inventory:read\", \"inventory:write\", \"webhooks:manage\"."
+    nullable: false
+    pii: false
+
+  - name: rate_limit_per_minute
+    type: INTEGER
+    description: Maximum API requests per minute for this key.
+    nullable: false
+    default: 100
+    pii: false
+
+  - name: status
+    type: ENUM
+    description: Key status.
+    nullable: false
+    default: ACTIVE
+    allowed_values:
+      - ACTIVE
+      - SUSPENDED
+      - REVOKED
+
+  - name: last_used_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Timestamp of the last API request using this key.
+    nullable: true
+    pii: false
+
+  - name: last_used_ip
+    type: VARCHAR(45)
+    description: IP address of the last API request.
+    nullable: true
+    pii: false
+
+  - name: allowed_ips
+    type: JSON
+    description: "Optional JSON array of whitelisted IP addresses or CIDR ranges. When set, requests from other IPs are rejected. NULL means all IPs allowed."
+    nullable: true
+    pii: false
+
+  - name: expires_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Optional expiration date. NULL means the key does not expire.
+    nullable: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: revoked_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the key was revoked, if applicable.
+    nullable: true
+    pii: false
+
+  - name: revocation_reason
+    type: VARCHAR(500)
+    description: Reason for key revocation.
+    nullable: true
+    pii: false
+
+retention:
+  policy: "API key records are retained for 3 years after revocation. Active keys are retained indefinitely. Secret key hashes are retained only while the key is active; they are cleared upon revocation."
+  full_retention_period: 3 years after revocation
+
+data_quality:
+  - rule: public_key must be unique across all API keys
+    severity: ERROR
+  - rule: scopes must contain only valid scope strings
+    severity: ERROR
+  - rule: REVOKED keys must have revoked_at and revocation_reason set
+    severity: ERROR
+  - rule: keys unused for 90 days should trigger a review notification
+    severity: WARNING
+
+golden_source: api-gateway

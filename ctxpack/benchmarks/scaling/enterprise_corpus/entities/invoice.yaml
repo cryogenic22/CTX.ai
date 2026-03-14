@@ -1,0 +1,220 @@
+entity: Invoice
+description: "Represents a financial document generated for a completed order, serving as the official record of the transaction between the customer and the merchant. Invoices are generated automatically when a payment is captured and contain a detailed breakdown of line items, taxes, shipping, and discounts. Invoices are required for B2B transactions, tax compliance, and merchant settlement calculations. Each invoice has a unique sequential number per merchant, formatted according to the merchant's country-specific requirements. Invoices are stored as both structured data (in the database) and as PDF documents (in S3) for customer download and legal archival. Credit notes (negative invoices) are generated when refunds are processed."
+
+aliases:
+  - Bill
+  - Receipt
+  - TaxInvoice
+  - SalesInvoice
+
+identifier:
+  field: invoice_id
+  type: UUID v4
+  description: Globally unique invoice identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: billing-service
+
+relationships:
+  - type: belongs_to
+    target: Order
+    foreign_key: order_id
+    description: The order this invoice was generated for.
+    cardinality: "1"
+
+  - type: belongs_to
+    target: Merchant
+    foreign_key: merchant_id
+    description: The merchant issuing this invoice.
+    cardinality: "1"
+
+  - type: belongs_to
+    target: Customer
+    foreign_key: customer_id
+    description: The customer this invoice is issued to.
+    cardinality: "1"
+
+fields:
+  - name: invoice_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: invoice_number
+    type: VARCHAR(30)
+    description: "Sequential invoice number, unique per merchant. Format varies by country: US: INV-YYYY-NNNNNN, EU: CCYYYY-NNNNNN (CC = country code)."
+    nullable: false
+    pii: false
+    constraints:
+      - UNIQUE per merchant
+      - IMMUTABLE
+
+  - name: order_id
+    type: UUID
+    description: Reference to the associated order.
+    nullable: false
+    pii: false
+
+  - name: merchant_id
+    type: UUID
+    description: Reference to the issuing merchant.
+    nullable: false
+    pii: false
+
+  - name: customer_id
+    type: UUID
+    description: Reference to the customer.
+    nullable: false
+    pii: false
+
+  - name: invoice_type
+    type: ENUM
+    description: Type of invoice document.
+    nullable: false
+    default: STANDARD
+    allowed_values:
+      - STANDARD
+      - CREDIT_NOTE
+      - PROFORMA
+
+  - name: status
+    type: ENUM
+    description: Invoice status.
+    nullable: false
+    default: DRAFT
+    allowed_values:
+      - DRAFT
+      - ISSUED
+      - PAID
+      - OVERDUE
+      - CANCELLED
+      - VOIDED
+
+  - name: subtotal
+    type: DECIMAL(12,2)
+    description: Sum of line items before tax and adjustments.
+    nullable: false
+    pii: false
+
+  - name: tax_amount
+    type: DECIMAL(12,2)
+    description: Total tax amount.
+    nullable: false
+    pii: false
+
+  - name: shipping_amount
+    type: DECIMAL(12,2)
+    description: Shipping charges.
+    nullable: false
+    pii: false
+
+  - name: discount_amount
+    type: DECIMAL(12,2)
+    description: Total discounts applied.
+    nullable: false
+    pii: false
+
+  - name: total_amount
+    type: DECIMAL(12,2)
+    description: Final invoice total.
+    nullable: false
+    pii: false
+
+  - name: currency
+    type: VARCHAR(3)
+    description: ISO 4217 currency code.
+    nullable: false
+    pii: false
+
+  - name: billing_address
+    type: JSON
+    description: Snapshot of the billing address at invoice time.
+    nullable: false
+    pii: true
+    pii_category: DIRECT_IDENTIFIER
+
+  - name: line_items
+    type: JSON
+    description: "Detailed breakdown of invoice line items as JSON array. Each item includes description, quantity, unit_price, tax_rate, tax_amount, and line_total."
+    nullable: false
+    pii: false
+
+  - name: tax_breakdown
+    type: JSON
+    description: "Tax breakdown by jurisdiction and rate as JSON array. Each entry includes jurisdiction_name, tax_rate, taxable_amount, and tax_amount."
+    nullable: false
+    pii: false
+
+  - name: merchant_tax_id
+    type: VARCHAR(50)
+    description: Merchant's tax identification number displayed on the invoice.
+    nullable: true
+    pii: true
+    pii_category: FINANCIAL
+
+  - name: customer_tax_id
+    type: VARCHAR(50)
+    description: Customer's tax ID for B2B invoices (e.g., VAT number).
+    nullable: true
+    pii: true
+    pii_category: FINANCIAL
+
+  - name: notes
+    type: TEXT
+    description: Additional notes or terms displayed on the invoice.
+    nullable: true
+    pii: false
+
+  - name: pdf_url
+    type: VARCHAR(2000)
+    description: S3 URL of the generated PDF invoice.
+    nullable: true
+    pii: false
+
+  - name: issued_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the invoice was issued.
+    nullable: true
+    pii: false
+
+  - name: due_date
+    type: DATE
+    description: Payment due date. Standard terms are NET 0 for consumer orders, NET 30 for B2B.
+    nullable: true
+    pii: false
+
+  - name: paid_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: When the invoice was marked as paid.
+    nullable: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Invoice records and PDFs are retained for 10 years to comply with tax regulations. PII fields (billing_address, tax IDs) are retained for the full period as they are required for tax audit purposes."
+  full_retention_period: 10 years
+  legal_basis: Legal obligation (tax compliance)
+
+data_quality:
+  - rule: invoice_number must be unique per merchant and sequential
+    severity: ERROR
+  - rule: total_amount must equal subtotal + tax_amount + shipping_amount - discount_amount
+    severity: ERROR
+  - rule: ISSUED invoices must have pdf_url set
+    severity: WARNING
+
+golden_source: billing-service

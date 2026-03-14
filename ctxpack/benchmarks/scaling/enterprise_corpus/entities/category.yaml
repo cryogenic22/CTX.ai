@@ -1,0 +1,179 @@
+entity: Category
+description: "Represents a node in the product category taxonomy. Categories are organized in a hierarchical tree structure with a maximum depth of 4 levels. The root categories (depth 0) represent major product divisions like \"Electronics\", \"Clothing\", \"Home & Garden\". Products are assigned to leaf categories (categories with no children), and automatically inherit membership in all ancestor categories for navigation and filtering purposes. The category tree is managed by the platform's catalog team and is shared across all merchants. Merchants cannot create or modify categories; they can only assign their products to existing categories. Categories drive navigation menus, breadcrumbs, search facets, and tax category mappings. Each category can have associated attributes that become available as product fields when a product is assigned to that category (e.g., \"Electronics > Laptops\" adds fields for screen_size, processor, RAM)."
+
+aliases:
+  - ProductCategory
+  - CatalogCategory
+  - Taxonomy
+  - Department
+
+identifier:
+  field: category_id
+  type: UUID v4
+  description: Globally unique category identifier.
+  constraints:
+    - NOT NULL
+    - UNIQUE
+    - IMMUTABLE
+  golden_source: catalog-service
+
+relationships:
+  - type: belongs_to
+    target: Category
+    foreign_key: parent_category_id
+    description: Parent category in the hierarchy. NULL for root categories.
+    cardinality: "0..1"
+
+  - type: has_many
+    target: Category
+    foreign_key: parent_category_id
+    description: Child categories.
+    cardinality: "0..*"
+    cascade_delete: false
+
+  - type: has_many
+    target: Product
+    through: product_categories
+    description: Products assigned to this category.
+    cardinality: "0..*"
+
+fields:
+  - name: category_id
+    type: UUID
+    description: Primary identifier.
+    nullable: false
+    pii: false
+
+  - name: parent_category_id
+    type: UUID
+    description: Reference to the parent category. NULL for root categories.
+    nullable: true
+    pii: false
+
+  - name: name
+    type: VARCHAR(200)
+    description: Category name (e.g., "Running Shoes").
+    nullable: false
+    pii: false
+
+  - name: slug
+    type: VARCHAR(300)
+    description: URL-friendly category identifier (e.g., "running-shoes").
+    nullable: false
+    pii: false
+    constraints:
+      - UNIQUE
+      - lowercase, hyphens only
+
+  - name: description
+    type: TEXT
+    description: Category description for SEO and informational purposes.
+    nullable: true
+    pii: false
+
+  - name: depth
+    type: INTEGER
+    description: Depth in the category tree. Root = 0, max = 4.
+    nullable: false
+    pii: false
+    constraints:
+      - ">= 0"
+      - "<= 4"
+
+  - name: path
+    type: VARCHAR(1000)
+    description: "Materialized path representing the full category hierarchy. Format: \"root_id/parent_id/.../category_id\". Used for efficient ancestor/descendant queries without recursive joins."
+    nullable: false
+    pii: false
+
+  - name: display_order
+    type: INTEGER
+    description: Sort order among sibling categories.
+    nullable: false
+    default: 0
+    pii: false
+
+  - name: is_active
+    type: BOOLEAN
+    description: Whether this category is visible on the storefront.
+    nullable: false
+    default: true
+    pii: false
+
+  - name: is_leaf
+    type: BOOLEAN
+    description: Whether this category has no children (products can only be assigned to leaf categories).
+    nullable: false
+    pii: false
+
+  - name: image_url
+    type: VARCHAR(2000)
+    description: Category banner image URL.
+    nullable: true
+    pii: false
+
+  - name: tax_category
+    type: ENUM
+    description: Default tax classification for products in this category.
+    nullable: true
+    allowed_values:
+      - STANDARD
+      - REDUCED
+      - ZERO_RATED
+      - EXEMPT
+      - DIGITAL_GOODS
+      - FOOD_AND_BEVERAGE
+    pii: false
+
+  - name: category_attributes
+    type: JSON
+    description: "JSON array defining additional attribute fields available to products in this category. Each attribute has name, type, required, and allowed_values. Example: [{\"name\": \"screen_size\", \"type\": \"decimal\", \"unit\": \"inches\", \"required\": true}]"
+    nullable: true
+    pii: false
+
+  - name: product_count
+    type: INTEGER
+    description: Cached count of active products in this category (including descendants).
+    nullable: false
+    default: 0
+    pii: false
+
+  - name: seo_title
+    type: VARCHAR(70)
+    description: Custom title for search engine results pages.
+    nullable: true
+    pii: false
+
+  - name: seo_description
+    type: VARCHAR(160)
+    description: Custom meta description for SERP.
+    nullable: true
+    pii: false
+
+  - name: created_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Record creation timestamp.
+    nullable: false
+    pii: false
+
+  - name: updated_at
+    type: TIMESTAMP WITH TIME ZONE
+    description: Last modification timestamp.
+    nullable: false
+    pii: false
+
+retention:
+  policy: "Category records are retained indefinitely. Inactive categories are soft-deleted (is_active = false) and retained for historical reporting."
+  full_retention_period: Indefinite
+
+data_quality:
+  - rule: category tree must not have cycles
+    severity: ERROR
+  - rule: depth must not exceed 4
+    severity: ERROR
+  - rule: products can only be assigned to leaf categories
+    severity: ERROR
+  - rule: path must correctly represent the category hierarchy
+    severity: ERROR
+
+golden_source: catalog-service
