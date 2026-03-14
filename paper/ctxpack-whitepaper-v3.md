@@ -1,7 +1,9 @@
 # CtxPack: Progressive Hydration for Cost-Efficient LLM Domain Knowledge Serving
 
-**Kapil Pant / SynaptyX**
+**Kapil Pant**
 **March 2026**
+
+*This is independent personal research by the author. The views, findings, and conclusions expressed in this paper are the author's own and do not reflect the position or policy of any employer, past or present.*
 
 ## Abstract
 
