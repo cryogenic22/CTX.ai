@@ -1,6 +1,6 @@
 {
   "experiment": "scaling_eval_enterprise",
-  "timestamp": "2026-03-13T23:17:27.501107+00:00",
+  "timestamp": "2026-03-14T03:05:11.247672+00:00",
   "model": "claude-opus-4-6",
   "corpus": {
     "raw_bpe": 92482,
@@ -11,20 +11,20 @@
     {
       "method": "raw_stuffing",
       "bpe_per_query": 92482,
-      "fidelity_rule": 76.7,
+      "fidelity_rule": 73.3,
       "fidelity_judge": 86.7,
       "judge_failures": 0,
       "cost_per_query": "$1.3872",
-      "wall_time_s": 295.3
+      "wall_time_s": 317.5
     },
     {
       "method": "ctxpack_hydrated",
-      "bpe_per_query": 3523,
-      "fidelity_rule": 66.7,
-      "fidelity_judge": 80.0,
+      "bpe_per_query": 3845,
+      "fidelity_rule": 70.0,
+      "fidelity_judge": 83.3,
       "judge_failures": 0,
-      "cost_per_query": "$0.0528",
-      "wall_time_s": 279.4
+      "cost_per_query": "$0.0577",
+      "wall_time_s": 329.0
     }
   ],
   "raw_details": [
@@ -42,7 +42,7 @@
       "judge": true,
       "judge_error": false,
       "difficulty": "easy",
-      "answer": "The Payment entity contains the following PII fields:\n\n1. **card_last_four** (VARCHAR(4)) \u2014 PII category: FINANCIAL \u2014 Last four digits of the card number\n2. **card_exp_month** (INTEGER) \u2014 PII category: FINANCIAL \u2014 Card expiration month\n3. **card_exp_year** (INTEGER) \u2014 PII category: FINANCIAL \u2014 Card expiration year\n4. **billing_name** (VARCHAR(200)) \u2014 PII category: DIRECT_IDENTIFIER \u2014 Name on the payment instrument\n\nAll four fields are scrubbed (set to NULL) 3 years after the payment date, while "
+      "answer": "The Payment entity contains the following PII fields:\n\n1. **card_last_four** (VARCHAR(4)) \u2014 PII category: FINANCIAL \u2014 Last four digits of the card number\n2. **card_exp_month** (INTEGER) \u2014 PII category: FINANCIAL \u2014 Card expiration month\n3. **card_exp_year** (INTEGER) \u2014 PII category: FINANCIAL \u2014 Card expiration year\n4. **billing_name** (VARCHAR(200)) \u2014 PII category: DIRECT_IDENTIFIER \u2014 Name on the payment instrument\n\nAll four fields are scrubbed (set to NULL) **3 years** after the payment date, wh"
     },
     {
       "id": "EQ03",
@@ -62,11 +62,11 @@
     },
     {
       "id": "EQ05",
-      "correct": true,
-      "judge": true,
+      "correct": false,
+      "judge": false,
       "judge_error": false,
       "difficulty": "easy",
-      "answer": "The default commission rate for new merchants is **15%** (stored as 0.1500), applied to the order subtotal before tax and shipping."
+      "answer": "The default commission rate for new merchants is **15%** (stored as `0.1500` in the Merchant entity's `commission_rate` field)."
     },
     {
       "id": "EQ06",
@@ -74,7 +74,7 @@
       "judge": true,
       "judge_error": false,
       "difficulty": "easy",
-      "answer": "ShopStream uses **Stripe** as the primary payment gateway and **Adyen** as the failover gateway for credit/debit card processing. Additionally, **PayPal** is used directly through PayPal's API for PayPal payments. Digital wallets (Apple Pay, Google Pay) and Buy Now, Pay Later providers (Klarna, Afterpay) are processed via the Stripe integration."
+      "answer": "ShopStream uses **Stripe** as the primary payment gateway and **Adyen** as the failover gateway for credit/debit card processing. Additionally, **PayPal** is used as a direct integration (not through Stripe/Adyen) for PayPal payments. Klarna and Afterpay (Buy Now, Pay Later) are processed via the Stripe integration."
     },
     {
       "id": "EQ07",
@@ -82,7 +82,7 @@
       "judge": false,
       "judge_error": false,
       "difficulty": "easy",
-      "answer": "A product can have up to **10 images**."
+      "answer": "**10 images** per product.\n\nThis is specified in the ProductImage entity description: *\"Each product can have up to 10 images, with one designated as the primary image.\"*"
     },
     {
       "id": "EQ08",
@@ -114,7 +114,7 @@
       "judge": true,
       "judge_error": false,
       "difficulty": "medium",
-      "answer": "When an Order is cancelled, the OrderLines themselves are not deleted due to the cascade_delete: true relationship (which applies if the Order record were deleted, not when the status changes). Instead, the following occurs:\n\n1. **Fulfillment status update**: Individual order line fulfillment_status can transition to **CANCELLED**.\n\n2. **Inventory reservations are released**: When an order is cancelled, inventory reservations are released immediately \u2014 meaning the reserved_quantity is decremente"
+      "answer": "When an Order is cancelled, the OrderLines themselves are not deleted due to the cascade_delete: true relationship (which applies to hard deletes, not status changes). Instead, the following occurs:\n\n1. **Fulfillment status update**: Individual order line fulfillment_status can transition to **CANCELLED** (one of the allowed values for the fulfillment_status enum on OrderLine).\n\n2. **Inventory reservations are released**: When an order is cancelled, inventory reservations are released immediatel"
     },
     {
       "id": "CE02",
@@ -122,7 +122,7 @@
       "judge": true,
       "judge_error": false,
       "difficulty": "medium",
-      "answer": "When a Shipment is created for an order, the **reserved_quantity is decremented** for each item in the shipment. Specifically:\n\n- For each item in the shipment, the `reserved_quantity` on the corresponding Inventory record (variant + warehouse combination) is decremented by the shipped quantity.\n- The `available_quantity` is **not** affected at this stage (it was already decremented earlier when the order was confirmed and stock was reserved).\n\nThe full inventory flow across the order lifecycle "
+      "answer": "When a Shipment is created for an order, the **reserved_quantity is decremented** for each item in the shipment. Specifically, for each item included in the shipment, the reserved_quantity on the corresponding Inventory record (variant + warehouse combination) is decremented, and the inventory record's version is incremented (optimistic locking).\n\nTo summarize the full inventory flow around shipments:\n\n1. **At order confirmation (CONFIRMED):** available_quantity is decremented and reserved_quant"
     },
     {
       "id": "CE03",
@@ -130,7 +130,7 @@
       "judge": true,
       "judge_error": false,
       "difficulty": "medium",
-      "answer": "Refund amounts are deducted from the merchant's next settlement payout. Specifically:\n\n1. **Settlement calculation**: When a settlement is computed for a period, the total refunds issued during that settlement period are captured in the `refund_amount` field on the Settlement entity. The net amount paid to the merchant is calculated as:\n\n   **net_amount = gross_amount \u2212 commission_amount \u2212 refund_amount \u2212 chargeback_amount + adjustment_amount**\n\n2. **Timing**: Refunds issued during a settlement "
+      "answer": "Refund amounts are deducted from the merchant's next settlement payout. Specifically:\n\n1. **Settlement calculation**: When a settlement is calculated for a period, the total refunds issued during that settlement period are captured in the `refund_amount` field on the Settlement entity. The net amount paid to the merchant is: **gross_amount \u2212 commission_amount \u2212 refund_amount \u2212 chargeback_amount + adjustment_amount**.\n\n2. **Per-refund deduction**: When a refund is completed (status \u2192 COMPLETED) a"
     },
     {
       "id": "CE04",
@@ -138,7 +138,7 @@
       "judge": true,
       "judge_error": false,
       "difficulty": "hard",
-      "answer": "## Data Flows When a Customer Deletes Their Account\n\nWhen a customer deletes their account (via Settings > Account > Delete Account), the following data flows and actions occur:\n\n### Immediate Actions (Day 0)\n\n1. **Double confirmation** required from the customer\n2. **Account status** \u2192 `DELETED`, `deleted_at` timestamp is set on the Customer entity\n3. **All active sessions terminated immediately** \u2014 UserSession records are revoked (status \u2192 REVOKED)\n4. **All saved payment methods revoked** with"
+      "answer": "## Data Flows When a Customer Deletes Their Account\n\nWhen a customer deletes their account (via Settings > Account > Delete Account), the following data flows and actions occur:\n\n### Immediate Actions (Day 0)\n\n1. **Double confirmation** required from the customer\n2. **Account status** \u2192 `DELETED`, `deleted_at` timestamp is set on the Customer entity\n3. **All active sessions terminated immediately** \u2014 UserSession records are ended/revoked\n4. **All saved payment methods revoked** with the payment "
     },
     {
       "id": "CE05",
@@ -154,7 +154,7 @@
       "judge": true,
       "judge_error": false,
       "difficulty": "medium",
-      "answer": "When a merchant is suspended, their products remain visible on the storefront but show **\"Currently Unavailable\"** instead of \"Add to Cart.\" The products are not removed from search results \u2014 they stay visible but are effectively unpurchasable, as no new orders can be placed with the suspended merchant. The merchant's products' inventory is not decremented for new orders during suspension."
+      "answer": "When a merchant is suspended, their products remain visible on the storefront but show \"Currently Unavailable\" instead of \"Add to Cart.\" The products are not removed from search results \u2014 they stay visible but are effectively unpurchasable, as no new orders can be placed with the suspended merchant. The merchant's products' inventory is not decremented for new orders during suspension."
     },
     {
       "id": "CE07",
@@ -170,7 +170,7 @@
       "judge": true,
       "judge_error": false,
       "difficulty": "medium",
-      "answer": "## Coupon Usage Limits and Order Creation Interaction\n\nDuring order creation (checkout flow), coupon validation occurs at both the cart and order level. The key interactions are:\n\n### Usage Limit Checks\nThe Coupon entity has two usage limit fields:\n- **`usage_limit_total`**: Maximum total uses across all customers (NULL for unlimited)\n- **`usage_limit_per_customer`**: Maximum uses per individual customer (default: 1)\n\n### At Checkout\n1. During **Cart Validation** (step 1 of order creation), the "
+      "answer": "## Coupon Usage Limits and Order Creation Interaction\n\nDuring order creation (checkout flow), coupon validation occurs at both the cart and order level. The key interactions are:\n\n### Usage Limit Checks\n- **`usage_limit_total`**: Maximum total uses across all customers (NULL = unlimited). The system checks that `usage_count` has not reached this limit before allowing the coupon to be applied.\n- **`usage_limit_per_customer`**: Maximum uses per individual customer (default: 1). The system verifies"
     },
     {
       "id": "NE01",
@@ -186,7 +186,7 @@
       "judge": true,
       "judge_error": false,
       "difficulty": "medium",
-      "answer": "No. Customer records are never hard-deleted; they are soft-deleted with a `deleted_at` timestamp, and PII fields are nullified 30 days after deletion. The account deletion process **cannot be undone after PII nullification**.\n\nHowever, the **order records themselves are retained** \u2014 they are not deleted when a customer deletes their account. Order records are retained for 7 years from the order date for financial reporting and tax audit requirements. The PII fields on orders (notes, ip_address, "
+      "answer": "No. Customer records are never hard-deleted; they are soft-deleted with a `deleted_at` timestamp, and PII fields are nullified 30 days after deletion. The account deletion process **cannot be undone after PII nullification**. However, the order records themselves are retained \u2014 Order records are kept for 7 years from the order date with PII fields (notes, ip_address, user_agent) scrubbed after 2 years, and Payment records are retained for 10 years. So while the orders are preserved (with PII eve"
     },
     {
       "id": "NE03",
@@ -202,7 +202,7 @@
       "judge": true,
       "judge_error": false,
       "difficulty": "easy",
-      "answer": "No. Personalized items are **non-refundable** (unless defective), as stated in the payment processing guide's refund windows by product category section. The return request entity documentation also lists non-returnable categories including \"personalized items, intimate apparel, hazardous materials.\""
+      "answer": "No. Personalized items are **non-refundable** (unless defective). The payment processing guide lists personalized items among the non-returnable product categories, and the ReturnRequest entity description similarly notes that some product categories are non-returnable, including personalized items."
     },
     {
       "id": "MH01",
@@ -210,15 +210,15 @@
       "judge": true,
       "judge_error": false,
       "difficulty": "hard",
-      "answer": "When a merchant is suspended:\n\n**Products/Inventory:**\n- No new orders can be placed with the merchant\n- Products remain visible on the storefront but show \"Currently Unavailable\" instead of \"Add to Cart\"\n- The merchant's products' inventory is **not decremented** for new orders (since new orders are blocked)\n- Existing orders in CONFIRMED or PROCESSING status continue to be fulfilled normally (inventory for those orders remains reserved/allocated as usual)\n\n**API Access:**\n- API keys remain act"
+      "answer": "When a merchant is suspended:\n\n**Products/Inventory:**\n- No new orders can be placed with the merchant\n- Products remain visible on the storefront but show \"Currently Unavailable\" instead of \"Add to Cart\"\n- The merchant's products' inventory is **not decremented** for new orders (since new orders are blocked)\n- Existing orders in CONFIRMED or PROCESSING status continue to be fulfilled normally\n\n**Pending Settlements:**\n- The documentation does not explicitly state that settlements are frozen or "
     },
     {
       "id": "MH02",
       "correct": true,
-      "judge": false,
+      "judge": true,
       "judge_error": false,
       "difficulty": "hard",
-      "answer": "## Complete Flow When a Subscription Renewal Payment Fails\n\n### 1. Renewal Attempt\nWhen a subscription reaches its `current_period_end`, the subscription-service initiates a billing charge against the customer's stored `payment_method_id`.\n\n### 2. Payment Authorization\nThe payment-service creates a Payment record with status **PENDING** and submits an authorization request to the primary gateway (Stripe), with Adyen as failover. The fraud scoring via Sift Science runs (score 0\u2013100), and standard"
+      "answer": "## Complete Flow When a Subscription Renewal Payment Fails\n\n### 1. Renewal Payment Attempt\nWhen a subscription reaches its `current_period_end`, the subscription-service initiates a billing charge against the customer's stored `payment_method_id`. The payment-service creates a Payment record with status **PENDING** and submits an authorization request to the primary gateway (Stripe), with Adyen as failover.\n\n### 2. Payment Failure\nIf the authorization fails (e.g., insufficient funds, expired car"
     },
     {
       "id": "MH03",
@@ -226,7 +226,7 @@
       "judge": false,
       "judge_error": false,
       "difficulty": "hard",
-      "answer": "# Complete Data Flow: Cart to Settlement\n\n## 1. Cart Addition\nA customer adds a product variant to their cart via the **cart-service**. The Cart entity (stored in **Redis** for low-latency access, snapshotted to **PostgreSQL** for analytics) is updated with the variant_id, product_id, quantity, unit_price, and image_url in its `items` JSON array. The `subtotal`, `item_count`, and `total_quantity` fields are recalculated. If the customer is authenticated, the cart is linked via `customer_id`; if "
+      "answer": "# Complete Data Flow: Cart to Settlement\n\n## 1. Cart Addition\nA customer adds a product variant to their cart via the **cart-service**. The cart is stored in **Redis** (primary) with a PostgreSQL snapshot for analytics. The Cart entity records the `variant_id`, `product_id`, `quantity`, `unit_price`, and calculates the `subtotal`. Carts persist for 30 days of inactivity; if the customer is authenticated, the cart is linked via `customer_id`; if anonymous, via `session_id`.\n\n## 2. Checkout Initia"
     },
     {
       "id": "MH04",
@@ -282,6 +282,7 @@
       "correct_rule": false,
       "correct_judge": false,
       "judge_error": false,
+      "rehydrated": false,
       "answer": "The Customer entity's identifier is **customer_id**, which is a **UUID v4** (Universally Unique Identifier, version 4)."
     },
     {
@@ -298,7 +299,8 @@
       "correct_rule": true,
       "correct_judge": true,
       "judge_error": false,
-      "answer": "The Payment entity contains the following PII fields:\n\n1. **card-last-four** (VARCHAR(4)) \u2014 PII category: **FINANCIAL** \u2014 Last four digits of the card number\n2. **card-exp-month** (INTEGER) \u2014 PII category: **FINANCIAL** \u2014 Card expiration month\n3. **card-exp-year** (INTEGER) \u2014 PII category: **FINANCIAL** \u2014 Card expiration year\n4. **billing-name** (VARCHAR(200)) \u2014 PII category: **DIRECT-IDENTIFIER** \u2014 Name on the payment instrument\n\nAll four fields are scrubbed after **3 years**, while the overall"
+      "rehydrated": false,
+      "answer": "The Payment entity contains the following PII fields:\n\n1. **card-last-four** (VARCHAR(4)) \u2014 PII category: **FINANCIAL** \u2014 Last four digits of the card number\n2. **card-exp-month** (INTEGER) \u2014 PII category: **FINANCIAL** \u2014 Card expiration month\n3. **card-exp-year** (INTEGER) \u2014 PII category: **FINANCIAL** \u2014 Card expiration year\n4. **billing-name** (VARCHAR(200)) \u2014 PII category: **DIRECT-IDENTIFIER** \u2014 Name on the payment instrument\n\nAll four fields have a **scrub timeline of 3 years**, after which"
     },
     {
       "id": "EQ03",
@@ -314,6 +316,7 @@
       "correct_rule": true,
       "correct_judge": true,
       "judge_error": false,
+      "rehydrated": false,
       "answer": "The allowed status values for an Order are:\n\n1. **PENDING**\n2. **CONFIRMED**\n3. **PROCESSING**\n4. **PARTIALLY-SHIPPED**\n5. **SHIPPED**\n6. **DELIVERED**\n7. **CANCELLED**\n8. **RETURN-REQUESTED**\n9. **RETURNED**\n10. **FAILED**"
     },
     {
@@ -330,6 +333,7 @@
       "correct_rule": true,
       "correct_judge": true,
       "judge_error": false,
+      "rehydrated": false,
       "answer": "Audit log records are retained for **7 years** per regulatory requirements. **Security-related entries** (LOGIN, PERMISSION_CHANGE, CRITICAL severity) are retained for **10 years**. **PII fields** (actor_id, ip_address, user_agent, changes) are retained for **3 years**, after which the entries are **anonymized** but retained for the remaining period."
     },
     {
@@ -344,6 +348,7 @@
       "correct_rule": false,
       "correct_judge": true,
       "judge_error": false,
+      "rehydrated": false,
       "answer": "The default commission rate for new merchants is **15%** of the order subtotal (before tax and shipping)."
     },
     {
@@ -360,6 +365,7 @@
       "correct_rule": true,
       "correct_judge": true,
       "judge_error": false,
+      "rehydrated": false,
       "answer": "Based on the context, ShopStream uses the following payment gateways:\n\n1. **Stripe** \u2014 primary payment processor\n2. **Adyen** \u2014 failover processor\n3. **PayPal**\n4. **Apple Pay**\n5. **Google Pay**\n\nStripe and Adyen are specifically noted for card payment processing (Stripe as primary, Adyen as failover), while all five are listed as allowed values for the `gateway` field in the Payment entity: **STRIPE, ADYEN, PAYPAL, APPLE-PAY, GOOGLE-PAY**."
     },
     {
@@ -370,13 +376,17 @@
       "sections_requested": [
         "ENTITY-PRODUCTIMAGE",
         "ENTITY-PRODUCT",
-        "PRODUCT-CREATION-FLOW"
+        "PRODUCT-CREATION-FLOW",
+        "PRODUCTS",
+        "AUTOMATED-CHECKS",
+        "VALIDATION"
       ],
-      "bpe_total": 4296,
+      "bpe_total": 6859,
       "correct_rule": false,
       "correct_judge": true,
       "judge_error": false,
-      "answer": "Not found in context.\n\nThe context defines data quality rules such as \"product should have at least 3 images\" (as a WARNING) and \"exactly one primary image per product,\" but it does not specify a maximum number of images a product can have."
+      "rehydrated": true,
+      "answer": "Not found in context.\n\nThe context specifies data quality rules such as \"product should have at least 3 images\" (WARNING) and \"exactly one primary image per product\" (ERROR), but it does not define a maximum number of images a product can have."
     },
     {
       "id": "EQ08",
@@ -390,6 +400,7 @@
       "correct_rule": true,
       "correct_judge": true,
       "judge_error": false,
+      "rehydrated": false,
       "answer": "## ShopStream Loyalty Program Tiers\n\nThe loyalty program has **four tiers** based on trailing 12-month spend:\n\n| Tier | Spend Threshold | Benefits |\n|------|----------------|----------|\n| **Bronze** | $0 \u2013 $499 | Default tier, no additional benefits |\n| **Silver** | $500 \u2013 $1,999 | 5% bonus loyalty points |\n| **Gold** | $2,000 \u2013 $4,999 | 10% bonus points + free standard shipping |\n| **Platinum** | $5,000+ | 15% bonus points + free express shipping + early sale access |\n\nTier recalculation runs m"
     },
     {
@@ -405,7 +416,8 @@
       "correct_rule": true,
       "correct_judge": true,
       "judge_error": false,
-      "answer": "The order number follows the format **SS-YYYYMMDD-XXXXXX**, where:\n\n- **SS** is a region prefix (e.g., \"US\")\n- **YYYYMMDD** is the order date\n- **XXXXXX** is a sequential counter\n\nExample: `US-20250315-000142`"
+      "rehydrated": false,
+      "answer": "The order number follows the format **SS-YYYYMMDD-XXXXXX**, where **SS** is a region prefix, **YYYYMMDD** is the order date, and **XXXXXX** is a sequential counter. Example: `US-20250315-000142`."
     },
     {
       "id": "EQ10",
@@ -419,7 +431,8 @@
       "correct_rule": true,
       "correct_judge": true,
       "judge_error": false,
-      "answer": "## Webhook Retry Policy\n\nThe webhook retry policy consists of **8 attempts over 48 hours** with the following schedule:\n\n1. **Immediately**\n2. **1 minute**\n3. **5 minutes**\n4. **30 minutes**\n5. **2 hours**\n6. **8 hours**\n7. **24 hours**\n8. **48 hours**\n\nIf all retries are exhausted, the event is marked as **FAILED** and the merchant is notified via email. A successful delivery requires an **HTTP 2xx response within 5 seconds**; otherwise, the delivery is considered failed and retries are trigger"
+      "rehydrated": false,
+      "answer": "## Webhook Retry Policy\n\nThe webhook retry policy consists of **8 attempts over 48 hours** with the following schedule:\n\n1. Immediately\n2. 1 minute\n3. 5 minutes\n4. 30 minutes\n5. 2 hours\n6. 8 hours\n7. 24 hours\n8. 48 hours\n\nAfter all retries are exhausted, the event is marked as **FAILED** and the merchant is notified via email."
     },
     {
       "id": "CE01",
@@ -435,7 +448,8 @@
       "correct_rule": false,
       "correct_judge": false,
       "judge_error": false,
-      "answer": "Based on the context, when an Order is cancelled, the following happens to OrderLines:\n\n1. **Cascading cancellation**: Cancellation of a marketplace parent order cascels all sub-orders (and by extension their order lines). The OrderLine entity has an **on-delete(CASCADE)** relationship with the parent Order, meaning order lines follow the parent order's lifecycle.\n\n2. **Fulfillment status update**: Each OrderLine has a `fulfillment-status` field that includes **CANCELLED** as an allowed value, s"
+      "rehydrated": false,
+      "answer": "Based on the context, when an Order is cancelled, the following happens to OrderLines:\n\n1. **Cascading cancellation**: Cancellation of a marketplace parent order cascels all sub-orders (and by extension their order lines). The OrderLine entity has an **on-delete(CASCADE)** relationship with the parent Order, meaning order lines follow the parent order's lifecycle.\n\n2. **Fulfillment status update**: Each OrderLine has a `fulfillment-status` field that includes **CANCELLED** as an allowed value, i"
     },
     {
       "id": "CE02",
@@ -451,6 +465,7 @@
       "correct_rule": true,
       "correct_judge": true,
       "judge_error": false,
+      "rehydrated": false,
       "answer": "## Inventory Changes During Shipment Creation\n\nWhen a shipment is created for an order, the following inventory changes occur:\n\n1. The merchant picks and packs the items.\n2. A shipment record is created.\n3. **For each item in the shipment**: the **reserved_quantity is decremented** (removing the reservation that was placed when the order was confirmed).\n4. The **inventory record version is incremented** (for concurrency control/tracking).\n\nIn essence, the reserved units are released from invento"
     },
     {
@@ -467,7 +482,8 @@
       "correct_rule": true,
       "correct_judge": true,
       "judge_error": false,
-      "answer": "## How Refunds Are Reflected in Merchant Settlements\n\nRefunds are deducted from merchant settlements in the following ways:\n\n1. **Refund Amount Deduction**: The settlement entity includes a `refund-amount` field (DECIMAL(14,2)) that captures the **total refunds issued during the settlement period**. This amount is subtracted from the gross amount when calculating the net payout.\n\n2. **Net Amount Formula**: The final amount transferred to the merchant is calculated as:\n   ```\n   net-amount = gros"
+      "rehydrated": false,
+      "answer": "## How Refunds Are Reflected in Merchant Settlements\n\nRefunds are deducted from merchant settlements in the following ways:\n\n1. **Refund Amount Deduction**: The settlement entity includes a **refund-amount** field (DECIMAL(14,2)) that captures the **total refunds issued during the settlement period**. This amount is subtracted from the merchant's payout.\n\n2. **Net Amount Calculation**: The final amount transferred to the merchant is calculated as:\n\n   > **net-amount = gross-amount \u2212 commission-a"
     },
     {
       "id": "CE04",
@@ -483,6 +499,7 @@
       "correct_rule": true,
       "correct_judge": true,
       "judge_error": false,
+      "rehydrated": false,
       "answer": "# Data Flow When a Customer Deletes Their Account\n\nWhen a customer initiates account deletion (via **Settings > Account > Delete Account**), the following data flow occurs:\n\n## Immediate Actions\n1. **Double confirmation** required from the customer\n2. **Account status** set to `DELETED` with a `deleted_at` timestamp (soft-delete)\n3. **All active sessions** terminated immediately\n4. **Saved payment methods** revoked at the payment gateway\n\n## Within 30 Days\n5. **PII fields nullified** by an autom"
     },
     {
@@ -499,7 +516,8 @@
       "correct_rule": true,
       "correct_judge": true,
       "judge_error": false,
-      "answer": "## Warehouse Selection Algorithm\n\nWhen a customer places an order, the **fulfillment optimizer** determines which warehouse fulfills each line item through the following process:\n\n1. **Filter by availability**: Find warehouses where `available_quantity >= line.quantity` for the variant.\n2. **Filter by eligibility**: Only include warehouses that are **active** and **belong to the merchant**.\n3. **Score each warehouse** using a weighted formula:\n\n   | Component | Formula | Weight |\n   |-----------"
+      "rehydrated": false,
+      "answer": "## Warehouse Selection Algorithm\n\nWhen a customer places an order, the **fulfillment optimizer** determines which warehouse fulfills each line item through the following process:\n\n1. **Filter by availability**: Find warehouses where `available_quantity >= line.quantity` for the variant.\n2. **Filter by eligibility**: Only include warehouses that are **active** and **belong to the merchant**.\n3. **Score each warehouse** using a weighted formula:\n   - **Distance score** (60% weight): `1 / (haversin"
     },
     {
       "id": "CE06",
@@ -515,6 +533,7 @@
       "correct_rule": false,
       "correct_judge": true,
       "judge_error": false,
+      "rehydrated": false,
       "answer": "When a merchant is suspended, their products **remain visible** but show **\"Currently Unavailable\"** instead of \"Add to Cart.\" The products are not removed from search results at the merchant-level suspension stage.\n\nThis is distinct from **product-level suspension**, where individual products violating platform policies are **removed from search results immediately** and existing links show \"This product removed.\""
     },
     {
@@ -531,7 +550,8 @@
       "correct_rule": true,
       "correct_judge": true,
       "judge_error": false,
-      "answer": "# Tax Calculation Flow: TaxRule \u2192 OrderLine \u2192 Invoice\n\n## 1. TaxRule (Source of Truth \u2014 tax-service)\n\nTax rules define rates based on **two key dimensions**:\n- **Jurisdiction**: country \u2192 state \u2192 city \u2192 postal code (progressively narrower, with `priority` determining which rule wins when multiple match)\n- **Product tax category**: STANDARD, REDUCED, ZERO-RATED, EXEMPT, DIGITAL-GOODS, or FOOD-AND-BEVERAGE\n\nThe rule's `rate` field (DECIMAL(7,5), e.g., 0.08750 for 8.75%) is selected based on the **"
+      "rehydrated": false,
+      "answer": "# Tax Calculation Flow: TaxRule \u2192 OrderLine \u2192 Invoice\n\n## 1. TaxRule (Source of Truth \u2014 tax-service)\n\nTax rules define rates based on **two key dimensions**:\n- **Jurisdiction**: country \u2192 state \u2192 city \u2192 postal code (progressively specific)\n- **Product tax category**: STANDARD, REDUCED, ZERO-RATED, EXEMPT, DIGITAL-GOODS, FOOD-AND-BEVERAGE\n\nWhen an order is placed, the system matches the **product's tax category** and the **shipping address jurisdiction** against active tax rules (`is-active = tru"
     },
     {
       "id": "CE08",
@@ -547,7 +567,8 @@
       "correct_rule": true,
       "correct_judge": true,
       "judge_error": false,
-      "answer": "## Coupon Usage Limits and Order Creation Interaction\n\nDuring the **Order Creation (Checkout Flow)**, coupon usage limits are enforced at two key stages:\n\n### 1. Cart Validation (Step 1)\nWhen a coupon code is provided at checkout, the **cart-service** applies and validates the coupon code. This includes verifying the coupon's eligibility constraints, which encompass:\n\n- **`usage-limit-total`**: Maximum total uses across all customers (NULL = unlimited)\n- **`usage-limit-per-customer`**: Maximum u"
+      "rehydrated": false,
+      "answer": "## Coupon Usage Limits and Order Creation Interaction\n\nDuring the **Order Creation (Checkout Flow)**, coupon usage limits are enforced at two key stages:\n\n### 1. Cart Validation (Step 1)\nWhen a coupon code is provided at checkout, the **cart-service** applies and validates the coupon. This includes verifying the coupon's eligibility constraints, which encompass:\n\n- **`usage-limit-total`** \u2014 Maximum total uses across all customers (NULL = unlimited)\n- **`usage-limit-per-customer`** \u2014 Maximum uses"
     },
     {
       "id": "NE01",
@@ -563,6 +584,7 @@
       "correct_rule": false,
       "correct_judge": true,
       "judge_error": false,
+      "rehydrated": false,
       "answer": "No. The ShopStream platform does **not** support cryptocurrency payments, and there are no plans to add cryptocurrency support."
     },
     {
@@ -572,14 +594,15 @@
       "difficulty": "medium",
       "sections_requested": [
         "RIGHT-TO-ERASURE-(GDPR-ARTICLE-17)",
-        "CUSTOMER-DOMAIN",
-        "DATA-SUBJECT-RIGHTS-(GDPR)"
+        "DATA-SUBJECT-RIGHTS-(GDPR)",
+        "CUSTOMER-DOMAIN"
       ],
       "bpe_total": 2908,
       "correct_rule": true,
       "correct_judge": true,
       "judge_error": false,
-      "answer": "**No.** Once PII nullification occurs (within 30 days of deletion), the process **cannot be undone**. While order records themselves are retained for financial reporting obligations (with PII scrubbed \u2014 order amounts, status, and timestamps remain), the personal identifying information linking those orders to the customer (email, name, phone, etc.) is permanently nullified. The context explicitly states: \"Cannot undone after PII nullification.\"\n\nSo the order *records* persist in a scrubbed form,"
+      "rehydrated": false,
+      "answer": "**No.** Once PII nullification has occurred (within 30 days of deletion), the process **cannot be undone**. While order records themselves are retained for financial reporting obligations, the PII associated with them (email, name, phone, etc.) is permanently nullified. The non-PII order data (amounts, status, timestamps) is kept in a scrubbed form, but the link to the customer's personal identity is irreversibly removed."
     },
     {
       "id": "NE03",
@@ -595,6 +618,7 @@
       "correct_rule": true,
       "correct_judge": true,
       "judge_error": false,
+      "rehydrated": false,
       "answer": "**No.** Currently only one coupon per order is supported. The Order entity has a single `applied-coupon-id` field (cardinality 0..1), and the Coupon's `stackable` field (which indicates whether a coupon can be combined with others) is described as **reserved for future use**, with a default of `false`."
     },
     {
@@ -611,6 +635,7 @@
       "correct_rule": false,
       "correct_judge": true,
       "judge_error": false,
+      "rehydrated": false,
       "answer": "**No**, personalized items are **non-refundable** unless they are **defective**. If a personalized item is defective, it would be eligible for return/refund."
     },
     {
@@ -621,13 +646,17 @@
       "sections_requested": [
         "SUSPENSION-PROCESS",
         "ENTITY-SETTLEMENT",
-        "ENTITY-INVENTORY"
+        "ENTITY-INVENTORY",
+        "SETTLEMENT",
+        "ENTITY-MERCHANT",
+        "ENTITY-PRODUCT"
       ],
-      "bpe_total": 4196,
+      "bpe_total": 9583,
       "correct_rule": true,
       "correct_judge": false,
       "judge_error": false,
-      "answer": "## Impact of Merchant Suspension on Inventory and Pending Settlements\n\n### Inventory\nWhen a merchant is suspended:\n\n- **Products remain visible** on the storefront but display **\"Currently Unavailable\"** instead of \"Add to Cart\"\n- The merchant's products' **inventory is not decremented** for new orders (since no new orders can be placed)\n- **Existing orders** in CONFIRMED or PROCESSING status **continue to be fulfilled**, meaning reserved inventory for those orders is still processed normally\n- "
+      "rehydrated": true,
+      "answer": "## When a Merchant is Suspended\n\n### Products & Inventory\n\n- **Products remain visible** on the storefront but display **\"Currently Unavailable\"** instead of \"Add to Cart\"\n- **Inventory is not decremented** for new orders (since no new orders can be placed for the suspended merchant)\n- Existing orders in **CONFIRMED** or **PROCESSING** status **continue to be fulfilled**, meaning reserved inventory for those orders continues through the normal fulfillment flow\n\n### API Access\n\n- **API keys remai"
     },
     {
       "id": "MH02",
@@ -643,7 +672,8 @@
       "correct_rule": true,
       "correct_judge": false,
       "judge_error": false,
-      "answer": "# Subscription Renewal Payment Failure Flow\n\nBased on the domain model, here is the complete traced flow:\n\n## 1. Payment Attempt & Failure\n\n- A **Payment** record is created with `status = PENDING` against the payment gateway (one of: STRIPE, ADYEN, PAYPAL, APPLE-PAY, GOOGLE-PAY)\n- The payment references the customer's stored **PaymentMethod** via `payment-method-id`\n- The gateway returns a failure \u2192 Payment `status` transitions to **FAILED**\n- `failed-at` timestamp is recorded\n- `failure-reason"
+      "rehydrated": false,
+      "answer": "# Subscription Renewal Payment Failure Flow\n\nBased on the domain model, here is the complete traced flow:\n\n## 1. Payment Attempt & Failure\n\n- A **Payment** record is created with `status = PENDING` against the associated **Order** for the renewal\n- The payment is processed through one of the supported gateways (`STRIPE`, `ADYEN`, `PAYPAL`, `APPLE-PAY`, `GOOGLE-PAY`)\n- When the gateway declines, the payment transitions: **PENDING \u2192 FAILED**\n- The `failed-at` timestamp is recorded\n- The `failure-r"
     },
     {
       "id": "MH03",
@@ -653,13 +683,14 @@
       "sections_requested": [
         "DATA-FLOW:-ORDER-PLACEMENT",
         "SETTLEMENT",
-        "ENTITY-CART"
+        "ORDER-STATE-MACHINE"
       ],
-      "bpe_total": 3361,
+      "bpe_total": 2576,
       "correct_rule": true,
       "correct_judge": false,
       "judge_error": false,
-      "answer": "# Complete Data Flow: Cart to Merchant Settlement\n\nBased on the context, here is the end-to-end flow:\n\n## 1. Cart Phase (cart-service / Redis + PostgreSQL)\n- Customer adds products to cart \u2192 items stored as JSON array in cart (containing variant-id, product-id, quantity, unit-price, title, sku, image-url)\n- Cart tracks subtotal, estimated tax, estimated shipping, discount amounts, and applied coupon codes\n- Cart status is **ACTIVE**\n\n## 2. Checkout & Order Creation\nWhen the customer initiates ch"
+      "rehydrated": false,
+      "answer": "# Complete Data Flow: Cart to Merchant Settlement Report\n\nBased on the context, here is the end-to-end flow:\n\n## Order Placement Phase\n1. **Customer \u2192 API Gateway \u2192 cart-service**: Checkout initiated\n2. **cart-service \u2192 identity-service**: Validate customer addresses\n3. **cart-service \u2192 catalog-service**: Verify product availability and prices\n4. **cart-service \u2192 inventory-service**: Reserve stock (optimistic lock)\n5. **cart-service \u2192 tax-service**: Calculate taxes\n6. **cart-service \u2192 promotions"
     },
     {
       "id": "MH04",
@@ -675,7 +706,8 @@
       "correct_rule": true,
       "correct_judge": true,
       "judge_error": false,
-      "answer": "# Entities Updated and Validations When a Review is Submitted\n\n## Entities Involved\n\n1. **Review** (primary) \u2014 A new Review record is created in the `reviews-service` with:\n   - `review_id` (UUID v4) generated\n   - `moderation-status` defaults to **PENDING**\n   - `verified-purchase` defaults to **true**\n   - `helpful-count` defaults to **0**\n   - `created-at` and `updated-at` timestamps set\n\n2. **Product** (updated upon approval) \u2014 When the review is eventually **APPROVED**:\n   - `average-rating"
+      "rehydrated": false,
+      "answer": "# Entities Updated and Validations When a Review is Submitted\n\n## Entities Involved\n\n1. **Review** (primary) \u2014 A new Review record is created in the `reviews-service` with:\n   - `review_id` (UUID v4) generated\n   - `moderation-status` defaults to **PENDING**\n   - `verified-purchase` defaults to **true**\n   - `helpful-count` defaults to **0**\n   - `created-at` set to submission time\n\n2. **Product** (updated upon approval) \u2014 When the review is approved through moderation:\n   - `average-rating` is "
     },
     {
       "id": "AD01",
@@ -689,6 +721,7 @@
       "correct_rule": false,
       "correct_judge": true,
       "judge_error": false,
+      "rehydrated": false,
       "answer": "Not found in context. The provided domain knowledge does not contain information about a ShopStream recommendation engine or its machine learning model."
     },
     {
@@ -703,8 +736,9 @@
       ],
       "bpe_total": 2662,
       "correct_rule": true,
-      "correct_judge": false,
+      "correct_judge": true,
       "judge_error": false,
+      "rehydrated": false,
       "answer": "The event bus does not use Kafka. Order events are published to **Amazon SQS/SNS** topics, and the topic name for order events is **`order-events`** (with events: order.created, order.updated, order.cancelled)."
     },
     {
@@ -715,13 +749,17 @@
       "sections_requested": [
         "ESCALATION-MATRIX",
         "DATA-QUALITY-SLAS",
-        "INC-007:-MERCHANT-SETTLEMENT-DISCREPANCY"
+        "INC-007:-MERCHANT-SETTLEMENT-DISCREPANCY",
+        "CHARGEBACK-MANAGEMENT",
+        "SETTLEMENT",
+        "PERFORMANCE-STANDARDS"
       ],
-      "bpe_total": 2644,
-      "correct_rule": false,
+      "bpe_total": 5127,
+      "correct_rule": true,
       "correct_judge": true,
       "judge_error": false,
-      "answer": "Not found in context."
+      "rehydrated": true,
+      "answer": "**Not found in context.**\n\nThe context does not specify an SLA for the customer service team to respond to merchant disputes. The closest related information includes:\n\n- **Chargeback response deadline**: 7 days from chargeback notification (for responding to chargebacks from the gateway, not merchant disputes specifically).\n- **Merchant performance standard for response time**: Customer messages answered within 24 hours (this applies to *merchants* responding to *customers*, not ShopStream's cu"
     },
     {
       "id": "AD04",
@@ -737,6 +775,7 @@
       "correct_rule": false,
       "correct_judge": true,
       "judge_error": false,
+      "rehydrated": false,
       "answer": "According to the context, **partial authorizations are not supported** on ShopStream. Pre-paid debit cards with insufficient balance are declined; partial authorizations are not supported."
     }
   ],
@@ -750,19 +789,19 @@
     {
       "name": "RT2: Hydration cost vs raw",
       "passed": true,
-      "actual": "3.8%",
+      "actual": "4.2%",
       "threshold": "<=20%"
     },
     {
       "name": "RT3: Hydration fidelity floor",
       "passed": true,
-      "actual": "80%",
+      "actual": "83%",
       "threshold": ">=50%"
     },
     {
       "name": "RT4: Fidelity gap (raw - hydrated)",
       "passed": true,
-      "actual": "7pp",
+      "actual": "3pp",
       "threshold": "<=15pp"
     },
     {

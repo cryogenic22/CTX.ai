@@ -189,6 +189,47 @@ def list_sections(doc: CTXDocument) -> list[dict[str, Any]]:
     return result
 
 
+# ── Re-Hydration Detection ──
+
+
+# Signals that the LLM's answer is low-confidence and may benefit from
+# additional context. Detected by substring matching on the answer text.
+_LOW_CONFIDENCE_SIGNALS = [
+    "not found in context",
+    "not enough information",
+    "cannot fully answer",
+    "don't have enough",
+    "do not have enough",
+    "based on the available context",
+    "not available in the",
+    "insufficient context",
+    "need more context",
+    "no information about",
+    "not specified in",
+    "cannot determine",
+    "unable to determine",
+    "(error:",
+]
+
+
+def needs_rehydration(answer: str) -> bool:
+    """Detect whether an LLM answer indicates insufficient context.
+
+    Returns True if the answer is empty, contains an error, or includes
+    low-confidence signals suggesting the hydrated sections didn't cover
+    the question. Used to trigger a second hydration round for multi-hop
+    questions.
+
+    This is a heuristic — it errs on the side of triggering re-hydration
+    (false positives are cheap, false negatives lose fidelity).
+    """
+    if not answer or not answer.strip():
+        return True
+
+    lower = answer.lower()
+    return any(signal in lower for signal in _LOW_CONFIDENCE_SIGNALS)
+
+
 # ── Helpers ──
 
 

@@ -152,6 +152,43 @@ def main():
         answer = _ask_llm(question, hydrated_text,
                           model=eval_model, api_key=api_key, provider=provider)
 
+        # Step 3b: Re-hydration if answer is low-confidence
+        rehydrated = False
+        from ctxpack.core.hydrator import needs_rehydration
+        if needs_rehydration(answer) and requested != ["NONE"]:
+            # Ask the LLM what additional sections it needs
+            time.sleep(_INTER_CALL_DELAY)
+            rehyd_prompt = (
+                f"Your previous answer was incomplete. The question was: \"{question}\"\n"
+                f"You already have context from: {json.dumps(requested)}\n"
+                f"Available sections: {json.dumps(section_names)}\n\n"
+                f"Which 1-3 ADDITIONAL sections would help you answer fully? "
+                f"Respond with ONLY a JSON array. Do not repeat sections you already have."
+            )
+            rehyd_resp = _ask_llm(rehyd_prompt, l3_prompt,
+                                  model=eval_model, api_key=api_key, provider=provider)
+            additional = _parse_sections(rehyd_resp, set(section_names))
+
+            # Deduplicate: only add sections not already hydrated
+            already_have = set(r.upper() for r in requested)
+            new_sections = [s for s in additional if s.upper() not in already_have and s != "NONE"]
+
+            if new_sections:
+                rehydrated = True
+                rehyd_result = hydrate_by_name(doc, new_sections, include_header=False)
+                for section in rehyd_result.sections:
+                    for line in serialize_section(section, natural_language=True):
+                        hydrated_text += "\n" + line
+                requested = requested + new_sections
+
+                # Re-count BPE and re-answer
+                hydrated_bpe = count_bpe_tokens(hydrated_text, model=eval_model)
+                total_bpe = l3_bpe + hydrated_bpe + 2000  # routing + re-routing calls
+
+                time.sleep(_INTER_CALL_DELAY)
+                answer = _ask_llm(question, hydrated_text,
+                                  model=eval_model, api_key=api_key, provider=provider)
+
         # Step 4: Grade with CROSS-MODEL judge (same as raw arm)
         correct_rule = _grade_answer(answer, expected)
         time.sleep(_INTER_CALL_DELAY)
@@ -173,14 +210,16 @@ def main():
             "difficulty": difficulty, "sections_requested": requested,
             "bpe_total": total_bpe, "correct_rule": correct_rule,
             "correct_judge": correct_judge, "judge_error": judge_is_error,
+            "rehydrated": rehydrated,
             "answer": answer[:500],
         })
 
         status = "Y" if correct_judge else ("E" if judge_is_error else "N")
+        rehyd_tag = " [RE-HYD]" if rehydrated else ""
         secs_str = ', '.join(requested[:2])
         if len(secs_str) > 37:
             secs_str = secs_str[:37] + "..."
-        print(f"  [{i+1}/30] {q_id} -> {secs_str:<40} {total_bpe:>5} BPE  judge={status}")
+        print(f"  [{i+1}/30] {q_id} -> {secs_str:<40} {total_bpe:>5} BPE  judge={status}{rehyd_tag}")
 
     hyd_time = time.time() - t0
     results["hydration_details"] = hydration_details
