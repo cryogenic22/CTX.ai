@@ -9,12 +9,17 @@ This module implements WS4 of the v0.4.0 backlog.
 
 from __future__ import annotations
 
+import hashlib
 import re
+import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .model import CTXDocument, KeyValue, NumberedItem, PlainLine, Provenance, Section
 from .serializer import serialize_section, _serialize_header_iter
+
+if TYPE_CHECKING:
+    from .telemetry import TelemetryLog
 
 
 # ── Data Structures ──
@@ -56,6 +61,10 @@ def hydrate_by_name(
     section_names: list[str],
     *,
     include_header: bool = True,
+    telemetry: "TelemetryLog | None" = None,
+    question: str = "",
+    session_id: str = "",
+    rehydration_triggered: bool = False,
 ) -> HydrationResult:
     """Return specific sections by name. O(1) lookup via index.
 
@@ -66,10 +75,16 @@ def hydrate_by_name(
         doc: Parsed CTXDocument.
         section_names: List of section names to hydrate (case-insensitive).
         include_header: Whether to include the document header in output.
+        telemetry: Optional TelemetryLog to record the hydration event.
+        question: Original question text (will be hashed, not stored raw).
+        session_id: Session identifier for grouping events.
+        rehydration_triggered: Whether this is a re-hydration attempt.
 
     Returns:
         HydrationResult with matched sections and token counts.
     """
+    t0 = time.perf_counter()
+
     index = _build_section_index(doc)
     all_sections = [elem for elem in doc.body if isinstance(elem, Section)]
 
@@ -93,12 +108,34 @@ def hydrate_by_name(
         header_text = "\n".join(header_lines)
         total_tokens += len(header_text.split())
 
-    return HydrationResult(
+    result = HydrationResult(
         sections=matched,
         tokens_injected=total_tokens,
         sections_available=len(all_sections),
         header_text=header_text,
     )
+
+    # Log telemetry if enabled
+    if telemetry is not None:
+        import datetime
+        import uuid as _uuid
+
+        from .telemetry import HydrationEvent
+
+        elapsed_ms = (time.perf_counter() - t0) * 1000
+        event = HydrationEvent(
+            timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            session_id=session_id or str(_uuid.uuid4()),
+            question_hash=hashlib.sha256(question.encode("utf-8")).hexdigest(),
+            sections_requested=list(section_names),
+            sections_matched=len(matched),
+            tokens_injected=total_tokens,
+            rehydration_triggered=rehydration_triggered,
+            latency_ms=round(elapsed_ms, 3),
+        )
+        telemetry.log_hydration(event)
+
+    return result
 
 
 def hydrate_by_query(

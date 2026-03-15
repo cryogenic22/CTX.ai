@@ -37,6 +37,7 @@ from ..core.errors import DiagnosticLevel, ParseError
 from ..core.json_export import to_json
 from ..core.parser import parse
 from ..core.serializer import serialize, serialize_iter, serialize_section
+from ..core.telemetry import TelemetryLog
 from ..core.validator import validate
 
 # Packer import (may fail if corpus tools not needed)
@@ -351,7 +352,7 @@ def handle_format(arguments: dict[str, Any]) -> str:
     return formatted
 
 
-def handle_hydrate(arguments: dict[str, Any]) -> str:
+def handle_hydrate(arguments: dict[str, Any], telemetry: TelemetryLog | None = None) -> str:
     """Handle ctx/hydrate — section-level retrieval.
 
     Two paths:
@@ -374,7 +375,12 @@ def handle_hydrate(arguments: dict[str, Any]) -> str:
     # Path 1: direct section lookup
     if section_param:
         names = [n.strip() for n in section_param.split(",") if n.strip()]
-        result = hydrate_by_name(doc, names, include_header=include_header)
+        result = hydrate_by_name(
+            doc, names,
+            include_header=include_header,
+            telemetry=telemetry,
+            question=query or section_param,
+        )
     elif query:
         # Path 2: keyword-based matching
         result = hydrate_by_query(doc, query, max_sections=max_sections,
@@ -408,6 +414,11 @@ def handle_hydrate(arguments: dict[str, Any]) -> str:
     }, indent=2)
 
 
+# ── Telemetry instance ──
+
+_telemetry = TelemetryLog()
+
+
 # ── Tool dispatch ──
 
 _HANDLERS = {
@@ -415,7 +426,7 @@ _HANDLERS = {
     "ctx/parse": handle_parse,
     "ctx/validate": handle_validate,
     "ctx/format": handle_format,
-    "ctx/hydrate": handle_hydrate,
+    "ctx/hydrate": lambda args: handle_hydrate(args, telemetry=_telemetry),
 }
 
 

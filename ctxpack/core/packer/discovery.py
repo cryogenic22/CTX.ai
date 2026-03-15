@@ -31,6 +31,8 @@ class DiscoveryResult:
     yaml_files: list[str] = field(default_factory=list)
     md_files: list[str] = field(default_factory=list)
     json_files: list[str] = field(default_factory=list)
+    toml_files: list[str] = field(default_factory=list)
+    csv_files: list[str] = field(default_factory=list)
     config: PackConfig = field(default_factory=PackConfig)
     corpus_root: str = ""
 
@@ -99,6 +101,10 @@ def discover(
                 result.md_files.append(full_path)
             elif lower.endswith(".json"):
                 result.json_files.append(full_path)
+            elif lower.endswith(".toml"):
+                result.toml_files.append(full_path)
+            elif lower.endswith(".csv"):
+                result.csv_files.append(full_path)
 
     return result
 

@@ -7,6 +7,7 @@ Commands:
   ctxpack pack <corpus-dir> [-o output.ctx] [--domain X] [--scope X] [--author X] [--ascii] [--validate] [--natural-language]
   ctxpack eval [--golden-set PATH] [--skip-fidelity] [--skip-latency] [--skip-human] [--output PATH]
   ctxpack bench [--sizes 1000,5000,10000] [--iterations 10] [--json]
+  ctxpack telemetry [path] [--json]
 """
 
 from __future__ import annotations
@@ -138,6 +139,13 @@ def main(argv: list[str] | None = None) -> int:
     p_scale.add_argument("--max-scale", type=int, default=0,
                          help="Max corpus scale to run (e.g. 5000 to skip 20K/50K)")
 
+    # telemetry
+    p_telem = sub.add_parser("telemetry", help="Show telemetry summary from hydration logs")
+    p_telem.add_argument("path", nargs="?", default=".ctxpack/telemetry.jsonl",
+                         help="Path to telemetry JSONL file (default: .ctxpack/telemetry.jsonl)")
+    p_telem.add_argument("--json", action="store_true", dest="json_output",
+                         help="Output as JSON")
+
     args = ap.parse_args(argv)
 
     try:
@@ -159,6 +167,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_bench(args)
         elif args.command == "scaling":
             return _cmd_scaling(args)
+        elif args.command == "telemetry":
+            return _cmd_telemetry(args)
     except ParseError as e:
         print(f"Parse error: {e}", file=sys.stderr)
         return 1
@@ -447,6 +457,34 @@ def _cmd_bench(args: argparse.Namespace) -> int:
     else:
         print()
         print(format_table(suite))
+
+    return 0
+
+
+def _cmd_telemetry(args: argparse.Namespace) -> int:
+    import json as _json
+
+    from ..core.telemetry import TelemetryLog
+
+    tlog = TelemetryLog(path=args.path)
+    summary = tlog.summary()
+
+    if args.json_output:
+        print(_json.dumps(summary, indent=2))
+    else:
+        print(f"Telemetry summary: {args.path}")
+        print(f"{'='*50}")
+        print(f"  Total hydrations:       {summary['total_hydrations']}")
+        print(f"  Unique sessions:        {summary['unique_sessions']}")
+        print(f"  Avg tokens/hydration:   {summary['avg_tokens_per_hydration']:.1f}")
+        print(f"  Avg latency (ms):       {summary['avg_latency_ms']:.2f}")
+        print(f"  Rehydration rate:       {summary['rehydration_rate']:.1%}")
+        print(f"  Zero-match rate:        {summary['zero_match_rate']:.1%}")
+
+        if summary['top_sections']:
+            print(f"\n  Top sections:")
+            for name, count in summary['top_sections'][:10]:
+                print(f"    {name:40s} {count:>4d}")
 
     return 0
 

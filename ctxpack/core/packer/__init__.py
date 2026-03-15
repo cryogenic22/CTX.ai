@@ -17,12 +17,14 @@ from .conflict import detect_conflicts
 from .discovery import PackConfig, discover
 from .entity_resolver import resolve_entities
 from .ir import IRCorpus, IRField, IRSource
+from .csv_parser import csv_parse, extract_entities_from_csv
 from .json_parser import extract_entities_from_json, json_parse
 from .l3_generator import generate_l3
 from .manifest import generate_manifest
 from .md_parser import extract_entities_from_md
 from .prov_generator import generate_provenance, inject_inline_provenance
 from .templates import load_template, validate_corpus
+from .toml_parser import extract_entities_from_toml, toml_parse
 from .xref_resolver import resolve_xrefs
 from .yaml_parser import extract_entities_from_yaml, yaml_parse
 
@@ -89,9 +91,17 @@ def pack(
     for json_file in disc.json_files:
         _parse_json_file(json_file, corpus, disc.corpus_root)
 
+    # Parse TOML files
+    for toml_file in disc.toml_files:
+        _parse_toml_file(toml_file, corpus, disc.corpus_root)
+
+    # Parse CSV files
+    for csv_file in disc.csv_files:
+        _parse_csv_file(csv_file, corpus, disc.corpus_root)
+
     # Count source tokens
     total_tokens = 0
-    all_files = disc.yaml_files + disc.md_files + disc.json_files
+    all_files = disc.yaml_files + disc.md_files + disc.json_files + disc.toml_files + disc.csv_files
     for fpath in all_files:
         with open(fpath, encoding="utf-8") as f:
             total_tokens += len(f.read().split())
@@ -200,6 +210,40 @@ def _parse_json_file(path: str, corpus: IRCorpus, root: str) -> None:
     data = json_parse(text, filename=rel_path)
 
     entities, rules, warnings = extract_entities_from_json(
+        data, filename=rel_path
+    )
+    corpus.entities.extend(entities)
+    corpus.standalone_rules.extend(rules)
+    corpus.warnings.extend(warnings)
+
+
+def _parse_toml_file(path: str, corpus: IRCorpus, root: str) -> None:
+    """Parse a TOML file and add entities/rules to corpus."""
+    rel_path = os.path.relpath(path, root).replace("\\", "/")
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+
+    data = toml_parse(text, filename=rel_path)
+    if not isinstance(data, dict):
+        return
+
+    entities, rules, warnings = extract_entities_from_toml(
+        data, filename=rel_path
+    )
+    corpus.entities.extend(entities)
+    corpus.standalone_rules.extend(rules)
+    corpus.warnings.extend(warnings)
+
+
+def _parse_csv_file(path: str, corpus: IRCorpus, root: str) -> None:
+    """Parse a CSV file and add entities/rules to corpus."""
+    rel_path = os.path.relpath(path, root).replace("\\", "/")
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+
+    data = csv_parse(text, filename=rel_path)
+
+    entities, rules, warnings = extract_entities_from_csv(
         data, filename=rel_path
     )
     corpus.entities.extend(entities)
