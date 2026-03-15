@@ -260,7 +260,7 @@ class TestRoundTrip:
 
 class TestMCPIntegration:
     def test_mcp_hydrate_with_section_param(self):
-        """ctx/hydrate with explicit section name returns that section."""
+        """ctx/hydrate with explicit section name returns prose by default."""
         from ctxpack.integrations.mcp_server import handle_hydrate
         from ctxpack.core.serializer import serialize
 
@@ -271,7 +271,9 @@ class TestMCPIntegration:
             "section": "ENTITY-ORDER",
         })
         result = json.loads(result_json)
-        assert "ENTITY-ORDER" in result["ctx_text"]
+        # Default output is prose — section name rendered as readable heading
+        assert "Order" in result["ctx_text"]
+        assert result.get("format") == "prose"
 
     def test_mcp_hydrate_with_query_param(self):
         """ctx/hydrate with query returns relevant sections."""

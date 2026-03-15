@@ -127,6 +127,8 @@ def main(argv: list[str] | None = None) -> int:
                            help="List available sections with token counts")
     p_hydrate.add_argument("--max-sections", type=int, default=5,
                            help="Max sections to return for query mode (default: 5)")
+    p_hydrate.add_argument("--raw", action="store_true",
+                           help="Output raw .ctx notation instead of prose (for machine use only)")
 
     # scaling
     p_scale = sub.add_parser("scaling", help="Run scaling curve experiment")
@@ -331,9 +333,10 @@ def _cmd_hydrate(args: argparse.Namespace) -> int:
         print(result.header_text)
         print()
 
-    # Print matched sections
+    # Print matched sections — prose by default for LLM consumption
+    use_raw = getattr(args, "raw", False)
     for section in result.sections:
-        for line in serialize_section(section):
+        for line in serialize_section(section, natural_language=not use_raw):
             print(line)
         print()
 

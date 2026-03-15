@@ -185,10 +185,10 @@ TOOLS = [
     Tool(
         name="ctx/hydrate",
         description=(
-            "Section-level retrieval from a .ctx document. "
-            "Primary path: provide 'section' name(s) for direct lookup (LLM-as-router). "
-            "Fallback path: provide 'query' for keyword-based matching. "
-            "Use this for selective context injection — only send what the LLM needs."
+            "Section-level retrieval from a .ctx document. Returns readable Markdown prose "
+            "by default (NOT .ctx notation — LLMs cannot reliably consume .ctx format). "
+            "Primary path: provide 'section' name(s) for direct lookup. "
+            "Fallback: provide 'query' for keyword matching."
         ),
         inputSchema={
             "type": "object",
@@ -218,6 +218,11 @@ TOOLS = [
                     "type": "boolean",
                     "description": "Include the document header in output (default: true)",
                     "default": True,
+                },
+                "raw": {
+                    "type": "boolean",
+                    "description": "Return raw .ctx notation instead of prose. Only use for machine-to-machine (diff, validate). Default: false (prose).",
+                    "default": False,
                 },
             },
         },
@@ -358,6 +363,11 @@ def handle_hydrate(arguments: dict[str, Any], telemetry: TelemetryLog | None = N
     Two paths:
     1. section param → direct name lookup (LLM-as-router, primary)
     2. query param → keyword matching (programmatic fallback)
+
+    IMPORTANT: Output defaults to natural language prose (Markdown), NOT .ctx
+    notation. LLMs cannot reliably consume .ctx L2 notation — they ignore it
+    and fall back to training knowledge, causing hallucination. Set raw=true
+    only for machine-to-machine use (diff, validate, version control).
     """
     from ..core.hydrator import hydrate_by_name, hydrate_by_query, list_sections
 
@@ -366,6 +376,7 @@ def handle_hydrate(arguments: dict[str, Any], telemetry: TelemetryLog | None = N
     query = arguments.get("query", "")
     max_sections = arguments.get("max_sections", 5)
     include_header = arguments.get("include_header", True)
+    raw_format = arguments.get("raw", False)  # Default: prose (not .ctx notation)
 
     try:
         doc = parse(text, level=2)
@@ -395,14 +406,15 @@ def handle_hydrate(arguments: dict[str, Any], telemetry: TelemetryLog | None = N
             "ctx_text": "",
         }, indent=2)
 
-    # Serialize matched sections
+    # Serialize matched sections — prose by default, raw .ctx notation only if requested
+    use_nl = not raw_format
     lines: list[str] = []
     if result.header_text:
         lines.append(result.header_text)
         lines.append("")
 
     for section in result.sections:
-        for line in serialize_section(section):
+        for line in serialize_section(section, natural_language=use_nl):
             lines.append(line)
         lines.append("")
 
@@ -410,6 +422,7 @@ def handle_hydrate(arguments: dict[str, Any], telemetry: TelemetryLog | None = N
         "sections_matched": len(result.sections),
         "sections_available": result.sections_available,
         "tokens_injected": result.tokens_injected,
+        "format": "prose" if use_nl else "ctx",
         "ctx_text": "\n".join(lines),
     }, indent=2)
 
