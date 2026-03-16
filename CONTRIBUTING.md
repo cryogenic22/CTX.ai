@@ -30,7 +30,7 @@ pip install pytest
 python -m pytest tests/ -x -q
 ```
 
-All 586 tests should pass. Tests run in ~8 seconds with no network calls.
+All 770 tests should pass. Tests run in ~8 seconds with no network calls.
 
 ### Running Evaluations
 
@@ -66,7 +66,7 @@ python run_model_spread_eval.py
 2. **Create a branch** from `main` (`git checkout -b feature/my-feature`)
 3. **Make your changes** — follow the existing code style
 4. **Add tests** — new features need tests, bug fixes need regression tests
-5. **Run the test suite** — all 586 tests must pass
+5. **Run the test suite** — all 770 tests must pass
 6. **Run metric sanity checks** — `python -m pytest tests/test_metric_sanity.py -v`
 7. **Commit** with a clear message describing what and why
 8. **Open a Pull Request** against `main`
@@ -117,7 +117,7 @@ ctxpack/
     results/         # Clean eval results
 spec/                # CTXPACK-SPEC v1.0, PEG grammar
 paper/               # Whitepaper v3, LinkedIn posts
-tests/               # 586 tests (core + pipeline + sanity guards)
+tests/               # 770 tests (core + pipeline + sanity guards)
 ```
 
 ## License

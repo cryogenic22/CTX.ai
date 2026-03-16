@@ -95,8 +95,8 @@ ctxpack pack corpus/ --preset aggressive     # Drop low-salience fields
 
 The packer compiles domain files through six deterministic stages:
 
-1. **Discover** — classify files (YAML/MD/JSON), load config
-2. **Parse** — extract entities, fields, relationships from each format
+1. **Discover** — classify files (YAML/MD/JSON/TOML/CSV), load config
+2. **Parse** — extract entities, fields, relationships from each format (5 parsers)
 3. **Entity resolution** — normalize names, merge aliases, deduplicate fields across sources
 4. **Conflict detection** — flag contradictions: retention mismatches, type conflicts, PII inconsistencies
 5. **Salience scoring** — rank entities/fields by cross-reference density, golden-source status, relationship keys
@@ -135,14 +135,39 @@ Multi-resolution layer system with a formal [PEG grammar](spec/ctx.peg):
 
 Specification: [`spec/CTXPACK-SPEC.md`](spec/CTXPACK-SPEC.md)
 
+## Opt-in modules
+
+Production-tested modules for common integration patterns. Import only what you need:
+
+```python
+from ctxpack.modules.grounding import build_grounded_prompt    # Sandwich prompt wrapper
+from ctxpack.modules.keywords import KeywordIndex              # Word-boundary matching
+from ctxpack.modules.guard import ContextGuard                 # Hallucination detection
+from ctxpack.modules.catalog_queries import is_catalog_query   # "How many?" detection
+from ctxpack.modules.analytics import compile_domain_packs     # Analytics domain packs
+```
+
+| Module | What it does | Source |
+|--------|-------------|--------|
+| **grounding** | Sandwich prompt: rules (top) + data (middle) + checklist (bottom) | Pharma team field report |
+| **keywords** | Word-boundary matching, one-to-many resolution, auto-generated from entity names | Production bug fix |
+| **guard** | Detects hallucinated entity names in LLM response, recommends warn/retry/new_session | Production bug fix |
+| **catalog_queries** | Detects "how many?" / "list all" intent, builds grouped summary with counts | Pharma team field report |
+| **analytics** | Compiles YAML domain packs into unified corpus with cross-domain dedup | Bright_Light integration |
+
+See [pharma team guide](paper/pharma-team-guide.md) and [analytics team guide](paper/analytics-team-guide.md) for detailed integration instructions.
+
 ## Project structure
 
 ```
 ctxpack/
   core/              # Parser, serializer, validator, packer (zero deps)
-    packer/          # Entity extraction, resolution, compression, budget allocation
-    hydrator.py      # Section-level hydration (hydrate_by_name, hydrate_by_query)
+    packer/          # Entity extraction, resolution, compression (YAML/MD/JSON/TOML/CSV)
+    hydrator.py      # Section-level hydration + re-hydration
     hydration_protocol.py  # L3 directory index, LLM-as-router protocol
+    entity_graph.py  # Entity relationship graph (BFS traversal, path finding)
+    telemetry.py     # Append-only JSONL hydration telemetry
+  modules/           # Opt-in feature modules (grounding, keywords, guard, analytics)
   integrations/      # MCP server (5 tools)
   cli/               # Command-line interface
   benchmarks/        # Evaluation framework, baselines, metrics
@@ -151,8 +176,8 @@ ctxpack/
     metrics/         # BPE-primary compression, fidelity (with retry + cross-model judge)
     results/         # Clean eval results (definitive, scaling, model spread)
 spec/                # CTXPACK-SPEC v1.0, PEG grammar
-paper/               # Whitepaper v3, LinkedIn posts
-tests/               # 586 tests, ~8 seconds, no network calls
+paper/               # Whitepaper v3, integration guides
+tests/               # 770 tests, ~17 seconds, no network calls
 ```
 
 ## Tests
@@ -162,7 +187,7 @@ pip install pytest
 python -m pytest tests/ -x -q
 ```
 
-586 tests including 25 eval pipeline tests and 7 metric sanity guards. All deterministic, no API keys required.
+770 tests including 25 eval pipeline tests, 7 metric sanity guards, and module-specific test suites. All deterministic, no API keys required.
 
 ### Metric sanity guards
 
@@ -225,7 +250,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, code style, and PR process.
 
 Key policies:
 - Zero external dependencies for `ctxpack/core/`
-- All 586 tests must pass before merge
+- All 770 tests must pass before merge
 - BPE tokens as primary metric for all compression/cost claims
 - Type hints on public functions
 

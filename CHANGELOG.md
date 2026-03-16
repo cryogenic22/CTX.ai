@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-03-16
+
+### Added
+- **Opt-in modules** (`ctxpack/modules/`): grounding, keywords, guard, catalog_queries, analytics
+- Grounding wrapper: sandwich prompt with auto-generated few-shot examples and entity count reminder
+- Keyword index: word-boundary matching (`\bmarket\b`), one-to-many resolution, auto-generated from entity names
+- Context guard: post-response hallucination detection with warn/retry/new_session recommendations
+- Catalog-wide query detection: "how many?" / "list all" intent classifier with grouped summary builder
+- Analytics domain pack compiler: parses YAML domain packs into unified IR with cross-domain deduplication
+- TOML parser (stdlib `tomllib` with 3.10 fallback) and CSV parser (entity-per-row + entity-per-file layouts)
+- Hydration telemetry: append-only JSONL logging with CLI dashboard (`ctxpack telemetry`)
+- Entity relationship graph: BFS traversal, shortest path, multi-hop discovery
+- Multi-hop re-hydration: low-confidence detection triggers second retrieval pass
+- RAG baseline comparison in eval framework
+- Prose serializer V2: dense notation converted to readable Markdown
+- Integration guides for pharma team and analytics teams
+
+### Changed
+- **ctx/hydrate defaults to Markdown prose** (not .ctx notation) — LLMs cannot reliably consume .ctx format
+- `--raw` flag for machine-use .ctx notation output
+- 770 tests (up from 461 in v0.3.0)
+
+### Fixed
+- Production hallucination: .ctx notation caused Claude to ignore context and generate from training data
+- Word-boundary matching: "market" no longer matches "marketing"
+- One-to-many keywords: "patient services" now matches both value streams
+
 ## [0.4.0] - 2026-03-14
 
 ### Added
