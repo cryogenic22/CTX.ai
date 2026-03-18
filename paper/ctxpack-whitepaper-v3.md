@@ -148,6 +148,8 @@ An earlier version of this evaluation framework contained measurement errors tha
 
 **Structured Knowledge Representation.** Knowledge graphs, ontologies, and entity-relationship models have long been used for structured knowledge management. CtxPack bridges these approaches with LLM serving by compiling structured knowledge into a format optimized for progressive retrieval, with provenance tracking and conflict detection that traditional RAG systems lack.
 
+**Unix File Philosophy Applied to Agentic AI.** Piskala (2026) traces the design pattern of collapsing diverse interfaces into a uniform file abstraction across three eras: Unix's "everything is a file" (1970s), DevOps "infrastructure as code" (2010s), and agentic AI "files are all you need" (2020s). The paper observes that agents with filesystem access and approximately 5 general-purpose tools match or exceed the generality of agents with 100+ specialized tool definitions. CtxPack's architecture independently instantiates this principle: plain-text `.ctx` files as the knowledge representation, 5 MCP tools for the full interaction surface, pipe-friendly CLI commands that compose via standard I/O, and zero external dependencies. The convergence suggests that the file-centric, minimal-tool design is not incidental but reflects a durable systems design pattern applicable to LLM knowledge serving.
+
 ## 5. Limitations
 
 1. **Fidelity gap on multi-hop questions.** Questions requiring information from 4+ entities lose accuracy because the 1-3 section retrieval limit prevents complete coverage. Increasing the section limit or implementing re-hydration loops would address this at the cost of higher per-query token usage.
@@ -170,7 +172,7 @@ CtxPack demonstrates that progressive hydration — compiling domain knowledge i
 
 The system's value over RAG is not fidelity (which is matched) but structural: deterministic output, cross-entity conflict detection, field-level provenance, and zero infrastructure requirements. The pack pipeline runs in milliseconds, costs nothing, and produces byte-identical output for the same input.
 
-The architecture is informed by Wang & Sun's (2025) proactive interference findings and parallels the compile-then-serve paradigm validated by Zhong et al. (2026) for GUI agent automation. The convergence of selective-retrieval advantages across domains — CtxPack for knowledge serving, ActionEngine for GUI automation — suggests that offline compilation with on-demand serving is a robust architectural pattern for cost-efficient LLM systems.
+The architecture is informed by Wang & Sun's (2025) proactive interference findings, parallels the compile-then-serve paradigm validated by Zhong et al. (2026) for GUI agent automation, and follows the Unix file philosophy that Piskala (2026) traces from "everything is a file" to agentic AI design. The convergence of these independent lines of work — interference theory, systems architecture, and OS design philosophy — suggests that deterministic, file-centric knowledge compilation with selective on-demand serving is a robust and historically grounded pattern for cost-efficient LLM systems.
 
 CtxPack is open source under the Apache 2.0 license at https://github.com/cryogenic22/CTX.ai.
 
@@ -180,6 +182,8 @@ CtxPack is open source under the Apache 2.0 license at https://github.com/cryoge
 
 2. Zhong, H. et al. (2026). "ActionEngine: From Reactive to Programmatic GUI Agents via State Machine Memory." arXiv:2602.20502.
 
-3. Anthropic (2025). Claude Model Cards and Documentation.
+3. Piskala, D. (2026). "From Everything-is-a-File to Files-Are-All-You-Need: How Unix Philosophy Informs the Design of Agentic AI Systems." arXiv:2601.11672.
+
+4. Anthropic (2025). Claude Model Cards and Documentation.
 
 4. OpenAI (2025). GPT-4o and GPT-4o-mini Technical Reports.
