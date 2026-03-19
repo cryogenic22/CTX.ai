@@ -1045,17 +1045,942 @@ def export_rules(cmap: CodebaseMap, output_dir: str) -> list[str]:
     return created
 
 
-def _build_rule(*, description: str, globs: list[str], body: str) -> str:
+def _build_rule(*, description: str, globs: list[str], body: str,
+                 always_apply: bool = False) -> str:
     """Build a rule file with YAML frontmatter."""
     frontmatter_lines = [
         "---",
         f"description: {description}",
-        "alwaysApply: false",
-        "globs:",
+        f"alwaysApply: {'true' if always_apply else 'false'}",
     ]
-    for g in globs:
-        frontmatter_lines.append(f'  - "{g}"')
+    if not always_apply:
+        frontmatter_lines.append("globs:")
+        for g in globs:
+            frontmatter_lines.append(f'  - "{g}"')
     frontmatter_lines.append("---")
     frontmatter_lines.append("")
 
     return "\n".join(frontmatter_lines) + body
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Part 6: Harness generator — anti-drift harness for coding agents
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+import collections
+import subprocess
+
+
+def _scan_utility_dirs(root: str, max_entries: int = 30) -> list[dict[str, str | list[str]]]:
+    """Scan common utility directories and list exported functions/classes.
+
+    Returns list of {"path": rel_path, "exports": [name, ...]} dicts.
+    """
+    root_path = pathlib.Path(root)
+    utility_dir_names = {"utils", "lib", "helpers", "core", "hooks", "shared"}
+    entries: list[dict[str, str | list[str]]] = []
+
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+        current = pathlib.Path(dirpath)
+
+        if current.name not in utility_dir_names:
+            continue
+
+        for fname in filenames:
+            filepath = current / fname
+            rel = str(filepath.relative_to(root_path)).replace("\\", "/")
+
+            exports: list[str] = []
+            if fname.endswith(".py") and not fname.startswith("__"):
+                exports = _extract_python_exports(str(filepath))
+            elif any(fname.endswith(ext) for ext in (".ts", ".tsx", ".js")) and not fname.endswith(".d.ts"):
+                exports = _extract_ts_exports(str(filepath))
+
+            if exports:
+                entries.append({"path": rel, "exports": exports})
+
+            if len(entries) >= max_entries:
+                return entries
+
+    return entries
+
+
+def _extract_python_exports(filepath: str) -> list[str]:
+    """Extract public function and class names from a Python file."""
+    try:
+        with open(filepath, encoding="utf-8", errors="replace") as f:
+            source = f.read()
+        tree = ast.parse(source)
+    except (OSError, SyntaxError):
+        return []
+
+    exports: list[str] = []
+    for node in ast.iter_child_nodes(tree):
+        if isinstance(node, ast.ClassDef) and not node.name.startswith("_"):
+            exports.append(node.name)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and not node.name.startswith("_"):
+            exports.append(node.name)
+    return exports
+
+
+def _extract_ts_exports(filepath: str) -> list[str]:
+    """Extract exported names from a TypeScript/JS file."""
+    try:
+        with open(filepath, encoding="utf-8", errors="replace") as f:
+            source = f.read()
+    except OSError:
+        return []
+
+    exports: list[str] = []
+    for m in _RE_EXPORT_FUNCTION.finditer(source):
+        exports.append(m.group(1))
+    for m in _RE_EXPORT_CONST_FUNC.finditer(source):
+        name = m.group(1)
+        if name not in exports:
+            exports.append(name)
+    for m in _RE_EXPORT_CLASS.finditer(source):
+        name = m.group(1)
+        if name not in exports:
+            exports.append(name)
+    return exports
+
+
+def _read_route_example(root: str, max_examples: int = 3) -> list[str]:
+    """Read 2-3 route files and extract structural patterns as text snippets."""
+    root_path = pathlib.Path(root)
+    examples: list[str] = []
+
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+        for fname in filenames:
+            if not fname.endswith(".py"):
+                continue
+            filepath = os.path.join(dirpath, fname)
+            rel = str(pathlib.Path(filepath).relative_to(root_path)).replace("\\", "/")
+
+            # Only look in route-like directories
+            if "routes" not in rel and "api" not in rel:
+                continue
+
+            try:
+                with open(filepath, encoding="utf-8", errors="replace") as f:
+                    source = f.read()
+                tree = ast.parse(source)
+            except (OSError, SyntaxError):
+                continue
+
+            # Check if it has a router and route decorators
+            prefix = _find_router_prefix(tree)
+            has_routes = False
+            for node in ast.iter_child_nodes(tree):
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    if _extract_route_decorator(node):
+                        has_routes = True
+                        break
+
+            if not has_routes:
+                continue
+
+            # Extract structural pattern
+            pattern_parts: list[str] = []
+            pattern_parts.append(f"File: {rel}")
+            if prefix:
+                pattern_parts.append(f"  router = APIRouter(prefix=\"{prefix}\")")
+
+            # Find auth dependencies
+            for node in ast.iter_child_nodes(tree):
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    if "auth" in node.module:
+                        names = [alias.name for alias in (node.names or []) if alias.name != "*"]
+                        if names:
+                            pattern_parts.append(f"  Auth: {', '.join(names[:5])}")
+                        break
+
+            # Find response models (Pydantic BaseModel subclasses)
+            models: list[str] = []
+            for node in ast.iter_child_nodes(tree):
+                if isinstance(node, ast.ClassDef):
+                    for base in node.bases:
+                        bname = ""
+                        if isinstance(base, ast.Name):
+                            bname = base.id
+                        if bname == "BaseModel":
+                            models.append(node.name)
+            if models:
+                pattern_parts.append(f"  Response models: {', '.join(models[:5])}")
+
+            examples.append("\n".join(pattern_parts))
+            if len(examples) >= max_examples:
+                return examples
+
+    return examples
+
+
+def _read_model_example(root: str, max_examples: int = 3) -> list[str]:
+    """Read 2-3 model files and extract structural patterns."""
+    root_path = pathlib.Path(root)
+    examples: list[str] = []
+
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+        for fname in filenames:
+            if not fname.endswith(".py") or fname.startswith("__"):
+                continue
+            filepath = os.path.join(dirpath, fname)
+            rel = str(pathlib.Path(filepath).relative_to(root_path)).replace("\\", "/")
+
+            if "models" not in rel:
+                continue
+
+            try:
+                with open(filepath, encoding="utf-8", errors="replace") as f:
+                    source = f.read()
+                tree = ast.parse(source)
+            except (OSError, SyntaxError):
+                continue
+
+            # Find SQLAlchemy models
+            model_names: list[str] = []
+            base_class = ""
+            has_timestamps = False
+            has_uuid_pk = False
+            uses_mapped = False
+            uses_mapped_column = False
+            mixins: list[str] = []
+
+            for node in ast.iter_child_nodes(tree):
+                if not isinstance(node, ast.ClassDef):
+                    continue
+                if not _is_sqlalchemy_model(node):
+                    continue
+
+                model_names.append(node.name)
+
+                # Detect base classes and mixins
+                for base in node.bases:
+                    bname = ""
+                    if isinstance(base, ast.Name):
+                        bname = base.id
+                    elif isinstance(base, ast.Attribute):
+                        bname = base.attr
+                    if bname == "Base":
+                        base_class = "Base"
+                    elif bname and bname != "Base":
+                        mixins.append(bname)
+
+                # Detect common patterns in fields
+                for child in ast.iter_child_nodes(node):
+                    if isinstance(child, ast.AnnAssign) and isinstance(child.target, ast.Name):
+                        field_name = child.target.id
+                        if field_name in ("created_at", "updated_at"):
+                            has_timestamps = True
+                        if "uuid" in field_name.lower() or (
+                            field_name.endswith("_id") and child.target.id == model_names[-1].lower() + "_id"
+                        ):
+                            # Check annotation for UUID
+                            ann_str = ast.dump(child.annotation) if child.annotation else ""
+                            if "UUID" in ann_str or "uuid" in ann_str:
+                                has_uuid_pk = True
+
+                        # Detect Mapped[] type annotations
+                        if child.annotation:
+                            ann_str = ast.dump(child.annotation)
+                            if "Mapped" in ann_str:
+                                uses_mapped = True
+
+                        # Detect mapped_column() calls
+                        if child.value and isinstance(child.value, ast.Call):
+                            func = child.value.func
+                            fname = ""
+                            if isinstance(func, ast.Name):
+                                fname = func.id
+                            elif isinstance(func, ast.Attribute):
+                                fname = func.attr
+                            if fname == "mapped_column":
+                                uses_mapped_column = True
+
+            if not model_names:
+                continue
+
+            pattern_parts = [f"File: {rel}"]
+            pattern_parts.append(f"  Models: {', '.join(model_names)}")
+            if base_class:
+                pattern_parts.append(f"  Base class: {base_class}")
+            if mixins:
+                pattern_parts.append(f"  Mixins: {', '.join(set(mixins))}")
+            if uses_mapped:
+                pattern_parts.append("  Column style: Mapped[] type annotations with mapped_column()")
+            if has_uuid_pk:
+                pattern_parts.append("  PK: UUID with uuid4 default")
+            if has_timestamps:
+                pattern_parts.append("  Timestamps: created_at, updated_at")
+
+            examples.append("\n".join(pattern_parts))
+            if len(examples) >= max_examples:
+                return examples
+
+    return examples
+
+
+def _get_top_imports(cmap: CodebaseMap, top_n: int = 10) -> list[tuple[str, int]]:
+    """Get the most commonly imported modules across the codebase."""
+    counter: dict[str, int] = collections.Counter()
+    for m in cmap.modules:
+        for imp in m.imports:
+            # Normalize: take the top-level package
+            top_pkg = imp.split(".")[0]
+            # Skip stdlib / builtins
+            if top_pkg in ("__future__", "os", "sys", "re", "typing", "pathlib",
+                           "datetime", "uuid", "json", "collections", "functools",
+                           "dataclasses", "enum", "abc", "contextlib", "io"):
+                continue
+            counter[imp] += 1
+    return counter.most_common(top_n)
+
+
+def _detect_test_config(root: str) -> dict:
+    """Detect test framework configuration from config files.
+
+    Returns dict with keys: frameworks, test_dirs, coverage, naming, commands.
+    """
+    root_path = pathlib.Path(root)
+    config: dict = {
+        "frameworks": [],
+        "test_dirs": [],
+        "coverage_threshold": None,
+        "naming_conventions": [],
+        "commands": [],
+    }
+
+    # Check pyproject.toml for pytest config
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+        for fname in filenames:
+            filepath = os.path.join(dirpath, fname)
+            rel = str(pathlib.Path(filepath).relative_to(root_path)).replace("\\", "/")
+
+            if fname == "pyproject.toml":
+                try:
+                    with open(filepath, encoding="utf-8", errors="replace") as f:
+                        content = f.read()
+                    if "tool.pytest" in content or "pytest" in content:
+                        config["frameworks"].append("pytest")
+                        config["naming_conventions"].append("test_*.py")
+                        config["commands"].append("python -m pytest -x -q")
+
+                        # Extract testpaths
+                        for line in content.split("\n"):
+                            if "testpaths" in line:
+                                # Parse simple TOML list
+                                match = re.search(r'\[([^\]]+)\]', line)
+                                if match:
+                                    paths = [p.strip().strip('"').strip("'") for p in match.group(1).split(",")]
+                                    for p in paths:
+                                        test_dir = str(pathlib.Path(dirpath).relative_to(root_path) / p).replace("\\", "/")
+                                        if test_dir not in config["test_dirs"]:
+                                            config["test_dirs"].append(test_dir)
+
+                        # Extract coverage threshold
+                        for line in content.split("\n"):
+                            match = re.search(r'cov-fail-under[=\s]+(\d+)', line)
+                            if match:
+                                config["coverage_threshold"] = int(match.group(1))
+                except OSError:
+                    pass
+
+            elif fname == "pytest.ini":
+                config["frameworks"].append("pytest")
+                config["naming_conventions"].append("test_*.py")
+                config["commands"].append("python -m pytest -x -q")
+
+            elif fname in ("vitest.config.ts", "vitest.config.js", "vitest.config.mts"):
+                config["frameworks"].append("vitest")
+                config["commands"].append("npx vitest run")
+                try:
+                    with open(filepath, encoding="utf-8", errors="replace") as f:
+                        content = f.read()
+                    # Extract include patterns
+                    for match in re.finditer(r'include:\s*\[([^\]]+)\]', content):
+                        patterns = [p.strip().strip('"').strip("'") for p in match.group(1).split(",")]
+                        for p in patterns:
+                            if ".test." in p:
+                                config["naming_conventions"].append("*.test.ts / *.test.tsx")
+                                break
+                except OSError:
+                    pass
+
+                test_dir = str(pathlib.Path(dirpath).relative_to(root_path)).replace("\\", "/")
+                config["test_dirs"].append(test_dir)
+
+            elif fname in ("jest.config.ts", "jest.config.js", "jest.config.mjs"):
+                config["frameworks"].append("jest")
+                config["naming_conventions"].append("*.test.ts / *.spec.ts")
+                config["commands"].append("npx jest")
+
+            elif fname == "playwright.config.ts":
+                config["frameworks"].append("playwright")
+                config["commands"].append("npx playwright test")
+
+    # Deduplicate
+    config["frameworks"] = list(dict.fromkeys(config["frameworks"]))
+    config["naming_conventions"] = list(dict.fromkeys(config["naming_conventions"]))
+    config["commands"] = list(dict.fromkeys(config["commands"]))
+
+    return config
+
+
+def _detect_commit_conventions(root: str) -> dict:
+    """Parse git log to detect commit message conventions.
+
+    Returns dict with: format, prefixes, branch_patterns.
+    """
+    result: dict = {
+        "format": "unknown",
+        "prefixes": [],
+        "example_messages": [],
+    }
+
+    try:
+        proc = subprocess.run(
+            ["git", "log", "--oneline", "-30"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if proc.returncode != 0:
+            return result
+    except (OSError, subprocess.TimeoutExpired):
+        return result
+
+    lines = [l.strip() for l in proc.stdout.strip().split("\n") if l.strip()]
+    if not lines:
+        return result
+
+    # Detect conventional commits pattern: type(scope): message
+    conventional_re = re.compile(r'^[0-9a-f]+\s+([\w]+)(?:\(([^)]*)\))?:\s+(.+)')
+    prefix_counter: dict[str, int] = collections.Counter()
+    conventional_count = 0
+
+    for line in lines:
+        m = conventional_re.match(line)
+        if m:
+            conventional_count += 1
+            prefix_counter[m.group(1)] += 1
+
+    if conventional_count > len(lines) * 0.5:
+        result["format"] = "conventional"
+        result["prefixes"] = [p for p, _ in prefix_counter.most_common(8)]
+    else:
+        result["format"] = "freeform"
+
+    # Keep a few example messages
+    result["example_messages"] = lines[:5]
+
+    # Detect branch naming
+    try:
+        proc = subprocess.run(
+            ["git", "branch", "-r", "--list"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if proc.returncode == 0:
+            branches = [b.strip() for b in proc.stdout.strip().split("\n") if b.strip()]
+            # Check for patterns like feature/, fix/, chore/
+            prefixed = [b for b in branches if "/" in b.split("origin/")[-1] if "HEAD" not in b]
+            if prefixed:
+                result["branch_patterns"] = prefixed[:5]
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+
+    return result
+
+
+def _detect_source_globs(root: str) -> list[str]:
+    """Detect primary source directory globs for path-scoped rules."""
+    root_path = pathlib.Path(root)
+    globs: list[str] = []
+
+    # Common source patterns
+    for dirpath, dirnames, _ in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+        current = pathlib.Path(dirpath)
+        rel = str(current.relative_to(root_path)).replace("\\", "/")
+
+        # Detect app/, src/, lib/ style directories
+        if current.name in ("app", "src") and rel.count("/") <= 2:
+            globs.append(f"{rel}/**")
+        elif current.name == "components" and rel.count("/") <= 3:
+            globs.append(f"{rel}/**")
+
+    return globs[:6]  # Limit
+
+
+def _generate_anti_slop(
+    root: str,
+    cmap: CodebaseMap,
+    *,
+    max_utility_entries: int = 30,
+    max_pattern_examples: int = 3,
+) -> str:
+    """Generate anti-slop.md content from actual codebase scan."""
+    lines: list[str] = []
+
+    # --- Utility inventory ---
+    utils = _scan_utility_dirs(root, max_entries=max_utility_entries)
+    lines.append("# Known Utilities — DO NOT recreate")
+    lines.append("")
+    lines.append("Before writing new helpers, check these existing utilities:")
+    lines.append("")
+    for entry in utils[:max_utility_entries]:
+        path = entry["path"]
+        exports = entry["exports"]
+        if len(exports) <= 4:
+            lines.append(f"- `{path}`: {', '.join(exports)}")
+        else:
+            lines.append(f"- `{path}`: {', '.join(exports[:4])} (+{len(exports)-4} more)")
+    lines.append("")
+
+    # --- Route patterns ---
+    route_examples = _read_route_example(root, max_examples=max_pattern_examples)
+    if route_examples:
+        lines.append("# Route Pattern")
+        lines.append("")
+        lines.append("New route files MUST follow this structure:")
+        lines.append("")
+        for ex in route_examples[:2]:  # Show 2 max to save lines
+            for ex_line in ex.split("\n"):
+                lines.append(f"  {ex_line}")
+            lines.append("")
+
+    # --- Model patterns ---
+    model_examples = _read_model_example(root, max_examples=max_pattern_examples)
+    if model_examples:
+        lines.append("# Model Pattern")
+        lines.append("")
+        lines.append("New models MUST follow this structure:")
+        lines.append("")
+        for ex in model_examples[:2]:
+            for ex_line in ex.split("\n"):
+                lines.append(f"  {ex_line}")
+            lines.append("")
+
+    # --- Import patterns ---
+    top_imports = _get_top_imports(cmap, top_n=10)
+    if top_imports:
+        lines.append("# Common Imports")
+        lines.append("")
+        lines.append("Most-used packages (prefer these over new dependencies):")
+        lines.append("")
+        for imp, count in top_imports:
+            lines.append(f"- `{imp}` ({count} files)")
+        lines.append("")
+
+    # Enforce 100-line limit
+    if len(lines) > 98:
+        lines = lines[:96]
+        lines.append("")
+        lines.append("*(truncated to fit context budget)*")
+
+    return _build_rule(
+        description="Anti-drift rules — known utilities, patterns, imports",
+        globs=[],
+        body="\n".join(lines),
+        always_apply=True,
+    )
+
+
+def _generate_test_requirements(root: str) -> str:
+    """Generate test-requirements.md from detected test configuration."""
+    config = _detect_test_config(root)
+    source_globs = _detect_source_globs(root)
+
+    lines: list[str] = []
+    lines.append("# Testing Requirements")
+    lines.append("")
+
+    if config["frameworks"]:
+        lines.append(f"**Frameworks**: {', '.join(config['frameworks'])}")
+        lines.append("")
+
+    if config["test_dirs"]:
+        lines.append("**Test locations**:")
+        for d in config["test_dirs"]:
+            lines.append(f"- `{d}/`")
+        lines.append("")
+
+    if config["naming_conventions"]:
+        lines.append("**Naming conventions**:")
+        for nc in config["naming_conventions"]:
+            lines.append(f"- `{nc}`")
+        lines.append("")
+
+    if config["coverage_threshold"]:
+        lines.append(f"**Coverage floor**: {config['coverage_threshold']}% — CI will fail below this.")
+        lines.append("")
+
+    if config["commands"]:
+        lines.append("**Run commands**:")
+        for cmd in config["commands"]:
+            lines.append(f"- `{cmd}`")
+        lines.append("")
+
+    lines.append("# Rules")
+    lines.append("")
+    lines.append("- Every new feature or bugfix MUST include at least one test")
+    lines.append("- New source files need a corresponding test file")
+    lines.append("- Do NOT reduce coverage below the floor")
+    lines.append("")
+
+    globs = source_globs if source_globs else ["**"]
+
+    return _build_rule(
+        description="Testing requirements extracted from codebase",
+        globs=globs,
+        body="\n".join(lines),
+    )
+
+
+def _generate_commit_conventions(root: str) -> str:
+    """Generate commit-conventions.md from git log analysis."""
+    conv = _detect_commit_conventions(root)
+
+    lines: list[str] = []
+    lines.append("# Commit Conventions")
+    lines.append("")
+
+    if conv["format"] == "conventional":
+        lines.append("This project uses **conventional commits**.")
+        lines.append("")
+        lines.append("Format: `type(scope): description`")
+        lines.append("")
+        if conv["prefixes"]:
+            lines.append("**Detected prefixes** (from recent history):")
+            for p in conv["prefixes"]:
+                lines.append(f"- `{p}`")
+            lines.append("")
+    else:
+        lines.append("Commit format: freeform (no strict convention detected).")
+        lines.append("")
+
+    if conv.get("example_messages"):
+        lines.append("**Recent examples**:")
+        for msg in conv["example_messages"][:5]:
+            # Strip hash prefix
+            parts = msg.split(" ", 1)
+            if len(parts) > 1:
+                lines.append(f"- {parts[1]}")
+        lines.append("")
+
+    if conv.get("branch_patterns"):
+        lines.append("**Branch naming examples**:")
+        for bp in conv["branch_patterns"][:3]:
+            lines.append(f"- `{bp}`")
+        lines.append("")
+
+    lines.append("# Rules")
+    lines.append("")
+    lines.append("- Keep commit messages concise (under 72 chars for first line)")
+    lines.append("- Reference issue numbers when applicable")
+    if conv["format"] == "conventional":
+        lines.append("- Always use a recognized prefix from the list above")
+        lines.append("- Include scope in parentheses when the change targets a specific module")
+    lines.append("")
+
+    return _build_rule(
+        description="Commit message conventions detected from git history",
+        globs=[],
+        body="\n".join(lines),
+        always_apply=True,
+    )
+
+
+def _generate_quality_hook(root: str, cmap: CodebaseMap) -> str:
+    """Generate a standalone quality-check.py hook script.
+
+    The script must use only stdlib — no ctxpack imports.
+    """
+    # Detect test directory convention
+    test_dirs: list[str] = []
+    for m in cmap.modules:
+        parts = pathlib.PurePosixPath(m.path.replace("\\", "/")).parts
+        if "tests" in parts:
+            idx = parts.index("tests")
+            td = "/".join(parts[:idx + 1])
+            if td not in test_dirs:
+                test_dirs.append(td)
+        elif "__tests__" in parts:
+            idx = parts.index("__tests__")
+            td = "/".join(parts[:idx + 1])
+            if td not in test_dirs:
+                test_dirs.append(td)
+
+    # Detect utility dirs that exist
+    util_dirs: list[str] = []
+    root_path = pathlib.Path(root)
+    for dirpath, dirnames, _ in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+        current = pathlib.Path(dirpath)
+        if current.name in ("utils", "lib", "helpers", "core", "shared"):
+            rel = str(current.relative_to(root_path)).replace("\\", "/")
+            util_dirs.append(rel)
+
+    test_dirs_repr = repr(test_dirs[:8])
+    util_dirs_repr = repr(util_dirs[:8])
+
+    script = f'''#!/usr/bin/env python3
+"""Post-write quality check — standalone, stdlib only.
+
+Auto-generated by the codebase harness generator.
+Checks files after every write for common quality issues.
+
+Exit codes: 0 = pass, 1 = warnings found (printed to stderr).
+"""
+
+import ast
+import os
+import sys
+
+# --- Configuration (detected from codebase) ---
+TEST_DIRS = {test_dirs_repr}
+UTIL_DIRS = {util_dirs_repr}
+MAX_FILE_LINES = 500
+
+
+def check_python_file(filepath: str) -> list[str]:
+    """Check a Python file for quality issues."""
+    warnings: list[str] = []
+
+    try:
+        with open(filepath, encoding="utf-8", errors="replace") as f:
+            source = f.read()
+    except OSError:
+        return warnings
+
+    lines = source.split("\\n")
+
+    # Check file length
+    if len(lines) > MAX_FILE_LINES:
+        warnings.append(
+            f"{{filepath}}: {{len(lines)}} lines (max {{MAX_FILE_LINES}}) — consider splitting"
+        )
+
+    # Parse AST for deeper checks
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return warnings
+
+    for node in ast.iter_child_nodes(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            # Skip private/test functions
+            if node.name.startswith("_") or node.name.startswith("test_"):
+                continue
+
+            # Check return type annotation on public functions
+            if node.returns is None:
+                warnings.append(
+                    f"{{filepath}}:{{node.lineno}}: public function `{{node.name}}` "
+                    f"missing return type annotation"
+                )
+
+            # Check route handlers for return type
+            for dec in node.decorator_list:
+                if isinstance(dec, ast.Call) and isinstance(dec.func, ast.Attribute):
+                    method = dec.func.attr
+                    if method in ("get", "post", "put", "delete", "patch"):
+                        if node.returns is None:
+                            warnings.append(
+                                f"{{filepath}}:{{node.lineno}}: route handler "
+                                f"`{{node.name}}` missing return type"
+                            )
+
+    return warnings
+
+
+def check_missing_test(filepath: str) -> list[str]:
+    """Check if a new source file has a corresponding test file."""
+    warnings: list[str] = []
+
+    # Only check Python source files (not tests themselves)
+    if not filepath.endswith(".py"):
+        return warnings
+
+    basename = os.path.basename(filepath)
+    if basename.startswith("test_") or basename.startswith("conftest"):
+        return warnings
+
+    # Skip __init__.py and migration files
+    if basename == "__init__.py" or "alembic" in filepath or "migration" in filepath:
+        return warnings
+
+    # Look for corresponding test file
+    name_stem = basename.replace(".py", "")
+    expected_test = f"test_{{name_stem}}.py"
+
+    # Search in known test dirs
+    found = False
+    for test_dir in TEST_DIRS:
+        for dirpath, _, filenames in os.walk(test_dir):
+            if expected_test in filenames:
+                found = True
+                break
+        if found:
+            break
+
+    if not found and TEST_DIRS:
+        warnings.append(
+            f"{{filepath}}: no test file `{{expected_test}}` found in {{TEST_DIRS}}"
+        )
+
+    return warnings
+
+
+def check_local_utility_reimport(filepath: str) -> list[str]:
+    """Check if file imports something that already exists in utils/lib."""
+    warnings: list[str] = []
+    if not filepath.endswith(".py"):
+        return warnings
+
+    try:
+        with open(filepath, encoding="utf-8", errors="replace") as f:
+            source = f.read()
+        tree = ast.parse(source)
+    except (OSError, SyntaxError):
+        return warnings
+
+    for node in ast.iter_child_nodes(tree):
+        if isinstance(node, ast.ImportFrom) and node.module:
+            for util_dir in UTIL_DIRS:
+                norm = util_dir.replace("/", ".").replace("\\\\", ".")
+                if norm and norm in node.module:
+                    # This is fine — they ARE using the local utility
+                    break
+    return warnings
+
+
+def main() -> int:
+    if len(sys.argv) < 2:
+        print("Usage: quality-check.py <filepath>", file=sys.stderr)
+        return 0
+
+    filepath = sys.argv[1]
+    if not os.path.isfile(filepath):
+        return 0
+
+    all_warnings: list[str] = []
+
+    if filepath.endswith(".py"):
+        all_warnings.extend(check_python_file(filepath))
+        all_warnings.extend(check_missing_test(filepath))
+        all_warnings.extend(check_local_utility_reimport(filepath))
+    elif filepath.endswith((".ts", ".tsx")):
+        # Basic line count check for TS files
+        try:
+            with open(filepath, encoding="utf-8", errors="replace") as f:
+                line_count = sum(1 for _ in f)
+            if line_count > MAX_FILE_LINES:
+                all_warnings.append(
+                    f"{{filepath}}: {{line_count}} lines (max {{MAX_FILE_LINES}}) — consider splitting"
+                )
+        except OSError:
+            pass
+
+    if all_warnings:
+        for w in all_warnings:
+            print(f"WARN: {{w}}", file=sys.stderr)
+        return 1
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+'''
+    return script
+
+
+def generate_harness(
+    repo_path: str,
+    *,
+    output_dir: str = "",
+    include_hooks: bool = True,
+    include_rules: bool = True,
+    max_utility_entries: int = 30,
+    max_pattern_examples: int = 3,
+) -> list[str]:
+    """Generate a complete anti-drift harness for a codebase.
+
+    Scans the repository to produce codebase-specific rules and hooks
+    that prevent coding agents from drifting (recreating utilities,
+    breaking patterns, ignoring test requirements).
+
+    Args:
+        repo_path: Path to repository root.
+        output_dir: Where to write files. Default: {repo_path}/.claude/
+        include_hooks: Generate quality-check.py hook.
+        include_rules: Generate .claude/rules/ files.
+        max_utility_entries: Max utility files to list in anti-slop rules.
+        max_pattern_examples: Max pattern examples per category.
+
+    Returns:
+        List of file paths created (skips existing files).
+    """
+    if not output_dir:
+        output_dir = os.path.join(repo_path, ".claude")
+
+    # Analyze the codebase
+    cmap = analyze_codebase(repo_path)
+
+    created: list[str] = []
+
+    # --- Rules ---
+    if include_rules:
+        rules_dir = os.path.join(output_dir, "rules")
+        os.makedirs(rules_dir, exist_ok=True)
+
+        # 1. Anti-slop rules
+        anti_slop_path = os.path.join(rules_dir, "anti-slop.md")
+        if not os.path.exists(anti_slop_path):
+            content = _generate_anti_slop(
+                repo_path, cmap,
+                max_utility_entries=max_utility_entries,
+                max_pattern_examples=max_pattern_examples,
+            )
+            with open(anti_slop_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            created.append(anti_slop_path)
+
+        # 2. Test requirements
+        test_req_path = os.path.join(rules_dir, "test-requirements.md")
+        if not os.path.exists(test_req_path):
+            content = _generate_test_requirements(repo_path)
+            with open(test_req_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            created.append(test_req_path)
+
+        # 3. Commit conventions
+        commit_conv_path = os.path.join(rules_dir, "commit-conventions.md")
+        if not os.path.exists(commit_conv_path):
+            content = _generate_commit_conventions(repo_path)
+            with open(commit_conv_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            created.append(commit_conv_path)
+
+    # --- Hooks ---
+    if include_hooks:
+        hooks_dir = os.path.join(output_dir, "hooks")
+        os.makedirs(hooks_dir, exist_ok=True)
+
+        hook_path = os.path.join(hooks_dir, "quality-check.py")
+        if not os.path.exists(hook_path):
+            content = _generate_quality_hook(repo_path, cmap)
+            with open(hook_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            created.append(hook_path)
+
+    return created

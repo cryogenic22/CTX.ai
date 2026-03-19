@@ -10,6 +10,7 @@ Commands:
   ctxpack telemetry [path] [--json]
   ctxpack codebase analyze <repo-path>
   ctxpack codebase export --format claude-md|agents-md <repo-path>
+  ctxpack codebase harness <repo-path> [-o output-dir] [--no-hooks] [--no-rules]
 """
 
 from __future__ import annotations
@@ -165,6 +166,18 @@ def main(argv: list[str] | None = None) -> int:
     cb_export.add_argument("-o", "--output", help="Output file path (default: stdout)")
     cb_export.add_argument("--max-lines", type=int, default=200,
                            help="Maximum lines for output (default: 200)")
+
+    cb_harness = cb_sub.add_parser("harness", help="Generate anti-drift harness for coding agents")
+    cb_harness.add_argument("repo_path", help="Path to repository root")
+    cb_harness.add_argument("-o", "--output", help="Output directory (default: <repo>/.claude/)")
+    cb_harness.add_argument("--no-hooks", action="store_true",
+                            help="Skip hook generation")
+    cb_harness.add_argument("--no-rules", action="store_true",
+                            help="Skip rules generation")
+    cb_harness.add_argument("--max-utility-entries", type=int, default=30,
+                            help="Max utility files to list (default: 30)")
+    cb_harness.add_argument("--max-pattern-examples", type=int, default=3,
+                            help="Max pattern examples per category (default: 3)")
 
     args = ap.parse_args(argv)
 
@@ -513,12 +526,34 @@ def _cmd_telemetry(args: argparse.Namespace) -> int:
 
 
 def _cmd_codebase(args: argparse.Namespace) -> int:
-    from ..modules.codebase import analyze_codebase, export_claude_md, export_agents_md, export_rules
+    from ..modules.codebase import (
+        analyze_codebase, export_claude_md, export_agents_md, export_rules,
+        generate_harness,
+    )
 
     repo_path = args.repo_path
     if not os.path.isdir(repo_path):
         print(f"Not a directory: {repo_path}", file=sys.stderr)
         return 1
+
+    if args.codebase_command == "harness":
+        print(f"Generating anti-drift harness for: {repo_path}", file=sys.stderr)
+        output_dir = args.output or ""
+        files = generate_harness(
+            repo_path,
+            output_dir=output_dir,
+            include_hooks=not args.no_hooks,
+            include_rules=not args.no_rules,
+            max_utility_entries=args.max_utility_entries,
+            max_pattern_examples=args.max_pattern_examples,
+        )
+        for f in files:
+            print(f"  Created: {f}")
+        if files:
+            print(f"\n{len(files)} harness files generated.", file=sys.stderr)
+        else:
+            print("No new files created (all already exist).", file=sys.stderr)
+        return 0
 
     print(f"Analyzing codebase: {repo_path}", file=sys.stderr)
     cmap = analyze_codebase(repo_path)
