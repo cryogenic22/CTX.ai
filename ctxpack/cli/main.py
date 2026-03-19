@@ -541,12 +541,15 @@ def _cmd_codebase(args: argparse.Namespace) -> int:
         fmt = args.export_format
 
         if fmt == "claude-md":
-            # Check for existing CLAUDE.md
+            # Generate supplementary codebase map (NOT a CLAUDE.md replacement)
             existing = ""
             existing_path = os.path.join(repo_path, "CLAUDE.md")
             if os.path.isfile(existing_path):
                 with open(existing_path, encoding="utf-8") as f:
                     existing = f.read()
+                print("NOTE: Existing CLAUDE.md found. This generates a SUPPLEMENTARY", file=sys.stderr)
+                print("codebase map, not a replacement. Add '@.claude/codebase-map.md'", file=sys.stderr)
+                print("to your CLAUDE.md to import it.", file=sys.stderr)
             output = export_claude_md(cmap, existing_claude_md=existing, max_lines=max_lines)
         elif fmt == "agents-md":
             output = export_agents_md(cmap, max_lines=max_lines)
