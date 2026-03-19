@@ -8,6 +8,8 @@ Commands:
   ctxpack eval [--golden-set PATH] [--skip-fidelity] [--skip-latency] [--skip-human] [--output PATH]
   ctxpack bench [--sizes 1000,5000,10000] [--iterations 10] [--json]
   ctxpack telemetry [path] [--json]
+  ctxpack codebase analyze <repo-path>
+  ctxpack codebase export --format claude-md|agents-md <repo-path>
 """
 
 from __future__ import annotations
@@ -148,6 +150,22 @@ def main(argv: list[str] | None = None) -> int:
     p_telem.add_argument("--json", action="store_true", dest="json_output",
                          help="Output as JSON")
 
+    # codebase
+    p_codebase = sub.add_parser("codebase", help="Analyze codebase and generate agent context")
+    cb_sub = p_codebase.add_subparsers(dest="codebase_command", required=True)
+
+    cb_analyze = cb_sub.add_parser("analyze", help="Analyze a codebase and print summary")
+    cb_analyze.add_argument("repo_path", help="Path to repository root")
+
+    cb_export = cb_sub.add_parser("export", help="Export codebase context to a format")
+    cb_export.add_argument("repo_path", help="Path to repository root")
+    cb_export.add_argument("--format", dest="export_format", required=True,
+                           choices=["claude-md", "agents-md", "rules"],
+                           help="Output format: claude-md, agents-md, or rules")
+    cb_export.add_argument("-o", "--output", help="Output file path (default: stdout)")
+    cb_export.add_argument("--max-lines", type=int, default=200,
+                           help="Maximum lines for output (default: 200)")
+
     args = ap.parse_args(argv)
 
     try:
@@ -171,6 +189,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_scaling(args)
         elif args.command == "telemetry":
             return _cmd_telemetry(args)
+        elif args.command == "codebase":
+            return _cmd_codebase(args)
     except ParseError as e:
         print(f"Parse error: {e}", file=sys.stderr)
         return 1
@@ -488,6 +508,68 @@ def _cmd_telemetry(args: argparse.Namespace) -> int:
             print(f"\n  Top sections:")
             for name, count in summary['top_sections'][:10]:
                 print(f"    {name:40s} {count:>4d}")
+
+    return 0
+
+
+def _cmd_codebase(args: argparse.Namespace) -> int:
+    from ..modules.codebase import analyze_codebase, export_claude_md, export_agents_md, export_rules
+
+    repo_path = args.repo_path
+    if not os.path.isdir(repo_path):
+        print(f"Not a directory: {repo_path}", file=sys.stderr)
+        return 1
+
+    print(f"Analyzing codebase: {repo_path}", file=sys.stderr)
+    cmap = analyze_codebase(repo_path)
+
+    if args.codebase_command == "analyze":
+        print(f"Files: {cmap.total_files}")
+        print(f"Lines: {cmap.total_lines:,}")
+        print(f"Architecture: {cmap.architecture}")
+        print(f"Frameworks: {', '.join(cmap.frameworks)}")
+        all_routes = sum(len(m.routes) for m in cmap.modules)
+        all_models = sum(len(m.models) for m in cmap.modules)
+        total_tests = sum(m.test_count for m in cmap.modules)
+        print(f"API routes: {all_routes}")
+        print(f"Data models: {all_models}")
+        print(f"Test functions: {total_tests}")
+        return 0
+
+    elif args.codebase_command == "export":
+        max_lines = args.max_lines
+        fmt = args.export_format
+
+        if fmt == "claude-md":
+            # Check for existing CLAUDE.md
+            existing = ""
+            existing_path = os.path.join(repo_path, "CLAUDE.md")
+            if os.path.isfile(existing_path):
+                with open(existing_path, encoding="utf-8") as f:
+                    existing = f.read()
+            output = export_claude_md(cmap, existing_claude_md=existing, max_lines=max_lines)
+        elif fmt == "agents-md":
+            output = export_agents_md(cmap, max_lines=max_lines)
+        elif fmt == "rules":
+            out_dir = args.output or os.path.join(repo_path, ".claude", "rules")
+            files = export_rules(cmap, out_dir)
+            for f in files:
+                print(f"  Created: {f}")
+            print(f"\n{len(files)} rule files written to {out_dir}")
+            return 0
+        else:
+            print(f"Unknown format: {fmt}", file=sys.stderr)
+            return 1
+
+        if args.output:
+            os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                f.write(output)
+            print(f"Written to {args.output}", file=sys.stderr)
+        else:
+            print(output)
+
+        return 0
 
     return 0
 
