@@ -268,9 +268,20 @@ def _entity_to_section(
             KeyValue(key=field.key, value=value)
         )
 
-    # Add provenance
+    # Add provenance — forward the entity's layer/confidence/expiry so the
+    # trust metadata survives IR → AST and downstream consumers (hydrator,
+    # grounding) can read it from the section's first Provenance child.
     for source in entity.sources:
-        children.append(Provenance(source=str(source), path=source.file))
+        children.append(
+            Provenance(
+                source=str(source),
+                path=source.file,
+                layer=entity.layer,
+                confidence=entity.confidence,
+                observation_count=entity.observation_count,
+                expires_at=entity.expires_at,
+            )
+        )
 
     # Build subtitles from golden source
     subtitles = []

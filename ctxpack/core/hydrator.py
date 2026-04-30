@@ -13,8 +13,9 @@ import hashlib
 import re
 import time
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
+from .layers import ContextLayer
 from .model import CTXDocument, KeyValue, NumberedItem, PlainLine, Provenance, Section
 from .serializer import serialize_section, _serialize_header_iter
 
@@ -33,6 +34,7 @@ class HydrationResult:
     tokens_injected: int = 0
     sections_available: int = 0
     header_text: str = ""
+    layer_breakdown: dict[str, int] = field(default_factory=dict)
 
 
 # ── Section Index (O(1) lookup) ──
@@ -53,6 +55,38 @@ def _count_section_tokens(section: Section) -> int:
     return len("\n".join(lines).split())
 
 
+def _section_provenance(section: Section) -> Optional[Provenance]:
+    """Return the section's first Provenance child, or None.
+
+    The compressor injects a Provenance per source, and consumers care
+    about the dominant layer, so the first one is sufficient.
+    """
+    for child in section.children:
+        if isinstance(child, Provenance):
+            return child
+    return None
+
+
+def _section_layer(section: Section) -> ContextLayer:
+    """Return the layer recorded in the section's Provenance.
+
+    Sections without provenance default to RULES so that legacy packs
+    (built before the four-layer architecture) keep their existing
+    semantics.
+    """
+    prov = _section_provenance(section)
+    return prov.layer if prov is not None else ContextLayer.RULES
+
+
+def _section_confidence(section: Section) -> float:
+    """Return the confidence recorded in the section's Provenance.
+
+    Sections without provenance default to 1.0 (full confidence).
+    """
+    prov = _section_provenance(section)
+    return prov.confidence if prov is not None else 1.0
+
+
 # ── Public API ──
 
 
@@ -65,6 +99,9 @@ def hydrate_by_name(
     question: str = "",
     session_id: str = "",
     rehydration_triggered: bool = False,
+    layers: Optional[set[ContextLayer]] = None,
+    min_confidence: float = 0.0,
+    include_layer_metadata: bool = False,
 ) -> HydrationResult:
     """Return specific sections by name. O(1) lookup via index.
 
@@ -79,6 +116,12 @@ def hydrate_by_name(
         question: Original question text (will be hashed, not stored raw).
         session_id: Session identifier for grouping events.
         rehydration_triggered: Whether this is a re-hydration attempt.
+        layers: Restrict matches to sections whose Provenance layer is in
+            this set. ``None`` (default) returns all layers.
+        min_confidence: Drop sections whose Provenance confidence is below
+            this threshold. Default 0.0 keeps everything.
+        include_layer_metadata: When True, populate ``layer_breakdown`` on
+            the result with per-layer section counts for telemetry / UI.
 
     Returns:
         HydrationResult with matched sections and token counts.
@@ -91,8 +134,13 @@ def hydrate_by_name(
     matched: list[Section] = []
     for name in section_names:
         section = index.get(name.upper())
-        if section is not None:
-            matched.append(section)
+        if section is None:
+            continue
+        if layers is not None and _section_layer(section) not in layers:
+            continue
+        if min_confidence > 0.0 and _section_confidence(section) < min_confidence:
+            continue
+        matched.append(section)
 
     # Count tokens
     total_tokens = 0
@@ -108,11 +156,18 @@ def hydrate_by_name(
         header_text = "\n".join(header_lines)
         total_tokens += len(header_text.split())
 
+    breakdown: dict[str, int] = {}
+    if include_layer_metadata:
+        for section in matched:
+            key = _section_layer(section).value
+            breakdown[key] = breakdown.get(key, 0) + 1
+
     result = HydrationResult(
         sections=matched,
         tokens_injected=total_tokens,
         sections_available=len(all_sections),
         header_text=header_text,
+        layer_breakdown=breakdown,
     )
 
     # Log telemetry if enabled

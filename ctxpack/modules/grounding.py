@@ -30,6 +30,18 @@ _TEMPERATURE_WARNING = (
     "Higher temperatures increase hallucination risk."
 )
 
+_LAYER_LEGEND = (
+    "Trust Legend — every fact in the catalog and hydrated detail "
+    "carries one of four trust layers. Weight your reasoning accordingly:\n"
+    "  - rules    : authoritative policy / contract / regulation. Treat as fact.\n"
+    "  - inferred : pattern observed from telemetry. Treat as observation, "
+    "not policy. State confidence when citing.\n"
+    "  - elicited : tribal knowledge surfaced by an expert. Treat as a "
+    "well-informed opinion that may still be wrong.\n"
+    "  - ambient  : live state at hydration time (flags, queue depth). "
+    "Goes stale fast — say so if the user might re-read tomorrow."
+)
+
 # ── Entity counting ──
 
 _HEADING_RE = re.compile(r"^#{1,6}\s+\S", re.MULTILINE)
@@ -131,6 +143,7 @@ def build_grounded_prompt(
     few_shot: bool = True,
     entity_count_reminder: bool = True,
     temperature_warning: bool = True,
+    layer_legend: bool = False,
 ) -> str:
     """Build a grounded system prompt with sandwich reinforcement.
 
@@ -194,6 +207,10 @@ def build_grounded_prompt(
     parts.append(catalog.rstrip())
     parts.append("--- END CATALOG ---")
     parts.append("")
+
+    if layer_legend:
+        parts.append(_LAYER_LEGEND)
+        parts.append("")
 
     if hydrated:
         parts.append("--- HYDRATED DETAIL ---")
