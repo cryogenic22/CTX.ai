@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
 
+from ctxpack.core.layers import ContextLayer
+
 # ── Value-level micro-syntax patterns ──
 
 # Window/tolerance: ±3d, ±2w, ±1m, ±30m (minutes vs months disambiguated by context)
@@ -70,6 +72,10 @@ class IRField:
 
     ``value`` stores already-compressed L2 notation.
     ``raw_value`` retains the original parsed structure for dedup/conflict detection.
+
+    The ``layer`` / ``confidence`` / ``observation_count`` / ``expires_at``
+    fields back the four-layer context architecture. They default to the
+    RULES tier with full confidence so existing callers behave unchanged.
     """
 
     key: str
@@ -79,11 +85,20 @@ class IRField:
     salience: float = 1.0
     certainty: Certainty = Certainty.EXPLICIT
     additional_sources: list[IRSource] = field(default_factory=list)
+    layer: ContextLayer = ContextLayer.RULES
+    confidence: float = 1.0
+    observation_count: int = 0
+    expires_at: Optional[float] = None
 
 
 @dataclass
 class IREntity:
-    """A resolved domain entity (e.g. CUSTOMER, ORDER)."""
+    """A resolved domain entity (e.g. CUSTOMER, ORDER).
+
+    ``layer`` and friends mirror IRField so an entity surfaced wholly from
+    telemetry (INFERRED) or live state (AMBIENT) carries its own trust
+    metadata even when its individual fields are unlabelled.
+    """
 
     name: str
     aliases: list[str] = field(default_factory=list)
@@ -92,6 +107,10 @@ class IREntity:
     sources: list[IRSource] = field(default_factory=list)
     salience: float = 1.0
     relationships: list[IRRelationship] = field(default_factory=list)
+    layer: ContextLayer = ContextLayer.RULES
+    confidence: float = 1.0
+    observation_count: int = 0
+    expires_at: Optional[float] = None
 
 
 @dataclass

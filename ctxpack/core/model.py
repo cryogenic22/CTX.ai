@@ -7,6 +7,7 @@ from enum import Enum
 from typing import Optional, Union
 
 from .errors import Span
+from .layers import ContextLayer
 
 
 # ── Enums ──
@@ -76,10 +77,23 @@ class QuotedBlock:
 
 @dataclass(frozen=True)
 class Provenance:
+    """Pointer back to the origin of a fact, plus its trust metadata.
+
+    The ``layer`` / ``confidence`` / ``observation_count`` / ``last_confirmed``
+    / ``expires_at`` fields back the four-layer context architecture. They
+    default to RULES with full confidence so every existing call site
+    keeps its current meaning ("this came from a versioned document").
+    """
+
     source: str
     path: str = ""
     line_range: str = ""
     span: Optional[Span] = None
+    layer: ContextLayer = ContextLayer.RULES
+    confidence: float = 1.0
+    observation_count: int = 0
+    last_confirmed: Optional[float] = None
+    expires_at: Optional[float] = None
 
 
 @dataclass(frozen=True)
