@@ -167,6 +167,93 @@ def main(argv: list[str] | None = None) -> int:
     cb_export.add_argument("--max-lines", type=int, default=200,
                            help="Maximum lines for output (default: 200)")
 
+    # dream — consolidate telemetry into INFERRED patterns
+    p_dream = sub.add_parser(
+        "dream",
+        help="Consolidate telemetry into INFERRED patterns and a gap queue",
+    )
+    dream_sub = p_dream.add_subparsers(dest="dream_command", required=True)
+
+    d_consolidate = dream_sub.add_parser(
+        "consolidate",
+        help="Mine co-occurrence patterns and gaps from a telemetry log",
+    )
+    d_consolidate.add_argument(
+        "telemetry_path",
+        nargs="?",
+        default=".ctxpack/telemetry.jsonl",
+        help="Path to telemetry JSONL (default: .ctxpack/telemetry.jsonl)",
+    )
+    d_consolidate.add_argument(
+        "--min-co-occurrences",
+        type=int,
+        default=3,
+        help="Minimum co-occurrences before a pattern is emitted (default: 3)",
+    )
+    d_consolidate.add_argument(
+        "--gap-min-occurrences",
+        type=int,
+        default=3,
+        help="Minimum recurrences before a gap is queued (default: 3)",
+    )
+    d_consolidate.add_argument(
+        "--json",
+        action="store_true",
+        dest="json_output",
+        help="Output as JSON instead of human-readable text",
+    )
+
+    d_queue = dream_sub.add_parser(
+        "queue",
+        help="Print elicitation prompts for current gaps",
+    )
+    d_queue.add_argument(
+        "telemetry_path",
+        nargs="?",
+        default=".ctxpack/telemetry.jsonl",
+    )
+    d_queue.add_argument(
+        "--gap-min-occurrences",
+        type=int,
+        default=3,
+    )
+
+    # elicit — capture expert tribal knowledge
+    p_elicit = sub.add_parser(
+        "elicit",
+        help="Capture expert tribal knowledge as ELICITED facts",
+    )
+    elicit_sub = p_elicit.add_subparsers(dest="elicit_command", required=True)
+
+    e_add = elicit_sub.add_parser("add", help="Capture a fact from a single expert")
+    e_add.add_argument("name", help="Entity / section the fact belongs to")
+    e_add.add_argument("fact", help="The fact text (free-form)")
+    e_add.add_argument("--expert", required=True, help="Expert username")
+    e_add.add_argument(
+        "--store",
+        default=".ctx-cache/elicited.json",
+        help="Path to the elicit store (default: .ctx-cache/elicited.json)",
+    )
+
+    e_confirm = elicit_sub.add_parser(
+        "confirm", help="Second expert confirms an existing fact"
+    )
+    e_confirm.add_argument("name")
+    e_confirm.add_argument("--expert", required=True)
+    e_confirm.add_argument("--store", default=".ctx-cache/elicited.json")
+
+    e_challenge = elicit_sub.add_parser(
+        "challenge", help="Different expert disputes an existing fact"
+    )
+    e_challenge.add_argument("name")
+    e_challenge.add_argument("--expert", required=True)
+    e_challenge.add_argument("--reason", default="")
+    e_challenge.add_argument("--store", default=".ctx-cache/elicited.json")
+
+    e_list = elicit_sub.add_parser("list", help="Print all captured facts")
+    e_list.add_argument("--store", default=".ctx-cache/elicited.json")
+    e_list.add_argument("--json", action="store_true", dest="json_output")
+
     cb_harness = cb_sub.add_parser("harness", help="Generate anti-drift harness for coding agents")
     cb_harness.add_argument("repo_path", help="Path to repository root")
     cb_harness.add_argument("-o", "--output", help="Output directory (default: <repo>/.claude/)")
@@ -204,6 +291,10 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_telemetry(args)
         elif args.command == "codebase":
             return _cmd_codebase(args)
+        elif args.command == "dream":
+            return _cmd_dream(args)
+        elif args.command == "elicit":
+            return _cmd_elicit(args)
     except ParseError as e:
         print(f"Parse error: {e}", file=sys.stderr)
         return 1
@@ -610,6 +701,162 @@ def _cmd_codebase(args: argparse.Namespace) -> int:
         return 0
 
     return 0
+
+
+def _cmd_dream(args: argparse.Namespace) -> int:
+    """Run a consolidation pass over a telemetry log."""
+    import json as _json
+
+    from ..core.telemetry import TelemetryLog
+    from ..modules.dream import consolidate, detect_gaps
+    from ..modules.elicit import build_elicitation_prompt as _bep
+
+    tlog = TelemetryLog(path=args.telemetry_path)
+
+    if args.dream_command == "consolidate":
+        result = consolidate(
+            tlog,
+            min_co_occurrences=args.min_co_occurrences,
+            gap_min_occurrences=args.gap_min_occurrences,
+        )
+        if getattr(args, "json_output", False):
+            payload = {
+                "patterns": [
+                    {
+                        "name": e.name,
+                        "confidence": e.confidence,
+                        "observation_count": e.observation_count,
+                    }
+                    for e in result.entities
+                ],
+                "gaps": [
+                    {
+                        "question_hash": g.question_hash,
+                        "occurrences": g.occurrences,
+                        "first_seen": g.first_seen,
+                        "last_seen": g.last_seen,
+                    }
+                    for g in result.gaps
+                ],
+            }
+            print(_json.dumps(payload, indent=2))
+            return 0
+
+        print(f"Dream pass over {args.telemetry_path}")
+        print("=" * 60)
+        print(f"Patterns mined : {len(result.entities)}")
+        print(f"Gaps queued    : {len(result.gaps)}")
+        if result.entities:
+            print("\nTop patterns (by observation count):")
+            for e in sorted(
+                result.entities, key=lambda e: -e.observation_count
+            )[:10]:
+                print(
+                    f"  {e.name:60s}  obs={e.observation_count:>4d}  "
+                    f"conf={e.confidence:.2f}"
+                )
+        if result.gaps:
+            print("\nTop gaps:")
+            for g in result.gaps[:10]:
+                print(
+                    f"  {g.question_hash[:16]:<16s}  occurred {g.occurrences} times "
+                    f"({g.first_seen[:10]} → {g.last_seen[:10]})"
+                )
+        return 0
+
+    if args.dream_command == "queue":
+        gaps = detect_gaps(tlog, min_occurrences=args.gap_min_occurrences)
+        if not gaps:
+            print(f"No gaps above threshold in {args.telemetry_path}.")
+            return 0
+        for g in gaps:
+            print(_bep(g))
+            print("---")
+        return 0
+
+    return 1
+
+
+def _cmd_elicit(args: argparse.Namespace) -> int:
+    """Capture / confirm / challenge / list ELICITED facts."""
+    import json as _json
+
+    from ..modules.elicit import ElicitStore
+
+    store = ElicitStore.load(args.store)
+
+    if args.elicit_command == "add":
+        store.add(name=args.name, fact=args.fact, expert=args.expert)
+        store.save(args.store)
+        print(
+            f"Captured ELICITED fact for {args.name} (expert={args.expert}, "
+            f"confidence=0.70). Stored in {args.store}."
+        )
+        return 0
+
+    if args.elicit_command == "confirm":
+        store.confirm(name=args.name, expert=args.expert)
+        store.save(args.store)
+        f = store.get(args.name)
+        print(
+            f"{args.expert} confirmed {args.name}. Confidence is now "
+            f"{f.confidence:.2f}."
+        )
+        return 0
+
+    if args.elicit_command == "challenge":
+        store.challenge(
+            name=args.name, expert=args.expert, reason=args.reason
+        )
+        store.save(args.store)
+        f = store.get(args.name)
+        print(
+            f"{args.expert} challenged {args.name}. Confidence dropped to "
+            f"{f.confidence:.2f}."
+        )
+        return 0
+
+    if args.elicit_command == "list":
+        if getattr(args, "json_output", False):
+            payload = {
+                "facts": [
+                    {
+                        "name": f.name,
+                        "fact": f.fact,
+                        "original_expert": f.original_expert,
+                        "confirming_expert": f.confirming_expert,
+                        "confidence": f.confidence,
+                        "dissenters": f.dissenters,
+                    }
+                    for f in store.list()
+                ]
+            }
+            print(_json.dumps(payload, indent=2))
+            return 0
+        if not store.list():
+            print(f"No elicited facts in {args.store}.")
+            return 0
+        print(f"Elicited facts ({len(store)})")
+        print("=" * 60)
+        for f in store.list():
+            confirmer = (
+                f", confirmed by {f.confirming_expert}"
+                if f.confirming_expert
+                else ""
+            )
+            dissent = (
+                f", challenged by {','.join(f.dissenters)}"
+                if f.dissenters
+                else ""
+            )
+            print(
+                f"  {f.name}  conf={f.confidence:.2f}  "
+                f"by {f.original_expert}{confirmer}{dissent}"
+            )
+            print(f"    {f.fact}")
+        return 0
+
+    return 1
 
 
 def _read_file(path: str) -> str:
