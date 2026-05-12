@@ -20,7 +20,7 @@ import json
 import os
 import sys
 import tempfile
-from typing import Any, Optional
+from typing import Any, Optional  # noqa: F401
 
 # ── MCP SDK import ──
 try:
@@ -46,6 +46,29 @@ try:
     HAS_PACKER = True
 except ImportError:
     HAS_PACKER = False
+
+# Code packer (optional — tree-sitter + tiktoken via [code] extra)
+try:
+    from ..core.code.pack import (
+        Pack as CodePack,
+        hydrate_symbol as code_hydrate_symbol,
+        list_symbols as code_list_symbols,
+        pack_codebase,
+        pack_version as code_pack_version,
+        raw_file as code_raw_file,
+        render_manifest as code_render_manifest,
+        search_symbols as code_search_symbols,
+    )
+    HAS_CODE_PACKER = True
+except ImportError:
+    HAS_CODE_PACKER = False
+    CodePack = None  # type: ignore[assignment]
+
+# Shared cache: the most recently built code pack. Re-set every time
+# ctx/code_pack runs so subsequent tool calls operate on a consistent
+# snapshot. Single-pack-at-a-time model is the v0 simplification;
+# multi-pack support is a v0.1 item.
+_CODE_PACK: "Optional[CodePack]" = None
 
 
 # ── Tool definitions ──
@@ -228,6 +251,117 @@ TOOLS = [
         },
     ),
 ]
+
+
+_CODE_TOOLS = [
+    Tool(
+        name="ctx/code_pack",
+        description=(
+            "Pack a code repository (Python only at v0) into a queryable "
+            "index of symbols, decorators, FastAPI routes, dependencies, "
+            "and Pydantic models. Caches the pack server-side; "
+            "follow-up tools (ctx/code_list_symbols, ctx/code_hydrate_symbol, "
+            "etc.) operate on the most recently packed root."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["root"],
+            "properties": {
+                "root": {
+                    "type": "string",
+                    "description": "Absolute path to the codebase root.",
+                },
+                "include_body": {
+                    "type": "boolean",
+                    "description": "Include full source bodies on each entity. Default true.",
+                    "default": True,
+                },
+            },
+        },
+    ),
+    Tool(
+        name="ctx/code_version",
+        description="Return the content-hash pack_version. Cheap stale-pack probe.",
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="ctx/code_list_symbols",
+        description=(
+            "Return top-k symbols in a module, ranked by centrality. "
+            "Returns catalog rows: '<qualified-name> | <kind> | <signature> | <docstring 1st line>'."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["module"],
+            "properties": {
+                "module": {
+                    "type": "string",
+                    "description": "Module path relative to the pack root (e.g. 'src/api/routes.py').",
+                },
+                "k": {"type": "integer", "default": 50, "description": "Max symbols to return."},
+                "context": {
+                    "type": "string",
+                    "description": "Optional working-set hint for per-turn ranking (currently logged, not used in ranking).",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="ctx/code_hydrate_symbol",
+        description=(
+            "Return a symbol's full IRField content (signature, docstring, body, "
+            "decorators, http_method/path, dependencies, pydantic_fields). "
+            "depth=1 also returns 1-hop neighbour bodies budgeted to 4K BPE."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Qualified symbol name (e.g. 'src/api/routes.py::create_user').",
+                },
+                "depth": {
+                    "type": "integer",
+                    "default": 0,
+                    "description": "0 = just this symbol. 1 = also neighbour bodies (caller/callee), capped at 4K BPE.",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="ctx/code_search_symbols",
+        description=(
+            "Fuzzy search across symbol names, signatures, and docstrings. "
+            "Returns top-k matches ranked by hit location and centrality."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["query"],
+            "properties": {
+                "query": {"type": "string", "description": "Search text."},
+                "k": {"type": "integer", "default": 10},
+            },
+        },
+    ),
+    Tool(
+        name="ctx/code_raw_file",
+        description=(
+            "Escape hatch: return raw file bytes when the curated pack is insufficient. "
+            "Subject only to .gitignore / .ctxpackignore exclusions. Path-traversal blocked."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["path"],
+            "properties": {
+                "path": {"type": "string", "description": "Path relative to the pack root."},
+            },
+        },
+    ),
+]
+
+# Append code tools to the list MCP advertises.
+TOOLS = TOOLS + _CODE_TOOLS
 
 
 # ── Tool implementations ──
@@ -434,12 +568,121 @@ _telemetry = TelemetryLog()
 
 # ── Tool dispatch ──
 
+# ── Code-packer tool handlers (CP-026/027/028/029/030/030.5) ──
+
+
+def _no_code_packer() -> str:
+    return json.dumps({
+        "error": {
+            "code": "internal_parse_error",
+            "message": (
+                "Code packer not available. Install the optional "
+                "extra: pip install ctxpack[code]"
+            ),
+        }
+    })
+
+
+def handle_code_pack(arguments: dict[str, Any]) -> str:
+    """Build a code pack from ``root`` and cache it for follow-up tools."""
+    if not HAS_CODE_PACKER:
+        return _no_code_packer()
+    global _CODE_PACK
+    root = arguments.get("root")
+    if not root:
+        return json.dumps({"error": {"code": "invalid_input",
+                                     "message": "root is required"}})
+    if not os.path.isdir(root):
+        return json.dumps({"error": {"code": "path_outside_root",
+                                     "message": f"Not a directory: {root}"}})
+    include_body = bool(arguments.get("include_body", True))
+    _CODE_PACK = pack_codebase(root, include_body=include_body)
+    return json.dumps({
+        "pack_version": _CODE_PACK.version,
+        "files": len(_CODE_PACK.files),
+        "entities": len(_CODE_PACK.entities),
+        "warnings": len(_CODE_PACK.warnings),
+        "root": _CODE_PACK.root,
+        "manifest": code_render_manifest(_CODE_PACK),
+    })
+
+
+def _require_pack() -> "Optional[str]":
+    """Return a JSON error string if no pack is loaded, else None."""
+    if _CODE_PACK is None:
+        return json.dumps({"error": {
+            "code": "pack_not_loaded",
+            "message": "Call ctx/code_pack(root) first.",
+        }})
+    return None
+
+
+def handle_code_version(_arguments: dict[str, Any]) -> str:
+    if not HAS_CODE_PACKER:
+        return _no_code_packer()
+    err = _require_pack()
+    if err is not None:
+        return err
+    return json.dumps(code_pack_version(_CODE_PACK))
+
+
+def handle_code_list_symbols(arguments: dict[str, Any]) -> str:
+    if not HAS_CODE_PACKER:
+        return _no_code_packer()
+    err = _require_pack()
+    if err is not None:
+        return err
+    module = arguments.get("module", "")
+    k = int(arguments.get("k", 50))
+    context = arguments.get("context")
+    return json.dumps(code_list_symbols(_CODE_PACK, module, k=k, context=context))
+
+
+def handle_code_hydrate_symbol(arguments: dict[str, Any]) -> str:
+    if not HAS_CODE_PACKER:
+        return _no_code_packer()
+    err = _require_pack()
+    if err is not None:
+        return err
+    name = arguments.get("name", "")
+    depth = int(arguments.get("depth", 0))
+    return json.dumps(code_hydrate_symbol(_CODE_PACK, name, depth=depth))
+
+
+def handle_code_search_symbols(arguments: dict[str, Any]) -> str:
+    if not HAS_CODE_PACKER:
+        return _no_code_packer()
+    err = _require_pack()
+    if err is not None:
+        return err
+    query = arguments.get("query", "")
+    k = int(arguments.get("k", 10))
+    return json.dumps(code_search_symbols(_CODE_PACK, query, k=k))
+
+
+def handle_code_raw_file(arguments: dict[str, Any]) -> str:
+    if not HAS_CODE_PACKER:
+        return _no_code_packer()
+    err = _require_pack()
+    if err is not None:
+        return err
+    path = arguments.get("path", "")
+    return json.dumps(code_raw_file(_CODE_PACK, path))
+
+
 _HANDLERS = {
     "ctx/pack": handle_pack,
     "ctx/parse": handle_parse,
     "ctx/validate": handle_validate,
     "ctx/format": handle_format,
     "ctx/hydrate": lambda args: handle_hydrate(args, telemetry=_telemetry),
+    # Code-packer tools (CP-026/027/028/029/030.5)
+    "ctx/code_pack": handle_code_pack,
+    "ctx/code_version": handle_code_version,
+    "ctx/code_list_symbols": handle_code_list_symbols,
+    "ctx/code_hydrate_symbol": handle_code_hydrate_symbol,
+    "ctx/code_search_symbols": handle_code_search_symbols,
+    "ctx/code_raw_file": handle_code_raw_file,
 }
 
 
