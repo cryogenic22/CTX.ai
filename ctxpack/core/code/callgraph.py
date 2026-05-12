@@ -92,3 +92,52 @@ def _walk_calls(node: tree_sitter.Node):
         if n.type == "call":
             yield n
         stack.extend(n.children)
+
+
+def resolve_callees(
+    edges: list[CallEdge],
+    nodes: set[str],
+) -> list[CallEdge]:
+    """Map raw callee text (``User``, ``Widget.tick``, ``logger.info``)
+    to qualified entity names (``models.py::User``) by local-name
+    lookup.
+
+    Heuristic: build a multimap from local-name (and from the tail of
+    dotted callees) to qualified names. An edge resolves only when
+    exactly one candidate exists — multi-candidate collisions are
+    dropped as ambiguous, single-target hits flow through. This is
+    good enough for PageRank signal; CP-021's BM25 task_score takes
+    over once it's wired.
+    """
+    from collections import defaultdict
+
+    by_local: dict[str, list[str]] = defaultdict(list)
+    for n in nodes:
+        local = n.split("::", 1)[1] if "::" in n else n
+        by_local[local].append(n)
+        # Also index by tail of dotted names so ``Widget.tick`` is
+        # findable as a callee in another file's ``tick(...)`` call —
+        # but the more interesting hit is the *full* dotted form, so
+        # we add both.
+        if "." in local:
+            tail = local.rsplit(".", 1)[-1]
+            by_local[tail].append(n)
+
+    out: list[CallEdge] = []
+    for edge in edges:
+        candidates = by_local.get(edge.callee, [])
+        if not candidates and "." in edge.callee:
+            tail = edge.callee.rsplit(".", 1)[-1]
+            candidates = by_local.get(tail, [])
+        if len(candidates) == 1:
+            out.append(
+                CallEdge(
+                    caller=edge.caller,
+                    callee=candidates[0],
+                    line=edge.line,
+                )
+            )
+        # Multi-candidate collisions are dropped (ambiguous). No-match
+        # callees (stdlib, third-party) are also dropped — they're
+        # outside our node set and can't contribute to centrality.
+    return out
