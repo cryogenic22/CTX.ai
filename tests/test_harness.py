@@ -17,11 +17,17 @@ import pytest
 # The target codebase — must exist for integration tests
 SCRIPTIVA_ROOT = pathlib.Path("C:/Users/kapil/Scriptiva_SCA")
 
-# Skip entire module if Scriptiva_SCA is not present
-pytestmark = pytest.mark.skipif(
-    not SCRIPTIVA_ROOT.exists(),
-    reason="Scriptiva_SCA codebase not found at C:/Users/kapil/Scriptiva_SCA",
-)
+# Skip entire module if Scriptiva_SCA is not present, and mark every
+# test in this module as `slow` so the fast regression contract
+# (`pytest -m "not slow"`) excludes them — the harness integration tests
+# walk a real 156K-LOC tree.
+pytestmark = [
+    pytest.mark.skipif(
+        not SCRIPTIVA_ROOT.exists(),
+        reason="Scriptiva_SCA codebase not found at C:/Users/kapil/Scriptiva_SCA",
+    ),
+    pytest.mark.slow,
+]
 
 from ctxpack.modules.codebase import generate_harness
 

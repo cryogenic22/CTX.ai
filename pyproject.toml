@@ -46,3 +46,6 @@ exclude = ["tests*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "slow: integration tests that require an external codebase (e.g. SCRIPTIVA_ROOT) or otherwise take longer than a few seconds. Excluded from the fast regression contract: pytest -m \"not slow\"",
+]

@@ -26,6 +26,12 @@ Thumbs.db
 # Office temp/lock files
 ~$*
 
+# CTX runtime cache (elicited.json, telemetry, observed-confidence state).
+# Per-task spec docs at .ctx-cache/tasks/ stay tracked — they're the
+# paper trail for the CP-NNN discipline (see paper/code-packer-v0-backlog.md).
+.ctx-cache/*
+!.ctx-cache/tasks/
+
 # Generated binaries (keep .md source, regenerate with paper/md_to_docx.py)
 paper/*.docx
 
