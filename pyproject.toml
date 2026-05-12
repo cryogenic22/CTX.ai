@@ -33,11 +33,13 @@ classifiers = [
 
 [project.optional-dependencies]
 # Code-packer producer (CP-002+): tree-sitter front ends for Python
-# and TSX. Optional so the prose-domain packer remains zero-dep —
-# install with `pip install ctxpack[code]`.
+# and TSX, plus tiktoken for the pinned BPE counter (see
+# docs/adr/0001-tokeniser-choice.md). Optional so the prose-domain
+# packer remains zero-dep — install with `pip install ctxpack[code]`.
 code = [
     "tree-sitter>=0.21",
     "tree-sitter-python>=0.21",
+    "tiktoken>=0.7",
 ]
 
 [project.urls]
