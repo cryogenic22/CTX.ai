@@ -123,8 +123,16 @@ def resolve_callees(
             tail = local.rsplit(".", 1)[-1]
             by_local[tail].append(n)
 
+    nodes_set = nodes  # set lookup
     out: list[CallEdge] = []
     for edge in edges:
+        # Idempotent fast path: if the callee is already a qualified
+        # name in our node set, accept it as-is. This matters for
+        # incremental packs where reused edges come back already-
+        # resolved.
+        if edge.callee in nodes_set:
+            out.append(edge)
+            continue
         candidates = by_local.get(edge.callee, [])
         if not candidates and "." in edge.callee:
             tail = edge.callee.rsplit(".", 1)[-1]

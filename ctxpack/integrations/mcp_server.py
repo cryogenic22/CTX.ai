@@ -635,7 +635,10 @@ def handle_code_list_symbols(arguments: dict[str, Any]) -> str:
     module = arguments.get("module", "")
     k = int(arguments.get("k", 50))
     context = arguments.get("context")
-    return json.dumps(code_list_symbols(_CODE_PACK, module, k=k, context=context))
+    alpha = float(arguments.get("alpha", 0.7))
+    return json.dumps(code_list_symbols(
+        _CODE_PACK, module, k=k, context=context, alpha=alpha,
+    ))
 
 
 def handle_code_hydrate_symbol(arguments: dict[str, Any]) -> str:
@@ -657,7 +660,8 @@ def handle_code_search_symbols(arguments: dict[str, Any]) -> str:
         return err
     query = arguments.get("query", "")
     k = int(arguments.get("k", 10))
-    return json.dumps(code_search_symbols(_CODE_PACK, query, k=k))
+    alpha = float(arguments.get("alpha", 0.7))
+    return json.dumps(code_search_symbols(_CODE_PACK, query, k=k, alpha=alpha))
 
 
 def handle_code_raw_file(arguments: dict[str, Any]) -> str:

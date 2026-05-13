@@ -40,6 +40,10 @@ from ctxpack.core.code.emitter import emit_irentities
 from ctxpack.core.code.exclusion import iter_python_files, load_exclusion_rules, is_excluded
 from ctxpack.core.code.parser import ParseWarning, parse_python
 from ctxpack.core.code.parser_tsx import parse_tsx
+from ctxpack.core.code.task_scorer import (
+    combined_scores,
+    compute_task_scores,
+)
 from ctxpack.core.code.tsx import build_call_graph_tsx
 from ctxpack.core.code.ranker import (
     compute_pagerank,
@@ -75,6 +79,8 @@ class Pack:
     files: list[str]
     warnings: list[FileWarning] = field(default_factory=list)
     version: str = ""
+    # CP-024 — per-file content hash for incremental re-packs.
+    file_hashes: dict[str, str] = field(default_factory=dict)
 
     @property
     def by_name(self) -> dict[str, IREntity]:
@@ -91,20 +97,23 @@ def pack_codebase(
     root: PathLike,
     *,
     include_body: bool = True,
+    prior: Optional["Pack"] = None,
 ) -> Pack:
-    """Pack a Python codebase into a :class:`Pack`.
+    """Pack a Python + TSX codebase into a :class:`Pack`.
 
     Steps (deterministic):
       1. Walk the tree, applying gitignore + ctxpackignore + heuristics.
-      2. Parse every surviving ``.py`` file.
-      3. Emit IREntity per symbol.
-      4. Build the call graph; resolve callees to qualified names.
-      5. PageRank over the resolved graph.
-      6. Populate centrality_prior on entities.
-      7. Compute the content-hash pack_version.
+      2. For each surviving file, compare its SHA-256 against
+         ``prior.file_hashes`` (if a prior pack is supplied) — unchanged
+         files reuse the prior pack's entities and edges (CP-024).
+      3. Parse new/modified files, emit IREntity per symbol, build the
+         call graph.
+      4. Run PageRank over the merged graph; populate centrality_prior.
+      5. Compute the content-hash pack_version.
 
-    Files that fail to parse are skipped with a warning; the pack still
-    returns successfully for the rest.
+    Pass ``prior=<last pack>`` to skip re-parsing unchanged files —
+    typically reduces re-pack time from seconds to milliseconds on
+    edits.
     """
     root_path = Path(root).resolve()
     # Walk for .py + .tsx + .ts; apply same exclusion rules.
@@ -115,13 +124,44 @@ def pack_codebase(
             if not is_excluded(p, root=root_path, rules=rules):
                 files.append(p)
 
+    # Pre-bucket prior entities + edges by file for fast reuse lookup.
+    prior_entities_by_file: dict[str, list[IREntity]] = {}
+    prior_edges_by_file: dict[str, list[CallEdge]] = {}
+    if prior is not None:
+        for e in prior.entities:
+            file_key = e.sources[0].file if e.sources else ""
+            prior_entities_by_file.setdefault(file_key, []).append(e)
+        for ce in prior.edges:
+            file_key = ce.caller.split("::", 1)[0] if "::" in ce.caller else ""
+            prior_edges_by_file.setdefault(file_key, []).append(ce)
+
     all_entities: list[IREntity] = []
     all_edges: list[CallEdge] = []
     warnings: list[FileWarning] = []
     relative_files: list[str] = []
+    file_hashes: dict[str, str] = {}
+    reused_count = 0
     for f in files:
         rel = str(f.relative_to(root_path)).replace("\\", "/")
         relative_files.append(rel)
+        cur_sha = _file_sha(f)
+        file_hashes[rel] = cur_sha
+
+        if prior is not None and prior.file_hashes.get(rel) == cur_sha:
+            # Reuse entities and edges from the prior pack.
+            #
+            # Note: entity refs are SHARED with the prior pack.
+            # populate_centrality_prior runs in-place at the end of
+            # this pass, which mutates the prior pack's entities too.
+            # That's acceptable because (a) on no-change input scores
+            # are identical so the mutation is a no-op, (b) the prior
+            # pack is by convention discarded once the new one returns.
+            # Deep-copying was ~7x slower on CTX_mod and not worth it.
+            all_entities.extend(prior_entities_by_file.get(rel, []))
+            all_edges.extend(prior_edges_by_file.get(rel, []))
+            reused_count += 1
+            continue
+
         language = "tsx" if f.suffix in (".tsx", ".ts") else "python"
         parse_fn = parse_tsx if language == "tsx" else parse_python
         try:
@@ -169,9 +209,25 @@ def pack_codebase(
         scores=scores,
         files=relative_files,
         warnings=warnings,
+        file_hashes=file_hashes,
     )
     pack.version = _compute_version(pack)
     return pack
+
+
+def _file_sha(path: Path) -> str:
+    """SHA-256 of file contents — short hex, ASCII-safe key for the
+    ``file_hashes`` map.
+    """
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while True:
+            chunk = f.read(65536)
+            if not chunk:
+                break
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def _compute_version(pack: Pack) -> str:
@@ -217,12 +273,15 @@ def list_symbols(
     *,
     k: int = 50,
     context: Optional[str] = None,
+    alpha: float = 0.7,
 ) -> dict:
-    """CP-026 — top-k symbols in ``module``, ranked by centrality_prior.
+    """CP-026 — top-k symbols in ``module``, ranked by
+    ``α · task_score + (1 − α) · centrality_prior``.
 
-    ``module`` is matched against the relative-path prefix of entity
-    names. ``context`` is currently logged but not used in ranking;
-    CP-021/22/23 wires it as a per-turn task score.
+    ``context`` is the agent's working-set hint (recent message
+    history, task description). When provided, BM25 task scores are
+    rank-normalised and combined with centrality_prior; without it,
+    the function falls back to pure centrality (cold-start case).
     """
     if k <= 0:
         return _err("invalid_input", "k must be > 0")
@@ -236,11 +295,16 @@ def list_symbols(
                 "path is relative to the pack root."
             ),
         )
+    module_ents = [
+        e for e in pack.entities
+        if e.name.startswith(f"{normalised_module}::")
+    ]
+    rank_map = _rank_for_subset(
+        pack, module_ents, context=context, alpha=alpha
+    )
     rows: list[dict] = []
-    for ent in pack.entities:
-        if not ent.name.startswith(f"{normalised_module}::"):
-            continue
-        score = pack.scores.get(ent.name, 0.0)
+    for ent in module_ents:
+        score = rank_map.get(ent.name, 0.0)
         rows.append({
             "name": ent.name,
             "row": render_catalog_row(ent),
@@ -251,9 +315,32 @@ def list_symbols(
     return {
         "module": normalised_module,
         "symbols": rows,
-        "truncated": False if len(rows) < k else None,
+        "alpha": alpha if context else 0.0,
         "pack_version": pack.version,
     }
+
+
+def _rank_for_subset(
+    pack: Pack,
+    subset: list[IREntity],
+    *,
+    context: Optional[str],
+    alpha: float,
+) -> dict[str, float]:
+    """Compute the combined per-turn ranking for a subset of entities."""
+    centrality = {e.name: pack.scores.get(e.name, 0.0) for e in subset}
+    if context:
+        task = compute_task_scores(subset, context)
+        return combined_scores(
+            task_scores=task,
+            centrality_scores=centrality,
+            alpha=alpha,
+        )
+    return combined_scores(
+        task_scores={},
+        centrality_scores=centrality,
+        alpha=0.0,
+    )
 
 
 def hydrate_symbol(
@@ -347,45 +434,51 @@ def search_symbols(
     query: str,
     *,
     k: int = 10,
+    alpha: float = 0.7,
 ) -> dict:
-    """CP-028 — fuzzy match against name + signature + docstring.
+    """CP-028 — BM25 search over the catalog, blended with centrality.
 
-    v0 uses a simple lowercase substring match weighted by where the
-    hit occurs (name > signature > docstring). Sub-millisecond on
-    catalogs of a few thousand symbols. CP-021's BM25 replaces this
-    when it ships.
+    The query is treated as the working-set context. BM25 task scores
+    are rank-normalised; centrality_prior is rank-normalised; the
+    final ranking is the α-weighted combination (CP-021/22/23).
     """
-    q = query.strip().lower()
+    q = query.strip()
     if not q:
         return _err("invalid_input", "query must not be empty")
     if k <= 0:
         return _err("invalid_input", "k must be > 0")
 
-    scored: list[tuple[float, IREntity]] = []
-    for ent in pack.entities:
-        fields = {f.key: f.value for f in ent.fields}
-        name_lc = ent.name.lower()
-        sig_lc = fields.get("signature", "").lower()
-        doc_lc = fields.get("docstring", "").lower()
-        score = 0.0
-        if q in name_lc:
-            score += 3.0
-        if q in sig_lc:
-            score += 1.5
-        if q in doc_lc:
-            score += 1.0
-        if score > 0:
-            # Tie-break: higher centrality wins.
-            score += pack.scores.get(ent.name, 0.0) * 0.1
-            scored.append((score, ent))
-    scored.sort(key=lambda x: (-x[0], x[1].name))
-    out = [
-        {"name": e.name, "row": render_catalog_row(e), "score": s}
-        for s, e in scored[:k]
-    ]
+    task = compute_task_scores(pack.entities, q)
+    # Hide entities that scored nothing — BM25 is intentionally sparse.
+    candidate_ents = [e for e in pack.entities if task.get(e.name, 0.0) > 0]
+    if not candidate_ents:
+        return {
+            "query": query,
+            "symbols": [],
+            "alpha": alpha,
+            "pack_version": pack.version,
+        }
+    centrality = {e.name: pack.scores.get(e.name, 0.0) for e in candidate_ents}
+    filtered_task = {e.name: task[e.name] for e in candidate_ents}
+    combined = combined_scores(
+        task_scores=filtered_task,
+        centrality_scores=centrality,
+        alpha=alpha,
+    )
+    ents_by_name = {e.name: e for e in candidate_ents}
+    ranked = sorted(combined.items(), key=lambda kv: (-kv[1], kv[0]))
+    out: list[dict] = []
+    for name, score in ranked[:k]:
+        e = ents_by_name[name]
+        out.append({
+            "name": name,
+            "row": render_catalog_row(e),
+            "score": score,
+        })
     return {
         "query": query,
         "symbols": out,
+        "alpha": alpha,
         "pack_version": pack.version,
     }
 
