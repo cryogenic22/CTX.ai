@@ -39,6 +39,7 @@ classifiers = [
 code = [
     "tree-sitter>=0.21",
     "tree-sitter-python>=0.21",
+    "tree-sitter-typescript>=0.21",
     "tiktoken>=0.7",
 ]
 

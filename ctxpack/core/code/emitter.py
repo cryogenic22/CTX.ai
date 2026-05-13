@@ -48,13 +48,20 @@ def emit_irentities(
     file_path: PathLike,
     *,
     include_body: bool = True,
+    language: str = "python",
 ) -> list[IREntity]:
     """Produce one :class:`IREntity` per extracted symbol.
 
     ``file_path`` is the path used for qualified naming (CP-009). It
     is normalised to forward slashes internally.
+    ``language`` is ``"python"`` (default) or ``"tsx"``; controls which
+    extractor + metadata path is used.
     """
-    symbols = extract_symbols(result)
+    if language == "tsx":
+        from ctxpack.core.code.tsx import extract_symbols_tsx
+        symbols = extract_symbols_tsx(result)
+    else:
+        symbols = extract_symbols(result)
     pairs = qualified_names_for_module(file_path, symbols)
     file_str = str(file_path).replace("\\", "/")
     out: list[IREntity] = []
@@ -65,6 +72,7 @@ def emit_irentities(
             qualified=qname,
             file_path=file_str,
             include_body=include_body,
+            language=language,
         )
         out.append(ent)
     return out
@@ -77,6 +85,7 @@ def _emit_one(
     qualified: str,
     file_path: str,
     include_body: bool,
+    language: str = "python",
 ) -> IREntity:
     fields: list[IRField] = []
     _push(fields, "kind", symbol.kind.value)
@@ -87,16 +96,24 @@ def _emit_one(
 
     # Always emit docstring (possibly empty) so consumers don't need
     # to handle the "field missing vs. empty" distinction.
-    doc = _docstring(result, symbol)
+    doc = _docstring(result, symbol, language=language)
     _push(fields, "docstring", _truncate(doc, _DOCSTRING_BPE_CAP) if doc else "")
 
     if include_body and symbol.kind in (
         Kind.FUNCTION,
         Kind.METHOD,
         Kind.CLASS,
+        Kind.COMPONENT,
+        Kind.HOOK,
     ):
         body = result.source[symbol.byte_start:symbol.byte_end].decode("utf-8")
         _push(fields, "body", _truncate(body, _BODY_BPE_CAP))
+
+    if symbol.hooks:
+        _push(fields, "hooks", json.dumps(list(symbol.hooks)))
+
+    if not symbol.exported:
+        _push(fields, "exported", "false")
 
     if symbol.decorators:
         _push(
@@ -186,29 +203,42 @@ def _push(fields: list[IRField], key: str, value: str) -> None:
 
 
 def _signature(result: ParseResult, symbol: Symbol) -> str:
-    """Render the first line of the def/class header up to (and
-    including) the closing colon. Multi-line signatures collapse to
-    a single ` `-joined line.
+    """Render the first line of the def/class/component header up to
+    (and including) the start of the body. Multi-line signatures
+    collapse to a single ` `-joined line.
+
+    For TSX const-component declarations (``const Card = forwardRef(...)``)
+    the body field is on the inner function expression — the simplest
+    cross-language behaviour is to fall back to the first source line,
+    which is what the user sees in their editor anyway.
     """
     body_node = _body_owning_node(result.tree.root_node, symbol)
     if body_node is None:
-        # Fall back to first source line.
         return _first_line(result.source[symbol.byte_start:symbol.byte_end])
     body_field = body_node.child_by_field_name("body")
     if body_field is None:
         return _first_line(result.source[symbol.byte_start:symbol.byte_end])
     sig_bytes = result.source[symbol.byte_start:body_field.start_byte]
     sig = sig_bytes.decode("utf-8")
-    # Multi-line signatures: collapse newlines, drop trailing colon
-    # whitespace.
     sig = " ".join(sig.split())
     return sig.rstrip()
 
 
-def _docstring(result: ParseResult, symbol: Symbol) -> str:
+def _docstring(
+    result: ParseResult,
+    symbol: Symbol,
+    *,
+    language: str = "python",
+) -> str:
     """Return the docstring text (no quotes) if the first statement of
     the symbol's body is a string literal, else ''.
+
+    TSX has no docstring convention (JSDoc lives in comment nodes,
+    not inside the function body); for TSX symbols we return '' for
+    v0. JSDoc extraction is a v0.1 enhancement.
     """
+    if language == "tsx":
+        return ""
     node = _body_owning_node(result.tree.root_node, symbol)
     if node is None:
         return ""
@@ -229,9 +259,21 @@ def _docstring(result: ParseResult, symbol: Symbol) -> str:
 def _body_owning_node(
     root: tree_sitter.Node, symbol: Symbol
 ) -> Optional[tree_sitter.Node]:
-    if symbol.kind not in (Kind.FUNCTION, Kind.METHOD, Kind.CLASS):
+    if symbol.kind not in (
+        Kind.FUNCTION,
+        Kind.METHOD,
+        Kind.CLASS,
+        Kind.COMPONENT,
+        Kind.HOOK,
+    ):
         return None
-    target_types = ("function_definition", "class_definition")
+    target_types = (
+        "function_definition",   # Python
+        "class_definition",      # Python
+        "function_declaration",  # TSX
+        "class_declaration",     # TSX
+        "lexical_declaration",   # TSX (const X = ...)
+    )
     candidate = root.descendant_for_byte_range(
         symbol.byte_start, symbol.byte_end
     )

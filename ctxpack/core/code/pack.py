@@ -37,8 +37,10 @@ from ctxpack.core.code.callgraph import (
 )
 from ctxpack.core.code.catalog import render_catalog_row
 from ctxpack.core.code.emitter import emit_irentities
-from ctxpack.core.code.exclusion import iter_python_files
+from ctxpack.core.code.exclusion import iter_python_files, load_exclusion_rules, is_excluded
 from ctxpack.core.code.parser import ParseWarning, parse_python
+from ctxpack.core.code.parser_tsx import parse_tsx
+from ctxpack.core.code.tsx import build_call_graph_tsx
 from ctxpack.core.code.ranker import (
     compute_pagerank,
     populate_centrality_prior,
@@ -105,7 +107,14 @@ def pack_codebase(
     returns successfully for the rest.
     """
     root_path = Path(root).resolve()
-    files = list(iter_python_files(root_path))
+    # Walk for .py + .tsx + .ts; apply same exclusion rules.
+    rules = load_exclusion_rules(root_path)
+    files: list[Path] = []
+    for pattern in ("*.py", "*.tsx", "*.ts"):
+        for p in sorted(root_path.rglob(pattern)):
+            if not is_excluded(p, root=root_path, rules=rules):
+                files.append(p)
+
     all_entities: list[IREntity] = []
     all_edges: list[CallEdge] = []
     warnings: list[FileWarning] = []
@@ -113,8 +122,10 @@ def pack_codebase(
     for f in files:
         rel = str(f.relative_to(root_path)).replace("\\", "/")
         relative_files.append(rel)
+        language = "tsx" if f.suffix in (".tsx", ".ts") else "python"
+        parse_fn = parse_tsx if language == "tsx" else parse_python
         try:
-            result = parse_python(f)
+            result = parse_fn(f)
         except Exception as e:
             warnings.append(
                 FileWarning(file=rel, message=f"{type(e).__name__}: {e}")
@@ -130,9 +141,16 @@ def pack_codebase(
                 )
             )
         all_entities.extend(
-            emit_irentities(result, rel, include_body=include_body)
+            emit_irentities(
+                result, rel,
+                include_body=include_body,
+                language=language,
+            )
         )
-        all_edges.extend(build_call_graph(result, rel))
+        if language == "tsx":
+            all_edges.extend(build_call_graph_tsx(result, rel))
+        else:
+            all_edges.extend(build_call_graph(result, rel))
 
     # Resolve callees to qualified names and run PageRank.
     node_names = {e.name for e in all_entities}

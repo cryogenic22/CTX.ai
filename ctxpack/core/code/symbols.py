@@ -35,6 +35,11 @@ class Kind(str, Enum):
     CLASS = "class"
     METHOD = "method"
     CLASS_ATTRIBUTE = "class_attribute"
+    # TSX additions (CP-012/013):
+    COMPONENT = "component"
+    HOOK = "hook"
+    TYPE = "type"
+    CONST = "const"
 
 
 # ── Symbol ──────────────────────────────────────────────────────────────
@@ -82,6 +87,13 @@ class Symbol:
     byte_start: int
     byte_end: int
     decorators: tuple[Decorator, ...] = ()
+    # CP-013: React hooks called from inside a component or hook.
+    # Empty for non-component, non-hook symbols.
+    hooks: tuple[str, ...] = ()
+    # CP-012: whether a TSX symbol is exported. False is the
+    # conservative default for Python (which has no equivalent concept
+    # at the AST level — we don't track `__all__` for v0).
+    exported: bool = True
 
 
 # ── Extraction ──────────────────────────────────────────────────────────
