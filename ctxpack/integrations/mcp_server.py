@@ -59,16 +59,38 @@ try:
         render_manifest as code_render_manifest,
         search_symbols as code_search_symbols,
     )
+    from ..core.code.telemetry import CodeTelemetry
     HAS_CODE_PACKER = True
 except ImportError:
     HAS_CODE_PACKER = False
     CodePack = None  # type: ignore[assignment]
+    CodeTelemetry = None  # type: ignore[assignment]
 
 # Shared cache: the most recently built code pack. Re-set every time
 # ctx/code_pack runs so subsequent tool calls operate on a consistent
 # snapshot. Single-pack-at-a-time model is the v0 simplification;
 # multi-pack support is a v0.1 item.
 _CODE_PACK: "Optional[CodePack]" = None
+
+# CP-041: process-wide code-packer telemetry sink. One per MCP boot.
+# Lazily instantiated on first code-packer call so we don't write to
+# .ctx-cache/ until the user opts in by using the tools.
+_CODE_TELEMETRY: "Optional[CodeTelemetry]" = None
+
+
+def _get_code_telemetry() -> "Optional[CodeTelemetry]":
+    """Return the process-wide code telemetry sink, lazy-init."""
+    global _CODE_TELEMETRY
+    if not HAS_CODE_PACKER:
+        return None
+    if _CODE_TELEMETRY is None:
+        _CODE_TELEMETRY = CodeTelemetry(
+            path=os.environ.get(
+                "CTXPACK_CODE_TELEMETRY",
+                ".ctx-cache/code-telemetry.jsonl",
+            ),
+        )
+    return _CODE_TELEMETRY
 
 
 # ── Tool definitions ──
@@ -358,6 +380,16 @@ _CODE_TOOLS = [
             },
         },
     ),
+    Tool(
+        name="ctx/code_telemetry",
+        description=(
+            "Return aggregate telemetry signals for the current MCP "
+            "session: per-event-type counts plus derived rates ("
+            "raw_file_after_hydrate, reformulated_search, unknown_symbol). "
+            "Use to debug agent behaviour and detect packer failure modes."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
 ]
 
 # Append code tools to the list MCP advertises.
@@ -596,13 +628,29 @@ def handle_code_pack(arguments: dict[str, Any]) -> str:
         return json.dumps({"error": {"code": "path_outside_root",
                                      "message": f"Not a directory: {root}"}})
     include_body = bool(arguments.get("include_body", True))
-    _CODE_PACK = pack_codebase(root, include_body=include_body)
+    import time as _time
+    t0 = _time.perf_counter()
+    # Reuse the prior pack as the incremental base, if any.
+    _CODE_PACK = pack_codebase(
+        root, include_body=include_body, prior=_CODE_PACK
+    )
+    latency_ms = (_time.perf_counter() - t0) * 1000
+    tel = _get_code_telemetry()
+    if tel is not None:
+        tel.log_pack_built(
+            root=str(root),
+            entities=len(_CODE_PACK.entities),
+            files=len(_CODE_PACK.files),
+            pack_version=_CODE_PACK.version,
+            latency_ms=latency_ms,
+        )
     return json.dumps({
         "pack_version": _CODE_PACK.version,
         "files": len(_CODE_PACK.files),
         "entities": len(_CODE_PACK.entities),
         "warnings": len(_CODE_PACK.warnings),
         "root": _CODE_PACK.root,
+        "latency_ms": latency_ms,
         "manifest": code_render_manifest(_CODE_PACK),
     })
 
@@ -638,6 +686,7 @@ def handle_code_list_symbols(arguments: dict[str, Any]) -> str:
     alpha = float(arguments.get("alpha", 0.7))
     return json.dumps(code_list_symbols(
         _CODE_PACK, module, k=k, context=context, alpha=alpha,
+        telemetry=_get_code_telemetry(),
     ))
 
 
@@ -649,7 +698,10 @@ def handle_code_hydrate_symbol(arguments: dict[str, Any]) -> str:
         return err
     name = arguments.get("name", "")
     depth = int(arguments.get("depth", 0))
-    return json.dumps(code_hydrate_symbol(_CODE_PACK, name, depth=depth))
+    return json.dumps(code_hydrate_symbol(
+        _CODE_PACK, name, depth=depth,
+        telemetry=_get_code_telemetry(),
+    ))
 
 
 def handle_code_search_symbols(arguments: dict[str, Any]) -> str:
@@ -661,7 +713,10 @@ def handle_code_search_symbols(arguments: dict[str, Any]) -> str:
     query = arguments.get("query", "")
     k = int(arguments.get("k", 10))
     alpha = float(arguments.get("alpha", 0.7))
-    return json.dumps(code_search_symbols(_CODE_PACK, query, k=k, alpha=alpha))
+    return json.dumps(code_search_symbols(
+        _CODE_PACK, query, k=k, alpha=alpha,
+        telemetry=_get_code_telemetry(),
+    ))
 
 
 def handle_code_raw_file(arguments: dict[str, Any]) -> str:
@@ -671,7 +726,22 @@ def handle_code_raw_file(arguments: dict[str, Any]) -> str:
     if err is not None:
         return err
     path = arguments.get("path", "")
-    return json.dumps(code_raw_file(_CODE_PACK, path))
+    return json.dumps(code_raw_file(
+        _CODE_PACK, path, telemetry=_get_code_telemetry(),
+    ))
+
+
+def handle_code_telemetry(_arguments: dict[str, Any]) -> str:
+    """Return the current session's telemetry summary."""
+    if not HAS_CODE_PACKER:
+        return _no_code_packer()
+    tel = _get_code_telemetry()
+    if tel is None:
+        return json.dumps({"error": {
+            "code": "internal_parse_error",
+            "message": "Telemetry sink unavailable.",
+        }})
+    return json.dumps(tel.summary())
 
 
 _HANDLERS = {
@@ -687,6 +757,7 @@ _HANDLERS = {
     "ctx/code_hydrate_symbol": handle_code_hydrate_symbol,
     "ctx/code_search_symbols": handle_code_search_symbols,
     "ctx/code_raw_file": handle_code_raw_file,
+    "ctx/code_telemetry": handle_code_telemetry,
 }
 
 

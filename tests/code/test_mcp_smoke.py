@@ -171,6 +171,31 @@ class TestHandlersAdvertised:
             "ctx/code_hydrate_symbol",
             "ctx/code_search_symbols",
             "ctx/code_raw_file",
+            "ctx/code_telemetry",
         ):
             assert code_tool in names, f"{code_tool} missing from TOOLS"
             assert code_tool in _HANDLERS, f"{code_tool} missing from _HANDLERS"
+
+
+class TestTelemetryHandler:
+    def test_telemetry_returns_summary(self, loaded_pack, tmp_path, monkeypatch):
+        """After a couple of tool calls, ctx/code_telemetry returns
+        per-event-type counts."""
+        import json
+        from ctxpack.integrations import mcp_server
+        # Point telemetry at a tmp file for this test, reset sink.
+        monkeypatch.setenv("CTXPACK_CODE_TELEMETRY", str(tmp_path / "t.jsonl"))
+        mcp_server._CODE_TELEMETRY = None
+        # Issue a hydrate call to generate events.
+        listed = json.loads(
+            mcp_server.handle_code_list_symbols(
+                {"module": "app.py", "k": 3, "context": "user"}
+            )
+        )
+        name = listed["symbols"][0]["name"]
+        mcp_server.handle_code_hydrate_symbol({"name": name, "depth": 0})
+        # Now ask for telemetry summary.
+        result = json.loads(mcp_server.handle_code_telemetry({}))
+        assert "error" not in result
+        assert "by_type" in result
+        assert result["by_type"].get("hydrate_symbol_call", 0) >= 1

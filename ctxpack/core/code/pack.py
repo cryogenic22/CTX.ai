@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Union
@@ -44,6 +45,7 @@ from ctxpack.core.code.task_scorer import (
     combined_scores,
     compute_task_scores,
 )
+from ctxpack.core.code.telemetry import CodeTelemetry
 from ctxpack.core.code.tsx import build_call_graph_tsx
 from ctxpack.core.code.ranker import (
     compute_pagerank,
@@ -274,6 +276,7 @@ def list_symbols(
     k: int = 50,
     context: Optional[str] = None,
     alpha: float = 0.7,
+    telemetry: Optional[CodeTelemetry] = None,
 ) -> dict:
     """CP-026 — top-k symbols in ``module``, ranked by
     ``α · task_score + (1 − α) · centrality_prior``.
@@ -283,6 +286,7 @@ def list_symbols(
     rank-normalised and combined with centrality_prior; without it,
     the function falls back to pure centrality (cold-start case).
     """
+    t0 = time.perf_counter()
     if k <= 0:
         return _err("invalid_input", "k must be > 0")
     normalised_module = module.replace("\\", "/")
@@ -312,6 +316,15 @@ def list_symbols(
         })
     rows.sort(key=lambda r: (-r["score"], r["name"]))
     rows = rows[:k]
+    if telemetry is not None:
+        telemetry.log_list_symbols(
+            module=normalised_module,
+            k=k,
+            n_returned=len(rows),
+            context=context,
+            alpha=alpha if context else 0.0,
+            latency_ms=(time.perf_counter() - t0) * 1000,
+        )
     return {
         "module": normalised_module,
         "symbols": rows,
@@ -348,6 +361,7 @@ def hydrate_symbol(
     name: str,
     *,
     depth: int = 0,
+    telemetry: Optional[CodeTelemetry] = None,
 ) -> dict:
     """CP-027 — return a symbol's full IRField content.
 
@@ -355,10 +369,17 @@ def hydrate_symbol(
     depth=1: also include neighbour bodies (callers/callees from
     the call graph), greedy-packed to a 4K BPE budget.
     """
+    t0 = time.perf_counter()
     if depth not in (0, 1):
         return _err("invalid_input", "depth must be 0 or 1")
     ent = pack.by_name.get(name)
     if ent is None:
+        if telemetry is not None:
+            telemetry.log_hydrate_symbol(
+                name=name, depth=depth, success=False,
+                latency_ms=(time.perf_counter() - t0) * 1000,
+            )
+            telemetry.log_symbol_not_in_pack(name=name)
         return _err(
             "unknown_symbol",
             f"Symbol {name!r} not in pack",
@@ -380,6 +401,11 @@ def hydrate_symbol(
     }
     if depth == 1:
         payload["neighbours"] = _depth1_neighbours(pack, ent)
+    if telemetry is not None:
+        telemetry.log_hydrate_symbol(
+            name=name, depth=depth, success=True,
+            latency_ms=(time.perf_counter() - t0) * 1000,
+        )
     return payload
 
 
@@ -435,6 +461,7 @@ def search_symbols(
     *,
     k: int = 10,
     alpha: float = 0.7,
+    telemetry: Optional[CodeTelemetry] = None,
 ) -> dict:
     """CP-028 — BM25 search over the catalog, blended with centrality.
 
@@ -442,6 +469,7 @@ def search_symbols(
     are rank-normalised; centrality_prior is rank-normalised; the
     final ranking is the α-weighted combination (CP-021/22/23).
     """
+    t0 = time.perf_counter()
     q = query.strip()
     if not q:
         return _err("invalid_input", "query must not be empty")
@@ -452,6 +480,11 @@ def search_symbols(
     # Hide entities that scored nothing — BM25 is intentionally sparse.
     candidate_ents = [e for e in pack.entities if task.get(e.name, 0.0) > 0]
     if not candidate_ents:
+        if telemetry is not None:
+            telemetry.log_search_symbols(
+                query=q, k=k, n_returned=0, alpha=alpha,
+                latency_ms=(time.perf_counter() - t0) * 1000,
+            )
         return {
             "query": query,
             "symbols": [],
@@ -475,6 +508,11 @@ def search_symbols(
             "row": render_catalog_row(e),
             "score": score,
         })
+    if telemetry is not None:
+        telemetry.log_search_symbols(
+            query=q, k=k, n_returned=len(out), alpha=alpha,
+            latency_ms=(time.perf_counter() - t0) * 1000,
+        )
     return {
         "query": query,
         "symbols": out,
@@ -483,19 +521,38 @@ def search_symbols(
     }
 
 
-def raw_file(pack: Pack, path: str) -> dict:
+def raw_file(
+    pack: Pack,
+    path: str,
+    *,
+    telemetry: Optional[CodeTelemetry] = None,
+) -> dict:
     """CP-029 — escape hatch returning raw file bytes."""
+    t0 = time.perf_counter()
     if ".." in Path(path).parts:
+        if telemetry is not None:
+            telemetry.log_raw_file(
+                path=path, success=False,
+                latency_ms=(time.perf_counter() - t0) * 1000,
+            )
         return _err("path_outside_root", "Path contains '..' segments")
     abs_path = Path(pack.root) / path
     try:
         rel = abs_path.resolve().relative_to(Path(pack.root).resolve())
     except ValueError:
+        if telemetry is not None:
+            telemetry.log_raw_file(
+                path=path, success=False,
+                latency_ms=(time.perf_counter() - t0) * 1000,
+            )
         return _err("path_outside_root", f"{path!r} resolves outside pack root")
     rel_str = str(rel).replace("\\", "/")
     if rel_str not in pack.files:
-        # Either ignored (heuristic / .gitignore / .ctxpackignore) or
-        # genuinely missing.
+        if telemetry is not None:
+            telemetry.log_raw_file(
+                path=rel_str, success=False,
+                latency_ms=(time.perf_counter() - t0) * 1000,
+            )
         return _err(
             "ignored_path" if abs_path.exists() else "unknown_module",
             f"{path!r} is not in the pack" + (
@@ -506,7 +563,17 @@ def raw_file(pack: Pack, path: str) -> dict:
     try:
         content = abs_path.read_text(encoding="utf-8", errors="replace")
     except OSError as e:
+        if telemetry is not None:
+            telemetry.log_raw_file(
+                path=rel_str, success=False,
+                latency_ms=(time.perf_counter() - t0) * 1000,
+            )
         return _err("invalid_input", f"read failed: {e}")
+    if telemetry is not None:
+        telemetry.log_raw_file(
+            path=rel_str, success=True,
+            latency_ms=(time.perf_counter() - t0) * 1000,
+        )
     return {
         "path": rel_str,
         "content": content,

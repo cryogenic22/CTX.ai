@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cryogenic22/CTX.ai/schemas/telemetry-events.schema.json",
+  "title": "Code-packer telemetry events",
+  "description": "Schema for events written to .ctx-cache/code-telemetry.jsonl by the code packer. Every event written by the codebase MUST validate against this schema (CP-040.5).",
+  "version": 1,
+  "type": "object",
+  "required": ["ts", "session_id", "event_type", "v"],
+  "properties": {
+    "v": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version. Bumped only when the shape changes incompatibly."
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp."
+    },
+    "session_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8,32}$",
+      "description": "Hex session identifier; one per MCP server boot."
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "pack_built",
+        "list_symbols_call",
+        "hydrate_symbol_call",
+        "search_symbols_call",
+        "raw_file_call",
+        "symbol_not_in_pack",
+        "pattern_raw_file_after_hydrate",
+        "pattern_reformulated_search"
+      ]
+    },
+    "latency_ms": {"type": "number", "minimum": 0},
+    "pack_version": {"type": "string"},
+    "success": {"type": "boolean"},
+
+    "root_hash": {"type": "string", "pattern": "^[0-9a-f]{16,64}$"},
+    "entities": {"type": "integer", "minimum": 0},
+    "files": {"type": "integer", "minimum": 0},
+
+    "module_hash": {"type": "string", "pattern": "^[0-9a-f]{16,64}$"},
+    "k": {"type": "integer", "minimum": 1},
+    "n_returned": {"type": "integer", "minimum": 0},
+    "context_hash": {"type": "string", "pattern": "^[0-9a-f]{16,64}$"},
+    "alpha": {"type": "number", "minimum": 0, "maximum": 1},
+
+    "name_hash": {"type": "string", "pattern": "^[0-9a-f]{16,64}$"},
+    "depth": {"type": "integer", "enum": [0, 1]},
+
+    "query_hash": {"type": "string", "pattern": "^[0-9a-f]{16,64}$"},
+
+    "path_hash": {"type": "string", "pattern": "^[0-9a-f]{16,64}$"},
+    "prior_hydrate_count": {"type": "integer", "minimum": 0},
+
+    "error_code": {"type": "string"},
+
+    "elapsed_calls": {"type": "integer", "minimum": 1, "description": "For pattern_* events: how many calls back the matching event occurred."},
+    "cluster_size": {"type": "integer", "minimum": 2, "description": "For pattern_reformulated_search: size of the reformulation cluster."}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"event_type": {"const": "pack_built"}}, "required": ["event_type"]},
+      "then": {"required": ["root_hash", "entities", "files", "pack_version", "latency_ms"]}
+    },
+    {
+      "if": {"properties": {"event_type": {"const": "list_symbols_call"}}, "required": ["event_type"]},
+      "then": {"required": ["module_hash", "k", "n_returned", "latency_ms", "pack_version"]}
+    },
+    {
+      "if": {"properties": {"event_type": {"const": "hydrate_symbol_call"}}, "required": ["event_type"]},
+      "then": {"required": ["name_hash", "depth", "success", "latency_ms", "pack_version"]}
+    },
+    {
+      "if": {"properties": {"event_type": {"const": "search_symbols_call"}}, "required": ["event_type"]},
+      "then": {"required": ["query_hash", "k", "n_returned", "latency_ms", "pack_version"]}
+    },
+    {
+      "if": {"properties": {"event_type": {"const": "raw_file_call"}}, "required": ["event_type"]},
+      "then": {"required": ["path_hash", "success", "latency_ms", "pack_version"]}
+    },
+    {
+      "if": {"properties": {"event_type": {"const": "symbol_not_in_pack"}}, "required": ["event_type"]},
+      "then": {"required": ["name_hash", "pack_version"]}
+    },
+    {
+      "if": {"properties": {"event_type": {"const": "pattern_raw_file_after_hydrate"}}, "required": ["event_type"]},
+      "then": {"required": ["path_hash", "name_hash", "elapsed_calls"]}
+    },
+    {
+      "if": {"properties": {"event_type": {"const": "pattern_reformulated_search"}}, "required": ["event_type"]},
+      "then": {"required": ["cluster_size"]}
+    }
+  ],
+  "additionalProperties": false
+}
