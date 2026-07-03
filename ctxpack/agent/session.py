@@ -36,11 +36,17 @@ class AgentSession:
         domain: Domain label for the .ctx header.
         token_budget: Maximum compressed tokens before eviction triggers.
         strict: Suppress inferred fields.
+        supersede: Treat same-key value changes as revisions — the latest
+            value wins and the chain is recorded in a SUPERSEDED-<KEY>
+            field. Default True: agent state evolves, and accumulating
+            contradictory values is the proactive-interference failure
+            mode. Set False to keep every observed value verbatim.
     """
 
     domain: str = "agent-state"
     token_budget: int = 4000
     strict: bool = False
+    supersede: bool = True
 
     # Internal state
     _corpus: IRCorpus = field(default_factory=IRCorpus)
@@ -66,8 +72,12 @@ class AgentSession:
         Returns:
             AgentCompressResult reflecting the current post-merge state.
         """
-        # Parse the new step into a temporary corpus
-        new_corpus = parse_steps([step], domain=self.domain)
+        # Parse the new step into a temporary corpus. start_index carries the
+        # running step count so provenance stays step-0, step-1, ... across
+        # the session (previously every update collapsed to step-0).
+        new_corpus = parse_steps(
+            [step], domain=self.domain, start_index=self._step_count
+        )
         self._step_count += 1
         self._total_source_tokens += new_corpus.source_token_count
 
@@ -83,8 +93,8 @@ class AgentSession:
             f"step-{i}" for i in range(self._step_count)
         ]
 
-        # Re-resolve entities (merge duplicates)
-        resolve_entities(self._corpus)
+        # Re-resolve entities (merge duplicates; latest revision wins)
+        resolve_entities(self._corpus, supersede_by_recency=self.supersede)
 
         # Check if eviction is needed
         result = self._compress_current()

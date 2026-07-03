@@ -11,6 +11,7 @@ def resolve_entities(
     corpus: IRCorpus,
     *,
     alias_map: Optional[dict[str, list[str]]] = None,
+    supersede_by_recency: bool = False,
 ) -> IRCorpus:
     """Merge duplicate entities and resolve aliases.
 
@@ -19,6 +20,15 @@ def resolve_entities(
     2. Case-insensitive match
     3. Config alias map
     4. Singular/plural normalization
+
+    Args:
+        supersede_by_recency: When True (agent-session path), a field whose
+            key repeats with DIFFERENT values is treated as a revision
+            chain: the most recent value (by source order) survives as the
+            current fact, and the full chain is recorded in a companion
+            ``SUPERSEDED-<KEY>`` field. When False (document-corpus
+            default), repeated keys are kept verbatim — documents may
+            legitimately state multi-valued facts.
     """
     alias_map = alias_map or {}
 
@@ -38,7 +48,9 @@ def resolve_entities(
     # Merge each group
     merged: list[IREntity] = []
     for canonical, group in groups.items():
-        merged.append(_merge_entities(canonical, group))
+        merged.append(_merge_entities(
+            canonical, group, supersede_by_recency=supersede_by_recency,
+        ))
 
     corpus.entities = merged
 
@@ -75,11 +87,18 @@ def _normalize(name: str) -> str:
     return name
 
 
-def _merge_entities(canonical: str, group: list[IREntity]) -> IREntity:
+def _merge_entities(
+    canonical: str,
+    group: list[IREntity],
+    *,
+    supersede_by_recency: bool = False,
+) -> IREntity:
     """Merge multiple IREntities into one."""
     if len(group) == 1:
         entity = group[0]
         entity.name = canonical
+        if supersede_by_recency:
+            entity.fields = _supersede_fields(_dedup_fields(entity.fields))
         return entity
 
     # Merge fields, aliases, sources, annotations
@@ -98,6 +117,8 @@ def _merge_entities(canonical: str, group: list[IREntity]) -> IREntity:
 
     # Dedup fields: same key + same raw_value → keep one, union sources
     deduped = _dedup_fields(all_fields)
+    if supersede_by_recency:
+        deduped = _supersede_fields(deduped)
 
     return IREntity(
         name=canonical,
@@ -131,6 +152,106 @@ def _dedup_fields(fields: list[IRField]) -> list[IRField]:
             result.append(field)
 
     return result
+
+
+# Keys that are legitimately multi-valued — never superseded. Includes
+# constraint-shaped keys: two different rules are two facts, not a revision.
+_MULTI_VALUE_KEYS = {
+    "HAS-MANY", "HAS-ONE", "BELONGS-TO", "REFERENCES", "DEPENDS-ON",
+    "RELATIONSHIPS", "DECISION", "NOTES",
+    "RULE", "CONSTRAINT", "REQUIREMENT", "WARNING",
+}
+
+
+def _field_order(field: IRField, idx: int) -> tuple[int, int]:
+    """Recency ordering key: turn (if set) or step/line, then insertion order."""
+    if field.source is None:
+        return (0, idx)
+    if field.source.turn is not None:
+        return (field.source.turn, idx)
+    return (field.source.line_start, idx)
+
+
+def _supersede_fields(fields: list[IRField]) -> list[IRField]:
+    """Collapse same-key revision chains to the latest value + history.
+
+    For each key that appears with multiple distinct values, the most
+    recent value (by source order) becomes the current fact — placed at
+    the key's first-occurrence position so field order stays stable — and
+    a companion ``SUPERSEDED-<KEY>`` field records the chain, e.g.::
+
+        BACKOFF-BASE-MS:750
+        SUPERSEDED-BACKOFF-BASE-MS:250@step-0 -> 500@step-2 -> 750@step-4
+
+    A changed decision is a state update with an auditable history, not a
+    silent accumulation of contradictory values (the 2026-07-03 audit's
+    defect #2). Relationship keys and already-generated SUPERSEDED-* keys
+    are exempt.
+    """
+    by_key: dict[str, list[tuple[int, IRField]]] = {}
+    for idx, field in enumerate(fields):
+        by_key.setdefault(field.key, []).append((idx, field))
+
+    # Keys getting a new revision chain this pass. Their existing
+    # SUPERSEDED-<KEY> records are absorbed into the new chain rather than
+    # emitted — otherwise every re-resolve stacks another history line.
+    revised = {
+        key for key, entries in by_key.items()
+        if len(entries) > 1
+        and key not in _MULTI_VALUE_KEYS
+        and not key.startswith("SUPERSEDED-")
+    }
+
+    out: list[IRField] = []
+    emitted: set[str] = set()
+    for idx, field in enumerate(fields):
+        key = field.key
+        if key in emitted:
+            continue
+        if key.startswith("SUPERSEDED-") and key[len("SUPERSEDED-"):] in revised:
+            continue  # absorbed into the regenerated chain below
+
+        entries = by_key[key]
+        if key not in revised:
+            out.extend(f for _, f in entries)
+            emitted.add(key)
+            continue
+
+        # Revision chain: order by recency, latest wins
+        ordered = sorted(entries, key=lambda e: _field_order(e[1], e[0]))
+        current = ordered[-1][1]
+        chain = " -> ".join(
+            f"{f.value}@{f.source.file if f.source else '?'}"
+            for _, f in ordered
+        )
+        # Absorb prior history from ALL prior SUPERSEDED-<KEY> fields (an
+        # alias-map merge can contribute several). Elements already present
+        # in the new chain (each prior chain's tail re-appears as a current
+        # entry) are dropped; the rest are prefixed in order of appearance.
+        # Known limitation: values containing " -> " would misalign the
+        # chain — spec v1.1 fact IDs replace this string encoding.
+        priors = by_key.get(f"SUPERSEDED-{key}", [])
+        if priors:
+            new_elems = set(chain.split(" -> "))
+            prefix_elems = []
+            for _, prior_field in priors:
+                for elem in str(prior_field.value).split(" -> "):
+                    if elem and elem not in new_elems:
+                        prefix_elems.append(elem)
+                        new_elems.add(elem)
+            if prefix_elems:
+                chain = " -> ".join(prefix_elems) + " -> " + chain
+        out.append(current)
+        out.append(IRField(
+            key=f"SUPERSEDED-{key}",
+            value=chain,
+            raw_value=chain,
+            source=current.source,
+            salience=max(0.5, current.salience - 0.5),
+        ))
+        emitted.add(key)
+
+    return out
 
 
 def _infer_bidirectional_relationships(corpus: IRCorpus) -> None:

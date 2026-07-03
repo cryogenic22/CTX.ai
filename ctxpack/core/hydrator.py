@@ -87,6 +87,38 @@ def _section_confidence(section: Section) -> float:
     return prov.confidence if prov is not None else 1.0
 
 
+def _section_expired(section: Section, now: str) -> bool:
+    """True when the section's Provenance carries an expires_at in the past.
+
+    AMBIENT facts (live repo/branch/test state) carry expiry; serving one
+    past its expires_at re-injects stale state into the agent. Sections
+    without provenance or without expires_at never expire.
+
+    ``Provenance.expires_at`` is an epoch-seconds float; ``now`` is an
+    ISO-8601 date/datetime string (or a stringified epoch), converted here.
+    Unparseable inputs fail open (not expired) — hydration must never
+    crash on malformed metadata.
+    """
+    prov = _section_provenance(section)
+    if prov is None:
+        return False
+    expires = getattr(prov, "expires_at", None)
+    if not expires:
+        return False
+    try:
+        now_epoch = float(now)
+    except ValueError:
+        import datetime
+        try:
+            # Python 3.10's fromisoformat rejects the Z suffix
+            now_epoch = datetime.datetime.fromisoformat(
+                now.replace("Z", "+00:00")
+            ).timestamp()
+        except ValueError:
+            return False
+    return float(expires) < now_epoch
+
+
 # ── Public API ──
 
 
@@ -102,6 +134,7 @@ def hydrate_by_name(
     layers: Optional[set[ContextLayer]] = None,
     min_confidence: float = 0.0,
     include_layer_metadata: bool = False,
+    drop_expired_as_of: str = "",
 ) -> HydrationResult:
     """Return specific sections by name. O(1) lookup via index.
 
@@ -122,6 +155,10 @@ def hydrate_by_name(
             this threshold. Default 0.0 keeps everything.
         include_layer_metadata: When True, populate ``layer_breakdown`` on
             the result with per-layer section counts for telemetry / UI.
+        drop_expired_as_of: ISO date/datetime string; when non-empty, skip
+            sections whose Provenance expires_at is earlier than this
+            (AMBIENT facts past their TTL). Empty string (default) keeps
+            expired sections — existing callers are unaffected.
 
     Returns:
         HydrationResult with matched sections and token counts.
@@ -139,6 +176,8 @@ def hydrate_by_name(
         if layers is not None and _section_layer(section) not in layers:
             continue
         if min_confidence > 0.0 and _section_confidence(section) < min_confidence:
+            continue
+        if drop_expired_as_of and _section_expired(section, drop_expired_as_of):
             continue
         matched.append(section)
 
