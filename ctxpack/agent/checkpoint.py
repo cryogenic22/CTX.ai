@@ -127,6 +127,9 @@ def run_checkpoint(
     L0 and never deleted; a full deterministic re-pack is cheaper than
     incremental-merge correctness risk at session scale).
     """
+    import time
+    t0 = time.perf_counter()
+
     parsed = parse_transcript(transcript_path)
     corpus = parsed.corpus
 
@@ -152,6 +155,7 @@ def run_checkpoint(
         f.write(gist_text)
 
     sha = hashlib.sha256(ledger_text.encode("utf-8")).hexdigest()
+    gist_bpe = _count_bpe(gist_text)
     import datetime
     journal_entry = {
         "ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -160,6 +164,8 @@ def run_checkpoint(
         "entities": len(corpus.entities),
         "conflicts": len(conflicts),
         "sha256": sha,
+        "gist_bpe": gist_bpe,
+        "latency_ms": round((time.perf_counter() - t0) * 1000, 1),
         "stats": parsed.stats.to_dict(),
     }
     with open(os.path.join(out_dir, "checkpoints.jsonl"), "a",
@@ -174,7 +180,7 @@ def run_checkpoint(
         entities=len(corpus.entities),
         conflicts=len(conflicts),
         ledger_sha256=sha,
-        gist_bpe=_count_bpe(gist_text),
+        gist_bpe=gist_bpe,
     )
 
 

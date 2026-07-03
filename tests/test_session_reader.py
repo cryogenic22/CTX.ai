@@ -160,6 +160,32 @@ def test_why_empty_key_is_an_error(ledger):
     assert session_why(doc, sid, "  ")["error"]
 
 
+def test_session_stats_aggregates_journal(ledger, tmp_path):
+    from ctxpack.agent.session_reader import session_stats
+
+    # Second session + a re-checkpoint of the first: last-per-session wins
+    t2 = _write_transcript(tmp_path, "cafebabe-session", name="s2.jsonl")
+    run_checkpoint(t2, ledger, as_of="2026-07-03")
+    t1 = _write_transcript(tmp_path, "feedbeef-session", name="s1b.jsonl")
+    run_checkpoint(t1, ledger, as_of="2026-07-03")
+
+    stats = session_stats(ledger)
+    assert stats["sessions"] == 2
+    assert stats["checkpoints"] == 3
+    assert stats["captured"]["decisions"] == 2  # one per session, deduped
+    assert stats["read_path"]["raw_fallback_rate"] is None  # no reads yet
+    assert stats["checkpoint_latency_ms"]["max"] > 0
+    assert len(stats["gist_bpe"]["latest_per_session"]) == 2
+    assert stats["turns_packed"] > 0
+
+
+def test_session_stats_missing_journal_raises(tmp_path):
+    from ctxpack.agent.session_reader import session_stats
+
+    with pytest.raises(LedgerError):
+        session_stats(str(tmp_path / "empty"))
+
+
 def test_mcp_handlers_json_contract(ledger):
     """The MCP handlers return valid JSON for both happy and error paths."""
     from ctxpack.integrations import mcp_server as srv

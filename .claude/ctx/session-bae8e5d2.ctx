@@ -1,5 +1,5 @@
 §CTX v1.0 L2 DOMAIN:session-bae8e5d2
-COMPRESSED:2026-07-03 SOURCE_TOKENS:~447 CTX_TOKENS:~614 RATIO:~0.9x
+COMPRESSED:2026-07-03 SOURCE_TOKENS:~1033 CTX_TOKENS:~1413 RATIO:~0.9x
 
 ±ENTITY-USER-REQUEST-A4AB0502
 REQUEST:what next
@@ -123,18 +123,194 @@ RAN:Run scoped tests then verify final extraction on live transcript
 COMMAND:python -m pytest tests/test_transcript_parser.py tests/test_checkpoint.py tests/test_negation_preservation.py -q 2>&1 | tail -2 && python -m ctxpack.cli.main ch
 TURN:145
 SRC:session:bae8e5d2#turn145
+±ENTITY-TOOL-BASH-0051
+RAN:Commit parser extraction fixes
+COMMAND:git add ctxpack/agent/transcript_parser.py tests/test_transcript_parser.py .claude/ctx/ && git commit -m "Extraction guards: anchored Decision: marker, use-vs-m
+TURN:153
+SRC:session:bae8e5d2#turn153
+±ENTITY-TOOL-BASH-0057
+RAN:Show session ledger .ctx format and supersession chains
+COMMAND:head -60 .claude/ctx/session-bae8e5d2.ctx && echo ... && grep -n "SUPERSEDED" .claude/ctx/session-04247ced.ctx | head -5
+TURN:169
+SRC:session:bae8e5d2#turn169
+±ENTITY-TOOL-BASH-0068
+RAN:Check CLI imports and smoke-test session decisions command
+COMMAND:head -30 ctxpack/cli/main.py | grep -n "^import\|^from" && python -m ctxpack.cli.main session decisions 2>&1 | head -30
+TURN:202
+SRC:session:bae8e5d2#turn202
+±ENTITY-TOOL-BASH-0070
+RAN:Smoke-test session decisions and timeline on live ledger
+COMMAND:python -m ctxpack.cli.main session decisions 2>&1 | head -30 && echo ============ && python -m ctxpack.cli.main session timeline --kinds DECISION,ERROR --limit 
+TURN:206
+SRC:session:bae8e5d2#turn206
+±ENTITY-TOOL-BASH-0071
+RAN:Smoke-test recall index, section hydration, and why on live ledger
+COMMAND:python -m ctxpack.cli.main session recall 2>&1 | python -c " import sys, json d = json.load(sys.stdin) print('sections_available:', d['sections_available']) pri
+TURN:210
+SRC:session:bae8e5d2#turn210
+±ENTITY-TOOL-BASH-0073
+RAN:Run session reader tests
+COMMAND:python -m pytest tests/test_session_reader.py -q 2>&1 | tail -15
+TURN:216
+SRC:session:bae8e5d2#turn216
+±ENTITY-TOOL-BASH-0087
+RAN:Show end of entity graph test file
+COMMAND:tail -20 tests/test_entity_graph.py && grep -c "def test" tests/test_entity_graph.py
+TURN:256
+SRC:session:bae8e5d2#turn256
+±ENTITY-TOOL-BASH-0088
+RAN:Append directed graph tests and run graph + session reader tests
+COMMAND:cat >> tests/test_entity_graph.py << 'EOF' # ── Directed API (P4: ctx/graph_query) ── class TestDirectedGraph: """Reference direction: the section stating the r
+TURN:258
+SRC:session:bae8e5d2#turn258
+±ENTITY-TOOL-BASH-0089
+RAN:Verify MCP server exposes the five new tools with handlers
+COMMAND:python -c " from ctxpack.integrations import mcp_server names = [t.name for t in mcp_server.TOOLS] print('tools:', len(names)) print('new:', [n for n in names i
+TURN:262
+SRC:session:bae8e5d2#turn262
+±ENTITY-TOOL-BASH-0092
+RAN:Check for existing MCP registration and run handler tests
+COMMAND:ls .mcp.json 2>/dev/null; grep -rn "mcp" .claude/settings.json 2>/dev/null; echo ---; python -m pytest tests/test_session_reader.py -q 2>&1 | tail -2
+TURN:270
+SRC:session:bae8e5d2#turn270
+±ENTITY-TOOL-BASH-0097
+RAN:Run scoped test sweep over all touched areas
+COMMAND:python -m pytest tests/test_transcript_parser.py tests/test_checkpoint.py tests/test_session_reader.py tests/test_entity_graph.py tests/test_negation_preservati
+TURN:284
+SRC:session:bae8e5d2#turn284
+±ENTITY-TOOL-BASH-0101
+RAN:Find tests exercising the CLI
+COMMAND:grep -rln "cli.main\|cli import\|install_hooks\|install-hooks" tests/ | head -5
+TURN:295
+SRC:session:bae8e5d2#turn295
+±ENTITY-TOOL-BASH-0102
+RAN:Run CLI and checkpoint tests
+COMMAND:python -m pytest tests/test_cli.py tests/test_checkpoint.py -q 2>&1 | tail -2
+TURN:297
+SRC:session:bae8e5d2#turn297
+±ENTITY-TOOL-BASH-0103
+RAN:Commit P4 read path
+COMMAND:git add ctxpack/agent/session_reader.py ctxpack/integrations/mcp_server.py ctxpack/cli/main.py ctxpack/core/entity_graph.py tests/test_session_reader.py tests/t
+TURN:301
+SRC:session:bae8e5d2#turn301
+±ENTITY-USER-REQUEST-B1BB12FB
+REQUEST:can i now also ask other repos to connect to ctx mcp? this was my other project also leverage , where is the mcp hosted?
+TURN:315
+SRC:session:bae8e5d2#turn315
+±ENTITY-TOOL-BASH-0108
+RAN:Check whether ctxpack is pip-installed and importable outside the repo
+COMMAND:pip show ctxpack 2>/dev/null | head -4; echo ---; cd /c/Users/kapil && python -c "import ctxpack; print('importable from anywhere:', ctxpack.__file__)" 2>&1 | t
+TURN:318
+SRC:session:bae8e5d2#turn318
+±ENTITY-ERROR-4DC01BB5
+MESSAGE:Exit code 2 Name: ctxpack Version: 0.3.0 Summary: MP3 for LLM context � multi-resolution compression codec for domain knowledge Home-page: https://github.com/cryogenic22/CTX.ai --- importable from anywhere: C:\Users\kapil\Documents\CTX_mod\
+TURN:319
+SRC:session:bae8e5d2#turn319
+±ENTITY-USER-REQUEST-437AC2F6
+REQUEST:give me instructions that i can share with any repo like scriptiva in their claude code setting to then use ctx as mcp and instructiins on how to use and what to update in claude.md etc so that they can get max power, plus i want to ensure there is telemetry or approach to measur
+TURN:322
+SRC:session:bae8e5d2#turn322
+±ENTITY-TASK-03BE2EAC
+TASK:Telemetry counters: ledger_reads vs transcript_greps in parser
+TURN:325
+SRC:session:bae8e5d2#turn325
+±ENTITY-TASK-AE6B091F
+TASK:Checkpoint journal: gist_bpe + latency_ms fields
+TURN:327
+SRC:session:bae8e5d2#turn327
+±ENTITY-TASK-C33A9FDD
+TASK:ctxpack session stats — the benefits report
+TURN:329
+SRC:session:bae8e5d2#turn329
+±ENTITY-TASK-0E18B09E
+TASK:ctxpack onboard — one-command repo setup
+TURN:331
+SRC:session:bae8e5d2#turn331
+±ENTITY-TASK-3E7BA134
+TASK:Shareable onboarding doc for repo teams
+TURN:333
+SRC:session:bae8e5d2#turn333
+±ENTITY-TASK-DC643740
+TASK:Verify, update plan build log, commit
+TURN:335
+SRC:session:bae8e5d2#turn335
+±ENTITY-TOOL-BASH-0132
+RAN:Run all new and affected tests
+COMMAND:python -m pytest tests/test_transcript_parser.py tests/test_session_reader.py tests/test_onboard.py tests/test_checkpoint.py tests/test_cli.py -q 2>&1 | tail -4
+TURN:382
+SRC:session:bae8e5d2#turn382
+±ENTITY-TOOL-BASH-0139
+RAN:Smoke onboard on scratch repo, then run stats on real ledger
+COMMAND:SCRATCH="$HOME/AppData/Local/Temp/claude/onboard-smoke" && rm -rf "$SCRATCH" && mkdir -p "$SCRATCH" && echo "# Scriptiva-like repo" > "$SCRATCH/CLAUDE.md" && py
+TURN:400
+SRC:session:bae8e5d2#turn400
 ±ENTITY-FILE-E-PROJECTS-C--USERS-KAPIL-DOCUMENTS-CTX-MOD-MEMORY-MEMORY-MD
 PATH:C:\Users\kapil\.claude\projects\C--Users-kapil-Documents-CTX-mod\memory\MEMORY.md
+EDITS:3
+LAST-TURN:311
+SRC:session:bae8e5d2#turn311
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD--MCP-JSON
+PATH:C:\Users\kapil\Documents\CTX_mod\.mcp.json
 EDITS:1
-LAST-TURN:67
-SRC:session:bae8e5d2#turn67
+LAST-TURN:274
+SRC:session:bae8e5d2#turn274
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-CLAUDE-MD
+PATH:C:\Users\kapil\Documents\CTX_mod\CLAUDE.md
+EDITS:1
+LAST-TURN:278
+SRC:session:bae8e5d2#turn278
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-AGENT-CHECKPOINT-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\checkpoint.py
+EDITS:3
+LAST-TURN:351
+SRC:session:bae8e5d2#turn351
+±ENTITY-FILE-SERS-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-AGENT-SESSION-READER-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\session_reader.py
+EDITS:2
+LAST-TURN:355
+SRC:session:bae8e5d2#turn355
 ±ENTITY-FILE-S-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-AGENT-TRANSCRIPT-PARSER-PY
 PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\transcript_parser.py
-EDITS:7
-LAST-TURN:137
-SRC:session:bae8e5d2#turn137
+EDITS:10
+LAST-TURN:343
+SRC:session:bae8e5d2#turn343
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-CLI-MAIN-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\cli\main.py
+EDITS:13
+LAST-TURN:372
+SRC:session:bae8e5d2#turn372
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-CORE-ENTITY-GRAPH-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\core\entity_graph.py
+EDITS:2
+LAST-TURN:234
+SRC:session:bae8e5d2#turn234
+±ENTITY-FILE-S-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-INTEGRATIONS-MCP-SERVER-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\integrations\mcp_server.py
+EDITS:6
+LAST-TURN:242
+SRC:session:bae8e5d2#turn242
+±ENTITY-FILE-RS-KAPIL-DOCUMENTS-CTX-MOD-DOCS-SESSION-MEMORY-ONBOARDING-MD
+PATH:C:\Users\kapil\Documents\CTX_mod\docs\session-memory-onboarding.md
+EDITS:1
+LAST-TURN:396
+SRC:session:bae8e5d2#turn396
+±ENTITY-FILE-ERS-KAPIL-DOCUMENTS-CTX-MOD-PAPER-AGENTIC-CONTEXT-PLAN-V1-MD
+PATH:C:\Users\kapil\Documents\CTX_mod\paper\agentic-context-plan-v1.md
+EDITS:1
+LAST-TURN:282
+SRC:session:bae8e5d2#turn282
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-TESTS-TEST-ONBOARD-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\tests\test_onboard.py
+EDITS:1
+LAST-TURN:380
+SRC:session:bae8e5d2#turn380
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-TESTS-TEST-SESSION-READER-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\tests\test_session_reader.py
+EDITS:3
+LAST-TURN:377
+SRC:session:bae8e5d2#turn377
 ±ENTITY-FILE-SERS-KAPIL-DOCUMENTS-CTX-MOD-TESTS-TEST-TRANSCRIPT-PARSER-PY
 PATH:C:\Users\kapil\Documents\CTX_mod\tests\test_transcript_parser.py
-EDITS:3
-LAST-TURN:143
-SRC:session:bae8e5d2#turn143
+EDITS:4
+LAST-TURN:375
+SRC:session:bae8e5d2#turn375

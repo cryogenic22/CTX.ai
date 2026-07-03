@@ -259,6 +259,42 @@ def test_constraint_mention_in_backticks_not_extracted(tmp_path):
     assert rules == [], f"backticked mention extracted as constraint: {rules}"
 
 
+def test_read_path_adoption_counters(tmp_path):
+    """ledger_reads vs transcript_greps — the raw-fallback telemetry."""
+    entries = [_entry("assistant", [
+        # ledger reads: CLI + MCP spellings
+        {"type": "tool_use", "name": "Bash",
+         "input": {"command": "python -m ctxpack.cli.main session decisions",
+                   "description": "Read ledger decisions"}},
+        {"type": "tool_use", "name": "Bash",
+         "input": {"command": "ctxpack session timeline --limit 5",
+                   "description": "Read ledger timeline"}},
+        {"type": "tool_use", "name": "mcp__ctxpack__ctx/session_recall",
+         "input": {"query": "backoff"}},
+        # raw-transcript fallbacks: Bash grep + Read tool
+        {"type": "tool_use", "name": "Bash",
+         "input": {"command": "grep decision "
+                              "~/.claude/projects/proj/abc.jsonl",
+                   "description": "Grep raw transcript"}},
+        {"type": "tool_use", "name": "Read",
+         "input": {"file_path": "C:\\Users\\k\\.claude\\projects\\p\\s.jsonl"}},
+        # neither: the checkpoint WRITE references the transcript path
+        {"type": "tool_use", "name": "Bash",
+         "input": {"command": "ctxpack checkpoint --transcript "
+                              "~/.claude/projects/proj/abc.jsonl",
+                   "description": "Checkpoint the session"}},
+        # neither: ordinary bash
+        {"type": "tool_use", "name": "Bash",
+         "input": {"command": "pytest -q", "description": "Run tests"}},
+    ])]
+    path = tmp_path / "s.jsonl"
+    path.write_text("\n".join(json.dumps(e) for e in entries), encoding="utf-8")
+    stats = parse_transcript(str(path)).stats
+    assert stats.ledger_reads == 3, f"ledger_reads={stats.ledger_reads}"
+    assert stats.transcript_greps == 2, (
+        f"transcript_greps={stats.transcript_greps}")
+
+
 def test_task_notification_not_a_user_request(tmp_path):
     entries = [
         _entry("user", "<task-notification>\n<task-id>bl9o6g0ma</task-id>\n"

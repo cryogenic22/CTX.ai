@@ -299,13 +299,21 @@ def main(argv: list[str] | None = None) -> int:
     p_install.add_argument("--project-dir", default=".",
                            help="Repo root (default: current directory)")
 
+    # onboard — hooks + MCP + CLAUDE.md conventions + ledger dir, one shot
+    p_onboard = sub.add_parser(
+        "onboard",
+        help="Wire session memory into a repo: hooks, MCP server, "
+             "CLAUDE.md conventions, ledger dir (idempotent)")
+    p_onboard.add_argument("--project-dir", default=".",
+                           help="Repo root (default: current directory)")
+
     # session — read path over the checkpoint ledger (P4)
     p_session = sub.add_parser(
         "session",
         help="Read the checkpoint ledger: recall | timeline | decisions | why")
     p_session.add_argument("action",
                            choices=["recall", "timeline", "decisions", "why",
-                                    "graph"],
+                                    "graph", "stats"],
                            help="What to read")
     p_session.add_argument("key", nargs="?", default="",
                            help="why: key to trace; recall: keyword query; "
@@ -367,6 +375,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_hook(args)
         elif args.command == "install-hooks":
             return _cmd_install_hooks(args)
+        elif args.command == "onboard":
+            return _cmd_onboard(args)
         elif args.command == "session":
             return _cmd_session(args)
     except ParseError as e:
@@ -1026,9 +1036,18 @@ def _cmd_session(args: argparse.Namespace) -> int:
         load_session,
         session_decisions,
         session_recall,
+        session_stats,
         session_timeline,
         session_why,
     )
+
+    if args.action == "stats":
+        try:
+            print(json.dumps(session_stats(args.ledger), indent=2))
+        except LedgerError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+        return 0
 
     try:
         doc, sid = load_session(args.ledger, args.session_id)
@@ -1099,16 +1118,16 @@ def _is_ctxpack_hook(hook: dict) -> bool:
     return any(marker in cmd for marker in _CTXPACK_HOOK_MARKERS)
 
 
-def _cmd_install_hooks(args: argparse.Namespace) -> int:
-    """Write the checkpoint hooks into <project>/.claude/settings.json.
+def _install_hooks_into(project_dir: str) -> "str | None":
+    """Merge the checkpoint hooks into <project>/.claude/settings.json.
 
-    Merges with existing settings; existing ctxpack hook entries are
-    replaced, everything else is preserved. Uninstall = remove the three
-    entries (or delete the hooks whose command starts with 'ctxpack hook').
+    Existing ctxpack hook entries are replaced, everything else is
+    preserved. Returns the settings path, or None if the existing file is
+    unparseable (never overwrite what we can't read).
     """
     import json as _json
 
-    claude_dir = os.path.join(args.project_dir, ".claude")
+    claude_dir = os.path.join(project_dir, ".claude")
     os.makedirs(claude_dir, exist_ok=True)
     settings_path = os.path.join(claude_dir, "settings.json")
 
@@ -1119,9 +1138,7 @@ def _cmd_install_hooks(args: argparse.Namespace) -> int:
             try:
                 settings = _json.load(f)
             except _json.JSONDecodeError:
-                print(f"Refusing to overwrite unparseable {settings_path}",
-                      file=sys.stderr)
-                return 1
+                return None
 
     hooks = settings.setdefault("hooks", {})
     for event, entries in _HOOK_SETTINGS.items():
@@ -1141,16 +1158,133 @@ def _cmd_install_hooks(args: argparse.Namespace) -> int:
     with open(settings_path, "w", encoding="utf-8", newline="\n") as f:
         _json.dump(settings, f, indent=2)
         f.write("\n")
+    return settings_path
 
+
+def _print_restart_warning() -> None:
+    print("IMPORTANT: Claude Code snapshots hook + MCP config at process")
+    print("startup — nothing fires until you restart Claude Code (and")
+    print("approve the hooks/server when prompted). /clear is not a restart.")
+
+
+def _cmd_install_hooks(args: argparse.Namespace) -> int:
+    settings_path = _install_hooks_into(args.project_dir)
+    if settings_path is None:
+        print("Refusing to overwrite unparseable .claude/settings.json",
+              file=sys.stderr)
+        return 1
     print(f"Installed ctxpack hooks into {settings_path}")
     print(f"  PreCompact  -> {_HOOK_CMD} pre-compact   (pack before summarize)")
     print(f"  SessionStart-> {_HOOK_CMD} session-start (re-inject gist)")
     print(f"  SessionEnd  -> {_HOOK_CMD} session-end   (final checkpoint)")
     print("Ledger dir: .claude/ctx/  (commit it to give the repo durable memory)")
     print()
-    print("IMPORTANT: Claude Code snapshots hook config at process startup —")
-    print("these hooks do NOT fire until you restart Claude Code (or review")
-    print("them via /hooks). /clear is not a restart.")
+    _print_restart_warning()
+    return 0
+
+
+# ── onboard: the whole session-memory setup in one command ──
+
+_MCP_SERVER_ENTRY = {
+    "command": "python",
+    "args": ["-m", "ctxpack.integrations.mcp_server"],
+}
+
+_CLAUDE_MD_MARKER = "<!-- ctxpack:session-memory:v1 -->"
+
+_CLAUDE_MD_BLOCK = f"""
+{_CLAUDE_MD_MARKER}
+## Session memory (ctxpack ledger)
+
+This repo uses CtxPack Checkpoint: hooks pack every compaction and
+session end into `.claude/ctx/` (a deterministic ledger — the raw
+transcript is never deleted), and each session start re-injects the
+previous session's gist. Trust the gist's constraints and decisions.
+
+**Recall past-session detail via the ledger read path FIRST**; fall back
+to grepping the raw transcript only if it fails (fallbacks are tracked):
+
+- MCP (if connected): `ctx/session_recall`, `ctx/session_timeline`,
+  `ctx/session_decisions`, `ctx/why`, `ctx/graph_query`
+- CLI twins: `ctxpack session decisions | timeline | recall | why | graph`
+  (`--session <id>` targets older sessions; `ctxpack session stats` shows
+  adoption + capture metrics)
+
+**Decision convention (load-bearing):** state every nontrivial decision
+(design choice, root cause, chosen fix, abandoned approach) in your reply
+on its own sentence starting with `Decision:` — e.g. `Decision: use
+exponential backoff with base 750ms because the vendor limit is 40
+req/min.` The deterministic parser extracts these; unmarked decisions in
+free prose are often missed. Dead ends the same way: "The X approach
+didn't work because ...".
+<!-- /ctxpack:session-memory -->
+"""
+
+
+def _cmd_onboard(args: argparse.Namespace) -> int:
+    """Set up session memory in a repo: hooks + MCP + CLAUDE.md + ledger
+    dir. Idempotent — safe to re-run after upgrades."""
+    import json as _json
+
+    project = os.path.abspath(args.project_dir)
+    done: list[str] = []
+
+    # 1. Hooks (write path)
+    settings_path = _install_hooks_into(project)
+    if settings_path is None:
+        print("Refusing to overwrite unparseable .claude/settings.json",
+              file=sys.stderr)
+        return 1
+    done.append(f"hooks       -> {settings_path}")
+
+    # 2. MCP server (read path)
+    mcp_path = os.path.join(project, ".mcp.json")
+    mcp_config: dict = {}
+    if os.path.exists(mcp_path):
+        with open(mcp_path, encoding="utf-8-sig") as f:
+            try:
+                mcp_config = _json.load(f)
+            except _json.JSONDecodeError:
+                print(f"Refusing to overwrite unparseable {mcp_path}",
+                      file=sys.stderr)
+                return 1
+    servers = mcp_config.setdefault("mcpServers", {})
+    if "ctxpack" not in servers:
+        servers["ctxpack"] = dict(_MCP_SERVER_ENTRY)
+        with open(mcp_path, "w", encoding="utf-8", newline="\n") as f:
+            _json.dump(mcp_config, f, indent=2)
+            f.write("\n")
+        done.append(f"mcp server  -> {mcp_path}")
+    else:
+        done.append(f"mcp server  -> {mcp_path} (already present)")
+
+    # 3. CLAUDE.md conventions — marker-guarded, append-only
+    claude_md = os.path.join(project, "CLAUDE.md")
+    existing_md = ""
+    if os.path.exists(claude_md):
+        with open(claude_md, encoding="utf-8-sig") as f:
+            existing_md = f.read()
+    if _CLAUDE_MD_MARKER in existing_md:
+        done.append(f"claude.md   -> {claude_md} (block already present)")
+    else:
+        with open(claude_md, "a", encoding="utf-8", newline="\n") as f:
+            if existing_md and not existing_md.endswith("\n"):
+                f.write("\n")
+            f.write(_CLAUDE_MD_BLOCK)
+        done.append(f"claude.md   -> {claude_md} (conventions appended)")
+
+    # 4. Ledger dir
+    ledger = os.path.join(project, ".claude", "ctx")
+    os.makedirs(ledger, exist_ok=True)
+    done.append(f"ledger dir  -> {ledger}")
+
+    print("ctxpack onboard — session memory wired into this repo:")
+    for line in done:
+        print(f"  {line}")
+    print()
+    print("Measure adoption anytime:  ctxpack session stats")
+    print()
+    _print_restart_warning()
     return 0
 
 

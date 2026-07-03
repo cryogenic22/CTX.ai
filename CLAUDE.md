@@ -4,6 +4,7 @@ Deterministic knowledge packer + progressive hydration, evolving into a
 session-memory substrate for long-running agents ("CtxPack Checkpoint").
 Current program: `paper/agentic-context-plan-v1.md`.
 
+<!-- ctxpack:session-memory:v1 -->
 ## Session memory (dogfood — this repo runs on its own ledger)
 
 This repo has ctxpack hooks installed (`.claude/settings.json`): every

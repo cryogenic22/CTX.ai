@@ -98,6 +98,35 @@ _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+|\n+")
 # Tools whose invocations mutate state and deserve per-file tracking
 _WRITE_TOOLS = {"Edit", "Write", "NotebookEdit", "MultiEdit"}
 
+# ── Read-path adoption telemetry (P4) ──
+# Counted per tool_use and carried into checkpoints.jsonl via
+# TranscriptStats: ledger_reads = the session used the checkpoint read
+# path; transcript_greps = it fell back to the raw transcript despite the
+# read path existing. The fallback rate is the earliest honest signal of
+# whether the ledger earns its keep (CP-041's negative-value signal).
+
+_LEDGER_READ_CMD_RE = re.compile(
+    r"ctxpack(?:\.cli\.main)?['\"]?\s+session\b")
+# MCP spellings: mcp__ctxpack__ctx/session_recall etc., normalized below
+_LEDGER_TOOL_SUFFIXES = (
+    "ctx_session_recall", "ctx_session_timeline", "ctx_session_decisions",
+    "ctx_why", "ctx_graph_query",
+)
+_READONLY_PATH_TOOLS = {"Grep", "Read", "Glob"}
+
+
+def _is_ledger_read_command(command: str) -> bool:
+    c = " ".join(command.lower().split())
+    if _LEDGER_READ_CMD_RE.search(c):
+        return True
+    return ("ctxpack" in c and "hydrate" in c
+            and ".claude/ctx" in c.replace("\\", "/"))
+
+
+def _touches_raw_transcript(text: str) -> bool:
+    t = text.lower().replace("\\", "/")
+    return ".claude/projects" in t and ".jsonl" in t
+
 
 @dataclass
 class TranscriptStats:
@@ -113,6 +142,9 @@ class TranscriptStats:
     files_changed: int = 0
     tasks: int = 0
     bash_commands: int = 0
+    # Read-path adoption (P4): ledger reads vs raw-transcript fallbacks
+    ledger_reads: int = 0
+    transcript_greps: int = 0
 
     def to_dict(self) -> dict:
         return dict(self.__dict__)
@@ -346,6 +378,25 @@ def parse_transcript(
                     tool_seq += 1
                     name = str(blk.get("name", ""))
                     tool_input = blk.get("input", {}) or {}
+
+                    # Read-path adoption counters (no entity — just stats)
+                    norm_name = name.lower().replace("/", "_").replace("-", "_")
+                    if ("ctxpack" in norm_name
+                            and norm_name.endswith(_LEDGER_TOOL_SUFFIXES)):
+                        stats.ledger_reads += 1
+                    elif name in _READONLY_PATH_TOOLS:
+                        target = " ".join(str(v) for v in tool_input.values())
+                        if _touches_raw_transcript(target):
+                            stats.transcript_greps += 1
+                    elif name == "Bash":
+                        cmd = str(tool_input.get("command", ""))
+                        if _is_ledger_read_command(cmd):
+                            stats.ledger_reads += 1
+                        elif (_touches_raw_transcript(cmd)
+                              and "ctxpack" not in cmd.lower()):
+                            # ctxpack checkpoint/hook invocations reference
+                            # the transcript path — writes, not fallbacks
+                            stats.transcript_greps += 1
 
                     if name in _WRITE_TOOLS:
                         fpath = str(tool_input.get("file_path")

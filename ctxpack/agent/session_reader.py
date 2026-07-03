@@ -331,3 +331,68 @@ def session_why(doc: CTXDocument, sid: str, key: str) -> dict[str, Any]:
                 "section's current field value is the latest and wins.")
     return {"session": sid, "key": key, "matches": matches,
             "count": len(matches), **({"note": note} if note else {})}
+
+
+def session_stats(ledger_dir: str = DEFAULT_LEDGER_DIR) -> dict[str, Any]:
+    """Aggregate the checkpoint journal into the benefits report.
+
+    Checkpoints are full re-packs, so the LAST journal row per session
+    supersedes earlier ones; totals sum those. The headline is
+    raw_fallback_rate: transcript greps / all past-session reads — the
+    read path earning its keep means this trends toward 0.
+    """
+    journal = os.path.join(ledger_dir, "checkpoints.jsonl")
+    rows: list[dict] = []
+    try:
+        with open(journal, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rows.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+    except OSError:
+        raise LedgerError(f"No checkpoint journal at {journal!r}")
+
+    last_per_session: dict[str, dict] = {}
+    for row in rows:
+        last_per_session[str(row.get("session", ""))] = row
+
+    totals: dict[str, int] = {}
+    for row in last_per_session.values():
+        for key, value in (row.get("stats") or {}).items():
+            if isinstance(value, int):
+                totals[key] = totals.get(key, 0) + value
+
+    ledger_reads = totals.get("ledger_reads", 0)
+    greps = totals.get("transcript_greps", 0)
+    fallback_rate = (round(greps / (ledger_reads + greps), 3)
+                     if (ledger_reads + greps) else None)
+
+    latencies = [row["latency_ms"] for row in rows
+                 if isinstance(row.get("latency_ms"), (int, float))]
+    gists = [row["gist_bpe"] for row in last_per_session.values()
+             if isinstance(row.get("gist_bpe"), int)]
+
+    return {
+        "ledger_dir": ledger_dir,
+        "sessions": len(last_per_session),
+        "checkpoints": len(rows),
+        "captured": {k: totals.get(k, 0) for k in (
+            "decisions", "constraints", "failed_approaches", "errors",
+            "files_changed", "tasks", "requests")},
+        "read_path": {
+            "ledger_reads": ledger_reads,
+            "transcript_greps": greps,
+            "raw_fallback_rate": fallback_rate,
+        },
+        "gist_bpe": {"latest_per_session": sorted(gists)} if gists else {},
+        "checkpoint_latency_ms": {
+            "max": max(latencies), "mean": round(
+                sum(latencies) / len(latencies), 1),
+        } if latencies else {},
+        "turns_packed": sum(
+            row.get("turns", 0) for row in last_per_session.values()),
+    }
