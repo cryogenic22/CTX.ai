@@ -1,0 +1,2086 @@
+{
+  "model": "claude-sonnet-4-6",
+  "scales": {
+    "40": {
+      "raw_bpe": 11386,
+      "l3_bpe": 594,
+      "edge_faithful": true,
+      "aggregate": {
+        "RAW": {
+          "macro_f1": 0.908,
+          "avg_bpe": 11386,
+          "by_kind": {
+            "forward": 1.0,
+            "reverse": 0.775,
+            "bfs2": 0.951
+          }
+        },
+        "CTX-L3": {
+          "macro_f1": 0.947,
+          "avg_bpe": 594,
+          "by_kind": {
+            "forward": 1.0,
+            "reverse": 1.0,
+            "bfs2": 0.84
+          }
+        },
+        "CTX-TOOL": {
+          "macro_f1": 1.0,
+          "avg_bpe": 594,
+          "by_kind": {
+            "forward": 1.0,
+            "reverse": 1.0,
+            "bfs2": 1.0
+          }
+        }
+      },
+      "rows": [
+        {
+          "id": "G01",
+          "kind": "forward",
+          "cond": "RAW",
+          "f1": 1.0,
+          "bpe": 11386,
+          "pred": [
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-JUNIPER-JOURNAL"
+          ],
+          "gold": [
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-JUNIPER-JOURNAL"
+          ]
+        },
+        {
+          "id": "G01",
+          "kind": "forward",
+          "cond": "CTX-L3",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-JUNIPER-JOURNAL"
+          ],
+          "gold": [
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-JUNIPER-JOURNAL"
+          ]
+        },
+        {
+          "id": "G01",
+          "kind": "forward",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-JUNIPER-JOURNAL"
+          ],
+          "gold": [
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-JUNIPER-JOURNAL"
+          ]
+        },
+        {
+          "id": "G02",
+          "kind": "forward",
+          "cond": "RAW",
+          "f1": 1.0,
+          "bpe": 11386,
+          "pred": [
+            "SVC-PUMICE-PAYOUTS"
+          ],
+          "gold": [
+            "SVC-PUMICE-PAYOUTS"
+          ]
+        },
+        {
+          "id": "G02",
+          "kind": "forward",
+          "cond": "CTX-L3",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-PUMICE-PAYOUTS"
+          ],
+          "gold": [
+            "SVC-PUMICE-PAYOUTS"
+          ]
+        },
+        {
+          "id": "G02",
+          "kind": "forward",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-PUMICE-PAYOUTS"
+          ],
+          "gold": [
+            "SVC-PUMICE-PAYOUTS"
+          ]
+        },
+        {
+          "id": "G03",
+          "kind": "forward",
+          "cond": "RAW",
+          "f1": 1.0,
+          "bpe": 11386,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE"
+          ]
+        },
+        {
+          "id": "G03",
+          "kind": "forward",
+          "cond": "CTX-L3",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE"
+          ]
+        },
+        {
+          "id": "G03",
+          "kind": "forward",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE"
+          ]
+        },
+        {
+          "id": "G04",
+          "kind": "forward",
+          "cond": "RAW",
+          "f1": 1.0,
+          "bpe": 11386,
+          "pred": [
+            "SVC-FLINT-FX"
+          ],
+          "gold": [
+            "SVC-FLINT-FX"
+          ]
+        },
+        {
+          "id": "G04",
+          "kind": "forward",
+          "cond": "CTX-L3",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-FLINT-FX"
+          ],
+          "gold": [
+            "SVC-FLINT-FX"
+          ]
+        },
+        {
+          "id": "G04",
+          "kind": "forward",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-FLINT-FX"
+          ],
+          "gold": [
+            "SVC-FLINT-FX"
+          ]
+        },
+        {
+          "id": "G05",
+          "kind": "reverse",
+          "cond": "RAW",
+          "f1": 1.0,
+          "bpe": 11386,
+          "pred": [
+            "SVC-AMBER-BILLING",
+            "SVC-XENON-EXPORT"
+          ],
+          "gold": [
+            "SVC-AMBER-BILLING",
+            "SVC-XENON-EXPORT"
+          ]
+        },
+        {
+          "id": "G05",
+          "kind": "reverse",
+          "cond": "CTX-L3",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-AMBER-BILLING",
+            "SVC-XENON-EXPORT"
+          ],
+          "gold": [
+            "SVC-AMBER-BILLING",
+            "SVC-XENON-EXPORT"
+          ]
+        },
+        {
+          "id": "G05",
+          "kind": "reverse",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-AMBER-BILLING",
+            "SVC-XENON-EXPORT"
+          ],
+          "gold": [
+            "SVC-AMBER-BILLING",
+            "SVC-XENON-EXPORT"
+          ]
+        },
+        {
+          "id": "G06",
+          "kind": "reverse",
+          "cond": "RAW",
+          "f1": 0.6,
+          "bpe": 11386,
+          "pred": [
+            "SVC-BASALT-BILLING",
+            "SVC-GRANITE-HOOKS",
+            "SVC-KRYPTON-KYC",
+            "SVC-LUMEN-METRICS",
+            "SVC-MESA-NOTIFY",
+            "SVC-VERTEX-VAULT",
+            "SVC-WILLOW-WALLET"
+          ],
+          "gold": [
+            "SVC-GRANITE-HOOKS",
+            "SVC-LUMEN-METRICS",
+            "SVC-MESA-NOTIFY"
+          ]
+        },
+        {
+          "id": "G06",
+          "kind": "reverse",
+          "cond": "CTX-L3",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-GRANITE-HOOKS",
+            "SVC-LUMEN-METRICS",
+            "SVC-MESA-NOTIFY"
+          ],
+          "gold": [
+            "SVC-GRANITE-HOOKS",
+            "SVC-LUMEN-METRICS",
+            "SVC-MESA-NOTIFY"
+          ]
+        },
+        {
+          "id": "G06",
+          "kind": "reverse",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-GRANITE-HOOKS",
+            "SVC-LUMEN-METRICS",
+            "SVC-MESA-NOTIFY"
+          ],
+          "gold": [
+            "SVC-GRANITE-HOOKS",
+            "SVC-LUMEN-METRICS",
+            "SVC-MESA-NOTIFY"
+          ]
+        },
+        {
+          "id": "G07",
+          "kind": "reverse",
+          "cond": "RAW",
+          "f1": 0.5,
+          "bpe": 11386,
+          "pred": [
+            "SVC-COBALT-CACHE",
+            "SVC-TOPAZ-TAX",
+            "SVC-ZEPHYR-ZONES"
+          ],
+          "gold": [
+            "SVC-ZEPHYR-ZONES"
+          ]
+        },
+        {
+          "id": "G07",
+          "kind": "reverse",
+          "cond": "CTX-L3",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-ZEPHYR-ZONES"
+          ],
+          "gold": [
+            "SVC-ZEPHYR-ZONES"
+          ]
+        },
+        {
+          "id": "G07",
+          "kind": "reverse",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-ZEPHYR-ZONES"
+          ],
+          "gold": [
+            "SVC-ZEPHYR-ZONES"
+          ]
+        },
+        {
+          "id": "G08",
+          "kind": "reverse",
+          "cond": "RAW",
+          "f1": 1.0,
+          "bpe": 11386,
+          "pred": [
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-LUMEN-METRICS",
+            "SVC-PUMICE-PAYOUTS",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK"
+          ],
+          "gold": [
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-LUMEN-METRICS",
+            "SVC-PUMICE-PAYOUTS",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK"
+          ]
+        },
+        {
+          "id": "G08",
+          "kind": "reverse",
+          "cond": "CTX-L3",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-LUMEN-METRICS",
+            "SVC-PUMICE-PAYOUTS",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK"
+          ],
+          "gold": [
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-LUMEN-METRICS",
+            "SVC-PUMICE-PAYOUTS",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK"
+          ]
+        },
+        {
+          "id": "G08",
+          "kind": "reverse",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-LUMEN-METRICS",
+            "SVC-PUMICE-PAYOUTS",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK"
+          ],
+          "gold": [
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-LUMEN-METRICS",
+            "SVC-PUMICE-PAYOUTS",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK"
+          ]
+        },
+        {
+          "id": "G09",
+          "kind": "bfs2",
+          "cond": "RAW",
+          "f1": 0.909,
+          "bpe": 11386,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-KYC",
+            "SVC-LUMEN-LEDGER",
+            "SVC-NIMBUS-NOTIFY",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK",
+            "SVC-UMBER-UPLOAD",
+            "SVC-XENON-EXPORT"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-BILLING",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-KYC",
+            "SVC-LUMEN-LEDGER",
+            "SVC-NIMBUS-NOTIFY",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK",
+            "SVC-UMBER-UPLOAD",
+            "SVC-XENON-EXPORT"
+          ]
+        },
+        {
+          "id": "G09",
+          "kind": "bfs2",
+          "cond": "CTX-L3",
+          "f1": 0.778,
+          "bpe": 594,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-GRANITE-GATEWAY-",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-INDIGO-JOURNAL",
+            "SVC-INDIGO-JOURNAL-",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-KYC",
+            "SVC-LUMEN-LEDGER",
+            "SVC-NIMBUS-",
+            "SVC-NIMBUS-NOTIFY",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-BILLING",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-KYC",
+            "SVC-LUMEN-LEDGER",
+            "SVC-NIMBUS-NOTIFY",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK",
+            "SVC-UMBER-UPLOAD",
+            "SVC-XENON-EXPORT"
+          ]
+        },
+        {
+          "id": "G09",
+          "kind": "bfs2",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-BILLING",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-KYC",
+            "SVC-LUMEN-LEDGER",
+            "SVC-NIMBUS-NOTIFY",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK",
+            "SVC-UMBER-UPLOAD",
+            "SVC-XENON-EXPORT"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-BILLING",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-KYC",
+            "SVC-LUMEN-LEDGER",
+            "SVC-NIMBUS-NOTIFY",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK",
+            "SVC-UMBER-UPLOAD",
+            "SVC-XENON-EXPORT"
+          ]
+        },
+        {
+          "id": "G10",
+          "kind": "bfs2",
+          "cond": "RAW",
+          "f1": 0.97,
+          "bpe": 11386,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-COBALT-DISPATCH",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-GATEWAY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-LEDGER",
+            "SVC-LUMEN-METRICS",
+            "SVC-PUMICE-PAYOUTS",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK",
+            "SVC-SABLE-SEARCH",
+            "SVC-XENON-EXPORT",
+            "SVC-YARROW-YIELD"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-COBALT-DISPATCH",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-GATEWAY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-LEDGER",
+            "SVC-LUMEN-METRICS",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK",
+            "SVC-SABLE-SEARCH",
+            "SVC-XENON-EXPORT",
+            "SVC-YARROW-YIELD"
+          ]
+        },
+        {
+          "id": "G10",
+          "kind": "bfs2",
+          "cond": "CTX-L3",
+          "f1": 0.8,
+          "bpe": 594,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-BILLING",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-COBALT-DISPATCH",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-LUMEN-METRICS",
+            "SVC-PUMICE-PAYOUTS",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK",
+            "SVC-SABLE-SEARCH",
+            "SVC-XENON-EXPORT"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-COBALT-DISPATCH",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-GATEWAY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-LEDGER",
+            "SVC-LUMEN-METRICS",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK",
+            "SVC-SABLE-SEARCH",
+            "SVC-XENON-EXPORT",
+            "SVC-YARROW-YIELD"
+          ]
+        },
+        {
+          "id": "G10",
+          "kind": "bfs2",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-COBALT-DISPATCH",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-GATEWAY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-LEDGER",
+            "SVC-LUMEN-METRICS",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK",
+            "SVC-SABLE-SEARCH",
+            "SVC-XENON-EXPORT",
+            "SVC-YARROW-YIELD"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-COBALT-DISPATCH",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-GATEWAY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-LEDGER",
+            "SVC-LUMEN-METRICS",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK",
+            "SVC-SABLE-SEARCH",
+            "SVC-XENON-EXPORT",
+            "SVC-YARROW-YIELD"
+          ]
+        },
+        {
+          "id": "G11",
+          "kind": "bfs2",
+          "cond": "RAW",
+          "f1": 0.95,
+          "bpe": 11386,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-BILLING",
+            "SVC-BASALT-BILLING",
+            "SVC-BASALT-CACHE",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-GRANITE-HOOKS",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-JUNIPER-KYC",
+            "SVC-KRYPTON-KYC",
+            "SVC-NIMBUS-ORDERS",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-VERTEX-VAULT",
+            "SVC-XENON-EXPORT"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-BILLING",
+            "SVC-BASALT-BILLING",
+            "SVC-BASALT-CACHE",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-GRANITE-HOOKS",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-JUNIPER-KYC",
+            "SVC-KRYPTON-KYC",
+            "SVC-NIMBUS-ORDERS",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-VERTEX-VAULT",
+            "SVC-XENON-EXPORT",
+            "SVC-YARROW-YIELD"
+          ]
+        },
+        {
+          "id": "G11",
+          "kind": "bfs2",
+          "cond": "CTX-L3",
+          "f1": 0.833,
+          "bpe": 594,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-BASALT-CACHE",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-JUNIPER-KYC",
+            "SVC-KRYPTON-KYC",
+            "SVC-NIMBUS-ORDERS",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-VERTEX-VAULT"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-BILLING",
+            "SVC-BASALT-BILLING",
+            "SVC-BASALT-CACHE",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-GRANITE-HOOKS",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-JUNIPER-KYC",
+            "SVC-KRYPTON-KYC",
+            "SVC-NIMBUS-ORDERS",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-VERTEX-VAULT",
+            "SVC-XENON-EXPORT",
+            "SVC-YARROW-YIELD"
+          ]
+        },
+        {
+          "id": "G11",
+          "kind": "bfs2",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-BILLING",
+            "SVC-BASALT-BILLING",
+            "SVC-BASALT-CACHE",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-GRANITE-HOOKS",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-JUNIPER-KYC",
+            "SVC-KRYPTON-KYC",
+            "SVC-NIMBUS-ORDERS",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-VERTEX-VAULT",
+            "SVC-XENON-EXPORT",
+            "SVC-YARROW-YIELD"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-BILLING",
+            "SVC-BASALT-BILLING",
+            "SVC-BASALT-CACHE",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-GRANITE-HOOKS",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-JUNIPER-KYC",
+            "SVC-KRYPTON-KYC",
+            "SVC-NIMBUS-ORDERS",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-VERTEX-VAULT",
+            "SVC-XENON-EXPORT",
+            "SVC-YARROW-YIELD"
+          ]
+        },
+        {
+          "id": "G12",
+          "kind": "bfs2",
+          "cond": "RAW",
+          "f1": 0.973,
+          "bpe": 11386,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-KYC",
+            "SVC-MESA-NOTIFY",
+            "SVC-NIMBUS-NOTIFY",
+            "SVC-ONYX-ORDERS",
+            "SVC-TOPAZ-TAX",
+            "SVC-UMBER-UPLOAD",
+            "SVC-WILLOW-WALLET",
+            "SVC-YARROW-YIELD",
+            "SVC-ZEPHYR-ZONES"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-MESA-NOTIFY",
+            "SVC-NIMBUS-NOTIFY",
+            "SVC-ONYX-ORDERS",
+            "SVC-TOPAZ-TAX",
+            "SVC-UMBER-UPLOAD",
+            "SVC-WILLOW-WALLET",
+            "SVC-YARROW-YIELD",
+            "SVC-ZEPHYR-ZONES"
+          ]
+        },
+        {
+          "id": "G12",
+          "kind": "bfs2",
+          "cond": "CTX-L3",
+          "f1": 0.947,
+          "bpe": 594,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-KYC",
+            "SVC-MESA-NOTIFY",
+            "SVC-NIMBUS-NOTIFY",
+            "SVC-ONYX-ORDERS",
+            "SVC-TOP",
+            "SVC-TOPAZ-TAX",
+            "SVC-UMBER-UPLOAD",
+            "SVC-WILLOW-WALLET",
+            "SVC-YARROW-YIELD",
+            "SVC-ZEPHYR-ZONES"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-MESA-NOTIFY",
+            "SVC-NIMBUS-NOTIFY",
+            "SVC-ONYX-ORDERS",
+            "SVC-TOPAZ-TAX",
+            "SVC-UMBER-UPLOAD",
+            "SVC-WILLOW-WALLET",
+            "SVC-YARROW-YIELD",
+            "SVC-ZEPHYR-ZONES"
+          ]
+        },
+        {
+          "id": "G12",
+          "kind": "bfs2",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-MESA-NOTIFY",
+            "SVC-NIMBUS-NOTIFY",
+            "SVC-ONYX-ORDERS",
+            "SVC-TOPAZ-TAX",
+            "SVC-UMBER-UPLOAD",
+            "SVC-WILLOW-WALLET",
+            "SVC-YARROW-YIELD",
+            "SVC-ZEPHYR-ZONES"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-MESA-NOTIFY",
+            "SVC-NIMBUS-NOTIFY",
+            "SVC-ONYX-ORDERS",
+            "SVC-TOPAZ-TAX",
+            "SVC-UMBER-UPLOAD",
+            "SVC-WILLOW-WALLET",
+            "SVC-YARROW-YIELD",
+            "SVC-ZEPHYR-ZONES"
+          ]
+        }
+      ]
+    },
+    "120": {
+      "raw_bpe": 34057,
+      "l3_bpe": 1671,
+      "edge_faithful": true,
+      "aggregate": {
+        "RAW": {
+          "macro_f1": 0.904,
+          "avg_bpe": 34057,
+          "by_kind": {
+            "forward": 1.0,
+            "reverse": 0.822,
+            "bfs2": 0.889
+          }
+        },
+        "CTX-L3": {
+          "macro_f1": 0.916,
+          "avg_bpe": 1671,
+          "by_kind": {
+            "forward": 1.0,
+            "reverse": 0.857,
+            "bfs2": 0.892
+          }
+        },
+        "CTX-TOOL": {
+          "macro_f1": 1.0,
+          "avg_bpe": 1671,
+          "by_kind": {
+            "forward": 1.0,
+            "reverse": 1.0,
+            "bfs2": 1.0
+          }
+        }
+      },
+      "rows": [
+        {
+          "id": "G01",
+          "kind": "forward",
+          "cond": "RAW",
+          "f1": 1.0,
+          "bpe": 34057,
+          "pred": [
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS"
+          ],
+          "gold": [
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS"
+          ]
+        },
+        {
+          "id": "G01",
+          "kind": "forward",
+          "cond": "CTX-L3",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS"
+          ],
+          "gold": [
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS"
+          ]
+        },
+        {
+          "id": "G01",
+          "kind": "forward",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS"
+          ],
+          "gold": [
+            "SVC-DELTA-DISPATCH",
+            "SVC-EMBER-EVENTS"
+          ]
+        },
+        {
+          "id": "G02",
+          "kind": "forward",
+          "cond": "RAW",
+          "f1": 1.0,
+          "bpe": 34057,
+          "pred": [
+            "SVC-DELTA-DISPATCH",
+            "SVC-FLINT-GATEWAY",
+            "SVC-HARBOR-HOOKS"
+          ],
+          "gold": [
+            "SVC-DELTA-DISPATCH",
+            "SVC-FLINT-GATEWAY",
+            "SVC-HARBOR-HOOKS"
+          ]
+        },
+        {
+          "id": "G02",
+          "kind": "forward",
+          "cond": "CTX-L3",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-DELTA-DISPATCH",
+            "SVC-FLINT-GATEWAY",
+            "SVC-HARBOR-HOOKS"
+          ],
+          "gold": [
+            "SVC-DELTA-DISPATCH",
+            "SVC-FLINT-GATEWAY",
+            "SVC-HARBOR-HOOKS"
+          ]
+        },
+        {
+          "id": "G02",
+          "kind": "forward",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-DELTA-DISPATCH",
+            "SVC-FLINT-GATEWAY",
+            "SVC-HARBOR-HOOKS"
+          ],
+          "gold": [
+            "SVC-DELTA-DISPATCH",
+            "SVC-FLINT-GATEWAY",
+            "SVC-HARBOR-HOOKS"
+          ]
+        },
+        {
+          "id": "G03",
+          "kind": "forward",
+          "cond": "RAW",
+          "f1": 1.0,
+          "bpe": 34057,
+          "pred": [
+            "SVC-KRYPTON-KYC"
+          ],
+          "gold": [
+            "SVC-KRYPTON-KYC"
+          ]
+        },
+        {
+          "id": "G03",
+          "kind": "forward",
+          "cond": "CTX-L3",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-KRYPTON-KYC"
+          ],
+          "gold": [
+            "SVC-KRYPTON-KYC"
+          ]
+        },
+        {
+          "id": "G03",
+          "kind": "forward",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-KRYPTON-KYC"
+          ],
+          "gold": [
+            "SVC-KRYPTON-KYC"
+          ]
+        },
+        {
+          "id": "G04",
+          "kind": "forward",
+          "cond": "RAW",
+          "f1": 1.0,
+          "bpe": 34057,
+          "pred": [
+            "SVC-LUMEN-LEDGER"
+          ],
+          "gold": [
+            "SVC-LUMEN-LEDGER"
+          ]
+        },
+        {
+          "id": "G04",
+          "kind": "forward",
+          "cond": "CTX-L3",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-LUMEN-LEDGER"
+          ],
+          "gold": [
+            "SVC-LUMEN-LEDGER"
+          ]
+        },
+        {
+          "id": "G04",
+          "kind": "forward",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-LUMEN-LEDGER"
+          ],
+          "gold": [
+            "SVC-LUMEN-LEDGER"
+          ]
+        },
+        {
+          "id": "G05",
+          "kind": "reverse",
+          "cond": "RAW",
+          "f1": 1.0,
+          "bpe": 34057,
+          "pred": [
+            "SVC-COBALT-EVENTS",
+            "SVC-ONYX-QUOTES",
+            "SVC-UMBER-VAULT",
+            "SVC-XENON-ZONES"
+          ],
+          "gold": [
+            "SVC-COBALT-EVENTS",
+            "SVC-ONYX-QUOTES",
+            "SVC-UMBER-VAULT",
+            "SVC-XENON-ZONES"
+          ]
+        },
+        {
+          "id": "G05",
+          "kind": "reverse",
+          "cond": "CTX-L3",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-COBALT-EVENTS",
+            "SVC-ONYX-QUOTES",
+            "SVC-UMBER-VAULT",
+            "SVC-XENON-ZONES"
+          ],
+          "gold": [
+            "SVC-COBALT-EVENTS",
+            "SVC-ONYX-QUOTES",
+            "SVC-UMBER-VAULT",
+            "SVC-XENON-ZONES"
+          ]
+        },
+        {
+          "id": "G05",
+          "kind": "reverse",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-COBALT-EVENTS",
+            "SVC-ONYX-QUOTES",
+            "SVC-UMBER-VAULT",
+            "SVC-XENON-ZONES"
+          ],
+          "gold": [
+            "SVC-COBALT-EVENTS",
+            "SVC-ONYX-QUOTES",
+            "SVC-UMBER-VAULT",
+            "SVC-XENON-ZONES"
+          ]
+        },
+        {
+          "id": "G06",
+          "kind": "reverse",
+          "cond": "RAW",
+          "f1": 1.0,
+          "bpe": 34057,
+          "pred": [
+            "SVC-GRANITE-HOOKS",
+            "SVC-LUMEN-METRICS",
+            "SVC-MESA-NOTIFY"
+          ],
+          "gold": [
+            "SVC-GRANITE-HOOKS",
+            "SVC-LUMEN-METRICS",
+            "SVC-MESA-NOTIFY"
+          ]
+        },
+        {
+          "id": "G06",
+          "kind": "reverse",
+          "cond": "CTX-L3",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-GRANITE-HOOKS",
+            "SVC-LUMEN-METRICS",
+            "SVC-MESA-NOTIFY"
+          ],
+          "gold": [
+            "SVC-GRANITE-HOOKS",
+            "SVC-LUMEN-METRICS",
+            "SVC-MESA-NOTIFY"
+          ]
+        },
+        {
+          "id": "G06",
+          "kind": "reverse",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-GRANITE-HOOKS",
+            "SVC-LUMEN-METRICS",
+            "SVC-MESA-NOTIFY"
+          ],
+          "gold": [
+            "SVC-GRANITE-HOOKS",
+            "SVC-LUMEN-METRICS",
+            "SVC-MESA-NOTIFY"
+          ]
+        },
+        {
+          "id": "G07",
+          "kind": "reverse",
+          "cond": "RAW",
+          "f1": 0.889,
+          "bpe": 34057,
+          "pred": [
+            "SVC-COBALT-CACHE",
+            "SVC-HARBOR-JOURNAL",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-LUMEN-LEDGER",
+            "SVC-QUARTZ-QUOTES"
+          ],
+          "gold": [
+            "SVC-HARBOR-JOURNAL",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-LUMEN-LEDGER",
+            "SVC-QUARTZ-QUOTES"
+          ]
+        },
+        {
+          "id": "G07",
+          "kind": "reverse",
+          "cond": "CTX-L3",
+          "f1": 0.429,
+          "bpe": 1671,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-COBALT-CACHE",
+            "SVC-EMBER-EVENTS",
+            "SVC-EMBER-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-HARBOR-JOURNAL",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-LUMEN-LEDGER",
+            "SVC-ZEPHYR-ZONES"
+          ],
+          "gold": [
+            "SVC-HARBOR-JOURNAL",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-LUMEN-LEDGER",
+            "SVC-QUARTZ-QUOTES"
+          ]
+        },
+        {
+          "id": "G07",
+          "kind": "reverse",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-HARBOR-JOURNAL",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-LUMEN-LEDGER",
+            "SVC-QUARTZ-QUOTES"
+          ],
+          "gold": [
+            "SVC-HARBOR-JOURNAL",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-LUMEN-LEDGER",
+            "SVC-QUARTZ-QUOTES"
+          ]
+        },
+        {
+          "id": "G08",
+          "kind": "reverse",
+          "cond": "RAW",
+          "f1": 0.4,
+          "bpe": 34057,
+          "pred": [
+            "SVC-AMBER-EVENTS",
+            "SVC-GRANITE-JOURNAL",
+            "SVC-INDIGO-KYC",
+            "SVC-YARROW-AUTH"
+          ],
+          "gold": [
+            "SVC-AMBER-EVENTS"
+          ]
+        },
+        {
+          "id": "G08",
+          "kind": "reverse",
+          "cond": "CTX-L3",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-AMBER-EVENTS"
+          ],
+          "gold": [
+            "SVC-AMBER-EVENTS"
+          ]
+        },
+        {
+          "id": "G08",
+          "kind": "reverse",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-AMBER-EVENTS"
+          ],
+          "gold": [
+            "SVC-AMBER-EVENTS"
+          ]
+        },
+        {
+          "id": "G09",
+          "kind": "bfs2",
+          "cond": "RAW",
+          "f1": 0.808,
+          "bpe": 34057,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-BILLING",
+            "SVC-BASALT-BILLING",
+            "SVC-BASALT-CACHE",
+            "SVC-COBALT-CACHE",
+            "SVC-COBALT-GATEWAY",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-HARBOR-JOURNAL",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-ORDERS",
+            "SVC-LUMEN-LEDGER",
+            "SVC-LUMEN-METRICS",
+            "SVC-PUMICE-PAYOUTS",
+            "SVC-PUMICE-TAX",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK",
+            "SVC-VERTEX-VAULT",
+            "SVC-XENON-EXPORT"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-BILLING",
+            "SVC-BASALT-BILLING",
+            "SVC-BASALT-CACHE",
+            "SVC-COBALT-CACHE",
+            "SVC-COBALT-EVENTS",
+            "SVC-COBALT-GATEWAY",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-DELTA-FX",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-HARBOR-JOURNAL",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-ORDERS",
+            "SVC-LUMEN-LEDGER",
+            "SVC-LUMEN-METRICS",
+            "SVC-MESA-QUOTES",
+            "SVC-ONYX-QUOTES",
+            "SVC-PUMICE-PAYOUTS",
+            "SVC-PUMICE-TAX",
+            "SVC-QUARTZ-SEARCH",
+            "SVC-RUSSET-RISK",
+            "SVC-TOPAZ-TAX",
+            "SVC-UMBER-VAULT",
+            "SVC-VERTEX-VAULT",
+            "SVC-XENON-EXPORT",
+            "SVC-XENON-ZONES",
+            "SVC-YARROW-YIELD"
+          ]
+        },
+        {
+          "id": "G09",
+          "kind": "bfs2",
+          "cond": "CTX-L3",
+          "f1": 0.893,
+          "bpe": 1671,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-BILLING",
+            "SVC-BASALT-BILLING",
+            "SVC-BASALT-CACHE",
+            "SVC-COBALT-CACHE",
+            "SVC-COBALT-EVENTS",
+            "SVC-COBALT-GATEWAY",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-HARBOR-JOURNAL",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-ORDERS",
+            "SVC-LUMEN-LEDGER",
+            "SVC-LUMEN-METRICS",
+            "SVC-ONYX-QUOTES",
+            "SVC-PUMICE-PAYOUTS",
+            "SVC-PUMICE-TAX",
+            "SVC-QUARTZ-QUOTES",
+            "SVC-RUSSET-RISK",
+            "SVC-UMBER-VAULT",
+            "SVC-VERTEX-VAULT",
+            "SVC-XENON-EXPORT",
+            "SVC-XENON-ZONES"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-BILLING",
+            "SVC-BASALT-BILLING",
+            "SVC-BASALT-CACHE",
+            "SVC-COBALT-CACHE",
+            "SVC-COBALT-EVENTS",
+            "SVC-COBALT-GATEWAY",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-DELTA-FX",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-HARBOR-JOURNAL",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-ORDERS",
+            "SVC-LUMEN-LEDGER",
+            "SVC-LUMEN-METRICS",
+            "SVC-MESA-QUOTES",
+            "SVC-ONYX-QUOTES",
+            "SVC-PUMICE-PAYOUTS",
+            "SVC-PUMICE-TAX",
+            "SVC-QUARTZ-SEARCH",
+            "SVC-RUSSET-RISK",
+            "SVC-TOPAZ-TAX",
+            "SVC-UMBER-VAULT",
+            "SVC-VERTEX-VAULT",
+            "SVC-XENON-EXPORT",
+            "SVC-XENON-ZONES",
+            "SVC-YARROW-YIELD"
+          ]
+        },
+        {
+          "id": "G09",
+          "kind": "bfs2",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-BILLING",
+            "SVC-BASALT-BILLING",
+            "SVC-BASALT-CACHE",
+            "SVC-COBALT-CACHE",
+            "SVC-COBALT-EVENTS",
+            "SVC-COBALT-GATEWAY",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-DELTA-FX",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-HARBOR-JOURNAL",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-ORDERS",
+            "SVC-LUMEN-LEDGER",
+            "SVC-LUMEN-METRICS",
+            "SVC-MESA-QUOTES",
+            "SVC-ONYX-QUOTES",
+            "SVC-PUMICE-PAYOUTS",
+            "SVC-PUMICE-TAX",
+            "SVC-QUARTZ-SEARCH",
+            "SVC-RUSSET-RISK",
+            "SVC-TOPAZ-TAX",
+            "SVC-UMBER-VAULT",
+            "SVC-VERTEX-VAULT",
+            "SVC-XENON-EXPORT",
+            "SVC-XENON-ZONES",
+            "SVC-YARROW-YIELD"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-BILLING",
+            "SVC-BASALT-BILLING",
+            "SVC-BASALT-CACHE",
+            "SVC-COBALT-CACHE",
+            "SVC-COBALT-EVENTS",
+            "SVC-COBALT-GATEWAY",
+            "SVC-DELTA-DISPATCH",
+            "SVC-DELTA-EVENTS",
+            "SVC-DELTA-FX",
+            "SVC-EMBER-EVENTS",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-HARBOR-JOURNAL",
+            "SVC-JUNIPER-JOURNAL",
+            "SVC-KRYPTON-ORDERS",
+            "SVC-LUMEN-LEDGER",
+            "SVC-LUMEN-METRICS",
+            "SVC-MESA-QUOTES",
+            "SVC-ONYX-QUOTES",
+            "SVC-PUMICE-PAYOUTS",
+            "SVC-PUMICE-TAX",
+            "SVC-QUARTZ-SEARCH",
+            "SVC-RUSSET-RISK",
+            "SVC-TOPAZ-TAX",
+            "SVC-UMBER-VAULT",
+            "SVC-VERTEX-VAULT",
+            "SVC-XENON-EXPORT",
+            "SVC-XENON-ZONES",
+            "SVC-YARROW-YIELD"
+          ]
+        },
+        {
+          "id": "G10",
+          "kind": "bfs2",
+          "cond": "RAW",
+          "f1": 0.957,
+          "bpe": 34057,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-EVENTS",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-COBALT-FX",
+            "SVC-DELTA-DISPATCH",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-JOURNAL",
+            "SVC-GRANITE-KYC",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-INDIGO-KYC",
+            "SVC-JUNIPER-KYC",
+            "SVC-LUMEN-NOTIFY",
+            "SVC-MESA-METRICS",
+            "SVC-NIMBUS-ORDERS",
+            "SVC-NIMBUS-RISK",
+            "SVC-ONYX-QUOTES",
+            "SVC-PUMICE-TAX",
+            "SVC-QUARTZ-SEARCH",
+            "SVC-UMBER-VAULT",
+            "SVC-XENON-AUTH",
+            "SVC-YARROW-AUTH"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-EVENTS",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-COBALT-FX",
+            "SVC-DELTA-DISPATCH",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-JOURNAL",
+            "SVC-GRANITE-KYC",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-KYC",
+            "SVC-LUMEN-NOTIFY",
+            "SVC-MESA-METRICS",
+            "SVC-NIMBUS-ORDERS",
+            "SVC-NIMBUS-PAYOUTS",
+            "SVC-NIMBUS-RISK",
+            "SVC-ONYX-QUOTES",
+            "SVC-PUMICE-TAX",
+            "SVC-QUARTZ-SEARCH",
+            "SVC-UMBER-VAULT",
+            "SVC-XENON-AUTH",
+            "SVC-YARROW-AUTH"
+          ]
+        },
+        {
+          "id": "G10",
+          "kind": "bfs2",
+          "cond": "CTX-L3",
+          "f1": 0.818,
+          "bpe": 1671,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-EVENTS",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-JOURNAL",
+            "SVC-GRANITE-KYC",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-INDIGO-KYC",
+            "SVC-JUNIPER-KYC",
+            "SVC-KRYPTON-LEDGER",
+            "SVC-LUMEN-NOTIFY",
+            "SVC-MESA-METRICS",
+            "SVC-NIMBUS-ORDERS",
+            "SVC-NIMBUS-PAYOUTS",
+            "SVC-ONYX-QUOTES",
+            "SVC-QUARTZ-SEARCH",
+            "SVC-XENON-AUTH",
+            "SVC-YAR"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-EVENTS",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-COBALT-FX",
+            "SVC-DELTA-DISPATCH",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-JOURNAL",
+            "SVC-GRANITE-KYC",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-KYC",
+            "SVC-LUMEN-NOTIFY",
+            "SVC-MESA-METRICS",
+            "SVC-NIMBUS-ORDERS",
+            "SVC-NIMBUS-PAYOUTS",
+            "SVC-NIMBUS-RISK",
+            "SVC-ONYX-QUOTES",
+            "SVC-PUMICE-TAX",
+            "SVC-QUARTZ-SEARCH",
+            "SVC-UMBER-VAULT",
+            "SVC-XENON-AUTH",
+            "SVC-YARROW-AUTH"
+          ]
+        },
+        {
+          "id": "G10",
+          "kind": "bfs2",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-EVENTS",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-COBALT-FX",
+            "SVC-DELTA-DISPATCH",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-JOURNAL",
+            "SVC-GRANITE-KYC",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-KYC",
+            "SVC-LUMEN-NOTIFY",
+            "SVC-MESA-METRICS",
+            "SVC-NIMBUS-ORDERS",
+            "SVC-NIMBUS-PAYOUTS",
+            "SVC-NIMBUS-RISK",
+            "SVC-ONYX-QUOTES",
+            "SVC-PUMICE-TAX",
+            "SVC-QUARTZ-SEARCH",
+            "SVC-UMBER-VAULT",
+            "SVC-XENON-AUTH",
+            "SVC-YARROW-AUTH"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-EVENTS",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-COBALT-FX",
+            "SVC-DELTA-DISPATCH",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-JOURNAL",
+            "SVC-GRANITE-KYC",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-JUNIPER-KYC",
+            "SVC-LUMEN-NOTIFY",
+            "SVC-MESA-METRICS",
+            "SVC-NIMBUS-ORDERS",
+            "SVC-NIMBUS-PAYOUTS",
+            "SVC-NIMBUS-RISK",
+            "SVC-ONYX-QUOTES",
+            "SVC-PUMICE-TAX",
+            "SVC-QUARTZ-SEARCH",
+            "SVC-UMBER-VAULT",
+            "SVC-XENON-AUTH",
+            "SVC-YARROW-AUTH"
+          ]
+        },
+        {
+          "id": "G11",
+          "kind": "bfs2",
+          "cond": "RAW",
+          "f1": 0.903,
+          "bpe": 34057,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-CACHE",
+            "SVC-AMBER-DISPATCH",
+            "SVC-COBALT-CACHE",
+            "SVC-EMBER-EVENTS",
+            "SVC-EMBER-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-INDIGO-METRICS",
+            "SVC-JUNIPER-LEDGER",
+            "SVC-LUMEN-LEDGER",
+            "SVC-ONYX-RISK",
+            "SVC-TOPAZ-WALLET",
+            "SVC-VERTEX-",
+            "SVC-VERTEX-YIELD",
+            "SVC-XENON-YIELD",
+            "SVC-XENON-ZONES"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-CACHE",
+            "SVC-AMBER-DISPATCH",
+            "SVC-COBALT-CACHE",
+            "SVC-EMBER-EVENTS",
+            "SVC-EMBER-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-INDIGO-METRICS",
+            "SVC-JUNIPER-LEDGER",
+            "SVC-LUMEN-LEDGER",
+            "SVC-ONYX-RISK",
+            "SVC-UMBER-UPLOAD",
+            "SVC-VERTEX-YIELD",
+            "SVC-XENON-YIELD",
+            "SVC-XENON-ZONES"
+          ]
+        },
+        {
+          "id": "G11",
+          "kind": "bfs2",
+          "cond": "CTX-L3",
+          "f1": 0.968,
+          "bpe": 1671,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-CACHE",
+            "SVC-AMBER-DISPATCH",
+            "SVC-COBALT-CACHE",
+            "SVC-EMBER-EVENTS",
+            "SVC-EMBER-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-INDIGO-METRICS",
+            "SVC-JUNIPER-LEDGER",
+            "SVC-LUMEN-LEDGER",
+            "SVC-ONYX-RISK",
+            "SVC-TOPAZ-WALLET",
+            "SVC-UMBER-UPLOAD",
+            "SVC-VERTEX-YIELD",
+            "SVC-XENON-YIELD",
+            "SVC-XENON-ZONES"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-CACHE",
+            "SVC-AMBER-DISPATCH",
+            "SVC-COBALT-CACHE",
+            "SVC-EMBER-EVENTS",
+            "SVC-EMBER-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-INDIGO-METRICS",
+            "SVC-JUNIPER-LEDGER",
+            "SVC-LUMEN-LEDGER",
+            "SVC-ONYX-RISK",
+            "SVC-UMBER-UPLOAD",
+            "SVC-VERTEX-YIELD",
+            "SVC-XENON-YIELD",
+            "SVC-XENON-ZONES"
+          ]
+        },
+        {
+          "id": "G11",
+          "kind": "bfs2",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-CACHE",
+            "SVC-AMBER-DISPATCH",
+            "SVC-COBALT-CACHE",
+            "SVC-EMBER-EVENTS",
+            "SVC-EMBER-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-INDIGO-METRICS",
+            "SVC-JUNIPER-LEDGER",
+            "SVC-LUMEN-LEDGER",
+            "SVC-ONYX-RISK",
+            "SVC-UMBER-UPLOAD",
+            "SVC-VERTEX-YIELD",
+            "SVC-XENON-YIELD",
+            "SVC-XENON-ZONES"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-CACHE",
+            "SVC-AMBER-DISPATCH",
+            "SVC-COBALT-CACHE",
+            "SVC-EMBER-EVENTS",
+            "SVC-EMBER-FX",
+            "SVC-GRANITE-GATEWAY",
+            "SVC-INDIGO-METRICS",
+            "SVC-JUNIPER-LEDGER",
+            "SVC-LUMEN-LEDGER",
+            "SVC-ONYX-RISK",
+            "SVC-UMBER-UPLOAD",
+            "SVC-VERTEX-YIELD",
+            "SVC-XENON-YIELD",
+            "SVC-XENON-ZONES"
+          ]
+        },
+        {
+          "id": "G12",
+          "kind": "bfs2",
+          "cond": "RAW",
+          "f1": 0.889,
+          "bpe": 34057,
+          "pred": [
+            "SVC-AMBER-",
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-EVENTS",
+            "SVC-BASALT-BILLING",
+            "SVC-BASALT-CACHE",
+            "SVC-BASALT-EVENTS",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-JOURNAL",
+            "SVC-GRANITE-KYC",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-INDIGO-KYC",
+            "SVC-JUNIPER-KYC",
+            "SVC-LUMEN-NOTIFY",
+            "SVC-MESA-NOTIFY",
+            "SVC-NIMBUS-ORDERS",
+            "SVC-ONYX-QUOTES",
+            "SVC-TOPAZ-UPLOAD",
+            "SVC-UMBER-VAULT",
+            "SVC-WILLOW-YIELD",
+            "SVC-XENON-AUTH"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-EVENTS",
+            "SVC-BASALT-BILLING",
+            "SVC-BASALT-CACHE",
+            "SVC-BASALT-EVENTS",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-KYC",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-INDIGO-KYC",
+            "SVC-JUNIPER-KYC",
+            "SVC-LUMEN-NOTIFY",
+            "SVC-MESA-NOTIFY",
+            "SVC-NIMBUS-ORDERS",
+            "SVC-NIMBUS-RISK",
+            "SVC-ONYX-QUOTES",
+            "SVC-TOPAZ-UPLOAD",
+            "SVC-UMBER-VAULT",
+            "SVC-XENON-AUTH",
+            "SVC-YARROW-AUTH"
+          ]
+        },
+        {
+          "id": "G12",
+          "kind": "bfs2",
+          "cond": "CTX-L3",
+          "f1": 0.889,
+          "bpe": 1671,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-EVENTS",
+            "SVC-BASALT-BILLING",
+            "SVC-BASALT-CACHE",
+            "SVC-BASALT-EVENTS",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-JOURNAL",
+            "SVC-GRANITE-KYC",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-INDIGO-KY",
+            "SVC-INDIGO-KYC",
+            "SVC-JUNIPER-KYC",
+            "SVC-KRYPTON-LEDGER",
+            "SVC-LUMEN-NOTIFY",
+            "SVC-MESA-NOTIFY",
+            "SVC-NIMBUS-ORDERS",
+            "SVC-ONYX-QUOTES",
+            "SVC-TOPAZ-UPLOAD",
+            "SVC-UMBER-VAULT",
+            "SVC-XENON-AUTH"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-EVENTS",
+            "SVC-BASALT-BILLING",
+            "SVC-BASALT-CACHE",
+            "SVC-BASALT-EVENTS",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-KYC",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-INDIGO-KYC",
+            "SVC-JUNIPER-KYC",
+            "SVC-LUMEN-NOTIFY",
+            "SVC-MESA-NOTIFY",
+            "SVC-NIMBUS-ORDERS",
+            "SVC-NIMBUS-RISK",
+            "SVC-ONYX-QUOTES",
+            "SVC-TOPAZ-UPLOAD",
+            "SVC-UMBER-VAULT",
+            "SVC-XENON-AUTH",
+            "SVC-YARROW-AUTH"
+          ]
+        },
+        {
+          "id": "G12",
+          "kind": "bfs2",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 1671,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-EVENTS",
+            "SVC-BASALT-BILLING",
+            "SVC-BASALT-CACHE",
+            "SVC-BASALT-EVENTS",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-KYC",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-INDIGO-KYC",
+            "SVC-JUNIPER-KYC",
+            "SVC-LUMEN-NOTIFY",
+            "SVC-MESA-NOTIFY",
+            "SVC-NIMBUS-ORDERS",
+            "SVC-NIMBUS-RISK",
+            "SVC-ONYX-QUOTES",
+            "SVC-TOPAZ-UPLOAD",
+            "SVC-UMBER-VAULT",
+            "SVC-XENON-AUTH",
+            "SVC-YARROW-AUTH"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-AMBER-EVENTS",
+            "SVC-BASALT-BILLING",
+            "SVC-BASALT-CACHE",
+            "SVC-BASALT-EVENTS",
+            "SVC-COBALT-CACHE",
+            "SVC-DELTA-DISPATCH",
+            "SVC-FLINT-FX",
+            "SVC-GRANITE-KYC",
+            "SVC-HARBOR-HOOKS",
+            "SVC-INDIGO-IDENTITY",
+            "SVC-INDIGO-KYC",
+            "SVC-JUNIPER-KYC",
+            "SVC-LUMEN-NOTIFY",
+            "SVC-MESA-NOTIFY",
+            "SVC-NIMBUS-ORDERS",
+            "SVC-NIMBUS-RISK",
+            "SVC-ONYX-QUOTES",
+            "SVC-TOPAZ-UPLOAD",
+            "SVC-UMBER-VAULT",
+            "SVC-XENON-AUTH",
+            "SVC-YARROW-AUTH"
+          ]
+        }
+      ]
+    }
+  }
+}

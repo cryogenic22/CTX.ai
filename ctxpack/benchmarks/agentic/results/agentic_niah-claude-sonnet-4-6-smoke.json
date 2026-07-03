@@ -1,0 +1,193 @@
+{
+  "model": "claude-sonnet-4-6",
+  "judge": "gpt-4o",
+  "lengths": {
+    "8000": {
+      "actual_bpe": 8376,
+      "sections": 81,
+      "index_bpe": 151,
+      "summary_bpe": 765,
+      "conflicts": 0,
+      "aggregate": {
+        "RAW": {
+          "judge_pct": 100.0,
+          "rule_pct": 100.0,
+          "avg_bpe": 8376,
+          "by_type": {
+            "static": 100.0,
+            "updated": 0.0,
+            "aggregate": 0.0,
+            "absent": 0.0
+          }
+        },
+        "COMPACT": {
+          "judge_pct": 100.0,
+          "rule_pct": 100.0,
+          "avg_bpe": 765,
+          "by_type": {
+            "static": 100.0,
+            "updated": 0.0,
+            "aggregate": 0.0,
+            "absent": 0.0
+          }
+        },
+        "BM25": {
+          "judge_pct": 100.0,
+          "rule_pct": 100.0,
+          "avg_bpe": 683,
+          "by_type": {
+            "static": 100.0,
+            "updated": 0.0,
+            "aggregate": 0.0,
+            "absent": 0.0
+          }
+        },
+        "CTX": {
+          "judge_pct": 100.0,
+          "rule_pct": 100.0,
+          "avg_bpe": 373,
+          "by_type": {
+            "static": 100.0,
+            "updated": 0.0,
+            "aggregate": 0.0,
+            "absent": 0.0
+          }
+        }
+      },
+      "rows": [
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 8376,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The database connection pool size was set to **27**, because pgbouncer's `max_client_conn` is 30 and 3 connections are reserved for schema migrations."
+        },
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 765,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The database connection pool size was set to **27**. The rationale was that pgbouncer has a `max_client_conn` limit of 30, with 3 connections reserved for schema migrations, leaving 27 available for the application pool."
+        },
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 571,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The **meridian-api** database connection pool size was set to **27**.\n\nThe reasoning: pgbouncer's `max_client_conn` is **30**, and **3 connections are reserved for schema migrations**, leaving 27 available for the connection pool."
+        },
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 370,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The database connection pool size was set to **27**.\n\n**Reason:** pgbouncer's `max_client_conn` is 30, with 3 connections reserved for migrations, leaving 27 available for the pool.",
+          "sections": [
+            "ENTITY-CONFIG-DB-POOL"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 8376,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on Step 28: both `test_ledger_rollover` and `test_fx_cache` share the Redis fixture key `fx:spot`, and when `test_fx_cache` runs first, it leaves a stale entry that causes `test_ledger_rollover` to fail."
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 765,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Both `test_ledger_rollover` and `test_fx_cache` shared the same Redis fixture key `fx:spot`. An earlier test left a stale entry in that key, causing intermittent failures in the subsequent test. The fix was to isolate fixture keys per test."
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 573,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the root cause of the `test_ledger_rollover` failure was a **shared Redis fixture key conflict**: the test only fails when it runs after `test_fx_cache`, because both tests share the Redis fixture key `fx:spot` and `test_fx_cache` leaves a stale entry that affects `test_ledger_rollover`."
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 381,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The root cause was that a **shared Redis fixture key `fx:spot`** leaks from `test_fx_cache` into `test_ledger_rollover` when the tests are run in that specific order.",
+          "sections": [
+            "ENTITY-BUG-FLAKY-LEDGER-TEST"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 8376,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed with HMAC-SHA256 using key id **whsec-2026-04**. Keys rotate quarterly."
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 765,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed using **HMAC-SHA256**, with the current key ID **`whsec-2026-04`** (rotated quarterly)."
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 904,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed with **HMAC-SHA256**, using key id **whsec-2026-04**. Keys rotate quarterly."
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 369,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed using **HMAC-SHA256**. The current key ID is **whsec-2026-04** (rotated quarterly).",
+          "sections": [
+            "ENTITY-DECISION-WEBHOOK-SIGNING"
+          ],
+          "rehydrated": false
+        }
+      ]
+    }
+  }
+}

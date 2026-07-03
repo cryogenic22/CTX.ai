@@ -1,0 +1,89 @@
+Model: claude-sonnet-4-6 (anthropic)
+
+=== 40 nodes: RAW 11386 BPE, L3 index 594 BPE (19.2x smaller), edges faithful: True ===
+  [ 1/12] G01 forward  RAW       F1=1.00
+  [ 1/12] G01 forward  CTX-L3    F1=1.00
+  [ 1/12] G01 forward  CTX-TOOL  F1=1.00
+  [ 2/12] G02 forward  RAW       F1=1.00
+  [ 2/12] G02 forward  CTX-L3    F1=1.00
+  [ 2/12] G02 forward  CTX-TOOL  F1=1.00
+  [ 3/12] G03 forward  RAW       F1=1.00
+  [ 3/12] G03 forward  CTX-L3    F1=1.00
+  [ 3/12] G03 forward  CTX-TOOL  F1=1.00
+  [ 4/12] G04 forward  RAW       F1=1.00
+  [ 4/12] G04 forward  CTX-L3    F1=1.00
+  [ 4/12] G04 forward  CTX-TOOL  F1=1.00
+  [ 5/12] G05 reverse  RAW       F1=1.00
+  [ 5/12] G05 reverse  CTX-L3    F1=1.00
+  [ 5/12] G05 reverse  CTX-TOOL  F1=1.00
+  [ 6/12] G06 reverse  RAW       F1=0.60
+  [ 6/12] G06 reverse  CTX-L3    F1=1.00
+  [ 6/12] G06 reverse  CTX-TOOL  F1=1.00
+  [ 7/12] G07 reverse  RAW       F1=0.50
+  [ 7/12] G07 reverse  CTX-L3    F1=1.00
+  [ 7/12] G07 reverse  CTX-TOOL  F1=1.00
+  [ 8/12] G08 reverse  RAW       F1=1.00
+  [ 8/12] G08 reverse  CTX-L3    F1=1.00
+  [ 8/12] G08 reverse  CTX-TOOL  F1=1.00
+  [ 9/12] G09 bfs2     RAW       F1=0.91
+  [ 9/12] G09 bfs2     CTX-L3    F1=0.78
+  [ 9/12] G09 bfs2     CTX-TOOL  F1=1.00
+  [10/12] G10 bfs2     RAW       F1=0.97
+  [10/12] G10 bfs2     CTX-L3    F1=0.80
+  [10/12] G10 bfs2     CTX-TOOL  F1=1.00
+  [11/12] G11 bfs2     RAW       F1=0.95
+  [11/12] G11 bfs2     CTX-L3    F1=0.83
+  [11/12] G11 bfs2     CTX-TOOL  F1=1.00
+  [12/12] G12 bfs2     RAW       F1=0.97
+  [12/12] G12 bfs2     CTX-L3    F1=0.95
+  [12/12] G12 bfs2     CTX-TOOL  F1=1.00
+
+  condition   macro-F1   avg BPE
+  RAW            0.908     11386
+  CTX-L3         0.947       594
+  CTX-TOOL         1.0       594
+
+=== 120 nodes: RAW 34057 BPE, L3 index 1671 BPE (20.4x smaller), edges faithful: True ===
+  [ 1/12] G01 forward  RAW       F1=1.00
+  [ 1/12] G01 forward  CTX-L3    F1=1.00
+  [ 1/12] G01 forward  CTX-TOOL  F1=1.00
+  [ 2/12] G02 forward  RAW       F1=1.00
+  [ 2/12] G02 forward  CTX-L3    F1=1.00
+  [ 2/12] G02 forward  CTX-TOOL  F1=1.00
+  [ 3/12] G03 forward  RAW       F1=1.00
+  [ 3/12] G03 forward  CTX-L3    F1=1.00
+  [ 3/12] G03 forward  CTX-TOOL  F1=1.00
+  [ 4/12] G04 forward  RAW       F1=1.00
+  [ 4/12] G04 forward  CTX-L3    F1=1.00
+  [ 4/12] G04 forward  CTX-TOOL  F1=1.00
+  [ 5/12] G05 reverse  RAW       F1=1.00
+  [ 5/12] G05 reverse  CTX-L3    F1=1.00
+  [ 5/12] G05 reverse  CTX-TOOL  F1=1.00
+  [ 6/12] G06 reverse  RAW       F1=1.00
+  [ 6/12] G06 reverse  CTX-L3    F1=1.00
+  [ 6/12] G06 reverse  CTX-TOOL  F1=1.00
+  [ 7/12] G07 reverse  RAW       F1=0.89
+  [ 7/12] G07 reverse  CTX-L3    F1=0.43
+  [ 7/12] G07 reverse  CTX-TOOL  F1=1.00
+  [ 8/12] G08 reverse  RAW       F1=0.40
+  [ 8/12] G08 reverse  CTX-L3    F1=1.00
+  [ 8/12] G08 reverse  CTX-TOOL  F1=1.00
+  [ 9/12] G09 bfs2     RAW       F1=0.81
+  [ 9/12] G09 bfs2     CTX-L3    F1=0.89
+  [ 9/12] G09 bfs2     CTX-TOOL  F1=1.00
+  [10/12] G10 bfs2     RAW       F1=0.96
+  [10/12] G10 bfs2     CTX-L3    F1=0.82
+  [10/12] G10 bfs2     CTX-TOOL  F1=1.00
+  [11/12] G11 bfs2     RAW       F1=0.90
+  [11/12] G11 bfs2     CTX-L3    F1=0.97
+  [11/12] G11 bfs2     CTX-TOOL  F1=1.00
+  [12/12] G12 bfs2     RAW       F1=0.89
+  [12/12] G12 bfs2     CTX-L3    F1=0.89
+  [12/12] G12 bfs2     CTX-TOOL  F1=1.00
+
+  condition   macro-F1   avg BPE
+  RAW            0.904     34057
+  CTX-L3         0.916      1671
+  CTX-TOOL         1.0      1671
+
+Saved ctxpack\benchmarks\agentic\results\graphwalks-claude-sonnet-4-6.json

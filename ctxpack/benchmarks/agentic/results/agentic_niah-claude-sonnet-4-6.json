@@ -1,0 +1,1753 @@
+{
+  "model": "claude-sonnet-4-6",
+  "judge": "gpt-4o",
+  "lengths": {
+    "8000": {
+      "actual_bpe": 8376,
+      "sections": 81,
+      "index_bpe": 151,
+      "summary_bpe": 775,
+      "conflicts": 0,
+      "aggregate": {
+        "RAW": {
+          "judge_pct": 100.0,
+          "rule_pct": 100.0,
+          "avg_bpe": 8376,
+          "by_type": {
+            "static": 100.0,
+            "updated": 100.0,
+            "aggregate": 100.0,
+            "absent": 100.0
+          }
+        },
+        "COMPACT": {
+          "judge_pct": 100.0,
+          "rule_pct": 91.7,
+          "avg_bpe": 775,
+          "by_type": {
+            "static": 100.0,
+            "updated": 100.0,
+            "aggregate": 100.0,
+            "absent": 100.0
+          }
+        },
+        "BM25": {
+          "judge_pct": 91.7,
+          "rule_pct": 100.0,
+          "avg_bpe": 740,
+          "by_type": {
+            "static": 100.0,
+            "updated": 100.0,
+            "aggregate": 0.0,
+            "absent": 100.0
+          }
+        },
+        "CTX": {
+          "judge_pct": 100.0,
+          "rule_pct": 100.0,
+          "avg_bpe": 403,
+          "by_type": {
+            "static": 100.0,
+            "updated": 100.0,
+            "aggregate": 100.0,
+            "absent": 100.0
+          }
+        }
+      },
+      "rows": [
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 8376,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The database connection pool size for meridian-api was set to **27**. The reason: pgbouncer's `max_client_conn` is 30, and 3 connections are reserved for schema migrations."
+        },
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 775,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The DB connection pool size was set to **27**. The rationale is that pgbouncer's `max_client_conn` is set to 30, with 3 connections reserved for schema migrations."
+        },
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 571,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The **meridian-api** database connection pool size was set to **27**.\n\nThe reasoning: pgbouncer's `max_client_conn` is **30**, and **3 connections are reserved for schema migrations**, leaving 27 available for the connection pool."
+        },
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 370,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The database connection pool size was set to **27**.\n\n**Reason:** pgbouncer's `max_client_conn` is 30, with 3 connections reserved for migrations, leaving 27 available for the pool.",
+          "sections": [
+            "ENTITY-CONFIG-DB-POOL"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 8376,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on Step 28: both `test_ledger_rollover` and `test_fx_cache` share the Redis fixture key `fx:spot`, and when `test_fx_cache` runs first, it leaves a stale entry that causes `test_ledger_rollover` to fail."
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 775,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Both `test_ledger_rollover` and `test_fx_cache` share the Redis fixture key `fx:spot`; an earlier test leaves a stale entry in that key, causing assertion failures in the subsequent test. The fix is to isolate or flush the fixture key between tests."
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 573,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the root cause of the `test_ledger_rollover` failure was a **shared Redis fixture key conflict**: the test only fails when it runs after `test_fx_cache`, because both tests share the Redis fixture key `fx:spot` and `test_fx_cache` leaves a stale entry that affects `test_ledger_rollover`."
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 381,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The root cause was that a shared Redis fixture key **`fx:spot`** leaks from **`test_fx_cache`** into `test_ledger_rollover` when the tests are run in that order.",
+          "sections": [
+            "ENTITY-BUG-FLAKY-LEDGER-TEST"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 8376,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed with **HMAC-SHA256** using key id **whsec-2026-04**. Keys rotate quarterly."
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 775,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed using **HMAC-SHA256**, with the current key ID **`whsec-2026-04`** (rotated quarterly)."
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 904,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed with **HMAC-SHA256**, using key id **whsec-2026-04**. Keys rotate quarterly."
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 369,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed using **HMAC-SHA256**. The current key ID is **whsec-2026-04** (rotated quarterly).",
+          "sections": [
+            "ENTITY-DECISION-WEBHOOK-SIGNING"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "S4",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 8376,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The staging outage on 2026-06-24 was caused by an **expired intermediate TLS certificate on the vault-agent sidecar**. The fix was **pinning CA bundle v3.11 in the base image**."
+        },
+        {
+          "id": "S4",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 775,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**Cause:** An expired intermediate TLS certificate on the vault-agent sidecar.\n\n**Fix:** Pinned CA bundle v3.11 in the base image."
+        },
+        {
+          "id": "S4",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 806,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The staging outage on 2026-06-24 was caused by an **expired intermediate TLS certificate on the vault-agent sidecar**. The fix was **pinning CA bundle v3.11 in the base image**."
+        },
+        {
+          "id": "S4",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 381,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**Cause:** The staging outage on 2026-06-24 was caused by an **expired intermediate TLS certificate on the vault-agent sidecar**.\n\n**Fix:** The issue was resolved by **pinning CA bundle v3.11**.",
+          "sections": [
+            "ENTITY-INCIDENT-STAGING-0624"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "S5",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 8376,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on Step 82: the p99 checkout latency budget is **420ms**, and the measured value after the batching fix was **380ms** at peak load."
+        },
+        {
+          "id": "S5",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 775,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**p99 checkout latency budget:** 420ms\n**Measured value after the batching fix:** 380ms (at peak load \u2014 within budget)"
+        },
+        {
+          "id": "S5",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 752,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on **Step 82**, the p99 checkout latency budget is **420ms**, and the measured value after the batching fix is **380ms** at peak load."
+        },
+        {
+          "id": "S5",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 357,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**P99 Checkout Latency Budget:** 420 ms\n**Measured Value (after fix):** 380 ms",
+          "sections": [
+            "ENTITY-PERF-CHECKOUT-P99"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "U1",
+          "type": "updated",
+          "cond": "RAW",
+          "bpe": 8376,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the config updates in the context:\n\n- Revision 1: 250ms\n- Revision 2: 500ms\n- Revision 3: 650ms\n- Revision 4: **750ms**\n\nThe final value of `backoff_base_ms` is **750**."
+        },
+        {
+          "id": "U1",
+          "type": "updated",
+          "cond": "COMPACT",
+          "bpe": 775,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**750ms**"
+        },
+        {
+          "id": "U1",
+          "type": "updated",
+          "cond": "BM25",
+          "bpe": 581,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the final value of **backoff_base_ms** is **750 ms**, set in Step 78 (revision 4 of config-retry-backoff), described as the \"final value after the second load test came back clean.\""
+        },
+        {
+          "id": "U1",
+          "type": "updated",
+          "cond": "CTX",
+          "bpe": 477,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The final value of **`backoff_base_ms`** is **750 ms** (Revision 4), set after the second load test came back clean.",
+          "sections": [
+            "ENTITY-CONFIG-RETRY-BACKOFF"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "U2",
+          "type": "updated",
+          "cond": "RAW",
+          "bpe": 8376,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the config updates in the context:\n\n1. Revision 1: 60 minutes (Step 15)\n2. Revision 2: 30 minutes (Step 42)\n3. Revision 3: **22 minutes** (Step 73)\n\nThe final JWT access token TTL is **22 minutes**."
+        },
+        {
+          "id": "U2",
+          "type": "updated",
+          "cond": "COMPACT",
+          "bpe": 775,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**22 minutes**"
+        },
+        {
+          "id": "U2",
+          "type": "updated",
+          "cond": "BM25",
+          "bpe": 1051,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the final value is **22 minutes** (revision 3 of config-jwt-ttl, Step 73), as this is the last update recorded for `access_token_ttl_minutes`."
+        },
+        {
+          "id": "U2",
+          "type": "updated",
+          "cond": "CTX",
+          "bpe": 447,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**22 minutes**\n\nThis is the value from Revision 3 (the last/most recent revision), set to stay under the SSO gateway introspection cache of 25 minutes.",
+          "sections": [
+            "ENTITY-CONFIG-JWT-TTL"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "U3",
+          "type": "updated",
+          "cond": "RAW",
+          "bpe": 8376,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the config updates in the context:\n\n- Revision 1: 1%\n- Revision 2: 5%\n- Revision 3: 25%\n- Revision 4: **10%** (rolled back partially due to p95 regression at 25%)\n\nThe final canary traffic percentage is **10%**."
+        },
+        {
+          "id": "U3",
+          "type": "updated",
+          "cond": "COMPACT",
+          "bpe": 775,
+          "rule": false,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**10%**\n\nThe canary traffic was rolled back from 25% to 10% due to a p95 latency regression, and remained at 10% at session end, pending p95 stabilization before widening again."
+        },
+        {
+          "id": "U3",
+          "type": "updated",
+          "cond": "BM25",
+          "bpe": 689,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the final canary traffic percentage is **10%** (revision 4 of config-canary-traffic, Step 81), which was a partial rollback from 25% due to a p95 regression."
+        },
+        {
+          "id": "U3",
+          "type": "updated",
+          "cond": "CTX",
+          "bpe": 471,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**10%**\n\nThe final (most recent) canary traffic percentage is **10%**, set at Revision 4, after rolling back from 25% due to a p95 regression.",
+          "sections": [
+            "ENTITY-CONFIG-CANARY-TRAFFIC"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "U4",
+          "type": "updated",
+          "cond": "RAW",
+          "bpe": 8376,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the config updates in the context:\n\n- Revision 1: `max_attempts` set to **5** (Step 12)\n- Revision 2: `max_attempts` set to **3** (Step 51)\n- Revision 3: `max_attempts` set to **4** (Step 72)\n\nThe final value of `max_attempts` is **4**."
+        },
+        {
+          "id": "U4",
+          "type": "updated",
+          "cond": "COMPACT",
+          "bpe": 775,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The final value of `max_attempts` (config-payment-retry, rev 3) is **4**."
+        },
+        {
+          "id": "U4",
+          "type": "updated",
+          "cond": "BM25",
+          "bpe": 581,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the final value of `max_attempts` for config-payment-retry is **4**, set at Step 72 (revision 3), which is the last recorded update to that configuration."
+        },
+        {
+          "id": "U4",
+          "type": "updated",
+          "cond": "CTX",
+          "bpe": 430,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, config entities record every revision in chronological order, and the **last value listed is the current one**.\n\nThe revisions in order are:\n1. Revision 1: 5 (legacy default)\n2. Revision 2: 3 (duplicate-charge risk)\n3. Revision 3: 4 (compromise after idempotency key check)\n\n**The final value of payment retry `max_attempts` is 4** (Revision 3).",
+          "sections": [
+            "ENTITY-CONFIG-PAYMENT-RETRY"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "M1",
+          "type": "aggregate",
+          "cond": "RAW",
+          "bpe": 8376,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, I'll identify configurations revised three or more times:\n\n1. **config-retry-backoff** (4 revisions): final value `backoff_base_ms = 750`\n2. **config-payment-retry** (3 revisions): final value `max_attempts = 4`\n3. **config-jwt-ttl** (3 revisions): final value `access_token_ttl_minutes = 22`\n4. **config-canary-traffic** (4 revisions): final value `canary_traffic_percent = 10`"
+        },
+        {
+          "id": "M1",
+          "type": "aggregate",
+          "cond": "COMPACT",
+          "bpe": 775,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the session summary, the configurations revised **three or more times** (i.e., reaching revision 3 or higher) are:\n\n1. **`backoff_base_ms`** (config-retry-backoff, **rev 4**) \u2014 Final value: **750ms**\n2. **`access_token_ttl_minutes`** (config-jwt-ttl, **rev 3**) \u2014 Final value: **22 minutes**\n3. **`canary_traffic_percent`** (config-canary-traffic, **rev 4**) \u2014 Final value: **10%**\n\n(`max_at"
+        },
+        {
+          "id": "M1",
+          "type": "aggregate",
+          "cond": "BM25",
+          "bpe": 752,
+          "rule": true,
+          "judge": false,
+          "judge_err": false,
+          "answer": "Based on the context, the configurations revised three or more times are:\n\n1. **config-jwt-ttl** (`access_token_ttl_minutes`): Reached revision 3, final value = **22 minutes** (Step 73)\n\n2. **config-retry-backoff** (`backoff_base_ms`): Reached revision 4, final value = **750 ms** (Step 78)\n\n3. **config-canary-traffic** (`canary_traffic_percent`): Reached revision 3, final value = **25%** (Step 61)"
+        },
+        {
+          "id": "M1",
+          "type": "aggregate",
+          "cond": "CTX",
+          "bpe": 854,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the configurations revised **three or more times** (i.e., having 3+ revisions) are:\n\n1. **Retry Backoff Base Ms** \u2013 4 revisions \u2192 Final value: **750 ms**\n2. **Canary Traffic Percent** \u2013 4 revisions \u2192 Final value: **10%**\n3. **Payment Retry Max Attempts** \u2013 3 revisions \u2192 Final value: **4**\n4. **JWT Access Token TTL** \u2013 3 revisions \u2192 Final value: **22 minutes**\n\n*(DB Pool Size ",
+          "sections": [
+            "ENTITY-CONFIG-RETRY-BACKOFF",
+            "ENTITY-CONFIG-CANARY-TRAFFIC",
+            "ENTITY-CONFIG-PAYMENT-RETRY",
+            "ENTITY-CONFIG-JWT-TTL",
+            "ENTITY-CONFIG-DB-POOL"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "A1",
+          "type": "absent",
+          "cond": "RAW",
+          "bpe": 8376,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "A1",
+          "type": "absent",
+          "cond": "COMPACT",
+          "bpe": 775,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "A1",
+          "type": "absent",
+          "cond": "BM25",
+          "bpe": 1204,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "A1",
+          "type": "absent",
+          "cond": "CTX",
+          "bpe": 151,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context.",
+          "sections": [],
+          "rehydrated": false
+        },
+        {
+          "id": "A2",
+          "type": "absent",
+          "cond": "RAW",
+          "bpe": 8376,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "A2",
+          "type": "absent",
+          "cond": "COMPACT",
+          "bpe": 775,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "A2",
+          "type": "absent",
+          "cond": "BM25",
+          "bpe": 419,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "A2",
+          "type": "absent",
+          "cond": "CTX",
+          "bpe": 151,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context.",
+          "sections": [],
+          "rehydrated": false
+        }
+      ]
+    },
+    "32000": {
+      "actual_bpe": 33400,
+      "sections": 303,
+      "index_bpe": 151,
+      "summary_bpe": 960,
+      "conflicts": 0,
+      "aggregate": {
+        "RAW": {
+          "judge_pct": 100.0,
+          "rule_pct": 100.0,
+          "avg_bpe": 33400,
+          "by_type": {
+            "static": 100.0,
+            "updated": 100.0,
+            "aggregate": 100.0,
+            "absent": 100.0
+          }
+        },
+        "COMPACT": {
+          "judge_pct": 100.0,
+          "rule_pct": 91.7,
+          "avg_bpe": 960,
+          "by_type": {
+            "static": 100.0,
+            "updated": 100.0,
+            "aggregate": 100.0,
+            "absent": 100.0
+          }
+        },
+        "BM25": {
+          "judge_pct": 91.7,
+          "rule_pct": 100.0,
+          "avg_bpe": 817,
+          "by_type": {
+            "static": 100.0,
+            "updated": 100.0,
+            "aggregate": 0.0,
+            "absent": 100.0
+          }
+        },
+        "CTX": {
+          "judge_pct": 100.0,
+          "rule_pct": 100.0,
+          "avg_bpe": 405,
+          "by_type": {
+            "static": 100.0,
+            "updated": 100.0,
+            "aggregate": 100.0,
+            "absent": 100.0
+          }
+        }
+      },
+      "rows": [
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 33400,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The database connection pool size was set to **27**. The reason: pgbouncer's `max_client_conn` is 30, and 3 connections are reserved for schema migrations."
+        },
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 960,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The database connection pool size for `meridian-api` was set to **27**. The rationale was that pgbouncer has a `max_client_conn` limit of **30**, with **3 connections reserved** for schema migrations."
+        },
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 574,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The **meridian-api database connection pool size was set to 27**. The reasoning was that pgbouncer's `max_client_conn` is 30, and 3 connections are reserved for schema migrations, leaving 27 available for the connection pool."
+        },
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 371,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The database connection pool size was set to **27**. The reason is that pgbouncer's `max_client_conn` is 30, with **3 connections reserved for migrations**, leaving 27 available for the pool.",
+          "sections": [
+            "ENTITY-CONFIG-DB-POOL"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 33400,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Both `test_ledger_rollover` and `test_fx_cache` share the Redis fixture key `fx:spot`, and when `test_fx_cache` runs first, it leaves a stale entry that causes `test_ledger_rollover` to fail."
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 960,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Both `test_ledger_rollover` and `test_fx_cache` share a Redis fixture key `fx:spot`. When `test_fx_cache` runs first, it leaves a stale entry under that key, causing `test_ledger_rollover` to fail when run afterward. The fix is to add teardown/key isolation to the shared Redis fixture."
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 576,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context (Step 95), the root cause was that **`test_ledger_rollover` only fails when it runs after `test_fx_cache`** \u2014 both tests share the same Redis fixture key `fx:spot`, and `test_fx_cache` leaves a stale entry that causes `test_ledger_rollover` to fail."
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 381,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The root cause was that a **shared Redis fixture key `fx:spot`** leaks from `test_fx_cache` into `test_ledger_rollover` when the tests are run in that order.",
+          "sections": [
+            "ENTITY-BUG-FLAKY-LEDGER-TEST"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 33400,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed with HMAC-SHA256 using key id **whsec-2026-04**; keys rotate quarterly."
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 960,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed with **HMAC-SHA256**, using key id **`whsec-2026-04`**, with quarterly rotation."
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 1058,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed with **HMAC-SHA256**, using key id **whsec-2026-04**. Keys rotate quarterly."
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 370,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed using **HMAC-SHA256**. The current key ID is **whsec-2026-04**, rotated on a quarterly basis.",
+          "sections": [
+            "ENTITY-DECISION-WEBHOOK-SIGNING"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "S4",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 33400,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The staging outage on 2026-06-24 was caused by an expired intermediate TLS certificate on the vault-agent sidecar. The fix was pinning CA bundle v3.11 in the base image."
+        },
+        {
+          "id": "S4",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 960,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The staging outage on 2026-06-24 was caused by an **expired intermediate TLS certificate on the vault-agent sidecar**. The fix was pinning the CA bundle to **v3.11** in the base image."
+        },
+        {
+          "id": "S4",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 765,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The staging outage on 2026-06-24 was caused by an **expired intermediate TLS certificate on the vault-agent sidecar**. The fix was **pinning CA bundle v3.11 in the base image**."
+        },
+        {
+          "id": "S4",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 382,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**Cause:** The staging outage on 2026-06-24 was caused by an **expired intermediate TLS certificate on the vault-agent sidecar**.\n\n**Fix:** The issue was resolved by **pinning CA bundle v3.11**.",
+          "sections": [
+            "ENTITY-INCIDENT-STAGING-0624"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "S5",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 33400,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The p99 checkout latency budget is **420ms**, and the measured value after the batching fix was **380ms** at peak load. (Step 282)"
+        },
+        {
+          "id": "S5",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 960,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**Budget:** 420ms\n**Measured value after fix:** 380ms at peak load (within budget)"
+        },
+        {
+          "id": "S5",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 1248,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on **Step 282**, the p99 checkout latency budget is **420ms**, and the measured value after the batching fix was **380ms** at peak load."
+        },
+        {
+          "id": "S5",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 359,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**P99 Checkout Latency Budget:** 420 ms\n**Measured Value (after fix):** 380 ms",
+          "sections": [
+            "ENTITY-PERF-CHECKOUT-P99"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "U1",
+          "type": "updated",
+          "cond": "RAW",
+          "bpe": 33400,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "750 ms (revision 4 of config-retry-backoff, Step 267)."
+        },
+        {
+          "id": "U1",
+          "type": "updated",
+          "cond": "COMPACT",
+          "bpe": 960,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**750 ms**"
+        },
+        {
+          "id": "U1",
+          "type": "updated",
+          "cond": "BM25",
+          "bpe": 584,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the final value of **backoff_base_ms** is **750 ms**, set at Step 267 (revision 4 of config-retry-backoff), described as the \"final value after the second load test came back clean.\""
+        },
+        {
+          "id": "U1",
+          "type": "updated",
+          "cond": "CTX",
+          "bpe": 479,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The final value of `backoff_base_ms` is **750 ms** (Revision 4), set after the second load test came back clean.",
+          "sections": [
+            "ENTITY-CONFIG-RETRY-BACKOFF"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "U2",
+          "type": "updated",
+          "cond": "RAW",
+          "bpe": 33400,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "22 minutes (revision 3 of config-jwt-ttl, Step 251)."
+        },
+        {
+          "id": "U2",
+          "type": "updated",
+          "cond": "COMPACT",
+          "bpe": 960,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**22 minutes** (`access_token_ttl_minutes`, config-retry-backoff revision 3)."
+        },
+        {
+          "id": "U2",
+          "type": "updated",
+          "cond": "BM25",
+          "bpe": 587,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the final JWT access token TTL is **22 minutes** (revision 3 of config-jwt-ttl, set at Step 251), which was the last update recorded for that configuration."
+        },
+        {
+          "id": "U2",
+          "type": "updated",
+          "cond": "CTX",
+          "bpe": 449,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**22 minutes**\n\nThis is the value from Revision 3 (the last/most recent revision), set to stay under the SSO gateway introspection cache of 25 minutes.",
+          "sections": [
+            "ENTITY-CONFIG-JWT-TTL"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "U3",
+          "type": "updated",
+          "cond": "RAW",
+          "bpe": 33400,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the config updates in the context:\n\n- Revision 1: 1%\n- Revision 2: 5%\n- Revision 3: 25%\n- Revision 4: 10% (rolled back partially due to p95 regression at 25%)\n\nThe final canary traffic percentage is **10%**."
+        },
+        {
+          "id": "U3",
+          "type": "updated",
+          "cond": "COMPACT",
+          "bpe": 960,
+          "rule": false,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**10%**\n\n(Rolled back from 25% due to p95 latency regression; current revision 4 of `config-canary-traffic`.)"
+        },
+        {
+          "id": "U3",
+          "type": "updated",
+          "cond": "BM25",
+          "bpe": 582,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the final canary traffic percentage is **10%** (revision 4 of config-canary-traffic, set at Step 276 after a partial rollback due to a p95 regression observed at 25%)."
+        },
+        {
+          "id": "U3",
+          "type": "updated",
+          "cond": "CTX",
+          "bpe": 474,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the **final (current) canary traffic percentage is 10%**, as it is the last revision listed (Revision 4), where it was rolled back from 25% due to a p95 regression.",
+          "sections": [
+            "ENTITY-CONFIG-CANARY-TRAFFIC"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "U4",
+          "type": "updated",
+          "cond": "RAW",
+          "bpe": 33400,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the config updates in the context:\n\n- Revision 1: max_attempts = 5\n- Revision 2: max_attempts = 3\n- Revision 3: max_attempts = 4\n\nThe final value is **4**."
+        },
+        {
+          "id": "U4",
+          "type": "updated",
+          "cond": "COMPACT",
+          "bpe": 960,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**4**"
+        },
+        {
+          "id": "U4",
+          "type": "updated",
+          "cond": "BM25",
+          "bpe": 584,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the final value of `max_attempts` for config-payment-retry is **4**, set at Step 245 (revision 3), which is the most recent update \u2014 a compromise after adding the idempotency key check."
+        },
+        {
+          "id": "U4",
+          "type": "updated",
+          "cond": "CTX",
+          "bpe": 432,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, config entities record every revision in chronological order, with the **last value listed being the current one**.\n\nThe revisions in order are:\n1. Revision 1: 5 (legacy default)\n2. Revision 2: 3 (duplicate-charge risk)\n3. Revision 3: 4 (compromise after idempotency key check)\n\n**The final value of payment retry `max_attempts` is 4** (as of Revision 3).",
+          "sections": [
+            "ENTITY-CONFIG-PAYMENT-RETRY"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "M1",
+          "type": "aggregate",
+          "cond": "RAW",
+          "bpe": 33400,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the configurations revised three or more times are:\n\n1. **config-retry-backoff** (4 revisions) \u2014 final value: `backoff_base_ms = 750`\n2. **config-canary-traffic** (4 revisions) \u2014 final value: `canary_traffic_percent = 10`\n3. **config-payment-retry** (3 revisions) \u2014 final value: `max_attempts = 4`\n4. **config-jwt-ttl** (3 revisions) \u2014 final value: `access_token_ttl_minutes = 2"
+        },
+        {
+          "id": "M1",
+          "type": "aggregate",
+          "cond": "COMPACT",
+          "bpe": 960,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the session summary, the configuration values revised three or more times (meaning they have 3+ revisions, i.e., reached revision 3 or higher) are:\n\n1. **`backoff_base_ms`** \u2014 revised 4 times (250 \u2192 500 \u2192 650 \u2192 **750**). Final value: **750 ms**\n\n2. **`max_attempts`** \u2014 revised 3 times (5 \u2192 3 \u2192 **4**). Final value: **4**\n\n3. **`access_token_ttl_minutes`** \u2014 revised 3 times (60 \u2192 30 \u2192 **22*"
+        },
+        {
+          "id": "M1",
+          "type": "aggregate",
+          "cond": "BM25",
+          "bpe": 1248,
+          "rule": true,
+          "judge": false,
+          "judge_err": false,
+          "answer": "Based on the context, I'll identify configurations with three or more revisions:\n\n1. **config-jwt-ttl** (access_token_ttl_minutes): revised at least 3 times \u2014 final value: **22 minutes** (revision 3, Step 251)\n\n2. **config-retry-backoff** (backoff_base_ms): revised at least 4 times \u2014 final value: **750 ms** (revision 4, Step 267)\n\n3. **config-canary-traffic** (canary_traffic_percent): revised at l"
+        },
+        {
+          "id": "M1",
+          "type": "aggregate",
+          "cond": "CTX",
+          "bpe": 861,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the configurations revised **three or more times** (i.e., having 3+ revisions) are:\n\n1. **Retry Backoff Base Ms** \u2013 4 revisions \u2192 Final value: **750 ms**\n2. **Canary Traffic Percent** \u2013 4 revisions \u2192 Final value: **10%**\n3. **Payment Retry Max Attempts** \u2013 3 revisions \u2192 Final value: **4**\n4. **JWT Access Token TTL** \u2013 3 revisions \u2192 Final value: **22 minutes**",
+          "sections": [
+            "ENTITY-CONFIG-RETRY-BACKOFF",
+            "ENTITY-CONFIG-CANARY-TRAFFIC",
+            "ENTITY-CONFIG-PAYMENT-RETRY",
+            "ENTITY-CONFIG-JWT-TTL",
+            "ENTITY-CONFIG-DB-POOL"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "A1",
+          "type": "absent",
+          "cond": "RAW",
+          "bpe": 33400,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "A1",
+          "type": "absent",
+          "cond": "COMPACT",
+          "bpe": 960,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "A1",
+          "type": "absent",
+          "cond": "BM25",
+          "bpe": 1582,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "A1",
+          "type": "absent",
+          "cond": "CTX",
+          "bpe": 151,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context.",
+          "sections": [],
+          "rehydrated": false
+        },
+        {
+          "id": "A2",
+          "type": "absent",
+          "cond": "RAW",
+          "bpe": 33400,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "A2",
+          "type": "absent",
+          "cond": "COMPACT",
+          "bpe": 960,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "A2",
+          "type": "absent",
+          "cond": "BM25",
+          "bpe": 421,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "A2",
+          "type": "absent",
+          "cond": "CTX",
+          "bpe": 151,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context.",
+          "sections": [],
+          "rehydrated": false
+        }
+      ]
+    },
+    "64000": {
+      "actual_bpe": 66377,
+      "sections": 562,
+      "index_bpe": 151,
+      "summary_bpe": 861,
+      "conflicts": 0,
+      "aggregate": {
+        "RAW": {
+          "judge_pct": 100.0,
+          "rule_pct": 91.7,
+          "avg_bpe": 66377,
+          "by_type": {
+            "static": 100.0,
+            "updated": 100.0,
+            "aggregate": 100.0,
+            "absent": 100.0
+          }
+        },
+        "COMPACT": {
+          "judge_pct": 100.0,
+          "rule_pct": 91.7,
+          "avg_bpe": 861,
+          "by_type": {
+            "static": 100.0,
+            "updated": 100.0,
+            "aggregate": 100.0,
+            "absent": 100.0
+          }
+        },
+        "BM25": {
+          "judge_pct": 91.7,
+          "rule_pct": 100.0,
+          "avg_bpe": 835,
+          "by_type": {
+            "static": 100.0,
+            "updated": 100.0,
+            "aggregate": 0.0,
+            "absent": 100.0
+          }
+        },
+        "CTX": {
+          "judge_pct": 100.0,
+          "rule_pct": 91.7,
+          "avg_bpe": 382,
+          "by_type": {
+            "static": 100.0,
+            "updated": 100.0,
+            "aggregate": 100.0,
+            "absent": 100.0
+          }
+        }
+      },
+      "rows": [
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 66377,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The database connection pool size was set to **27**. The reason: pgbouncer's `max_client_conn` is 30, and 3 connections are reserved for schema migrations."
+        },
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 861,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The `meridian-api` database connection pool size was set to **27**. This was because pgbouncer's `max_client_conn` is set to 30, with 3 connections reserved for schema migrations, leaving 27 available for the application pool."
+        },
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 575,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The **meridian-api** database connection pool size was set to **27**.\n\nThe reasoning: pgbouncer's `max_client_conn` is **30**, and **3 connections are reserved for schema migrations**, leaving 27 available for the connection pool."
+        },
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 371,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The database connection pool size was set to **27**.\n\n**Reason:** pgbouncer's `max_client_conn` is 30, with **3 connections reserved for migrations**, leaving 27 available for the pool.",
+          "sections": [
+            "ENTITY-CONFIG-DB-POOL"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 66377,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Both `test_ledger_rollover` and `test_fx_cache` share the Redis fixture key `fx:spot`, and when `test_fx_cache` runs first it leaves a stale entry that causes `test_ledger_rollover` to fail."
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 861,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The root cause was a shared Redis fixture key (`fx:spot`) between `test_ledger_rollover` and `test_fx_cache`. When `test_fx_cache` ran first, it left a stale entry under that key, causing `test_ledger_rollover` to fail due to lack of test isolation. The fix was to add fixture teardown/key isolation."
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 576,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the root cause of the `test_ledger_rollover` failure was that it only fails when it runs **after `test_fx_cache`** \u2014 both tests share the Redis fixture key `fx:spot`, and `test_fx_cache` leaves a **stale entry** in that key, which causes `test_ledger_rollover` to fail."
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 382,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The root cause was that a **shared Redis fixture key `fx:spot`** leaks from `test_fx_cache` into `test_ledger_rollover` when the tests are run in that specific order.",
+          "sections": [
+            "ENTITY-BUG-FLAKY-LEDGER-TEST"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 66377,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed with HMAC-SHA256 using key id **whsec-2026-04**; keys rotate quarterly."
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 861,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed with **HMAC-SHA256**, using key id **`whsec-2026-04`**, with quarterly rotation."
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 1188,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed with **HMAC-SHA256**, using key id **whsec-2026-04**. Keys rotate quarterly."
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 370,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed using **HMAC-SHA256**. The current key ID is **`whsec-2026-04`**, rotated on a quarterly basis.",
+          "sections": [
+            "ENTITY-DECISION-WEBHOOK-SIGNING"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "S4",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 66377,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The staging outage on 2026-06-24 was caused by an expired intermediate TLS certificate on the vault-agent sidecar. The fix was pinning CA bundle v3.11 in the base image."
+        },
+        {
+          "id": "S4",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 861,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The staging outage on 2026-06-24 was caused by an **expired intermediate TLS certificate on the vault-agent sidecar**. The fix was **pinning the CA bundle v3.11 in the base image**."
+        },
+        {
+          "id": "S4",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 769,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The staging outage on 2026-06-24 was caused by an **expired intermediate TLS certificate on the vault-agent sidecar**. The fix was **pinning CA bundle v3.11 in the base image**."
+        },
+        {
+          "id": "S4",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 382,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**Cause:** The staging outage on 2026-06-24 was caused by an **expired intermediate TLS certificate on the vault-agent sidecar**.\n\n**Fix:** The issue was resolved by **pinning CA bundle v3.11**.",
+          "sections": [
+            "ENTITY-INCIDENT-STAGING-0624"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "S5",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 66377,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The p99 checkout latency budget is **420ms**, and the measured value after the batching fix is **380ms** at peak load."
+        },
+        {
+          "id": "S5",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 861,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**p99 checkout latency budget: 420ms**\n**Measured value after the batching fix: 380ms** (at peak load \u2014 within budget)"
+        },
+        {
+          "id": "S5",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 1298,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on **Step 515**, the p99 checkout latency budget is **420ms**, and the measured value after the batching fix is **380ms** at peak load."
+        },
+        {
+          "id": "S5",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 359,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**P99 Checkout Latency Budget:** 420 ms\n**Measured Value (after fix):** 380 ms",
+          "sections": [
+            "ENTITY-PERF-CHECKOUT-P99"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "U1",
+          "type": "updated",
+          "cond": "RAW",
+          "bpe": 66377,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "750ms (revision 4 of config-retry-backoff, Step 487)."
+        },
+        {
+          "id": "U1",
+          "type": "updated",
+          "cond": "COMPACT",
+          "bpe": 861,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**750 ms**"
+        },
+        {
+          "id": "U1",
+          "type": "updated",
+          "cond": "BM25",
+          "bpe": 584,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the final value of **backoff_base_ms** is **750 ms**, set at Step 487 (revision 4 of config-retry-backoff), described as the \"final value after the second load test came back clean.\""
+        },
+        {
+          "id": "U1",
+          "type": "updated",
+          "cond": "CTX",
+          "bpe": 479,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The final value of `backoff_base_ms` is **750 ms** (Revision 4), set after the second load test came back clean.",
+          "sections": [
+            "ENTITY-CONFIG-RETRY-BACKOFF"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "U2",
+          "type": "updated",
+          "cond": "RAW",
+          "bpe": 66377,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "22 minutes (revision 3 of config-jwt-ttl, Step 458)."
+        },
+        {
+          "id": "U2",
+          "type": "updated",
+          "cond": "COMPACT",
+          "bpe": 861,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**22 minutes.**"
+        },
+        {
+          "id": "U2",
+          "type": "updated",
+          "cond": "BM25",
+          "bpe": 587,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the final JWT access token TTL is **22 minutes**, set at Step 458 (revision 3 of config-jwt-ttl), where it was reduced to stay under the SSO gateway introspection cache limit of 25 minutes."
+        },
+        {
+          "id": "U2",
+          "type": "updated",
+          "cond": "CTX",
+          "bpe": 449,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**22 minutes**\n\nThis is the value from Revision 3 (the last/most recent revision), set to stay under the SSO gateway introspection cache of 25 minutes.",
+          "sections": [
+            "ENTITY-CONFIG-JWT-TTL"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "U3",
+          "type": "updated",
+          "cond": "RAW",
+          "bpe": 66377,
+          "rule": false,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on Config update revision 4 (Step 504): **10%** (rolled back from 25% due to p95 regression)."
+        },
+        {
+          "id": "U3",
+          "type": "updated",
+          "cond": "COMPACT",
+          "bpe": 861,
+          "rule": false,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**10%**\n\n(Rolled back from 25% after a p95 regression was observed at that level.)"
+        },
+        {
+          "id": "U3",
+          "type": "updated",
+          "cond": "BM25",
+          "bpe": 583,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the final canary traffic percentage is **10%** (revision 4 of config-canary-traffic, set at Step 504 after a partial rollback due to a p95 regression at 25%)."
+        },
+        {
+          "id": "U3",
+          "type": "updated",
+          "cond": "CTX",
+          "bpe": 474,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The final (most recent) canary traffic percentage is **10%**, set at Revision 4 after rolling back partially due to a p95 regression observed at 25%.",
+          "sections": [
+            "ENTITY-CONFIG-CANARY-TRAFFIC"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "U4",
+          "type": "updated",
+          "cond": "RAW",
+          "bpe": 66377,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the config updates in the context:\n\n- Revision 1 (Step 70): `max_attempts` set to 5\n- Revision 2 (Step 316): `max_attempts` set to 3\n- Revision 3 (Step 447): `max_attempts` set to 4\n\nThe final value is **4**."
+        },
+        {
+          "id": "U4",
+          "type": "updated",
+          "cond": "COMPACT",
+          "bpe": 861,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "**4**\n\n(`config-payment-retry` \u2192 `max_attempts` = **4**, rev 3, after the compromise following addition of the idempotency key check.)"
+        },
+        {
+          "id": "U4",
+          "type": "updated",
+          "cond": "BM25",
+          "bpe": 584,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the final value of `max_attempts` for config-payment-retry is **4**, set at Step 447 (revision 3), which is the most recent update to that configuration."
+        },
+        {
+          "id": "U4",
+          "type": "updated",
+          "cond": "CTX",
+          "bpe": 151,
+          "rule": false,
+          "judge": true,
+          "judge_err": false,
+          "answer": "I need to check the ENTITY-CONFIG-PAYMENT-RETRY section to find the final value, but the actual content of that section has not been provided in the context \u2014 only the section names are listed.\n\n**Not found in context**\n\n(The session memory index references `ENTITY-CONFIG-PAYMENT-RETRY` as an available section, but its contents/revision history have not been hydrated or included in the provided co",
+          "sections": [],
+          "rehydrated": false
+        },
+        {
+          "id": "M1",
+          "type": "aggregate",
+          "cond": "RAW",
+          "bpe": 66377,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the configurations revised three or more times are:\n\n1. **config-retry-backoff** (4 revisions) \u2014 final value: `backoff_base_ms = 750`\n2. **config-payment-retry** (3 revisions) \u2014 final value: `max_attempts = 4`\n3. **config-canary-traffic** (4 revisions) \u2014 final value: `canary_traffic_percent = 10`\n4. **config-jwt-ttl** (3 revisions) \u2014 final value: `access_token_ttl_minutes = 2"
+        },
+        {
+          "id": "M1",
+          "type": "aggregate",
+          "cond": "COMPACT",
+          "bpe": 861,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the configuration table, the following configs were revised **three or more times** (i.e., reached **rev 3 or higher**):\n\n1. **`config-retry-backoff` \u2192 `backoff_base_ms`** \u2014 Final value: **750** (rev 4)\n2. **`config-payment-retry` \u2192 `max_attempts`** \u2014 Final value: **4** (rev 3)\n3. **`config-jwt-ttl` \u2192 `access_token_ttl_minutes`** \u2014 Final value: **22** (rev 3)\n4. **`config-canary-traffic` "
+        },
+        {
+          "id": "M1",
+          "type": "aggregate",
+          "cond": "BM25",
+          "bpe": 1298,
+          "rule": true,
+          "judge": false,
+          "judge_err": false,
+          "answer": "Based on the context, I can identify configurations with three or more revisions:\n\n1. **config-jwt-ttl** (3 revisions): Final value \u2014 `access_token_ttl_minutes = 22` (revision 3, Step 458)\n\n2. **config-retry-backoff** (4 revisions): Final value \u2014 `backoff_base_ms = 750` (revision 4, Step 487)\n\n3. **config-canary-traffic** (3 revisions): Final value \u2014 `canary_traffic_percent = 25` (revision 3, Step"
+        },
+        {
+          "id": "M1",
+          "type": "aggregate",
+          "cond": "CTX",
+          "bpe": 861,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Based on the context, the configurations revised **three or more times** (i.e., having 3+ revisions) are:\n\n1. **Retry Backoff Base Ms** \u2013 4 revisions \u2192 Final value: **750 ms**\n2. **Canary Traffic Percent** \u2013 4 revisions \u2192 Final value: **10%**\n3. **Payment Retry Max Attempts** \u2013 3 revisions \u2192 Final value: **4**\n4. **JWT Access Token TTL** \u2013 3 revisions \u2192 Final value: **22 minutes**",
+          "sections": [
+            "ENTITY-CONFIG-RETRY-BACKOFF",
+            "ENTITY-CONFIG-CANARY-TRAFFIC",
+            "ENTITY-CONFIG-PAYMENT-RETRY",
+            "ENTITY-CONFIG-JWT-TTL",
+            "ENTITY-CONFIG-DB-POOL"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "A1",
+          "type": "absent",
+          "cond": "RAW",
+          "bpe": 66377,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "A1",
+          "type": "absent",
+          "cond": "COMPACT",
+          "bpe": 861,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "A1",
+          "type": "absent",
+          "cond": "BM25",
+          "bpe": 1555,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "A1",
+          "type": "absent",
+          "cond": "CTX",
+          "bpe": 151,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context.",
+          "sections": [],
+          "rehydrated": false
+        },
+        {
+          "id": "A2",
+          "type": "absent",
+          "cond": "RAW",
+          "bpe": 66377,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "A2",
+          "type": "absent",
+          "cond": "COMPACT",
+          "bpe": 861,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "A2",
+          "type": "absent",
+          "cond": "BM25",
+          "bpe": 421,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "A2",
+          "type": "absent",
+          "cond": "CTX",
+          "bpe": 151,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context.",
+          "sections": [],
+          "rehydrated": false
+        }
+      ]
+    }
+  }
+}
