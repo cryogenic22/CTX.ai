@@ -392,8 +392,147 @@ _CODE_TOOLS = [
     ),
 ]
 
-# Append code tools to the list MCP advertises.
-TOOLS = TOOLS + _CODE_TOOLS
+_SESSION_COMMON_PROPS = {
+    "ledger_dir": {
+        "type": "string",
+        "description": "Checkpoint ledger directory (default: .claude/ctx).",
+        "default": ".claude/ctx",
+    },
+    "session": {
+        "type": "string",
+        "description": (
+            "Session id (8-char prefix ok). Default: the most recent "
+            "checkpointed session."
+        ),
+    },
+}
+
+_SESSION_TOOLS = [
+    Tool(
+        name="ctx/session_recall",
+        description=(
+            "Recall facts from a checkpointed session ledger (the pack-on-"
+            "compact memory). Call with NO section/query first to get the "
+            "section index, then call again with section=<name>[,<name>] "
+            "to hydrate the ones you need (prose output). Use this instead "
+            "of grepping the raw transcript."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                **_SESSION_COMMON_PROPS,
+                "section": {
+                    "type": "string",
+                    "description": "Section name(s), comma-separated (e.g. 'DECISION-9FF7E602').",
+                },
+                "query": {
+                    "type": "string",
+                    "description": "Keyword query — fallback when you don't know section names.",
+                },
+                "max_sections": {"type": "integer", "default": 5},
+            },
+        },
+    ),
+    Tool(
+        name="ctx/session_timeline",
+        description=(
+            "The session ledger in turn order: what happened, when. "
+            "Filter with kinds (DECISION, CONSTRAINT, FAILED-APPROACH, "
+            "USER-REQUEST, TASK, ERROR, FILE, TOOL-BASH); limit returns "
+            "the most recent N events."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                **_SESSION_COMMON_PROPS,
+                "kinds": {
+                    "type": "array", "items": {"type": "string"},
+                    "description": "Restrict to these kinds.",
+                },
+                "limit": {"type": "integer", "default": 0,
+                          "description": "Return only the last N events."},
+            },
+        },
+    ),
+    Tool(
+        name="ctx/session_decisions",
+        description=(
+            "Every decision, constraint, and failed approach from a "
+            "checkpointed session in one call, each with turn provenance. "
+            "The first thing to read when resuming work."
+        ),
+        inputSchema={"type": "object", "properties": {**_SESSION_COMMON_PROPS}},
+    ),
+    Tool(
+        name="ctx/why",
+        description=(
+            "Provenance for a key/entity/value in the session ledger: "
+            "which turn set it, and the SUPERSEDED chain when it was "
+            "revised (oldest -> newest; current value wins)."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["key"],
+            "properties": {
+                **_SESSION_COMMON_PROPS,
+                "key": {
+                    "type": "string",
+                    "description": "Section name, field key, or value substring to trace.",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="ctx/graph_query",
+        description=(
+            "Deterministic traversal over the packed entity graph — "
+            "O(V+E) instead of in-context reasoning. Ops: neighbors "
+            "(out/in/undirected), parents (who depends on X — the query "
+            "models fail at in prose), bfs (reachable within depth), "
+            "path (shortest, dependency direction by default). Operates "
+            "on file_path/text if given, else the session ledger."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["entity"],
+            "properties": {
+                **_SESSION_COMMON_PROPS,
+                "file_path": {
+                    "type": "string",
+                    "description": "Path to a .ctx file (overrides session).",
+                },
+                "text": {
+                    "type": "string",
+                    "description": "Raw .ctx text (overrides session).",
+                },
+                "entity": {
+                    "type": "string",
+                    "description": "Start entity (e.g. 'ENTITY-ORDER' or just 'order').",
+                },
+                "op": {
+                    "type": "string",
+                    "enum": ["neighbors", "parents", "bfs", "path"],
+                    "default": "neighbors",
+                },
+                "to": {
+                    "type": "string",
+                    "description": "Target entity (op=path only).",
+                },
+                "depth": {"type": "integer", "default": 2,
+                          "description": "BFS depth (op=bfs only)."},
+                "direction": {
+                    "type": "string",
+                    "enum": ["out", "in", "both"],
+                    "default": "out",
+                    "description": "Edge direction for bfs/path.",
+                },
+            },
+        },
+    ),
+]
+
+# Append code + session tools to the list MCP advertises.
+TOOLS = TOOLS + _CODE_TOOLS + _SESSION_TOOLS
 
 
 # ── Tool implementations ──
@@ -744,6 +883,87 @@ def handle_code_telemetry(_arguments: dict[str, Any]) -> str:
     return json.dumps(tel.summary())
 
 
+# ── Session-ledger tool handlers (P4 read path) ──
+
+
+def _with_session_doc(arguments: dict[str, Any], fn) -> str:
+    """Load the requested/latest session ledger and apply ``fn(doc, sid)``."""
+    from ..agent.session_reader import LedgerError, load_session
+
+    try:
+        doc, sid = load_session(
+            arguments.get("ledger_dir") or ".claude/ctx",
+            arguments.get("session"),
+        )
+    except LedgerError as e:
+        return json.dumps({"error": {"code": "ledger_not_found",
+                                     "message": str(e)}})
+    except ParseError as e:
+        return json.dumps({"error": {"code": "internal_parse_error",
+                                     "message": str(e)}})
+    return json.dumps(fn(doc, sid), indent=2)
+
+
+def handle_session_recall(arguments: dict[str, Any]) -> str:
+    from ..agent.session_reader import session_recall
+
+    return _with_session_doc(arguments, lambda doc, sid: session_recall(
+        doc, sid,
+        section=arguments.get("section", ""),
+        query=arguments.get("query", ""),
+        max_sections=int(arguments.get("max_sections", 5)),
+        telemetry=_telemetry,
+    ))
+
+
+def handle_session_timeline(arguments: dict[str, Any]) -> str:
+    from ..agent.session_reader import session_timeline
+
+    kinds = arguments.get("kinds")
+    return _with_session_doc(arguments, lambda doc, sid: session_timeline(
+        doc, sid,
+        kinds=list(kinds) if kinds else None,
+        limit=int(arguments.get("limit", 0)),
+    ))
+
+
+def handle_session_decisions(arguments: dict[str, Any]) -> str:
+    from ..agent.session_reader import session_decisions
+
+    return _with_session_doc(arguments, session_decisions)
+
+
+def handle_session_why(arguments: dict[str, Any]) -> str:
+    from ..agent.session_reader import session_why
+
+    key = arguments.get("key", "")
+    return _with_session_doc(
+        arguments, lambda doc, sid: session_why(doc, sid, key))
+
+
+def handle_graph_query(arguments: dict[str, Any]) -> str:
+    from ..core.entity_graph import EntityGraph
+
+    def _run(doc) -> dict[str, Any]:
+        return EntityGraph.from_document(doc).query(
+            arguments.get("op", "neighbors"),
+            arguments.get("entity", ""),
+            to=arguments.get("to", ""),
+            depth=int(arguments.get("depth", 2)),
+            direction=arguments.get("direction", "out"),
+        )
+
+    if arguments.get("file_path") or arguments.get("text"):
+        try:
+            doc = parse(_read_ctx_input(arguments), level=2)
+        except ParseError as e:
+            return json.dumps({"error": {"code": "internal_parse_error",
+                                         "message": str(e)}})
+        return json.dumps(_run(doc), indent=2)
+    return _with_session_doc(
+        arguments, lambda doc, sid: {"session": sid, **_run(doc)})
+
+
 _HANDLERS = {
     "ctx/pack": handle_pack,
     "ctx/parse": handle_parse,
@@ -758,6 +978,12 @@ _HANDLERS = {
     "ctx/code_search_symbols": handle_code_search_symbols,
     "ctx/code_raw_file": handle_code_raw_file,
     "ctx/code_telemetry": handle_code_telemetry,
+    # Session-ledger read path (P4)
+    "ctx/session_recall": handle_session_recall,
+    "ctx/session_timeline": handle_session_timeline,
+    "ctx/session_decisions": handle_session_decisions,
+    "ctx/why": handle_session_why,
+    "ctx/graph_query": handle_graph_query,
 }
 
 

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import json
 import os
 import sys
 
@@ -298,6 +299,39 @@ def main(argv: list[str] | None = None) -> int:
     p_install.add_argument("--project-dir", default=".",
                            help="Repo root (default: current directory)")
 
+    # session — read path over the checkpoint ledger (P4)
+    p_session = sub.add_parser(
+        "session",
+        help="Read the checkpoint ledger: recall | timeline | decisions | why")
+    p_session.add_argument("action",
+                           choices=["recall", "timeline", "decisions", "why",
+                                    "graph"],
+                           help="What to read")
+    p_session.add_argument("key", nargs="?", default="",
+                           help="why: key to trace; recall: keyword query; "
+                                "graph: start entity")
+    p_session.add_argument("--ledger", default=".claude/ctx",
+                           help="Ledger directory (default: .claude/ctx)")
+    p_session.add_argument("--session", dest="session_id", default=None,
+                           help="Session id (default: most recent checkpoint)")
+    p_session.add_argument("--section", default="",
+                           help="recall: section name(s), comma-separated")
+    p_session.add_argument("--kinds", default="",
+                           help="timeline: comma-separated kind filter "
+                                "(DECISION,CONSTRAINT,...)")
+    p_session.add_argument("--limit", type=int, default=0,
+                           help="timeline: only the last N events")
+    p_session.add_argument("--op", default="neighbors",
+                           choices=["neighbors", "parents", "bfs", "path"],
+                           help="graph: operation (default: neighbors)")
+    p_session.add_argument("--to", default="",
+                           help="graph path: target entity")
+    p_session.add_argument("--depth", type=int, default=2,
+                           help="graph bfs: depth (default: 2)")
+    p_session.add_argument("--direction", default="out",
+                           choices=["out", "in", "both"],
+                           help="graph bfs/path: edge direction")
+
     args = ap.parse_args(argv)
 
     try:
@@ -333,6 +367,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_hook(args)
         elif args.command == "install-hooks":
             return _cmd_install_hooks(args)
+        elif args.command == "session":
+            return _cmd_session(args)
     except ParseError as e:
         print(f"Parse error: {e}", file=sys.stderr)
         return 1
@@ -982,6 +1018,63 @@ def _cmd_hook(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_session(args: argparse.Namespace) -> int:
+    """Read path over the checkpoint ledger — the CLI twin of the MCP
+    session tools, so any agent with a shell can use the ledger."""
+    from ..agent.session_reader import (
+        LedgerError,
+        load_session,
+        session_decisions,
+        session_recall,
+        session_timeline,
+        session_why,
+    )
+
+    try:
+        doc, sid = load_session(args.ledger, args.session_id)
+    except LedgerError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+    if args.action == "recall":
+        result = session_recall(doc, sid, section=args.section,
+                                query=args.key)
+    elif args.action == "timeline":
+        kinds = [k.strip() for k in args.kinds.split(",") if k.strip()]
+        result = session_timeline(doc, sid, kinds=kinds or None,
+                                  limit=args.limit)
+    elif args.action == "decisions":
+        result = session_decisions(doc, sid)
+    elif args.action == "graph":
+        from ..core.entity_graph import EntityGraph
+
+        if not args.key:
+            print("Error: `ctxpack session graph <entity>` needs an entity",
+                  file=sys.stderr)
+            return 1
+        result = EntityGraph.from_document(doc).query(
+            args.op, args.key, to=args.to, depth=args.depth,
+            direction=args.direction)
+        result = {"session": sid, **result}
+    else:  # why
+        if not args.key:
+            print("Error: `ctxpack session why <key>` needs a key",
+                  file=sys.stderr)
+            return 1
+        result = session_why(doc, sid, args.key)
+
+    # Prose payloads print as prose; structured payloads as JSON.
+    text = result.pop("text", None)
+    if text is not None:
+        meta = ", ".join(f"{k}={v}" for k, v in result.items())
+        print(f"[{meta}]")
+        print()
+        print(text)
+    else:
+        print(json.dumps(result, indent=2))
+    return 0
+
+
 # Hook commands run `python -m ctxpack.cli.main` rather than the `ctxpack`
 # console script: hooks execute with cwd = the project dir, where the
 # package is importable directly — so the hooks work on any machine with
@@ -1054,6 +1147,10 @@ def _cmd_install_hooks(args: argparse.Namespace) -> int:
     print(f"  SessionStart-> {_HOOK_CMD} session-start (re-inject gist)")
     print(f"  SessionEnd  -> {_HOOK_CMD} session-end   (final checkpoint)")
     print("Ledger dir: .claude/ctx/  (commit it to give the repo durable memory)")
+    print()
+    print("IMPORTANT: Claude Code snapshots hook config at process startup —")
+    print("these hooks do NOT fire until you restart Claude Code (or review")
+    print("them via /hooks). /clear is not a restart.")
     return 0
 
 

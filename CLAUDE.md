@@ -10,9 +10,19 @@ This repo has ctxpack hooks installed (`.claude/settings.json`): every
 compaction and session end packs the transcript into `.claude/ctx/`, and
 each session start re-injects `latest-gist.md`. The gist you may see at
 the top of your context is the previous session's deterministic ledger —
-trust its constraints and decisions; hydrate details via
-`ctxpack hydrate .claude/ctx/session-<id>.ctx --sections <NAME>` or grep
-the raw transcript.
+trust its constraints and decisions.
+
+**Recalling past-session detail — use the ledger read path FIRST** (the
+MCP `ctx/session_*` tools if available, else the CLI twin), and fall back
+to grepping the raw transcript only when it fails — every fallback is a
+data point we track:
+
+- `ctxpack session decisions` — decisions/constraints/failed approaches
+- `ctxpack session timeline [--kinds DECISION,ERROR] [--limit N]`
+- `ctxpack session recall [<query>|--section <NAME>]` — index, then hydrate
+- `ctxpack session why "<key or value>"` — turn provenance + supersession
+- `ctxpack session graph <entity> [--op parents|neighbors|bfs|path]`
+- `--session <id>` targets an older session (default: latest checkpoint)
 
 **Decision convention (load-bearing):** when you make a nontrivial
 decision (design choice, root cause, chosen fix, abandoned approach),
