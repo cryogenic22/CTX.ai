@@ -1,5 +1,5 @@
 §CTX v1.0 L2 DOMAIN:session-04247ced
-COMPRESSED:2026-07-03 SOURCE_TOKENS:~2286 CTX_TOKENS:~3232 RATIO:~0.9x
+COMPRESSED:2026-07-03 SOURCE_TOKENS:~2464 CTX_TOKENS:~3476 RATIO:~0.9x
 
 ±ENTITY-USER-REQUEST-6692DCEB
 REQUEST:Can you do a deep analysis of the codebase and our eval strategy and value proposition
@@ -510,10 +510,6 @@ RAN:Re-test session-start with cwd anchoring + CLI tests
 COMMAND:echo '{"source": "compact", "cwd": "C:\\Users\\kapil\\Documents\\CTX_mod"}' | ctxpack hook session-start | head -c 120; echo; python -m pytest tests/test_cli.py
 TURN:680
 SRC:session:04247ced#turn680
-±ENTITY-DECISION-7C57190F
-DECISION:While the reviewers work, recording the build outcome in the plan document — including the honest extraction-gate verdict:
-TURN:683
-SRC:session:04247ced#turn683
 ±ENTITY-TOOL-BASH-0240
 RAN:Check review workflow progress
 COMMAND:wc -l "C:\Users\kapil\.claude\projects\C--Users-kapil-Documents-CTX-mod\04247ced-3745-4abd-810d-23c87ab5f0c1\subagents\workflows\wf_c9e61624-99d\journal.jsonl" 
@@ -578,10 +574,6 @@ RAN:Final checkpoint of this session into the repo ledger
 COMMAND:ctxpack checkpoint --transcript "C:\Users\kapil\.claude\projects\C--Users-kapil-Documents-CTX-mod\04247ced-3745-4abd-810d-23c87ab5f0c1.jsonl" --out .claude/ctx 
 TURN:764
 SRC:session:04247ced#turn764
-±ENTITY-DECISION-59D4E4AB
-DECISION:So decisions became a structured signal: `CLAUDE.md` now instructs sessions to state `Decision: ...` lines, which extract trivially.
-TURN:771
-SRC:session:04247ced#turn771
 ±ENTITY-USER-REQUEST-F8D8712D
 REQUEST:ok so if i say save to memory now so i can clear and you can resume , it will work off our ctx approach and maintain the memory and context?
 TURN:772
@@ -601,6 +593,69 @@ RAN:Full suite rerun (background, result to repo-root file)
 COMMAND:python -m pytest tests/ -q -p no:cacheprovider > full_suite_result.txt 2>&1; tail -1 full_suite_result.txt
 TURN:781
 SRC:session:04247ced#turn781
+±ENTITY-TOOL-BASH-0277
+RAN:Reinstall hooks, checkpoint, simulate clear-resume
+COMMAND:ctxpack install-hooks --project-dir . > /dev/null && grep -A1 '"matcher"' .claude/settings.json && ctxpack checkpoint --transcript "C:\Users\kapil\.claude\proje
+TURN:788
+SRC:session:04247ced#turn788
+±ENTITY-TOOL-BASH-0278
+RAN:Confirm CLI/checkpoint tests after clear-behavior change
+COMMAND:python -m pytest tests/test_cli.py tests/test_checkpoint.py -q 2>&1 | tail -2
+TURN:791
+SRC:session:04247ced#turn791
+±ENTITY-USER-REQUEST-B9D69F43
+REQUEST:commit the work
+TURN:794
+SRC:session:04247ced#turn794
+±ENTITY-TOOL-BASH-0279
+RAN:Check gitignore and change count
+COMMAND:cat .gitignore 2>/dev/null | head -20; echo ===; git status --short | wc -l
+TURN:797
+SRC:session:04247ced#turn797
+±ENTITY-TOOL-BASH-0280
+RAN:Check gitignore-suffixed file handling
+COMMAND:grep -n "gitignore\|_gitignore" .gitignore; git check-ignore paper/ctx_strategy_analysis_gitignore.md 2>/dev/null && echo "gitignore-suffixed files ignored"
+TURN:799
+SRC:session:04247ced#turn799
+±ENTITY-TOOL-BASH-0281
+RAN:Commit P0 trust repairs
+COMMAND:git add ctxpack/core/packer/md_parser.py ctxpack/core/packer/clock.py ctxpack/core/packer/discovery.py ctxpack/core/packer/compressor.py ctxpack/core/packer/l3_
+TURN:803
+SRC:session:04247ced#turn803
+±ENTITY-ERROR-466A5A35
+MESSAGE:Exit code 1 warning: in the working copy of 'ctxpack/agent/state_parser.py', LF will be replaced by CRLF the next time Git touches it warning: in the working copy of 'ctxpack/core/packer/l3_generator.py', LF will be replaced by CRLF the nex
+TURN:804
+SRC:session:04247ced#turn804
+±ENTITY-TOOL-BASH-0282
+RAN:Commit P0 trust repairs
+COMMAND:git add ctxpack/core/packer/md_parser.py ctxpack/core/packer/clock.py ctxpack/core/packer/discovery.py ctxpack/core/packer/compressor.py ctxpack/core/packer/l3_
+TURN:807
+SRC:session:04247ced#turn807
+±ENTITY-TOOL-BASH-0283
+RAN:Commit P1 temporal supersession
+COMMAND:git add ctxpack/core/packer/entity_resolver.py ctxpack/core/packer/ir.py ctxpack/core/hydrator.py ctxpack/agent/session.py tests/test_temporal_supersession.py 2
+TURN:809
+SRC:session:04247ced#turn809
+±ENTITY-TOOL-BASH-0284
+RAN:Read completed suite result
+COMMAND:tail -2 "C:\Users\kapil\AppData\Local\Temp\claude\C--Users-kapil-Documents-CTX-mod\04247ced-3745-4abd-810d-23c87ab5f0c1\tasks\b4e8626r1.output"
+TURN:812
+SRC:session:04247ced#turn812
+±ENTITY-TOOL-BASH-0286
+RAN:Commit P2 and P3
+COMMAND:git add ctxpack/agent/transcript_parser.py tests/test_transcript_parser.py 2>/dev/null; git commit -q -m "$(cat <<'EOF' P2 transcript parser: Claude Code sessio
+TURN:818
+SRC:session:04247ced#turn818
+±ENTITY-TOOL-BASH-0287
+RAN:Commit benchmarks and plan doc
+COMMAND:git add ctxpack/benchmarks/agentic run_agentic_niah.py run_graphwalks_eval.py 2>/dev/null; git commit -q -m "$(cat <<'EOF' Agentic benchmarks: NIAH context-rot 
+TURN:820
+SRC:session:04247ced#turn820
+±ENTITY-TOOL-BASH-0288
+RAN:Read final-tree suite result
+COMMAND:tail -1 full_suite_result.txt
+TURN:825
+SRC:session:04247ced#turn825
 ±ENTITY-FILE-E-PROJECTS-C--USERS-KAPIL-DOCUMENTS-CTX-MOD-MEMORY-MEMORY-MD
 PATH:C:\Users\kapil\.claude\projects\C--Users-kapil-Documents-CTX-mod\memory\MEMORY.md
 EDITS:3

@@ -1,16 +1,13 @@
-# Session memory (session 04247ced, 787 turns)
+# Session memory (session 04247ced, 829 turns)
 
 Deterministic ledger recovered from the session transcript. Full detail: `ctxpack hydrate` on the session .ctx, or grep the raw transcript.
-
-## Decisions
-- While the reviewers work, recording the build outcome in the plan document — including the honest extraction-gate verdict: (turn 683)
-- So decisions became a structured signal: `CLAUDE.md` now instructs sessions to state `Decision: ...` lines, which extract trivially. (turn 771)
 
 ## What was asked
 - Can you do a deep analysis of the codebase and our eval strategy and value proposition (turn 4)
 - ok give me in plain english what is the value of ctx, how it should be used in different scenarios, what should we built (turn 306)
 - ok shall we build all of the build in sequence and in long running way and use ctx on our code itself to prove that the memory and a good harness works in claude code ie this repo? (turn 309)
 - ok so if i say save to memory now so i can clear and you can resume , it will work off our ctx approach and maintain the memory and context? (turn 772)
+- commit the work (turn 794)
 
 ## Tasks
 - Deep-analysis workflow (readers + researchers + critics) (turn 34)
@@ -29,6 +26,7 @@ Deterministic ledger recovered from the session transcript. Full detail: `ctxpac
 - Exit code 1 File "<stdin>", line 10 print(f.split('\')[-1][:20], '->', p.stats.to_dict(), 'entities:', len(p.corpus.entities)) ^ SyntaxError: unterminated string literal (detected at line 10) (turn 572)
 - Exit code 2 usage: ctxpack [-h] {parse,validate,fmt,pack,eval,diff,bench,hydrate,scaling,telemetry,codebase,dream,elicit} ... ctxpack: error: argument command: invalid choice: 'checkpoint' (choose from parse, validate, fmt, pack, eval, diff (turn 626)
 - Exit code 1 File "<stdin>", line 11 print(' -', f.get('severity','?'), f.get('file','?').split('/')[-1].split('\')[-1] + ':' + str(f.get('line')), '|', f.get('summary','')[:130]) ^ SyntaxError: unterminated string literal (detected at line  (turn 690)
+- Exit code 1 warning: in the working copy of 'ctxpack/agent/state_parser.py', LF will be replaced by CRLF the next time Git touches it warning: in the working copy of 'ctxpack/core/packer/l3_generator.py', LF will be replaced by CRLF the nex (turn 804)
 
 ## Files changed
 - C:\Users\kapil\AppData\Local\Temp\claude\C--Users-kapil-Documents-CTX-mod\04247ced-3745-4abd-810d-23c87ab5f0c1\scratchpad\sanity_check.py (1 edits) (turn 59)

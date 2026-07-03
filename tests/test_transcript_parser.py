@@ -179,3 +179,103 @@ def test_bullet_list_constraints_split(tmp_path):
              if e.name.startswith("CONSTRAINT") for f in e.fields
              if f.key == "RULE"]
     assert len(rules) == 3, f"bullet list merged or dropped: {rules}"
+
+
+# ── Dogfood day-1 regressions (2026-07-03) ──
+
+
+def _parse_assistant_text(tmp_path, text):
+    entries = [_entry("assistant", [{"type": "text", "text": text}])]
+    path = tmp_path / "s.jsonl"
+    path.write_text("\n".join(json.dumps(e) for e in entries), encoding="utf-8")
+    return parse_transcript(str(path))
+
+
+def _decision_values(parsed):
+    return [f.value for e in parsed.corpus.entities
+            if e.name.startswith("DECISION") for f in e.fields
+            if f.key == "DECISION"]
+
+
+def test_decision_mention_in_backticks_not_extracted(tmp_path):
+    # Talking ABOUT the convention must not trigger it (use vs mention).
+    parsed = _parse_assistant_text(tmp_path,
+        "Folding it in gives us the first test of the `Decision:` convention.\n"
+        "Sessions must state `Decision: ...` lines, which extract trivially.\n"
+        "The gist only had 2 decisions since the `Decision:` rule came late.")
+    assert _decision_values(parsed) == [], (
+        f"backticked mentions extracted as decisions: {_decision_values(parsed)}"
+    )
+    assert parsed.stats.decisions == 0
+
+
+def test_decision_marker_must_start_sentence(tmp_path):
+    # A list-introducer line that merely ENDS with "verdict:" is not a
+    # decision (the real 829-turn gist extracted exactly this line).
+    parsed = _parse_assistant_text(tmp_path,
+        "Recording the build outcome — including the honest extraction-gate verdict:\n"
+        "- structured signals extracted well")
+    assert _decision_values(parsed) == []
+
+
+def test_decision_marker_variants_extracted(tmp_path):
+    parsed = _parse_assistant_text(tmp_path,
+        "Decision: use exponential backoff with base 750ms.\n"
+        "- Decision: scope the eval to Opus-class answerers.\n"
+        "**Decision:** keep the ledger append-only.")
+    values = _decision_values(parsed)
+    assert len(values) == 3, f"marker variant missed: {values}"
+    assert parsed.stats.decisions == 3
+
+
+def test_root_cause_noun_phrase_not_a_decision(tmp_path):
+    # "root cause" fires only as an assertion; passing references don't.
+    parsed = _parse_assistant_text(tmp_path,
+        "The diagnosis session (where I found the root cause) was never packed.\n"
+        "That matched via the \"root cause\" verb pattern in the extractor.")
+    assert _decision_values(parsed) == []
+
+    asserted = _parse_assistant_text(tmp_path,
+        "The root cause was a stale Redis fixture.")
+    assert len(_decision_values(asserted)) == 1
+
+
+def test_failed_approach_mention_in_backticks_not_extracted(tmp_path):
+    parsed = _parse_assistant_text(tmp_path,
+        "The parser greps for the `didn't work because` pattern in prose.")
+    notes = [f.value for e in parsed.corpus.entities
+             if e.name.startswith("FAILED") for f in e.fields]
+    assert notes == [], f"backticked mention extracted as failed approach: {notes}"
+
+
+def test_constraint_mention_in_backticks_not_extracted(tmp_path):
+    entries = [_entry("user",
+        "I like how the guide phrases `never push to main` as an example rule.")]
+    path = tmp_path / "s.jsonl"
+    path.write_text("\n".join(json.dumps(e) for e in entries), encoding="utf-8")
+    parsed = parse_transcript(str(path))
+    rules = [f.value for e in parsed.corpus.entities
+             if e.name.startswith("CONSTRAINT") for f in e.fields]
+    assert rules == [], f"backticked mention extracted as constraint: {rules}"
+
+
+def test_task_notification_not_a_user_request(tmp_path):
+    entries = [
+        _entry("user", "<task-notification>\n<task-id>bl9o6g0ma</task-id>\n"
+                       "<output-file>C:\\tmp\\tasks\\bl9o6g0ma.output</output-file>\n"
+                       "<status>completed</status>\n</task-notification>"),
+        # unclosed variant (truncated write) must also be dropped
+        _entry("user", "<task-notification>\n<task-id>xyz</task-id>\n<status>comp"),
+        _entry("user", "what next"),
+    ]
+    path = tmp_path / "s.jsonl"
+    path.write_text("\n".join(json.dumps(e) for e in entries), encoding="utf-8")
+    parsed = parse_transcript(str(path))
+    requests = [f.value for e in parsed.corpus.entities
+                if e.name.startswith("USER-REQUEST") for f in e.fields
+                if f.key == "REQUEST"]
+    assert requests == ["what next"], (
+        f"harness notification leaked into user requests: {requests}"
+    )
+    assert parsed.stats.requests == 1
+    assert parsed.stats.user_turns == 1

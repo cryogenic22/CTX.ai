@@ -42,14 +42,29 @@ _CONSTRAINT_RE = re.compile(
 # Assistant sentences that read as decisions / conclusions. The reliable
 # path is the explicit "Decision:" convention (the dogfood CLAUDE.md asks
 # sessions to state decisions that way); the verb patterns are best-effort.
-_DECISION_RE = re.compile(
-    r"(?i)(?:\b(?:decision|conclusion|verdict|confirmed)\s*:"
-    r"|\b(?:decided to|i'?ll (?:use|go with|take)|going with|"
-    r"we'?ll (?:use|go with)|chose|choosing|settled on|root cause|"
+#
+# The marker is anchored to the sentence START (optionally behind a bullet
+# or bold prefix): dogfood showed the unanchored form fires on backticked
+# *mentions* of the convention and on list-introducer lines that merely
+# end in "verdict:". Matching runs against backtick-stripped prose (see
+# _prose_of) so quoted code spans can't trigger any extractor.
+_DECISION_MARKER_RE = re.compile(
+    r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
+    r"(?:decision|conclusion|verdict|confirmed)(?:\*{1,2}|_{1,2})?\s*:"
+)
+_DECISION_VERB_RE = re.compile(
+    r"(?i)\b(?:decided to|i'?ll (?:use|go with|take)|going with|"
+    r"we'?ll (?:use|go with)|chose|choosing|settled on|"
+    r"root cause\s*(?:is|was|:)|"  # assertion only — bare noun phrase
+    # ("found the root cause") is a mention, not a stated conclusion
     r"caused by|the fix (?:is|was)|fixed by|renamed?|instead of using|"
     r"switch(?:ed|ing) to|the right (?:move|approach|fix) is|"
-    r"key finding)\b)"
+    r"key finding)"
 )
+
+# Inline code spans are quoted material, not statements by the assistant:
+# "state `Decision: ...` lines" mentions the convention, it doesn't use it.
+_INLINE_CODE_RE = re.compile(r"`[^`]*`")
 
 # User messages longer than this (after cleaning) are treated as pasted
 # material (transcripts, logs, articles): still scanned for the request
@@ -70,6 +85,12 @@ _SYS_REMINDER_RE = re.compile(r"<system-reminder>.*?</system-reminder>", re.DOTA
 _TAGGED_META_RE = re.compile(
     r"<(local-command-caveat|command-name|command-message|command-args|"
     r"local-command-stdout)>.*?</\1>", re.DOTALL,
+)
+# Harness-injected user-role messages (background-task completion notices
+# etc.) are not things the user asked for. Whole block goes, tolerating a
+# missing close tag — dogfood found one extracted as a USER-REQUEST.
+_HARNESS_BLOCK_RE = re.compile(
+    r"<(task-notification|task-reminder)>.*?(?:</\1>|\Z)", re.DOTALL,
 )
 
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+|\n+")
@@ -109,6 +130,7 @@ def _clean(text: str, limit: int = 300) -> str:
     """Sanitize a value for a line-oriented KV: strip meta, collapse ws."""
     text = _SYS_REMINDER_RE.sub("", text)
     text = _TAGGED_META_RE.sub("", text)
+    text = _HARNESS_BLOCK_RE.sub("", text)
     text = " ".join(text.split())
     return text[:limit]
 
@@ -119,6 +141,7 @@ def _clean_multiline(text: str, limit: int = 100_000) -> str:
     merging into one over-length (and therefore dropped) blob."""
     text = _SYS_REMINDER_RE.sub("", text)
     text = _TAGGED_META_RE.sub("", text)
+    text = _HARNESS_BLOCK_RE.sub("", text)
     lines = [" ".join(line.split()) for line in text.splitlines()]
     return "\n".join(line for line in lines if line)[:limit]
 
@@ -139,6 +162,18 @@ def _sentences(text: str) -> list[str]:
         s.strip() for s in _SENTENCE_SPLIT_RE.split(text)
         if 15 <= len(s.strip()) <= 300
     ]
+
+
+def _prose_of(sentence: str) -> str:
+    """The sentence with inline code spans blanked — extractors match on
+    this so backtick-quoted mentions can't fire, while the verbatim
+    sentence is still what gets stored."""
+    return _INLINE_CODE_RE.sub(" ", sentence)
+
+
+def _is_decision(sentence: str) -> bool:
+    prose = _prose_of(sentence)
+    return bool(_DECISION_MARKER_RE.match(prose) or _DECISION_VERB_RE.search(prose))
 
 
 def _text_of(content: Any) -> str:
@@ -278,7 +313,7 @@ def parse_transcript(
                 for sentence in _sentences(text):
                     if len(_TIMESTAMP_NOISE_RE.findall(sentence)) >= 2:
                         continue
-                    if _CONSTRAINT_RE.search(sentence):
+                    if _CONSTRAINT_RE.search(_prose_of(sentence)):
                         stats.constraints += 1
                         # store the full admitted sentence — truncating
                         # below the 300-char admission cap could sever a
@@ -296,12 +331,12 @@ def parse_transcript(
 
                 if btype == "text":
                     for sentence in _sentences(_clean_multiline(blk.get("text", ""))):
-                        if _FAILED_RE.search(sentence):
+                        if _FAILED_RE.search(_prose_of(sentence)):
                             stats.failed_approaches += 1
                             _add(f"FAILED-APPROACH-{_short_hash(sentence)}",
                                  {"note": sentence[:280], "turn": str(turn)},
                                  turn=turn, ts=ts, salience=2.2)
-                        elif _DECISION_RE.search(sentence):
+                        elif _is_decision(sentence):
                             stats.decisions += 1
                             _add(f"DECISION-{_short_hash(sentence)}",
                                  {"decision": sentence[:280], "turn": str(turn)},
