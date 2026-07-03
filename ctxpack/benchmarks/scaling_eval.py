@@ -225,8 +225,13 @@ def run_scaling_eval(
 
         # Step 4: Grade
         correct_rule = _grade_answer(answer, expected)
-        correct_judge = _llm_judge(question, expected, answer,
-                                   model=eval_model, api_key=api_key, provider=provider)
+        _j_resp, _j_err = _llm_judge(question, expected, answer,
+                                     model=eval_model, api_key=api_key, provider=provider)
+        correct_judge = (
+            not _j_err
+            and "CORRECT" in _j_resp.upper()
+            and "INCORRECT" not in _j_resp.upper()
+        )
 
         hydration_details.append({
             "id": q_id, "question": question, "expected": expected,

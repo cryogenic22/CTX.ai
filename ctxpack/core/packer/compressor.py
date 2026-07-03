@@ -16,6 +16,7 @@ from ..model import (
     Provenance,
     Section,
 )
+from .clock import as_of_date
 from .ir import CONDITIONAL_RE, WINDOW_RE, Certainty, IRCorpus, IREntity, IRField, IRWarning
 
 # Precompiled regex for cross-reference extraction
@@ -33,6 +34,7 @@ def compress(
     min_tokens_per_entity: int = 0,
     randomize_order: bool = False,
     preset: str = "",
+    as_of: str | None = None,
 ) -> CTXDocument:
     """Compress an IRCorpus into a CTXDocument AST (L2).
 
@@ -130,7 +132,7 @@ def compress(
     ast_tokens = count_tokens(body)
     ratio = f"~{source_tokens / ctx_tokens:.1f}x" if ctx_tokens > 0 and source_tokens > 0 else "~1x"
 
-    today = datetime.date.today().isoformat()
+    today = as_of_date(as_of)
     status_fields = [
         KeyValue(key="DOMAIN", value=corpus.domain or "unknown"),
     ]

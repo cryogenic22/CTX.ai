@@ -57,6 +57,7 @@ def pack(
     template: Optional[str] = None,
     randomize_order: bool = False,
     preset: str = "",
+    as_of: Optional[str] = None,
 ) -> PackResult:
     """Pack a corpus directory into a CTXDocument (L2).
 
@@ -137,7 +138,8 @@ def pack(
                    max_ratio=max_ratio,
                    min_tokens_per_entity=min_tokens_per_entity,
                    randomize_order=randomize_order,
-                   preset=preset)
+                   preset=preset,
+                   as_of=as_of)
 
     # 7. L3 generation (if requested)
     if layers is None:
@@ -145,11 +147,12 @@ def pack(
     l3_doc = None
     manifest_doc = None
     if "L3" in layers:
-        l3_doc = generate_l3(doc)
+        l3_doc = generate_l3(doc, as_of=as_of)
         layer_map = {"L2": doc, "L3": l3_doc}
         manifest_doc = generate_manifest(
             layer_map,
             domain=config.domain or "unknown",
+            as_of=as_of,
         )
 
     return PackResult(

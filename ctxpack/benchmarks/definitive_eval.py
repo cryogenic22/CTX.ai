@@ -339,9 +339,14 @@ def _run_hydration_multiturn(
 
         # Step 4: Grade
         correct_rule = _grade_answer(answer, expected)
-        correct_judge = _llm_judge(
+        judge_resp, judge_err = _llm_judge(
             question, expected, answer,
             model=eval_model, api_key=api_key, provider=provider,
+        )
+        correct_judge = (
+            not judge_err
+            and "CORRECT" in judge_resp.upper()
+            and "INCORRECT" not in judge_resp.upper()
         )
 
         results.append(HydrationPoint(

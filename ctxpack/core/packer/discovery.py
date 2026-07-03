@@ -73,8 +73,10 @@ def discover(
     if author:
         result.config.author = author
 
-    # Walk directory
+    # Walk directory (sort dirs in place — os.walk order is fs-dependent,
+    # and pack determinism requires a stable traversal)
     for root, _dirs, files in os.walk(corpus_dir):
+        _dirs.sort()
         for fname in sorted(files):
             full_path = os.path.join(root, fname)
             rel_path = os.path.relpath(full_path, corpus_dir).replace("\\", "/")

@@ -26,8 +26,11 @@ logger = logging.getLogger(__name__)
 QA_SYSTEM_MSG = "You are a precise Q&A assistant. Answer concisely based only on the provided context."
 JUDGE_SYSTEM_MSG = "You are an expert grader evaluating answer correctness."
 
-# Transient HTTP status codes that should trigger retry
-_TRANSIENT_CODES = frozenset({429, 500, 502, 503, 504})
+# Transient HTTP status codes that should trigger retry.
+# 529 is Anthropic's "overloaded" status; 408/522/524 are timeout variants.
+# Treating any of these as permanent silently scores the answer INCORRECT —
+# the exact failure mode the v0.4 postmortem documented for 429s.
+_TRANSIENT_CODES = frozenset({408, 429, 500, 502, 503, 504, 522, 524, 529})
 
 # Inter-call delay to avoid API bursting (seconds)
 _INTER_CALL_DELAY = 0.5
