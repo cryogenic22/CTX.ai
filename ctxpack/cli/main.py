@@ -94,6 +94,9 @@ def main(argv: list[str] | None = None) -> int:
     p_pack.add_argument("--preset", choices=["conservative", "balanced", "aggressive"],
                         default="",
                         help="Compression preset (overrides --max-ratio and --min-tokens-per-entity)")
+    p_pack.add_argument("--as-of", dest="as_of", default=None,
+                        help="Pin the header date (YYYY-MM-DD) for byte-deterministic "
+                             "repacks (also settable via CTXPACK_AS_OF)")
 
     # eval
     p_eval = sub.add_parser("eval", help="Run evaluation against golden set")
@@ -266,6 +269,35 @@ def main(argv: list[str] | None = None) -> int:
     cb_harness.add_argument("--max-pattern-examples", type=int, default=3,
                             help="Max pattern examples per category (default: 3)")
 
+    # checkpoint — pack a Claude Code session transcript into the ledger
+    p_ckpt = sub.add_parser(
+        "checkpoint",
+        help="Pack a Claude Code session transcript into .claude/ctx/ "
+             "(the pack-on-compact ledger)")
+    p_ckpt.add_argument("--transcript", required=True,
+                        help="Path to the session JSONL transcript")
+    p_ckpt.add_argument("--out", default=".claude/ctx",
+                        help="Output directory (default: .claude/ctx)")
+    p_ckpt.add_argument("--as-of", dest="as_of", default=None,
+                        help="Pin header date for byte-deterministic packs")
+
+    # hook — entry points wired into .claude/settings.json by install-hooks
+    p_hook = sub.add_parser(
+        "hook", help="Claude Code hook entry points (read hook JSON on stdin)")
+    p_hook.add_argument("event",
+                        choices=["pre-compact", "session-start", "session-end"],
+                        help="Which hook event to handle")
+    p_hook.add_argument("--out", default=".claude/ctx",
+                        help="Ledger directory (default: .claude/ctx)")
+
+    # install-hooks — wire the checkpoint into a repo's Claude Code config
+    p_install = sub.add_parser(
+        "install-hooks",
+        help="Install PreCompact/SessionStart/SessionEnd hooks into "
+             ".claude/settings.json")
+    p_install.add_argument("--project-dir", default=".",
+                           help="Repo root (default: current directory)")
+
     args = ap.parse_args(argv)
 
     try:
@@ -295,6 +327,12 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_dream(args)
         elif args.command == "elicit":
             return _cmd_elicit(args)
+        elif args.command == "checkpoint":
+            return _cmd_checkpoint(args)
+        elif args.command == "hook":
+            return _cmd_hook(args)
+        elif args.command == "install-hooks":
+            return _cmd_install_hooks(args)
     except ParseError as e:
         print(f"Parse error: {e}", file=sys.stderr)
         return 1
@@ -378,6 +416,7 @@ def _cmd_pack(args: argparse.Namespace) -> int:
         min_tokens_per_entity=args.min_tokens_per_entity,
         template=args.template,
         preset=args.preset,
+        as_of=args.as_of,
     )
 
     output_text = serialize(result.document, ascii_mode=args.ascii,
@@ -873,6 +912,149 @@ def _count_sections(elements) -> int:
             count += 1
             count += _count_sections(elem.children)
     return count
+
+
+def _cmd_checkpoint(args: argparse.Namespace) -> int:
+    from ..agent.checkpoint import run_checkpoint
+
+    result = run_checkpoint(args.transcript, args.out, as_of=args.as_of)
+    print(f"Checkpoint: session {result.session_id[:8]} "
+          f"({result.turns} turns) -> {result.ctx_path}")
+    print(f"  entities: {result.entities}  conflicts: {result.conflicts}  "
+          f"gist: {result.gist_bpe} BPE  sha256: {result.ledger_sha256[:12]}")
+    return 0
+
+
+def _cmd_hook(args: argparse.Namespace) -> int:
+    """Claude Code hook entry point. Reads the hook event JSON on stdin.
+
+    pre-compact / session-end: run a checkpoint (side effect only).
+    session-start: emit additionalContext JSON carrying the latest gist.
+    Never fails the hook — a broken ledger must not break the session.
+    """
+    import io as _io
+    import json as _json
+
+    from ..agent.checkpoint import read_latest_gist, run_checkpoint
+
+    # Read stdin as UTF-8 explicitly: on Windows the default is the locale
+    # codec (cp1252), which corrupts non-ASCII transcript paths in the
+    # hook payload.
+    try:
+        raw = _io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8").read()
+    except (AttributeError, OSError):
+        raw = sys.stdin.read()
+    try:
+        payload = _json.loads(raw or "{}")
+    except _json.JSONDecodeError:
+        payload = {}
+
+    # Anchor a relative ledger dir to the project the hook fired in (the
+    # payload carries the project cwd), not to the process cwd.
+    out_dir = args.out
+    if not os.path.isabs(out_dir) and payload.get("cwd"):
+        out_dir = os.path.join(str(payload["cwd"]), out_dir)
+
+    if args.event in ("pre-compact", "session-end"):
+        transcript = payload.get("transcript_path", "")
+        if transcript and os.path.exists(transcript):
+            try:
+                result = run_checkpoint(transcript, out_dir)
+                print(f"ctxpack checkpoint: {result.entities} entities, "
+                      f"{result.turns} turns -> {result.ctx_path}",
+                      file=sys.stderr)
+            except Exception as e:  # noqa: BLE001 — hooks must not fail the session
+                print(f"ctxpack checkpoint failed: {e}", file=sys.stderr)
+        return 0
+
+    # session-start: inject the previous session's gist. This includes
+    # /clear — clearing resets the CONTEXT, not the project memory
+    # ("compaction is a commit, not a loss event" applies to clears too).
+    # A true blank slate = temporarily disable the hooks.
+    gist = read_latest_gist(out_dir)
+    if gist:
+        print(_json.dumps({
+            "hookSpecificOutput": {
+                "hookEventName": "SessionStart",
+                "additionalContext": gist,
+            }
+        }))
+    return 0
+
+
+# Hook commands run `python -m ctxpack.cli.main` rather than the `ctxpack`
+# console script: hooks execute with cwd = the project dir, where the
+# package is importable directly — so the hooks work on any machine with
+# python on PATH, with no pip install required and no dependence on the
+# Scripts directory being on PATH.
+_HOOK_CMD = "python -m ctxpack.cli.main hook"
+_CTXPACK_HOOK_MARKERS = ("ctxpack hook", "ctxpack.cli.main hook")
+
+_HOOK_SETTINGS = {
+    "PreCompact": [{"hooks": [{"type": "command",
+                               "command": f"{_HOOK_CMD} pre-compact"}]}],
+    "SessionStart": [{"matcher": "startup|resume|compact|clear",
+                      "hooks": [{"type": "command",
+                                 "command": f"{_HOOK_CMD} session-start"}]}],
+    "SessionEnd": [{"hooks": [{"type": "command",
+                               "command": f"{_HOOK_CMD} session-end"}]}],
+}
+
+
+def _is_ctxpack_hook(hook: dict) -> bool:
+    cmd = str(hook.get("command", ""))
+    return any(marker in cmd for marker in _CTXPACK_HOOK_MARKERS)
+
+
+def _cmd_install_hooks(args: argparse.Namespace) -> int:
+    """Write the checkpoint hooks into <project>/.claude/settings.json.
+
+    Merges with existing settings; existing ctxpack hook entries are
+    replaced, everything else is preserved. Uninstall = remove the three
+    entries (or delete the hooks whose command starts with 'ctxpack hook').
+    """
+    import json as _json
+
+    claude_dir = os.path.join(args.project_dir, ".claude")
+    os.makedirs(claude_dir, exist_ok=True)
+    settings_path = os.path.join(claude_dir, "settings.json")
+
+    settings: dict = {}
+    if os.path.exists(settings_path):
+        # utf-8-sig: tolerate a BOM from PowerShell / legacy editors
+        with open(settings_path, encoding="utf-8-sig") as f:
+            try:
+                settings = _json.load(f)
+            except _json.JSONDecodeError:
+                print(f"Refusing to overwrite unparseable {settings_path}",
+                      file=sys.stderr)
+                return 1
+
+    hooks = settings.setdefault("hooks", {})
+    for event, entries in _HOOK_SETTINGS.items():
+        existing = hooks.get(event, [])
+        # Remove prior ctxpack hooks at the INNER level: an entry that
+        # mixes user hooks with a ctxpack hook keeps the user's hooks.
+        kept = []
+        for entry in existing:
+            remaining = [h for h in entry.get("hooks", [])
+                         if not _is_ctxpack_hook(h)]
+            if remaining:
+                kept.append({**entry, "hooks": remaining})
+            elif not entry.get("hooks"):
+                kept.append(entry)  # entry with no hooks list — not ours
+        hooks[event] = kept + entries
+
+    with open(settings_path, "w", encoding="utf-8", newline="\n") as f:
+        _json.dump(settings, f, indent=2)
+        f.write("\n")
+
+    print(f"Installed ctxpack hooks into {settings_path}")
+    print(f"  PreCompact  -> {_HOOK_CMD} pre-compact   (pack before summarize)")
+    print(f"  SessionStart-> {_HOOK_CMD} session-start (re-inject gist)")
+    print(f"  SessionEnd  -> {_HOOK_CMD} session-end   (final checkpoint)")
+    print("Ledger dir: .claude/ctx/  (commit it to give the repo durable memory)")
+    return 0
 
 
 if __name__ == "__main__":
