@@ -1,3 +1,7 @@
-"""CtxPack — MP3 for LLM context: multi-resolution compression codec for domain knowledge."""
+"""CtxPack — deterministic session memory for long-running agents, plus a
+zero-dependency domain-knowledge packer with progressive hydration.
 
-__version__ = "0.3.0"
+"Compaction is a commit, not a loss event."
+"""
+
+__version__ = "0.5.0"
