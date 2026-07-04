@@ -163,6 +163,12 @@ runs the instruments centrally.
 
 ## Troubleshooting
 
+- **"Compaction blocked by PreCompact hook … invalid choice: 'hook'"** →
+  the repo resolved a stale/vendored ctxpack copy (a `ctxpack/` dir in
+  the repo root shadows the installed package under `python -m`).
+  Fix: re-run `ctxpack onboard` — hook commands now use `python -P`
+  (safe path), and hook invocations are fail-open (they can no longer
+  exit non-zero, so nothing can block compaction again).
 - **Gist never appears at session start** → you didn't restart Claude
   Code after onboarding, or didn't approve the hooks (`/hooks` menu).
 - **`ctxpack session ...` says no ledger** → no checkpoint has run yet.

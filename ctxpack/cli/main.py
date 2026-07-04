@@ -29,6 +29,22 @@ from ..core.validator import validate
 
 
 def main(argv: list[str] | None = None) -> int:
+    args_list = list(sys.argv[1:] if argv is None else argv)
+    if args_list[:1] == ["hook"]:
+        # FAIL-OPEN GUARD: a hook that exits non-zero BLOCKS the session
+        # (Claude Code refuses to compact on PreCompact failure). Nothing
+        # a hook invocation hits — argparse SystemExit on version-skewed
+        # event names included — may escape as a non-zero exit.
+        try:
+            return _run(args_list) or 0
+        except BaseException as e:  # noqa: BLE001 — hooks must never fail the session
+            print(f"ctxpack hook error (fail-open, session unaffected): {e}",
+                  file=sys.stderr)
+            return 0
+    return _run(args_list)
+
+
+def _run(argv: list[str]) -> int:
     # Ensure UTF-8 output on Windows
     if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
@@ -1174,7 +1190,13 @@ def _cmd_session(args: argparse.Namespace) -> int:
 # package is importable directly — so the hooks work on any machine with
 # python on PATH, with no pip install required and no dependence on the
 # Scripts directory being on PATH.
-_HOOK_CMD = "python -m ctxpack.cli.main hook"
+# -P (safe path, Python 3.11+): without it, `python -m` prepends the
+# project cwd to sys.path, so a repo carrying a vendored/stale ctxpack
+# copy shadows the installed one — observed in the wild as an OLD ctxpack
+# rejecting the `hook` subcommand and BLOCKING compaction.
+_HOOK_CMD = ("python -P -m ctxpack.cli.main hook"
+             if sys.version_info >= (3, 11)
+             else "python -m ctxpack.cli.main hook")
 _CTXPACK_HOOK_MARKERS = ("ctxpack hook", "ctxpack.cli.main hook")
 
 _HOOK_SETTINGS = {

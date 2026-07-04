@@ -66,3 +66,49 @@ def test_onboard_refuses_unparseable_mcp_json(tmp_path):
     (tmp_path / ".mcp.json").write_text("{not json", encoding="utf-8")
     assert _onboard(tmp_path) == 1
     assert (tmp_path / ".mcp.json").read_text(encoding="utf-8") == "{not json"
+
+
+# ── Fail-open guard: hook invocations may NEVER exit non-zero ──
+# (a non-zero PreCompact hook blocks compaction — observed in the wild
+# when a vendored stale ctxpack shadowed the installed one)
+
+
+def test_hook_never_exits_nonzero_on_bad_event():
+    assert main(["hook", "some-future-event"]) == 0
+
+
+def test_hook_never_exits_nonzero_on_missing_args():
+    # argparse would sys.exit(2) here without the guard
+    assert main(["hook"]) == 0
+
+
+def test_non_hook_commands_still_fail_normally(tmp_path, capsys):
+    import pytest
+    with pytest.raises(SystemExit):
+        main(["definitely-not-a-command"])
+
+
+def test_hook_command_uses_safe_path_on_modern_python():
+    import sys as _sys
+
+    from ctxpack.cli.main import _HOOK_CMD
+
+    if _sys.version_info >= (3, 11):
+        assert _HOOK_CMD.startswith("python -P -m"), (
+            "-P is the vendored-copy shadowing fix; without it a repo "
+            "with its own ctxpack/ dir runs stale hook code")
+
+
+def test_onboard_writes_safe_path_hook_commands(tmp_path):
+    import sys as _sys
+
+    if _sys.version_info < (3, 11):
+        return
+    _onboard(tmp_path)
+    settings = json.loads(
+        (tmp_path / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    for event, entries in settings["hooks"].items():
+        for entry in entries:
+            for hook in entry.get("hooks", []):
+                assert hook["command"].startswith("python -P -m"), (
+                    f"{event} hook not shadow-proof: {hook['command']}")
