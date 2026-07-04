@@ -67,6 +67,52 @@ _CONSTRAINT_MARKER_RE = re.compile(
     r"(?:constraint|invariant)(?:\*{1,2}|_{1,2})?\s*:"
 )
 
+# Memory-incident telemetry: the explicit "ctx-incident:" convention —
+# the ledger's own feedback loop (did ctx save/miss/mislead?). Same
+# anchoring and use-vs-mention guard as Decision:/Constraint:. Payload is
+# pipe-delimited key="value" pairs; only type + fact are REQUIRED — a
+# demanding grammar would bias telemetry toward conscientious sessions.
+# Fail-open: a marked line with a malformed payload is still banked
+# (parse_ok=false, verbatim RAW kept) — a lost incident is itself the
+# event this exists to record.
+_INCIDENT_MARKER_RE = re.compile(
+    r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
+    r"ctx-incident(?:\*{1,2}|_{1,2})?\s*:\s*"
+)
+_INCIDENT_TYPES = frozenset((
+    "saved",           # ledger supplied a fact the session would have lost
+    "missed",          # fact should have been in the ledger and wasn't
+    "stale",           # ledger served a superseded value as current
+    "wrong",           # ledger fact was incorrect
+    "conflicting",     # ledger returned contradictory facts
+    "native-better",   # compaction summary / grep would have done better
+    "user-corrected",  # the user had to correct the agent's recall
+))
+_INCIDENT_KV_RE = re.compile(r'^([A-Za-z][\w-]*)\s*=\s*(?:"([^"]*)"?|(.*))$')
+_INCIDENT_FIELD_KEYS = ("fact", "expected", "got", "source", "evidence")
+
+
+def _parse_incident_line(line: str) -> "dict | None":
+    """None if the line is not incident-marked; otherwise a record —
+    fail-open, so a malformed payload still comes back with
+    parse_ok=False rather than vanishing."""
+    if not _INCIDENT_MARKER_RE.match(_prose_of(line)):
+        return None  # includes backtick-quoted mentions of the convention
+    m = _INCIDENT_MARKER_RE.match(line)
+    if not m:  # marker was only visible in blanked prose — quoted material
+        return None
+    parts = [p.strip() for p in line[m.end():].split("|")]
+    itype = parts[0].lower().rstrip(".") if parts else ""
+    fields: dict[str, str] = {}
+    for part in parts[1:]:
+        kv = _INCIDENT_KV_RE.match(part)
+        if kv:
+            value = kv.group(2) if kv.group(2) is not None else kv.group(3)
+            fields[kv.group(1).lower()] = (value or "").strip().strip('"')[:300]
+    parse_ok = itype in _INCIDENT_TYPES and bool(fields.get("fact"))
+    return {"type": itype[:40], "fields": fields, "parse_ok": parse_ok}
+
+
 _DECISION_VERB_RE = re.compile(
     r"(?i)\b(?:decided to|i'?ll (?:use|go with|take)|going with|"
     r"we'?ll (?:use|go with)|chose|choosing|settled on|"
@@ -161,6 +207,10 @@ class TranscriptStats:
     # Read-path adoption (P4): ledger reads vs raw-transcript fallbacks
     ledger_reads: int = 0
     transcript_greps: int = 0
+    # Memory-incident telemetry (ctx-incident: convention); by-type counts
+    # keyed by incident type, with malformed payloads under "unparsed"
+    incidents: int = 0
+    incident_types: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return dict(self.__dict__)
@@ -424,6 +474,37 @@ def parse_transcript(
         corpus.entities.append(entity)
         entities_by_name[name] = entity
 
+    def _extract_incidents(text: str, *, turn: int, ts: str) -> str:
+        """Bank ctx-incident: lines and return the text WITHOUT them, so
+        downstream extractors can't re-mine incident payloads (a stale
+        `got` value must not get banked as a LITERAL; payload prose must
+        not trigger the constraint patterns). Lines inside ``` fences are
+        quoted material — kept, never banked."""
+        if "ctx-incident" not in text.lower():
+            return text  # fast path: nothing marked
+        kept: list[str] = []
+        fenced = False
+        for line in text.splitlines():
+            if line.lstrip().startswith("```"):
+                fenced = not fenced
+                kept.append(line)
+                continue
+            rec = None if fenced else _parse_incident_line(line)
+            if rec is None:
+                kept.append(line)
+                continue
+            stats.incidents += 1
+            tkey = rec["type"] if rec["parse_ok"] else "unparsed"
+            stats.incident_types[tkey] = stats.incident_types.get(tkey, 0) + 1
+            fields = {"type": rec["type"], "parse_ok":
+                      "true" if rec["parse_ok"] else "false",
+                      "raw": line[:400], "turn": str(turn)}
+            fields.update({k: rec["fields"].get(k, "")
+                           for k in _INCIDENT_FIELD_KEYS})
+            _add(f"INCIDENT-{_short_hash(line)}", fields,
+                 turn=turn, ts=ts, salience=2.6)
+        return "\n".join(kept)
+
     def _add_literals(text: str, *, turn: int, ts: str) -> None:
         """Bank each verbatim identifier as a LITERAL entity (dedup first-wins;
         stats count distinct)."""
@@ -465,6 +546,15 @@ def parse_transcript(
                 continue
             stats.user_turns += 1
 
+            # Incidents first (short turns only — the pasted-content guard
+            # applies: quoted transcripts full of incident lines must not
+            # double-count); the request/constraint/literal extractors see
+            # the text with incident lines removed
+            if len(text) <= _PASTED_CONTENT_THRESHOLD:
+                text = _extract_incidents(text, turn=turn, ts=ts)
+                if not text.strip():
+                    continue
+
             # The request itself: first line, verbatim
             first_line = text.split(". ")[0][:280]
             stats.requests += 1
@@ -500,6 +590,7 @@ def parse_transcript(
 
                 if btype == "text":
                     atext = _clean_multiline(blk.get("text", ""))
+                    atext = _extract_incidents(atext, turn=turn, ts=ts)
                     for sentence in _sentences(atext):
                         if _CONSTRAINT_MARKER_RE.match(_prose_of(sentence)):
                             stats.constraints += 1

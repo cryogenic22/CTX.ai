@@ -448,11 +448,17 @@ def session_stats(ledger_dir: str = DEFAULT_LEDGER_DIR) -> dict[str, Any]:
     for row in rows:
         last_per_session[str(row.get("session", ""))] = row
 
-    totals: dict[str, int] = {}
+    totals: dict[str, Any] = {}
     for row in last_per_session.values():
         for key, value in (row.get("stats") or {}).items():
             if isinstance(value, int):
                 totals[key] = totals.get(key, 0) + value
+            elif isinstance(value, dict):
+                # by-type counters (e.g. incident_types) merge key-wise
+                bucket = totals.setdefault(key, {})
+                for sub, count in value.items():
+                    if isinstance(count, int):
+                        bucket[sub] = bucket.get(sub, 0) + count
 
     ledger_reads = totals.get("ledger_reads", 0)
     greps = totals.get("transcript_greps", 0)
@@ -470,7 +476,9 @@ def session_stats(ledger_dir: str = DEFAULT_LEDGER_DIR) -> dict[str, Any]:
         "checkpoints": len(rows),
         "captured": {k: totals.get(k, 0) for k in (
             "decisions", "constraints", "failed_approaches", "errors",
-            "files_changed", "tasks", "requests", "literals")},
+            "files_changed", "tasks", "requests", "literals",
+            "incidents")},
+        "incident_types": totals.get("incident_types", {}),
         "read_path": {
             "ledger_reads": ledger_reads,
             "transcript_greps": greps,

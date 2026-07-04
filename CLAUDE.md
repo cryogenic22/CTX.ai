@@ -41,6 +41,15 @@ Operating rules you set yourself the same way, sentence-leading:
 `Constraint: ...` — agent-stated constraints don't extract any other way
 (the only other constraint source is user imperatives).
 
+**Incident convention (memory telemetry):** when the ledger visibly
+helps or fails you, record it on its own line, sentence-leading:
+`ctx-incident: <type> | fact="<the fact involved>" | expected="..." |
+got="..." | evidence="..."` — types: saved, missed, stale, wrong,
+conflicting, native-better, user-corrected. Only type and fact are
+required; include the concrete value so the row is auditable. Report
+failures as readily as saves — a missed/stale row is worth more than a
+flattering one.
+
 ## Ground rules
 
 - Zero runtime dependencies in `ctxpack/` core (stdlib only; tiktoken is

@@ -1339,7 +1339,7 @@ _MCP_SERVER_ENTRY = {
 # missing resume/literals/checkpoint) instead of skipping with "already
 # present". Bump the version whenever the block content changes.
 _CLAUDE_MD_MARKER_PREFIX = "<!-- ctxpack:session-memory:"
-_CLAUDE_MD_MARKER = f"{_CLAUDE_MD_MARKER_PREFIX}v2 -->"
+_CLAUDE_MD_MARKER = f"{_CLAUDE_MD_MARKER_PREFIX}v3 -->"
 _CLAUDE_MD_END = "<!-- /ctxpack:session-memory -->"
 
 _CLAUDE_MD_BLOCK = f"""
@@ -1376,6 +1376,17 @@ free prose are often missed. Dead ends the same way: "The X approach
 didn't work because ...". Operating rules you set yourself the same way,
 sentence-leading: `Constraint: eval results are immutable — write new
 versioned files, never overwrite.`
+
+**Incident convention (memory telemetry):** when the ledger visibly helps
+or fails you, record it on its own line, sentence-leading:
+`ctx-incident: <type> | fact="<the fact involved>" | expected="..." |
+got="..." | evidence="..."` — types: saved, missed, stale, wrong,
+conflicting, native-better, user-corrected. Only type and fact are
+required; include the concrete value so the row is auditable. Examples:
+`ctx-incident: stale | fact="CACHE-TTL-S current value" | expected="25"
+| got="50"` or `ctx-incident: saved | fact="commit 66cdded scope" |
+evidence="session why returned turn 408"`. Report failures as readily as
+saves — a missed/stale row is worth more than a flattering one.
 {_CLAUDE_MD_END}
 """
 

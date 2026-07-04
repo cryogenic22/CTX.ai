@@ -49,7 +49,13 @@ def build_scorecard(repo_paths: list[str]) -> dict[str, Any]:
     ledger_reads = _sum(lambda r: r.get("read_path", {}).get("ledger_reads"))
     greps = _sum(lambda r: r.get("read_path", {}).get("transcript_greps"))
     captured_keys = ("decisions", "constraints", "failed_approaches",
-                     "errors", "files_changed", "tasks", "requests")
+                     "errors", "files_changed", "tasks", "requests",
+                     "incidents")
+    incident_types: dict[str, int] = {}
+    for r in active:
+        for itype, count in (r.get("incident_types") or {}).items():
+            if isinstance(count, int):
+                incident_types[itype] = incident_types.get(itype, 0) + count
     cohort = {
         "repos_total": len(repos),
         "repos_active": len(active),
@@ -64,6 +70,9 @@ def build_scorecard(repo_paths: list[str]) -> dict[str, Any]:
             "raw_fallback_rate": (round(greps / (ledger_reads + greps), 3)
                                   if (ledger_reads + greps) else None),
         },
+        # ctx-incident: telemetry — agent-reported; user-corrected rows
+        # are the only externally-anchored type, weigh them accordingly
+        "incident_types": incident_types,
     }
     return {
         "schema": "ctxpack-scorecard/v1",

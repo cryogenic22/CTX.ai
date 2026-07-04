@@ -44,6 +44,9 @@ _GIST_KINDS = (
     ("DECISION", "Decisions", "DECISION"),
     ("LITERAL", "Exact identifiers (verbatim)", "VALUE"),
     ("FAILED-APPROACH", "Failed approaches (do not retry)", "NOTE"),
+    # RAW = the verbatim ctx-incident line — auditable as stated; stale/
+    # wrong incidents double as a warning to the next session
+    ("INCIDENT", "Memory incidents (ctx telemetry)", "RAW"),
     ("USER-REQUEST", "What was asked", "REQUEST"),
     ("TASK", "Tasks", "TASK"),
     ("ERROR", "Errors seen", "MESSAGE"),
