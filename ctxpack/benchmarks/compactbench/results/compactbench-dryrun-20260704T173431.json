@@ -1,0 +1,34 @@
+{
+  "benchmark": "compactbench-v1",
+  "params": {
+    "seeds": [
+      0
+    ],
+    "k_max": 2,
+    "arms": [
+      "native",
+      "ctx"
+    ],
+    "model": "haiku",
+    "pct": 8.0,
+    "forced_window": 100000,
+    "forced_threshold_tokens": 5440,
+    "probe_mode": "batched",
+    "adherence": true,
+    "claude_code_version": "2.1.201"
+  },
+  "generated_at": "20260704T173431",
+  "arms": {
+    "ctx": {
+      "drk": {},
+      "by_kind": {},
+      "cost_usd": 0
+    },
+    "native": {
+      "drk": {},
+      "by_kind": {},
+      "cost_usd": 0
+    }
+  },
+  "comparisons": {}
+}

@@ -64,3 +64,7 @@ Operating rules you set yourself the same way, sentence-leading:
   transcript; `--transcript <session.jsonl>` to override)
 - Agentic benchmarks: `python run_agentic_niah.py --smoke`,
   `python run_graphwalks_eval.py --smoke` (live API; full runs cost ~$10)
+- CompactBench: `python run_compactbench.py --smoke` (~$0.5; drives real
+  Claude Code headless — read
+  `ctxpack/benchmarks/compactbench/PREREGISTRATION.md` before any full
+  run; full 6-arm pre-registered run ~$25 on haiku)

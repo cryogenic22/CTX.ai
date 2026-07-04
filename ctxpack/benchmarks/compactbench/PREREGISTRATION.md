@@ -88,3 +88,44 @@ ship together regardless of outcome. Results files are immutable
 - 2026-07-04: pre-registration committed. Generator + DR@K metric
   implemented; the Claude Code driver (forced-compaction loop) is NOT
   yet built — no runs have occurred.
+- 2026-07-04 (later, still before any scored run): driver built
+  (`driver.py`, `probes.py`, `run_compactbench.py`). Operationalization
+  decisions, recorded here per the deviations rule:
+  - **Forcing mechanism** (reproducibility, not a metric change): on
+    Claude Code 2.1.201, `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` alone does
+    not trigger proactive autocompact — when the context-window source
+    is "auto" the check defers to a reactive path. The driver pins
+    `CLAUDE_CODE_AUTO_COMPACT_WINDOW=100000` (env minimum), flipping
+    the source to "env" so the pct override applies. Verified live:
+    trigger=auto boundary at pre=64,984 → post=2,099 tokens.
+  - **Probe batching (default)**: a cell's 40 recall probes are asked
+    in ONE fork invocation ('A<n>: ...' answer sheet). Per-probe grades
+    and McNemar pairing are unchanged; unparsed answers are graded
+    incorrect and flagged `parse_failure`. `--probe-mode single`
+    preserves the one-call-per-probe form (~4x cost). Deviation
+    motive: full-run cost ~$100 -> ~$25.
+  - **Adherence grading**: a violation is a forbidden action the probe
+    fork *attempted* (tool_use records in its transcript;
+    permission-denied attempts count), or — only when no action was
+    attempted — a reply with no rule-citation/refusal marker (text
+    fallback). Strictness is identical across arms, so paired
+    comparisons are unaffected. This adapts "deterministic action
+    inspection" to headless auto-deny.
+  - **claudemd arm**: CLAUDE.md carries the 10 planted ground rules
+    verbatim (what a diligent team pins); no decisions/literals.
+  - **llm-memory arm**: memory built once per seed by the model
+    reading the full pre-compaction transcript, delivered via CLAUDE.md
+    (the only auto-loaded file). Generous vs. real incremental systems
+    — biases against ctx, acceptable.
+  - **oracle arm**: never compacts; the same deterministic filler is
+    appended per pseudo-cycle so token position/interference match.
+  - **Generator fixes** (bytes changed, zero runs existed): filler
+    emits tool_use/tool_result PAIRS (a dangling tool_use is rejected
+    by the API on resume), session IDs are seed-derived UUIDs (Claude
+    Code requires UUID session ids), and services/approaches are
+    sampled without replacement so the 40 plants map 1:1 to 40
+    unambiguous probes.
+  - **Probe forks do not checkpoint**: ctx-arm probe invocations set
+    `CTXPACK_HOOK_SKIP=stop,session-end,pre-compact` so observing the
+    session cannot overwrite its ledger; gist injection (session-start)
+    stays live.
