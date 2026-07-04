@@ -52,6 +52,7 @@ modules (`grounding`, `keywords`, `guard`, `catalog_queries`,
 | Change since 0.3/0.4 | What you may notice | What to do |
 |---|---|---|
 | **Negations preserved** (0.3 could turn "do not force-push" into "force-push") | packs slightly larger, safer | nothing — this alone justifies upgrading |
+| &nbsp;&nbsp;↳ *Field-confirmed 2026-07-04 (market_zero probe): 3/3 pharma negations invert under vendored 0.3.0 ("did not meet its primary endpoint" → "meet endpoint") and survive under 0.5.0. The inverting path is `md_parser._compress_prose` (markdown/prose sources); 0.3.0's YAML value path preserves negations. If you keep a vendored 0.3.0 for now: add a canary test that packs a known negation and asserts it survives, or CI-block prose/markdown sources from your corpus dir — 0.3.0 has no guard of its own.* | | |
 | **Deterministic dates** — headers use `--as-of` / `CTXPACK_AS_OF`, never wall clock | header dates differ | pass `as_of=` where you need pinned output |
 | **Temporal supersession** — same-key revisions collapse to latest + audit chain | fewer duplicate keys | opt-in via `resolve_entities(supersede_by_recency=True)` |
 | **BPE-first metrics** (word-count ratios were misleading) | compression numbers look different | re-baseline; don't compare to old ratios |
