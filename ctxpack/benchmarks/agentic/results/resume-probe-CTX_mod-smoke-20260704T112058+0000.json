@@ -1,0 +1,188 @@
+{
+  "schema": "ctxpack-resume-probe/v1",
+  "measurement_class": "quasi-experimental \u2014 recall accuracy for this repo's history under budget-parity arms; benchmark-grade causal claims need CompactBench",
+  "generated_at": "2026-07-04T11:20:58+00:00",
+  "repo": "CTX_mod",
+  "config": {
+    "seed": 42,
+    "model": "gpt-4o",
+    "n_probes": 3
+  },
+  "arms": {
+    "closed": {
+      "n": 3,
+      "correct": 0,
+      "accuracy": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 0,
+      "by_kind": {
+        "decision": {
+          "n": 2,
+          "correct": 0
+        },
+        "literal": {
+          "n": 1,
+          "correct": 0
+        }
+      }
+    },
+    "ctx": {
+      "n": 3,
+      "correct": 0,
+      "accuracy": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 7429,
+      "by_kind": {
+        "decision": {
+          "n": 2,
+          "correct": 0
+        },
+        "literal": {
+          "n": 1,
+          "correct": 0
+        }
+      }
+    },
+    "grep": {
+      "n": 3,
+      "correct": 0,
+      "accuracy": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 7389,
+      "by_kind": {
+        "decision": {
+          "n": 2,
+          "correct": 0
+        },
+        "literal": {
+          "n": 1,
+          "correct": 0
+        }
+      }
+    }
+  },
+  "probes": [
+    {
+      "probe_id": "bae8e5d2-9FF7E602",
+      "kind": "decision",
+      "session": "bae8e5d2",
+      "turn": 15,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: the next build should be **P4 \u2014 ...\" \u2014 state the full decision.",
+      "expected": "the MCP session read path** (`ctx/session_recall`, `ctx/session_timeline`,",
+      "grade_mode": "contains",
+      "source_text": "Decision: the next build should be **P4 \u2014 the MCP session read path** (`ctx/session_recall`, `ctx/session_timeline`, `ctx/session_decisions`, `ctx/why`, `ctx/graph_query`) because everything else is gated on it:"
+    },
+    {
+      "probe_id": "bae8e5d2-4790A2C8",
+      "kind": "literal",
+      "session": "bae8e5d2",
+      "turn": 15,
+      "question": "The project's history records an exact git_sha (session bae8e5d2, around turn 15). What is its exact value? Reply with the value only.",
+      "expected": "cee22d9",
+      "grade_mode": "exact",
+      "source_text": "cee22d9"
+    },
+    {
+      "probe_id": "bae8e5d2-E040C780",
+      "kind": "decision",
+      "session": "bae8e5d2",
+      "turn": 57,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: the root cause is that Claude Code ...\" \u2014 state the full decision.",
+      "expected": "loads hook configuration once at process startup",
+      "grade_mode": "contains",
+      "source_text": "Decision: the root cause is that Claude Code loads hook configuration once at process startup (and newly added project hooks require review via the `/hooks` menu before they're trusted)."
+    }
+  ],
+  "results": [
+    {
+      "probe_id": "bae8e5d2-9FF7E602",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "(error: HTTP 404 Not Found)",
+      "correct": false,
+      "context_bpe": 7435,
+      "error": true
+    },
+    {
+      "probe_id": "bae8e5d2-9FF7E602",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "(error: HTTP 404 Not Found)",
+      "correct": false,
+      "context_bpe": 7388,
+      "error": true
+    },
+    {
+      "probe_id": "bae8e5d2-9FF7E602",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "(error: HTTP 404 Not Found)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": true
+    },
+    {
+      "probe_id": "bae8e5d2-4790A2C8",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "(error: HTTP 404 Not Found)",
+      "correct": false,
+      "context_bpe": 7416,
+      "error": true
+    },
+    {
+      "probe_id": "bae8e5d2-4790A2C8",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "(error: HTTP 404 Not Found)",
+      "correct": false,
+      "context_bpe": 7415,
+      "error": true
+    },
+    {
+      "probe_id": "bae8e5d2-4790A2C8",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "(error: HTTP 404 Not Found)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": true
+    },
+    {
+      "probe_id": "bae8e5d2-E040C780",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "(error: HTTP 404 Not Found)",
+      "correct": false,
+      "context_bpe": 7435,
+      "error": true
+    },
+    {
+      "probe_id": "bae8e5d2-E040C780",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "(error: HTTP 404 Not Found)",
+      "correct": false,
+      "context_bpe": 7363,
+      "error": true
+    },
+    {
+      "probe_id": "bae8e5d2-E040C780",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "(error: HTTP 404 Not Found)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": true
+    }
+  ]
+}
