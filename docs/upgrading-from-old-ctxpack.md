@@ -1,0 +1,80 @@
+# Using an old CtxPack (≤ v0.4)? Do this.
+
+*For repo teams that adopted an early ctxpack — a vendored `ctxpack/`
+folder committed in your repo, or an old version pip-installed in your
+venv — and now also want session memory. Two independent tracks: fix
+Track A today (5 minutes); do Track B when convenient.*
+
+## First, find out what you have
+
+```bash
+python -c "import ctxpack; print(ctxpack.__version__, ctxpack.__file__)"
+```
+
+Run this in the same terminal/venv you launch Claude Code from.
+
+- **`0.5.0` + a path into `CTX_mod`** → you're current; just run Track A
+  step 2 onward.
+- **`0.3.x`/`0.4.x`, or a path inside YOUR repo or YOUR venv** → you
+  have an old copy; follow both tracks.
+
+## Track A — session memory on your repo (do now, 5 min)
+
+1. **Make sure the `python` that launches your Claude Code sessions has
+   ctxpack ≥ 0.5.0.** If your venv has an old ctxpack, upgrade it *in
+   the venv*:
+   ```bash
+   pip install -e C:\Users\kapil\Documents\CTX_mod
+   # (or, once published: pip install "git+https://github.com/cryogenic22/CTX.ai")
+   ```
+   This matters because hooks run whatever `python` is on PATH: an old
+   ctxpack there means no `hook` command, and (before v0.5) that could
+   even block compaction.
+2. In your repo: `ctxpack onboard` — **re-run it even if you onboarded
+   before.** It's idempotent and picks up two fixes you need: the Stop
+   hook (crash protection) and shadow-proof `python -P` hook commands
+   (your vendored copy can no longer hijack hook execution).
+3. Restart Claude Code in the repo; approve hooks + MCP server.
+4. Sanity check: `ctxpack session stats` after your next session.
+
+**Note for vendored-copy repos:** you do NOT need to delete your
+`ctxpack/` folder for session memory to work — the `-P` flag makes hooks
+ignore it. Your code keeps importing your copy exactly as before.
+
+## Track B — your code that imports ctxpack (when convenient)
+
+**Good news: every 0.3-era public API still exists in 0.5.0** —
+`pack`, `parse`, `validate`, `serialize`, the hydrator, and all the
+modules (`grounding`, `keywords`, `guard`, `catalog_queries`,
+`analytics`). The upgrade is import-compatible; what changed is
+*behavior*, and every change is a correctness fix:
+
+| Change since 0.3/0.4 | What you may notice | What to do |
+|---|---|---|
+| **Negations preserved** (0.3 could turn "do not force-push" into "force-push") | packs slightly larger, safer | nothing — this alone justifies upgrading |
+| **Deterministic dates** — headers use `--as-of` / `CTXPACK_AS_OF`, never wall clock | header dates differ | pass `as_of=` where you need pinned output |
+| **Temporal supersession** — same-key revisions collapse to latest + audit chain | fewer duplicate keys | opt-in via `resolve_entities(supersede_by_recency=True)` |
+| **BPE-first metrics** (word-count ratios were misleading) | compression numbers look different | re-baseline; don't compare to old ratios |
+| **Smaller L3 index** | L3 ~304 BPE vs old bloat | nothing |
+
+Upgrade recipe:
+
+1. Upgrade the package in your environment (Track A step 1).
+2. If you have a **vendored `ctxpack/` folder**: delete it, run your
+   test suite against the installed 0.5.0. If green, commit the
+   deletion. If something breaks, keep the vendored copy for now (hooks
+   are already safe) and tell the CTX team what broke.
+3. **Re-pack your corpora** with 0.5.0. Do not byte-diff new packs
+   against old ones — output changed by design. If you have golden-file
+   tests asserting old pack bytes, regenerate the goldens.
+4. Never run two ctxpack versions for the same purpose in one repo.
+
+## TL;DR to paste in your team channel
+
+> If your repo uses an old ctxpack (vendored folder or old venv
+> install): (1) upgrade the package in the environment you launch
+> Claude Code from, (2) re-run `ctxpack onboard` in the repo, (3)
+> restart Claude Code and approve the prompts. Your existing code keeps
+> working — all old APIs exist in 0.5.0 — but re-pack your corpora and
+> re-baseline any pack-output assertions when you upgrade the code
+> path. Session memory works even if you keep your vendored copy.
