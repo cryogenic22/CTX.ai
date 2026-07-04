@@ -162,6 +162,48 @@ def test_ip_address_not_extracted_as_version(tmp_path):
     assert "v0.5.0" in _values(_parse_assistant(tmp_path, "Bumped to v0.5.0."))
 
 
+# ── Review-nit tightening: true-negative precision (two independent reviews) ──
+
+def test_dotted_date_and_phone_not_version(tmp_path):
+    parsed = _parse_assistant(tmp_path,
+        "Released 2026.07.04, call 555.123.4567. But we bumped to 3.11.0.")
+    vals = _values(parsed)
+    assert "2026.07.04" not in vals and "555.123.4567" not in vals, vals
+    assert "3.11.0" in vals  # a real semver (all components <4 digits) still lands
+
+
+def test_hex_colour_not_pr(tmp_path):
+    parsed = _parse_assistant(tmp_path,
+        "Background #123456, border #000000, text #808080. See PR #305.")
+    vals = _values(parsed)
+    assert not (vals & {"#123456", "#000000", "#808080"}), vals
+    assert "#305" in vals  # a real 3-digit PR ref still lands
+
+
+def test_x_multiplier_not_extracted(tmp_path):
+    parsed = _parse_assistant(tmp_path,
+        "This is 2x faster, a 10x engineer; scale 3x now.")
+    assert _values(parsed) == set(), f"x-multiplier over-fired: {_values(parsed)}"
+
+
+def test_percent_unit_is_captured(tmp_path):
+    # % was effectively dead (trailing \b after a non-word char) — now it fires.
+    parsed = _parse_assistant(tmp_path, "Coverage cut by 40% and we are 92% done.")
+    assert {"40%", "92%"} <= _values(parsed), _values(parsed)
+
+
+def test_windows_drive_path_stays_verbatim(tmp_path):
+    parsed = _parse_assistant(tmp_path, "Edited C:\\Users\\k\\proj\\main.py in place.")
+    assert "C:\\Users\\k\\proj\\main.py" in _values(parsed), _values(parsed)
+
+
+def test_go_prose_not_domain_id_but_real_go_is(tmp_path):
+    parsed = _parse_assistant(tmp_path, "TODO GO: 5 items and NASA GO: 3 checks.")
+    assert _values(parsed) == set(), _values(parsed)
+    real = _parse_assistant(tmp_path, "Annotated with GO:0005634 (nucleus).")
+    assert "GO:0005634" in _values(real)
+
+
 def test_pasted_user_material_not_mined(tmp_path):
     # A long pasted user message (logs/articles) full of ids must not flood the
     # ledger — same guard as constraints.

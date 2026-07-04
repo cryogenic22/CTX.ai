@@ -226,17 +226,21 @@ _LITERAL_UUID_RE = re.compile(
 # Domain identifiers (bioinformatics/registry ids seen in real sessions) — a
 # tagged prefix removes ambiguity entirely.
 _LITERAL_DOMAIN_ID_RE = re.compile(
-    r"\b(?:NCT|PMID|CHEMBL|ENSG|ENST|ENSP|GO:)\s?\d+\b|\brs\d+\b")
+    r"\b(?:NCT|PMID|CHEMBL|ENSG|ENST|ENSP)\s?\d+\b|\bGO:\d{7}\b|\brs\d+\b")
 # A filesystem path: at least one slash segment + a dotted extension (+ optional
 # :line). Distinguishes "services/llm.py:42" from prose containing a slash.
 _LITERAL_PATH_RE = re.compile(
-    r"(?:[\w.\-]+[/\\])+[\w.\-]+\.[A-Za-z][A-Za-z0-9]{0,5}(?::\d+)?")
+    r"(?:[A-Za-z]:[\\/])?(?:[\w.\-]+[/\\])+[\w.\-]+\.[A-Za-z][A-Za-z0-9]{0,5}"
+    r"(?::\d+)?")
 _LITERAL_VERSION_RE = re.compile(r"\bv?\d+\.\d+\.\d+(?:[-.][0-9A-Za-z]+)*\b")
 # PR/issue ref: a lone #NNN (not ## markdown, not a fragment like abc#1).
 _LITERAL_PR_RE = re.compile(r"(?<![\w#])#\d{1,6}\b")
 # Number WITH a curated unit — bare numbers are too noisy to bank.
+# Word units require a trailing boundary; ``%`` is a non-word char so it must NOT
+# (the ``\b`` after ``%`` only matched when a word char followed, so "100% sure"
+# silently missed). ``x`` multipliers dropped — too noisy ("5-10x", "3x") to bank.
 _LITERAL_NUMBER_UNIT_RE = re.compile(
-    r"\b\d+(?:\.\d+)?\s?(?:ms|ns|kb|mb|gb|tb|bpe|px|tokens?|req/min|%|x)\b",
+    r"\b\d+(?:\.\d+)?\s?(?:(?:ms|ns|kb|mb|gb|tb|bpe|px|tokens?|req/min)\b|%)",
     re.IGNORECASE)
 # Git SHA: 7-40 hex, but ONLY inside a backtick span or after a commit-context
 # word (a bare hex run in prose is almost always not a sha), AND containing both
@@ -279,8 +283,13 @@ def _extract_literals(text: str) -> list[tuple[str, str]]:
     for m in _LITERAL_VERSION_RE.finditer(text):
         v = m.group(0)
         parts = v.lstrip("v").split(".")
-        if len(parts) >= 4 and all(p.isdigit() for p in parts):
-            continue  # a.b.c.d dotted-numeric quad is an IP address, not semver
+        numeric = [p for p in parts if p.isdigit()]
+        # Reject non-versions that share the x.y.z shape: a >=4-digit component is
+        # a year (dotted date "2026.07.04") or a phone group ("555.123.4567"); 4+
+        # all-numeric parts is an IP address ("192.168.0.1").
+        if any(len(p) >= 4 for p in numeric) or (
+                len(parts) >= 4 and len(numeric) == len(parts)):
+            continue
         add("version", v, m.start(), m.end(), 4)
     for span in _BACKTICK_SPAN_RE.finditer(text):
         base = span.start(1)
@@ -291,6 +300,8 @@ def _extract_literals(text: str) -> list[tuple[str, str]]:
         if _looks_like_sha(m.group(1)):
             add("git_sha", m.group(1), m.start(1), m.end(1), 5)
     for m in _LITERAL_PR_RE.finditer(text):
+        if len(m.group(0)) - 1 == 6:  # "#RRGGBB"-length all-digit token = colour
+            continue
         add("pr", m.group(0), m.start(), m.end(), 6)
     for m in _LITERAL_NUMBER_UNIT_RE.finditer(text):
         add("number_unit", m.group(0), m.start(), m.end(), 7)
