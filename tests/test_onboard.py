@@ -112,3 +112,26 @@ def test_onboard_writes_safe_path_hook_commands(tmp_path):
             for hook in entry.get("hooks", []):
                 assert hook["command"].startswith("python -P -m"), (
                     f"{event} hook not shadow-proof: {hook['command']}")
+
+
+def test_onboard_refreshes_stale_conventions_block(tmp_path):
+    # A repo onboarded on an older ctxpack has a v1 block; re-onboarding
+    # after upgrade must refresh it in place, not skip or duplicate.
+    stale = (
+        "# My project\n\nKeep this.\n\n"
+        "<!-- ctxpack:session-memory:v1 -->\n"
+        "## Session memory (ctxpack ledger)\n"
+        "old conventions text without the resume/literals tools\n"
+        "<!-- /ctxpack:session-memory -->\n\n"
+        "## After the block\n\nAlso keep this.\n"
+    )
+    (tmp_path / "CLAUDE.md").write_text(stale, encoding="utf-8")
+
+    assert _onboard(tmp_path) == 0
+    claude_md = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
+    assert _CLAUDE_MD_MARKER in claude_md
+    assert "ctxpack:session-memory:v1" not in claude_md, "stale block kept"
+    assert claude_md.count("## Session memory") == 1, "block duplicated"
+    assert "Keep this." in claude_md and "Also keep this." in claude_md
+    assert "session resume" in claude_md          # new surfaces present
+    assert "Constraint:" in claude_md

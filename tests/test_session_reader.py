@@ -10,7 +10,9 @@ from ctxpack.agent.session_reader import (
     load_session,
     resolve_session,
     session_decisions,
+    session_literals,
     session_recall,
+    session_resume,
     session_timeline,
     session_why,
 )
@@ -241,3 +243,120 @@ def test_why_surfaces_supersession_chain():
     chain = hit["superseded_chains"][0]["chain"]
     assert "250" in chain and "500" in chain
     assert result["note"], "supersession note missing"
+
+
+# ── Agent-consumer feedback fixes (2026-07-04) ──
+
+
+def _write_sha_transcript(tmp_path, sid, name="sha.jsonl"):
+    """A session where a commit sha exists BOTH as a clean LITERAL and as
+    a substring inside a TOOL-BASH COMMAND — the observed why() failure."""
+    entries = [
+        _entry("assistant", [
+            {"type": "text",
+             "text": "Landed as commit 0308e87ab12 after two review passes."},
+            {"type": "tool_use", "name": "Bash",
+             "input": {"command": "git log 0308e87ab12 --stat",
+                       "description": "Inspect the landed commit"}},
+        ], sid),
+    ]
+    path = tmp_path / name
+    path.write_text("\n".join(json.dumps(e) for e in entries),
+                    encoding="utf-8")
+    return str(path)
+
+
+def test_why_exact_literal_beats_substring(tmp_path):
+    # P0-1: why("<sha>") must surface the LITERAL entity, not the bash
+    # command that merely contains the sha.
+    out = tmp_path / "ctx"
+    run_checkpoint(_write_sha_transcript(tmp_path, "beadfeed-session"),
+                   str(out), as_of="2026-07-03")
+    doc, sid = load_session(str(out))
+    result = session_why(doc, sid, "0308e87ab12")
+    assert result["count"] >= 1
+    top = result["matches"][0]
+    assert top["kind"] == "LITERAL", f"buried under: {top['section']}"
+    assert top["matched_on"] == "value_exact"
+    assert all(m["kind"] == "LITERAL" for m in result["matches"]), (
+        "substring hits must not co-mingle with an exact-value match")
+
+
+def test_why_scopes_oversized_field_values():
+    # P0-1: one oversized value must not dump kilobytes; truncation is
+    # explicit, never silent.
+    big = "x" * 1000
+    text = ("§CTX v1.0 L2 DOMAIN:test\n\n"
+            "±ENTITY-TOOL-BASH-0001\n"
+            "RAN:big command\n"
+            f"COMMAND:find {big}\n"
+            "TURN:3\n")
+    doc = parse(text, level=2)
+    result = session_why(doc, "t", "find x")
+    hit = result["matches"][0]
+    cmd = next(f["value"] for f in hit["fields"]
+               if f["key"].upper() == "COMMAND")
+    assert len(cmd) < 600, f"oversized value not scoped ({len(cmd)} chars)"
+    assert "truncated" in cmd, "truncation must be explicit, not silent"
+
+
+def test_session_literals_bulk_view(tmp_path):
+    # P1-4: every banked identifier in one call, turn-ordered.
+    out = tmp_path / "ctx"
+    run_checkpoint(_write_sha_transcript(tmp_path, "beadfeed-session"),
+                   str(out), as_of="2026-07-03")
+    doc, sid = load_session(str(out))
+    result = session_literals(doc, sid)
+    assert result["count"] == len(result["literals"]) >= 1
+    sha = next(r for r in result["literals"] if r["value"] == "0308e87ab12")
+    assert sha["kind"] == "git_sha"
+    turns = [r["turn"] for r in result["literals"]]
+    assert turns == sorted(turns)
+
+
+def test_session_resume_one_call(ledger):
+    # P1-3: gist + stakes trio + literals in a single read.
+    result = session_resume(ledger)
+    assert result["session"] == "feedbeef"
+    assert "Session memory" in result["gist"]
+    assert result["counts"]["decisions"] == 1
+    assert result["counts"]["constraints"] == 1
+    assert "exponential backoff" in result["decisions"][0]["text"]
+    assert result["counts"]["literals"] == len(result["literals"])
+
+
+def test_session_resume_explicit_session_gets_its_own_gist(ledger, tmp_path):
+    t2 = _write_transcript(tmp_path, "cafebabe-session", name="s2.jsonl")
+    run_checkpoint(t2, ledger, as_of="2026-07-03")
+    result = session_resume(ledger, "feedbeef-session")
+    assert result["session"] == "feedbeef"
+    assert "session feedbeef" in result["gist"], (
+        "explicit session must return THAT session's gist, not the latest")
+
+
+def test_mcp_checkpoint_resume_literals_handlers(tmp_path):
+    # P0-2: the agent-invokable write path + the new read tools, through
+    # the MCP JSON contract.
+    import os
+
+    from ctxpack.integrations import mcp_server as srv
+
+    transcript = _write_transcript(tmp_path, "0ddba11f-session")
+    out = str(tmp_path / "ctx")
+    res = json.loads(srv.handle_checkpoint({
+        "transcript": transcript, "ledger_dir": out,
+        "as_of": "2026-07-03"}))
+    assert res["session"].startswith("0ddba11f")
+    assert os.path.exists(res["ctx_path"])
+    assert res["turns"] >= 1
+    assert res["ledger_sha256"]
+
+    resume = json.loads(srv.handle_resume({"ledger_dir": out}))
+    assert resume["counts"]["decisions"] == 1
+    lits = json.loads(srv.handle_session_literals({"ledger_dir": out}))
+    assert lits["count"] == len(lits["literals"])
+
+    # no transcript + unresolvable project dir → typed error, not a crash
+    missing = json.loads(srv.handle_checkpoint({
+        "ledger_dir": out, "project_dir": str(tmp_path / "nowhere")}))
+    assert missing["error"]["code"] == "transcript_not_found"

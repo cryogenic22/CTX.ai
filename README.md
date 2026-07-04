@@ -55,22 +55,28 @@ startup — nothing fires until you restart).
 Use it:
 
 ```bash
+ctxpack session resume                 # one call: gist + decisions + constraints + exact ids
 ctxpack session decisions              # decisions/constraints/failed approaches, with turns
 ctxpack session timeline --kinds DECISION,ERROR --limit 20
 ctxpack session recall "backoff"       # index → hydrate, the L3 routing pattern
 ctxpack session why "pool_size"        # provenance + supersession chain
+ctxpack session literals               # every verbatim identifier banked (shas, versions, paths)
 ctxpack session stats                  # adoption + capture metrics (see below)
+ctxpack checkpoint                     # bank the live session NOW (auto-resolves the transcript)
 ```
 
-The same five operations are MCP tools (`ctx/session_recall`,
-`ctx/session_timeline`, `ctx/session_decisions`, `ctx/why`,
-`ctx/graph_query`) for agents with the server connected.
+The same operations are MCP tools (`ctx/resume`, `ctx/session_recall`,
+`ctx/session_timeline`, `ctx/session_decisions`, `ctx/session_literals`,
+`ctx/why`, `ctx/graph_query`, plus the agent-invokable write path
+`ctx/checkpoint`) for agents with the server connected.
 
 **The one habit that matters:** state decisions explicitly —
 `Decision: use exponential backoff with base 750ms because the vendor
 limit is 40 req/min.` Structured signals extract deterministically
 (measured 100% on the convention); free-prose decision mining measured
 ~0% recall on real transcripts, so the convention is load-bearing.
+Agent-stated operating rules the same way, sentence-leading:
+`Constraint: eval results are immutable — never overwrite results files.`
 
 ### Built-in measurement (is it earning its keep?)
 
@@ -140,7 +146,7 @@ The `.ctx` format is a multi-resolution layer system (L0 raw → L3 index)
 with a formal [PEG grammar](spec/ctx.peg); spec:
 [`spec/CTXPACK-SPEC.md`](spec/CTXPACK-SPEC.md) (CC-BY-SA 4.0).
 
-## MCP server — 17 tools
+## MCP server — 20 tools
 
 ```bash
 pip install "ctxpack[mcp] @ git+https://github.com/cryogenic22/CTX.ai"
@@ -149,7 +155,7 @@ python -m ctxpack.integrations.mcp_server
 
 | Group | Tools |
 |---|---|
-| Session memory | `ctx/session_recall`, `ctx/session_timeline`, `ctx/session_decisions`, `ctx/why`, `ctx/graph_query` |
+| Session memory | `ctx/resume`, `ctx/session_recall`, `ctx/session_timeline`, `ctx/session_decisions`, `ctx/session_literals`, `ctx/why`, `ctx/graph_query`, `ctx/checkpoint` |
 | Documents | `ctx/pack`, `ctx/parse`, `ctx/validate`, `ctx/format`, `ctx/hydrate` |
 | Code packer (`[code]` extra) | `ctx/code_pack`, `ctx/code_version`, `ctx/code_list_symbols`, `ctx/code_hydrate_symbol`, `ctx/code_search_symbols`, `ctx/code_raw_file`, `ctx/code_telemetry` |
 
@@ -180,9 +186,9 @@ ctxpack/
   agent/             # Session-memory substrate
     transcript_parser.py  # Claude Code JSONL → IR (structured signals, turn provenance)
     checkpoint.py         # Pack-on-compact engine + gist builder
-    session_reader.py     # Read path: recall/timeline/decisions/why/stats
+    session_reader.py     # Read path: resume/recall/timeline/decisions/why/literals/stats
   modules/           # Opt-in modules (grounding, keywords, guard, analytics)
-  integrations/      # MCP server (17 tools)
+  integrations/      # MCP server (20 tools)
   cli/               # ctxpack CLI (pack, hydrate, checkpoint, hook, onboard, session, ...)
   benchmarks/        # Eval framework, agentic NIAH + graph generators, metrics
 spec/                # CTXPACK-SPEC, PEG grammar

@@ -53,11 +53,14 @@ This idempotently wires four things:
    even a hard crash — VS Code killed, power loss — costs at most a few
    turns of ledger staleness, recoverable from the raw transcript.
 2. **MCP server** into `.mcp.json` — the read-path tools
-   (`ctx/session_recall`, `ctx/session_timeline`, `ctx/session_decisions`,
-   `ctx/why`, `ctx/graph_query`) plus the doc/code packer tools.
-3. **CLAUDE.md conventions** (marker-guarded block, appended once) — tells
-   every session to state decisions as `Decision: ...` lines and to use
-   the ledger read path before grepping the transcript.
+   (`ctx/resume`, `ctx/session_recall`, `ctx/session_timeline`,
+   `ctx/session_decisions`, `ctx/session_literals`, `ctx/why`,
+   `ctx/graph_query`), the agent-invokable write path (`ctx/checkpoint`),
+   plus the doc/code packer tools.
+3. **CLAUDE.md conventions** (marker-guarded, versioned block) — tells
+   every session to state decisions as `Decision: ...` lines (and its own
+   operating rules as `Constraint: ...`) and to use the ledger read path
+   before grepping the transcript.
 4. **`.claude/ctx/` ledger dir** — commit it to git if you want the
    memory shared across machines and reviewable in PRs (recommended).
 
@@ -67,9 +70,11 @@ hook/MCP config at process startup, so until you restart, nothing fires
 (`/clear` is not a restart).
 
 **Already onboarded before?** Re-run `ctxpack onboard` after ctxpack
-upgrades — it's idempotent and picks up new hook entries (e.g. the Stop
-hook). Improvements *inside* existing hooks and MCP tools arrive with the
-package upgrade automatically, no re-onboard needed.
+upgrades — it's idempotent: it picks up new hook entries (e.g. the Stop
+hook) and **refreshes an older CLAUDE.md conventions block in place**
+(the block is versioned; v1 repos taught agents a read path missing
+`resume`/`literals`/`checkpoint`). Improvements *inside* existing hooks
+and MCP tools arrive with the package upgrade automatically.
 
 ### Multi-day memory: the project gist
 
@@ -93,17 +98,26 @@ project's accumulated decisions, not just yesterday's.
   not touch the auth service", that's extracted verbatim as a CONSTRAINT
   — negations are never compressed away (CI-gated).
 - **Resume with the ledger, not your memory.** New session? The gist is
-  already injected. Need more? `ctxpack session decisions` shows every
-  decision/constraint/failed-approach with turn numbers;
+  already injected. Need more? `ctxpack session resume` (or MCP
+  `ctx/resume`) returns gist + decisions + constraints + failed
+  approaches + every exact identifier in one call;
   `ctxpack session why "<value>"` traces where a value came from and its
-  revision chain; `--session <id>` reaches older sessions.
+  revision chain; `ctxpack session literals` lists every banked id so you
+  write shas/versions/paths verbatim instead of reconstructing them;
+  `--session <id>` reaches older sessions.
+- **Agents can state constraints too.** A sentence-leading
+  `Constraint: ...` in an assistant reply banks as a CONSTRAINT with turn
+  provenance — use it for operating rules the agent sets for itself
+  (review gates, immutability rules, "do not merge until X").
 - **Commit `.claude/ctx/`.** That's what makes memory branch-scoped,
   cross-machine, and reviewable — the properties nothing native has.
 - **Checkpoint before you `/clear` — every team, every session.** The
   Stop hook keeps the ledger within ~10 turns of live automatically, but
   banking explicitly before you wrap costs nothing and guarantees zero gap:
-  `ctxpack checkpoint --transcript <path-to-this-session.jsonl>` (transcripts
-  live under `~/.claude/projects/<project>/`). Pair it with whatever curated
+  the agent calls the `ctx/checkpoint` MCP tool, or anyone runs bare
+  `ctxpack checkpoint` — both auto-resolve the live transcript under
+  `~/.claude/projects/<project>/` (pass `--transcript` only to override).
+  Pair it with whatever curated
   notes your repo keeps (e.g. a `CLAUDE.md` / memory file): the curated notes
   are the *narrative*, the ctx ledger is the deterministic *receipts* layer
   (decisions, constraints, failed approaches, verbatim identifiers — every one

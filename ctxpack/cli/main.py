@@ -291,12 +291,17 @@ def _run(argv: list[str]) -> int:
         "checkpoint",
         help="Pack a Claude Code session transcript into .claude/ctx/ "
              "(the pack-on-compact ledger)")
-    p_ckpt.add_argument("--transcript", required=True,
-                        help="Path to the session JSONL transcript")
+    p_ckpt.add_argument("--transcript", default=None,
+                        help="Path to the session JSONL transcript "
+                             "(default: auto-resolve this project's live "
+                             "Claude Code session)")
     p_ckpt.add_argument("--out", default=".claude/ctx",
                         help="Output directory (default: .claude/ctx)")
     p_ckpt.add_argument("--as-of", dest="as_of", default=None,
                         help="Pin header date for byte-deterministic packs")
+    p_ckpt.add_argument("--session", default=None,
+                        help="Session id prefix to select among this "
+                             "project's transcripts (default: newest)")
 
     # hook — entry points wired into .claude/settings.json by install-hooks
     p_hook = sub.add_parser(
@@ -340,10 +345,11 @@ def _run(argv: list[str]) -> int:
     # session — read path over the checkpoint ledger (P4)
     p_session = sub.add_parser(
         "session",
-        help="Read the checkpoint ledger: recall | timeline | decisions | why")
+        help="Read the checkpoint ledger: recall | timeline | decisions | "
+             "why | literals | resume")
     p_session.add_argument("action",
                            choices=["recall", "timeline", "decisions", "why",
-                                    "graph", "stats"],
+                                    "graph", "stats", "literals", "resume"],
                            help="What to read")
     p_session.add_argument("key", nargs="?", default="",
                            help="why: key to trace; recall: keyword query; "
@@ -993,9 +999,18 @@ def _count_sections(elements) -> int:
 
 
 def _cmd_checkpoint(args: argparse.Namespace) -> int:
-    from ..agent.checkpoint import run_checkpoint
+    from ..agent.checkpoint import find_live_transcript, run_checkpoint
 
-    result = run_checkpoint(args.transcript, args.out, as_of=args.as_of)
+    transcript = args.transcript
+    if not transcript:
+        try:
+            transcript = find_live_transcript(".", getattr(args, "session", None))
+        except FileNotFoundError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+        print(f"Transcript: {transcript}")
+
+    result = run_checkpoint(transcript, args.out, as_of=args.as_of)
     print(f"Checkpoint: session {result.session_id[:8]} "
           f"({result.turns} turns) -> {result.ctx_path}")
     print(f"  entities: {result.entities}  conflicts: {result.conflicts}  "
@@ -1014,6 +1029,15 @@ def _cmd_hook(args: argparse.Namespace) -> int:
     import json as _json
 
     from ..agent.checkpoint import run_checkpoint
+
+    # Per-invocation kill switch: CTXPACK_HOOK_SKIP="stop,session-end"
+    # no-ops those events. Used by harnesses that fork probe sessions
+    # (CompactBench: a probe fork must not checkpoint itself over the
+    # session under test) and for a temporary clean slate in dogfood.
+    skip = {s.strip() for s in
+            os.environ.get("CTXPACK_HOOK_SKIP", "").split(",") if s.strip()}
+    if args.event in skip:
+        return 0
 
     # Read stdin as UTF-8 explicitly: on Windows the default is the locale
     # codec (cp1252), which corrupts non-ASCII transcript paths in the
@@ -1126,7 +1150,9 @@ def _cmd_session(args: argparse.Namespace) -> int:
         LedgerError,
         load_session,
         session_decisions,
+        session_literals,
         session_recall,
+        session_resume,
         session_stats,
         session_timeline,
         session_why,
@@ -1138,6 +1164,20 @@ def _cmd_session(args: argparse.Namespace) -> int:
         except LedgerError as e:
             print(f"Error: {e}", file=sys.stderr)
             return 1
+        return 0
+
+    if args.action == "resume":
+        try:
+            result = session_resume(args.ledger, args.session_id)
+        except LedgerError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+        gist = result.pop("gist", "")
+        print(json.dumps(result, indent=2))
+        if gist:
+            print()
+            print("--- startup gist ---")
+            print(gist)
         return 0
 
     try:
@@ -1155,6 +1195,8 @@ def _cmd_session(args: argparse.Namespace) -> int:
                                   limit=args.limit)
     elif args.action == "decisions":
         result = session_decisions(doc, sid)
+    elif args.action == "literals":
+        result = session_literals(doc, sid)
     elif args.action == "graph":
         from ..core.entity_graph import EntityGraph
 
@@ -1292,7 +1334,13 @@ _MCP_SERVER_ENTRY = {
     "args": ["-m", "ctxpack.integrations.mcp_server"],
 }
 
-_CLAUDE_MD_MARKER = "<!-- ctxpack:session-memory:v1 -->"
+# Version the conventions block so a re-onboard after upgrading ctxpack
+# REFRESHES a stale block in place (v1 repos taught agents a read path
+# missing resume/literals/checkpoint) instead of skipping with "already
+# present". Bump the version whenever the block content changes.
+_CLAUDE_MD_MARKER_PREFIX = "<!-- ctxpack:session-memory:"
+_CLAUDE_MD_MARKER = f"{_CLAUDE_MD_MARKER_PREFIX}v2 -->"
+_CLAUDE_MD_END = "<!-- /ctxpack:session-memory -->"
 
 _CLAUDE_MD_BLOCK = f"""
 {_CLAUDE_MD_MARKER}
@@ -1303,14 +1351,21 @@ session end into `.claude/ctx/` (a deterministic ledger — the raw
 transcript is never deleted), and each session start re-injects the
 previous session's gist. Trust the gist's constraints and decisions.
 
-**Recall past-session detail via the ledger read path FIRST**; fall back
-to grepping the raw transcript only if it fails (fallbacks are tracked):
+**Resuming or recalling past-session detail — use the ledger read path
+FIRST**; fall back to grepping the raw transcript only if it fails
+(fallbacks are tracked):
 
+- One-call resume: `ctx/resume` (MCP) or `ctxpack session resume` —
+  gist + decisions + constraints + failed approaches + exact identifiers
 - MCP (if connected): `ctx/session_recall`, `ctx/session_timeline`,
-  `ctx/session_decisions`, `ctx/why`, `ctx/graph_query`
-- CLI twins: `ctxpack session decisions | timeline | recall | why | graph`
-  (`--session <id>` targets older sessions; `ctxpack session stats` shows
-  adoption + capture metrics)
+  `ctx/session_decisions`, `ctx/session_literals`, `ctx/why`,
+  `ctx/graph_query`
+- CLI twins: `ctxpack session decisions | timeline | recall | literals |
+  why | graph | resume` (`--session <id>` targets older sessions;
+  `ctxpack session stats` shows adoption + capture metrics)
+- Bank the session BEFORE `/clear` or risky context loss: `ctx/checkpoint`
+  (MCP) or bare `ctxpack checkpoint` (both auto-resolve the live
+  transcript)
 
 **Decision convention (load-bearing):** state every nontrivial decision
 (design choice, root cause, chosen fix, abandoned approach) in your reply
@@ -1318,8 +1373,10 @@ on its own sentence starting with `Decision:` — e.g. `Decision: use
 exponential backoff with base 750ms because the vendor limit is 40
 req/min.` The deterministic parser extracts these; unmarked decisions in
 free prose are often missed. Dead ends the same way: "The X approach
-didn't work because ...".
-<!-- /ctxpack:session-memory -->
+didn't work because ...". Operating rules you set yourself the same way,
+sentence-leading: `Constraint: eval results are immutable — write new
+versioned files, never overwrite.`
+{_CLAUDE_MD_END}
 """
 
 
@@ -1366,8 +1423,23 @@ def _cmd_onboard(args: argparse.Namespace) -> int:
     if os.path.exists(claude_md):
         with open(claude_md, encoding="utf-8-sig") as f:
             existing_md = f.read()
+    start = existing_md.find(_CLAUDE_MD_MARKER_PREFIX)
+    end = existing_md.find(_CLAUDE_MD_END)
     if _CLAUDE_MD_MARKER in existing_md:
         done.append(f"claude.md   -> {claude_md} (block already present)")
+    elif start != -1 and end > start:
+        # An older-version block: refresh it in place so upgraded repos
+        # actually learn the new read/write surfaces.
+        updated = (existing_md[:start] + _CLAUDE_MD_BLOCK.strip()
+                   + existing_md[end + len(_CLAUDE_MD_END):])
+        with open(claude_md, "w", encoding="utf-8", newline="\n") as f:
+            f.write(updated)
+        done.append(f"claude.md   -> {claude_md} (conventions refreshed to "
+                    "current version)")
+    elif start != -1:
+        # Start marker without end marker — hand-edited; don't guess.
+        done.append(f"claude.md   -> {claude_md} (ctxpack block has no end "
+                    "marker — update it manually)")
     else:
         with open(claude_md, "a", encoding="utf-8", newline="\n") as f:
             if existing_md and not existing_md.endswith("\n"):

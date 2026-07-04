@@ -25,6 +25,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from dataclasses import dataclass
 from typing import Optional
 
@@ -207,6 +208,54 @@ def run_checkpoint(
         ledger_sha256=sha,
         gist_bpe=gist_bpe,
     )
+
+
+# ── Live-transcript resolution ──
+#
+# Hooks receive transcript_path on stdin, but an agent checkpointing
+# mid-session (MCP ctx/checkpoint, or bare `ctxpack checkpoint`) has to
+# find it. Claude Code writes transcripts to
+# ~/.claude/projects/<munged-project-path>/<session-uuid>.jsonl, munging
+# every non-alphanumeric path char to '-'. Picking the newest-mtime file
+# selects the INPUT only — the pack of that transcript stays
+# byte-deterministic; the determinism ground rule governs pack output,
+# not which live session is being packed.
+
+
+def _claude_project_dir_name(project_dir: str) -> str:
+    """Munge an absolute path the way Claude Code names per-project
+    transcript directories (every non-alphanumeric char → '-')."""
+    return re.sub(r"[^A-Za-z0-9]", "-", os.path.abspath(project_dir))
+
+
+def find_live_transcript(project_dir: str = ".",
+                         session: Optional[str] = None,
+                         claude_home: Optional[str] = None) -> str:
+    """Path of the project's live (most recently written) transcript.
+
+    ``session`` narrows to files whose name starts with that id prefix.
+    Raises FileNotFoundError with guidance when nothing matches — the
+    caller should then ask for an explicit --transcript path.
+    """
+    home = (claude_home
+            or os.environ.get("CLAUDE_CONFIG_DIR")
+            or os.path.join(os.path.expanduser("~"), ".claude"))
+    tdir = os.path.join(home, "projects",
+                        _claude_project_dir_name(project_dir))
+    try:
+        names = [n for n in os.listdir(tdir) if n.endswith(".jsonl")]
+    except OSError:
+        names = []
+    if session:
+        names = [n for n in names if n.startswith(session[:8])]
+    if not names:
+        raise FileNotFoundError(
+            f"No Claude Code transcript found under {tdir!r}"
+            + (f" for session {session!r}" if session else "")
+            + " — pass an explicit transcript path."
+        )
+    names.sort(key=lambda n: (os.path.getmtime(os.path.join(tdir, n)), n))
+    return os.path.join(tdir, names[-1])
 
 
 def read_latest_gist(out_dir: str = ".claude/ctx") -> str:

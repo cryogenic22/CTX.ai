@@ -6,7 +6,9 @@ identifiable, load-bearing facts — the deterministic-extraction contract:
 
 - USER-REQUEST     what the user asked for (first line of each user turn)
 - CONSTRAINT       imperative/negation sentences from USER turns, verbatim
-                   (never prose-compressed — negations must survive)
+                   (never prose-compressed — negations must survive), plus
+                   explicit "Constraint:"-marked sentences from ASSISTANT
+                   turns (agent-stated operating rules)
 - DECISION         decision-shaped sentences from assistant text
 - FAILED-APPROACH  dead ends the assistant declared
 - ERROR            tool results flagged is_error
@@ -52,6 +54,19 @@ _DECISION_MARKER_RE = re.compile(
     r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
     r"(?:decision|conclusion|verdict|confirmed)(?:\*{1,2}|_{1,2})?\s*:"
 )
+# Agent-stated operating rules: the explicit "Constraint:" convention,
+# mirroring "Decision:" (same anchoring, same use-vs-mention guard). In
+# agent-driven sessions the load-bearing constraints are often stated by
+# the ASSISTANT (conservation rules, DoD, review gates) — cohort evidence:
+# 49 decisions banked vs 1 constraint across 10 sessions, because the
+# user-imperative extractor is the only constraint path. Marker-only on
+# purpose: no verb heuristics — over-extraction of "rules" from ordinary
+# prose is worse than asking sessions to mark them.
+_CONSTRAINT_MARKER_RE = re.compile(
+    r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
+    r"(?:constraint|invariant)(?:\*{1,2}|_{1,2})?\s*:"
+)
+
 _DECISION_VERB_RE = re.compile(
     r"(?i)\b(?:decided to|i'?ll (?:use|go with|take)|going with|"
     r"we'?ll (?:use|go with)|chose|choosing|settled on|"
@@ -110,7 +125,7 @@ _LEDGER_READ_CMD_RE = re.compile(
 # MCP spellings: mcp__ctxpack__ctx/session_recall etc., normalized below
 _LEDGER_TOOL_SUFFIXES = (
     "ctx_session_recall", "ctx_session_timeline", "ctx_session_decisions",
-    "ctx_why", "ctx_graph_query",
+    "ctx_why", "ctx_graph_query", "ctx_session_literals", "ctx_resume",
 )
 _READONLY_PATH_TOOLS = {"Grep", "Read", "Glob"}
 
@@ -486,7 +501,14 @@ def parse_transcript(
                 if btype == "text":
                     atext = _clean_multiline(blk.get("text", ""))
                     for sentence in _sentences(atext):
-                        if _FAILED_RE.search(_prose_of(sentence)):
+                        if _CONSTRAINT_MARKER_RE.match(_prose_of(sentence)):
+                            stats.constraints += 1
+                            # full sentence, same as user-path constraints:
+                            # truncation could sever a trailing negation
+                            _add(f"CONSTRAINT-{_short_hash(sentence)}",
+                                 {"rule": sentence, "stated_turn": str(turn)},
+                                 turn=turn, ts=ts, salience=3.0)
+                        elif _FAILED_RE.search(_prose_of(sentence)):
                             stats.failed_approaches += 1
                             _add(f"FAILED-APPROACH-{_short_hash(sentence)}",
                                  {"note": sentence[:280], "turn": str(turn)},

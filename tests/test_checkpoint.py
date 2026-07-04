@@ -88,3 +88,50 @@ def test_rerun_appends_journal(transcript, tmp_path):
     journal = os.path.join(out, "checkpoints.jsonl")
     lines = open(journal, encoding="utf-8").read().strip().splitlines()
     assert len(lines) == 2  # append-only, never overwritten
+
+
+# ── Live-transcript resolution (feedback P0-2, 2026-07-04) ──
+
+
+def test_claude_project_dir_name_munging(tmp_path):
+    from ctxpack.agent.checkpoint import _claude_project_dir_name
+
+    project = tmp_path / "My_Proj.x"
+    name = _claude_project_dir_name(str(project))
+    # every non-alphanumeric char → '-', matching Claude Code's naming
+    assert name.endswith("My-Proj-x")
+    assert all(c.isalnum() or c == "-" for c in name), name
+
+
+def test_find_live_transcript_picks_newest(tmp_path):
+    from ctxpack.agent.checkpoint import (
+        _claude_project_dir_name,
+        find_live_transcript,
+    )
+
+    project = tmp_path / "proj"
+    project.mkdir()
+    home = tmp_path / "claude-home"
+    tdir = home / "projects" / _claude_project_dir_name(str(project))
+    tdir.mkdir(parents=True)
+    old = tdir / "aaaa1111-old.jsonl"
+    new = tdir / "bbbb2222-new.jsonl"
+    old.write_text("{}", encoding="utf-8")
+    new.write_text("{}", encoding="utf-8")
+    os.utime(old, (1_000_000_000, 1_000_000_000))
+    os.utime(new, (2_000_000_000, 2_000_000_000))
+
+    live = find_live_transcript(str(project), claude_home=str(home))
+    assert live == str(new)
+
+    # a session prefix narrows the choice even when that file is older
+    picked = find_live_transcript(str(project), session="aaaa1111",
+                                  claude_home=str(home))
+    assert picked == str(old)
+
+    with pytest.raises(FileNotFoundError):
+        find_live_transcript(str(project), session="ffff0000",
+                             claude_home=str(home))
+    with pytest.raises(FileNotFoundError):
+        find_live_transcript(str(tmp_path / "never-onboarded"),
+                             claude_home=str(home))

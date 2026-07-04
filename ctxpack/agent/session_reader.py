@@ -12,6 +12,9 @@ mid-session, exposed via MCP tools and ``ctxpack session``:
             in one call, with turn provenance
 - why       provenance for a key: where a value came from, and its
             supersession chain when the value was revised
+- literals  every verbatim identifier banked (bulk complement to why)
+- resume    one call: gist + stakes trio + literals — the first read
+            after a /clear or context loss
 
 Stdlib only, zero LLM, zero network — same ledger → same answers.
 """
@@ -45,6 +48,20 @@ _KIND_PRIMARY_KEY = (
 )
 
 _TURN_IN_SRC_RE = re.compile(r"#turn(\d+)\b")
+
+# why() returns full field lists for provenance, but one oversized value
+# (a pasted command, a pre-cap ledger row) must not dump kilobytes into
+# the agent's context — observed in the field: a commit-sha lookup buried
+# under a serialized TOOL-BASH COMMAND blob. Truncation is explicit,
+# never silent.
+_WHY_FIELD_VALUE_CAP = 400
+
+
+def _scoped(value: str) -> str:
+    if len(value) <= _WHY_FIELD_VALUE_CAP:
+        return value
+    return (value[:_WHY_FIELD_VALUE_CAP]
+            + f" …[truncated {len(value) - _WHY_FIELD_VALUE_CAP} chars]")
 
 
 class LedgerError(Exception):
@@ -272,21 +289,24 @@ def session_why(doc: CTXDocument, sid: str, key: str) -> dict[str, Any]:
     turn, and the supersession chain when the value was revised.
 
     Match order: exact section name → exact field key (including
-    SUPERSEDED-<KEY> chains) → substring in values.
+    SUPERSEDED-<KEY> chains) → exact field VALUE (a LITERAL whose VALUE
+    equals the needle beats every substring hit — the literals-ledger
+    recovery path) → substring in values.
     """
     if not key or not key.strip():
         return {"session": sid, "key": key, "matches": [],
                 "error": "key is required"}
     needle = key.strip().upper()
     needle_bare = needle[len("ENTITY-"):] if needle.startswith("ENTITY-") else needle
+    needle_lower = key.strip().lower()
     matches: list[dict[str, Any]] = []
 
     def _fields_of(s: Section) -> list[dict[str, str]]:
-        return [{"key": c.key, "value": c.value}
+        return [{"key": c.key, "value": _scoped(c.value)}
                 for c in s.children if isinstance(c, KeyValue)]
 
     def _chains_of(s: Section) -> list[dict[str, str]]:
-        return [{"key": c.key, "chain": c.value}
+        return [{"key": c.key, "chain": _scoped(c.value)}
                 for c in s.children
                 if isinstance(c, KeyValue)
                 and c.key.upper().startswith("SUPERSEDED-")]
@@ -315,15 +335,24 @@ def session_why(doc: CTXDocument, sid: str, key: str) -> dict[str, Any]:
                     continue
                 c_key = c.key.upper()
                 if c_key == needle or c_key == f"SUPERSEDED-{needle}":
-                    _hit(s, "field_key", {"key": c.key, "value": c.value})
+                    _hit(s, "field_key", {"key": c.key, "value": _scoped(c.value)})
                     break
 
     if not matches:
-        needle_lower = key.strip().lower()
+        for s in _sections(doc):
+            for c in s.children:
+                if (isinstance(c, KeyValue)
+                        and c.value.strip().lower() == needle_lower):
+                    _hit(s, "value_exact",
+                         {"key": c.key, "value": _scoped(c.value)})
+                    break
+
+    if not matches:
         for s in _sections(doc):
             for c in s.children:
                 if isinstance(c, KeyValue) and needle_lower in c.value.lower():
-                    _hit(s, "value_substring", {"key": c.key, "value": c.value})
+                    _hit(s, "value_substring",
+                         {"key": c.key, "value": _scoped(c.value)})
                     break
 
     note = ""
@@ -332,6 +361,64 @@ def session_why(doc: CTXDocument, sid: str, key: str) -> dict[str, Any]:
                 "section's current field value is the latest and wins.")
     return {"session": sid, "key": key, "matches": matches,
             "count": len(matches), **({"note": note} if note else {})}
+
+
+def session_literals(doc: CTXDocument, sid: str) -> dict[str, Any]:
+    """Every verbatim identifier banked in the ledger, turn-ordered.
+
+    The bulk complement to per-id ``why``: on resume the natural question
+    is "give me every exact id" (commit shas, PRs, versions, paths,
+    domain ids) so the agent writes correct identifiers from the ledger
+    instead of reconstructing them from a paraphrase.
+    """
+    rows = []
+    for s in _sections(doc):
+        if _kind_of(s) != "LITERAL":
+            continue
+        rows.append({
+            "turn": _turn_of(s),
+            "value": _kv(s, "VALUE"),
+            "kind": _kv(s, "KIND"),
+            "section": s.name,
+        })
+    rows.sort(key=lambda r: (r["turn"], r["section"]))
+    return {"session": sid, "count": len(rows), "literals": rows}
+
+
+def session_resume(ledger_dir: str = DEFAULT_LEDGER_DIR,
+                   session: Optional[str] = None) -> dict[str, Any]:
+    """One-call resume: gist + stakes trio + literals.
+
+    The pull twin of the SessionStart injection — after a /clear where
+    injection didn't land, or mid-session, this single read restores
+    working state instead of chaining recall → decisions → why.
+    Explicit ``session`` returns THAT session's gist; the default
+    returns the startup context (project rollup + latest gist).
+    """
+    from .checkpoint import read_startup_context
+
+    doc, sid = load_session(ledger_dir, session)
+    if session:
+        gist = ""
+        try:
+            with open(os.path.join(ledger_dir, f"session-{sid}-gist.md"),
+                      encoding="utf-8") as f:
+                gist = f.read()
+        except OSError:
+            pass
+    else:
+        gist = read_startup_context(ledger_dir)
+    trio = session_decisions(doc, sid)
+    lits = session_literals(doc, sid)
+    return {
+        "session": sid,
+        "gist": gist.strip(),
+        "decisions": trio["decisions"],
+        "constraints": trio["constraints"],
+        "failed_approaches": trio["failed_approaches"],
+        "literals": lits["literals"],
+        "counts": {**trio["counts"], "literals": lits["count"]},
+    }
 
 
 def session_stats(ledger_dir: str = DEFAULT_LEDGER_DIR) -> dict[str, Any]:

@@ -315,3 +315,38 @@ def test_task_notification_not_a_user_request(tmp_path):
     )
     assert parsed.stats.requests == 1
     assert parsed.stats.user_turns == 1
+
+
+# ── Agent-stated constraints (feedback P2-8, 2026-07-04) ──
+# Cohort evidence: 49 decisions vs 1 constraint banked across 10 sessions —
+# constraints only extracted from user imperatives, but in agent-driven
+# sessions the load-bearing rules are stated by the ASSISTANT.
+
+
+def _constraint_values(parsed):
+    return [f.value for e in parsed.corpus.entities
+            if e.name.startswith("CONSTRAINT") for f in e.fields
+            if f.key == "RULE"]
+
+
+def test_agent_constraint_marker_extracted(tmp_path):
+    parsed = _parse_assistant_text(tmp_path,
+        "Constraint: never bank bare numbers as literals.\n"
+        "- Constraint: eval results are immutable; write new versioned files.\n"
+        "**Invariant:** the checkpoint journal is append-only.")
+    values = _constraint_values(parsed)
+    assert len(values) == 3, f"marker variant missed: {values}"
+    assert parsed.stats.constraints == 3
+    assert "never bank bare numbers" in values[0], (
+        "constraint must be stored verbatim, negation intact")
+
+
+def test_agent_constraint_mention_not_extracted(tmp_path):
+    # Use-vs-mention guard, same as Decision: — backticked mentions and
+    # mid-sentence occurrences must not fire.
+    parsed = _parse_assistant_text(tmp_path,
+        "Sessions should state `Constraint: ...` lines for operating rules.\n"
+        "This constraint: matters only when sentence-leading, so no fire.")
+    assert _constraint_values(parsed) == [], (
+        f"mention extracted as constraint: {_constraint_values(parsed)}")
+    assert parsed.stats.constraints == 0

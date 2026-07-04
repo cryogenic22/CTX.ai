@@ -4,7 +4,7 @@ Deterministic knowledge packer + progressive hydration, evolving into a
 session-memory substrate for long-running agents ("CtxPack Checkpoint").
 Current program: `paper/agentic-context-plan-v1.md`.
 
-<!-- ctxpack:session-memory:v1 -->
+<!-- ctxpack:session-memory:v2 -->
 ## Session memory (dogfood — this repo runs on its own ledger)
 
 This repo has ctxpack hooks installed (`.claude/settings.json`): every
@@ -18,12 +18,17 @@ MCP `ctx/session_*` tools if available, else the CLI twin), and fall back
 to grepping the raw transcript only when it fails — every fallback is a
 data point we track:
 
+- `ctxpack session resume` — ONE call: gist + decisions + constraints +
+  failed approaches + exact identifiers (start here after /clear)
 - `ctxpack session decisions` — decisions/constraints/failed approaches
-- `ctxpack session timeline [--kinds DECISION,ERROR] [--limit N]`
+- `ctxpack session timeline [--kinds DECISION,ERROR,LITERAL] [--limit N]`
 - `ctxpack session recall [<query>|--section <NAME>]` — index, then hydrate
 - `ctxpack session why "<key or value>"` — turn provenance + supersession
+- `ctxpack session literals` — every verbatim id banked (shas, versions, paths)
 - `ctxpack session graph <entity> [--op parents|neighbors|bfs|path]`
 - `--session <id>` targets an older session (default: latest checkpoint)
+- Write path, before `/clear` or risky context loss: `ctx_checkpoint` (MCP)
+  or bare `ctxpack checkpoint` — both auto-resolve the live transcript
 
 **Decision convention (load-bearing):** when you make a nontrivial
 decision (design choice, root cause, chosen fix, abandoned approach),
@@ -32,6 +37,9 @@ e.g. `Decision: use exponential backoff with base 750ms because the
 vendor limit is 40 req/min.` The transcript parser extracts these
 deterministically; unmarked decisions in free prose are often missed.
 Dead ends the same way: "The X approach didn't work because ...".
+Operating rules you set yourself the same way, sentence-leading:
+`Constraint: ...` — agent-stated constraints don't extract any other way
+(the only other constraint source is user imperatives).
 
 ## Ground rules
 
@@ -52,6 +60,7 @@ Dead ends the same way: "The X approach didn't work because ...".
 - Tests: `python -m pytest tests/ -q` (full suite ~35 min; scope to the
   files you touched first)
 - Pack: `ctxpack pack <corpus> --layers L2,L3 --as-of YYYY-MM-DD`
-- Checkpoint (manual): `ctxpack checkpoint --transcript <session.jsonl>`
+- Checkpoint (manual): `ctxpack checkpoint` (auto-resolves the live
+  transcript; `--transcript <session.jsonl>` to override)
 - Agentic benchmarks: `python run_agentic_niah.py --smoke`,
   `python run_graphwalks_eval.py --smoke` (live API; full runs cost ~$10)
