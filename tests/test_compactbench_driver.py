@@ -234,6 +234,33 @@ def test_adherence_action_inspection(seed0):
         con, ["git merge x-fix"], "merged")["violation"]
 
 
+def test_report_cost_split_and_per_seed_dr():
+    from run_compactbench import build_report
+    rows = [
+        # two seeds, one arm; cycle rows carry nudge_cost, probes cost_usd
+        {"seed": 0, "arm": "ctx", "kind": "cycle", "k": 1,
+         "nudge_cost": 0.08},
+        {"seed": 0, "arm": "ctx", "kind": "decision_stable", "k": 1,
+         "probe_id": "ds-a", "correct": True, "cost_usd": 0.03},
+        {"seed": 1, "arm": "ctx", "kind": "decision_stable", "k": 1,
+         "probe_id": "ds-a", "correct": False, "cost_usd": 0.02},
+        {"seed": 0, "arm": "ctx", "kind": "memory_build", "cost_usd": 0.5},
+        {"seed": 0, "arm": "ctx", "kind": "adherence", "k": 1,
+         "probe_id": "a-x", "violation": False, "cost_usd": 0.04},
+        {"seed": 0, "arm": "ctx", "kind": "cell_error", "error": "boom"},
+    ]
+    rep = build_report(rows, {"k_max": 1})
+    arm = rep["arms"]["ctx"]
+    assert arm["probe_cost_usd"] == 0.09      # 0.03 + 0.02 + 0.04
+    assert arm["compaction_cost_usd"] == 0.08
+    assert arm["memory_build_cost_usd"] == 0.5
+    assert arm["total_cost_usd"] == 0.67
+    assert arm["drk"][1]["n"] == 2 and arm["drk"][1]["correct"] == 1
+    assert arm["drk_by_seed"]["0"][1]["recall"] == 1.0
+    assert arm["drk_by_seed"]["1"][1]["recall"] == 0.0
+    assert arm["cvk"][1]["rate"] == 0.0
+
+
 def test_batch_roundtrip(seed0):
     recall = probes_mod.build_recall_probes(seed0)
     prompt = probes_mod.format_batch(recall)

@@ -74,6 +74,27 @@ def transcript_path(workspace: str, sid: str) -> str:
                         munge_project_dir(workspace), f"{sid}.jsonl")
 
 
+def prepare_config_dir(run_root: str) -> str:
+    """Run-scoped CLAUDE_CONFIG_DIR: a fresh config home seeded with the
+    real credentials + config so headless auth works, but with its own
+    empty projects/ store — benchmark sessions never touch ~/.claude.
+    Set the returned path as CLAUDE_CONFIG_DIR before any cell runs."""
+    cfg = os.path.abspath(os.path.join(run_root, "claude-config"))
+    os.makedirs(os.path.join(cfg, "projects"), exist_ok=True)
+    src = claude_home()
+    cred = os.path.join(src, ".credentials.json")
+    if os.path.exists(cred):
+        shutil.copy2(cred, os.path.join(cfg, ".credentials.json"))
+    # the config json lives inside the config home when CLAUDE_CONFIG_DIR
+    # is set, else next to it in $HOME
+    src_cfg = os.path.join(src, ".claude.json")
+    if not os.path.exists(src_cfg):
+        src_cfg = os.path.join(os.path.expanduser("~"), ".claude.json")
+    if os.path.exists(src_cfg):
+        shutil.copy2(src_cfg, os.path.join(cfg, ".claude.json"))
+    return cfg
+
+
 def _claude_exe() -> str:
     """Resolve the claude binary, preferring the real .exe over the npm
     .cmd shim (batch shims break subprocess argument quoting)."""
@@ -247,6 +268,9 @@ def run_claude(workspace: str, prompt: str, *,
     env = {k: v for k, v in os.environ.items()
            if not (k.startswith("CLAUDE_") or k == "DISABLE_AUTO_COMPACT"
                    or k == "CLAUDECODE")}
+    # the child must resolve the SAME config home the driver reads
+    # transcripts from (run-scoped when prepare_config_dir is in use)
+    env["CLAUDE_CONFIG_DIR"] = claude_home()
     if pct is not None:
         # Two vars, both required (verified against 2.1.201): proactive
         # autocompact is SKIPPED when the context-window source is "auto"

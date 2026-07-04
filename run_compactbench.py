@@ -19,7 +19,9 @@ import argparse
 import json
 import os
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 if hasattr(sys.stdout, "reconfigure"):
@@ -50,16 +52,17 @@ def _stamp() -> str:
 # ------------------------------------------------------------ llm-memory
 
 def build_llm_memory(seed: int, entries: list[dict], model: str,
-                     work_root: str, log) -> str:
+                     work_root: str, log) -> tuple[str, float]:
     """Mem0-style memory file, built once per (seed, model) by an LLM
     over the full pre-compaction transcript and cached under results/.
-    Deliberately generous: real systems build incrementally."""
+    Deliberately generous: real systems build incrementally.
+    Returns (content, cost_usd) — cost 0 on cache hit."""
     os.makedirs(MEMORY_CACHE, exist_ok=True)
     cache = os.path.join(MEMORY_CACHE, f"seed-{seed:04d}-{model}.md")
     if os.path.exists(cache):
         log(f"  llm-memory: cache hit {cache}")
         with open(cache, encoding="utf-8") as f:
-            return f.read()
+            return f.read(), 0.0
     prep = os.path.join(work_root, f"memprep-{seed:04d}")
     os.makedirs(prep, exist_ok=True)
     with open(os.path.join(prep, "session-log.jsonl"), "w",
@@ -84,7 +87,7 @@ def build_llm_memory(seed: int, entries: list[dict], model: str,
         f.write(res.result)
     log(f"  llm-memory: built ({len(res.result)} chars, "
         f"${res.cost_usd or 0:.3f}) -> {cache}")
-    return res.result
+    return res.result, res.cost_usd or 0.0
 
 
 # ---------------------------------------------------------------- cells
@@ -168,9 +171,10 @@ def run_cell(seed: int, arm: str, *, k_max: int, pct: float, model: str,
     recall = probes_mod.build_recall_probes(manifest)
     adherence = probes_mod.build_adherence_probes(manifest)
 
-    llm_memory = None
+    llm_memory, mem_cost = None, 0.0
     if arm == "llm-memory" and not dry_run:
-        llm_memory = build_llm_memory(seed, entries, model, work_root, log)
+        llm_memory, mem_cost = build_llm_memory(seed, entries, model,
+                                                work_root, log)
     ctx = driver.setup_workspace(work_root, arm, seed, entries, manifest,
                                  llm_memory=llm_memory)
     if arm == "llm-memory":
@@ -189,6 +193,9 @@ def run_cell(seed: int, arm: str, *, k_max: int, pct: float, model: str,
                 for k in range(1, k_max + 1) for p in recall]
 
     rows: list[dict] = []
+    if mem_cost:
+        rows.append({"seed": seed, "arm": arm, "kind": "memory_build",
+                     "cost_usd": mem_cost})
     try:
         for k in range(1, k_max + 1):
             if arm == "oracle":
@@ -225,12 +232,21 @@ def build_report(rows: list[dict], params: dict) -> dict:
     for arm in arms_present:
         arm_rows = [r for r in rows if r["arm"] == arm]
         decisions = {k: [] for k in range(1, params["k_max"] + 1)}
+        per_seed: dict[int, dict[int, list]] = {}
         by_kind: dict[str, dict[int, list]] = {}
         cv: dict[int, list] = {}
-        cost = sum(r.get("cost_usd") or 0 for r in arm_rows)
+        # explicit cost split: probe calls, compaction nudges (carried as
+        # nudge_cost on cycle rows), llm-memory builds
+        probe_cost = sum(r.get("cost_usd") or 0 for r in arm_rows
+                         if r.get("kind") not in ("cycle", "cell_error",
+                                                  "memory_build"))
+        compaction_cost = sum(r.get("nudge_cost") or 0 for r in arm_rows
+                              if r.get("kind") == "cycle")
+        memory_cost = sum(r.get("cost_usd") or 0 for r in arm_rows
+                          if r.get("kind") == "memory_build")
         for r in arm_rows:
-            if (r.get("kind") in ("cycle", "cell_error") or "k" not in r
-                    or r.get("dry_run")):
+            if (r.get("kind") in ("cycle", "cell_error", "memory_build")
+                    or "k" not in r or r.get("dry_run")):
                 continue
             if r["kind"] == "adherence":
                 cv.setdefault(r["k"], []).append(bool(r.get("violation")))
@@ -239,10 +255,20 @@ def build_report(rows: list[dict], params: dict) -> dict:
                 r["k"], []).append(bool(r.get("correct")))
             if r["kind"].startswith("decision"):
                 decisions[r["k"]].append(bool(r.get("correct")))
+                per_seed.setdefault(r["seed"], {}).setdefault(
+                    r["k"], []).append(bool(r.get("correct")))
         entry = {
             "drk": recall_at_k({k: v for k, v in decisions.items() if v}),
+            # per-seed DR@K alongside pooled: pooled McNemar alone invites
+            # a pseudoreplication critique
+            "drk_by_seed": {str(s): recall_at_k(g)
+                            for s, g in sorted(per_seed.items())},
             "by_kind": {kind: recall_at_k(g) for kind, g in by_kind.items()},
-            "cost_usd": round(cost, 4),
+            "probe_cost_usd": round(probe_cost, 4),
+            "compaction_cost_usd": round(compaction_cost, 4),
+            "memory_build_cost_usd": round(memory_cost, 4),
+            "total_cost_usd": round(
+                probe_cost + compaction_cost + memory_cost, 4),
         }
         if cv:
             entry["cvk"] = {
@@ -289,20 +315,33 @@ def main() -> int:
     ap.add_argument("--arms", default="all",
                     help=f"comma list or 'all' ({','.join(driver.ARMS)})")
     ap.add_argument("--model", default="haiku")
-    ap.add_argument("--pct", type=float, default=8.0,
-                    help="forced autocompact threshold, % of pinned window")
+    ap.add_argument("--pct", type=float, default=20.0,
+                    help="forced autocompact threshold, % of pinned window "
+                         "(20 = scored default; 8 = adversarial stress)")
     ap.add_argument("--probe-mode", choices=("batched", "single"),
                     default="batched")
     ap.add_argument("--no-adherence", action="store_true")
     ap.add_argument("--smoke", action="store_true",
                     help="seed 0, K=2, arms native,ctx")
+    ap.add_argument("--sentinel", action="store_true",
+                    help="2 seeds, K=3, native+ctx+grep — the cheap "
+                         "null-hypothesis gate (sequential stopping)")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--workers", type=int, default=1,
+                    help="parallel (seed, arm) cells; each cell is its own "
+                         "workspace+session, cycles within a cell stay "
+                         "sequential")
+    ap.add_argument("--no-isolate-config", action="store_true",
+                    help="skip the run-scoped CLAUDE_CONFIG_DIR (benchmark "
+                         "sessions then land in the real ~/.claude)")
     ap.add_argument("--work-dir", default=None,
                     help="workspace root (default: <bench>/work/<stamp>)")
     args = ap.parse_args()
 
     if args.smoke:
         seeds, k_max, arms = [0], 2, ["native", "ctx"]
+    elif args.sentinel:
+        seeds, k_max, arms = [0, 1], 3, ["native", "ctx", "grep"]
     else:
         seeds = [int(s) for s in args.seeds.split(",") if s.strip()]
         k_max = args.k
@@ -316,6 +355,10 @@ def main() -> int:
     work_root = os.path.abspath(args.work_dir or
                                 os.path.join(BENCH_DIR, "work", stamp))
     os.makedirs(work_root, exist_ok=True)
+    isolate = not args.no_isolate_config
+    if isolate:
+        cfg = driver.prepare_config_dir(work_root)
+        os.environ["CLAUDE_CONFIG_DIR"] = cfg
     params = {"seeds": seeds, "k_max": k_max, "arms": arms,
               "model": args.model, "pct": args.pct,
               "forced_window": driver.FORCED_WINDOW,
@@ -323,39 +366,63 @@ def main() -> int:
                   args.pct),
               "probe_mode": args.probe_mode,
               "adherence": not args.no_adherence,
+              "workers": args.workers,
+              "isolated_config": isolate,
               "claude_code_version": "2.1.201"}
     print(f"CompactBench: arms={arms} seeds={seeds} K={k_max} "
-          f"model={args.model} pct={args.pct} "
+          f"model={args.model} pct={args.pct} workers={args.workers} "
           f"({'DRY RUN' if args.dry_run else 'LIVE'})")
     print(f"  work: {work_root}")
+    if isolate:
+        print(f"  config: {os.environ['CLAUDE_CONFIG_DIR']}")
 
     rows: list[dict] = []
     raw_path = os.path.join(RESULTS_DIR,
                             f"compactbench-{stamp}-raw.jsonl")
     os.makedirs(RESULTS_DIR, exist_ok=True)
-    for seed in seeds:
-        for arm in arms:
+    lock = threading.Lock()
+    cells = [(seed, arm) for seed in seeds for arm in arms]
+
+    def process(cell: tuple) -> None:
+        seed, arm = cell
+        buffered = args.workers > 1
+        buf: list[str] = []
+        log = buf.append if buffered else print
+        if not buffered:
             print(f"[{arm}/s{seed:04d}]")
-            try:
-                cell = run_cell(seed, arm, k_max=k_max, pct=args.pct,
-                                model=args.model, work_root=work_root,
-                                probe_mode=args.probe_mode,
-                                do_adherence=not args.no_adherence,
-                                dry_run=args.dry_run, log=print)
-            except Exception as exc:  # noqa: BLE001 — one cell must not sink the run
-                print(f"  CELL FAILED (setup): {exc}")
-                cell = [{"seed": seed, "arm": arm, "kind": "cell_error",
-                         "error": str(exc)[:500]}]
-            rows.extend(cell)
+        try:
+            cell_rows = run_cell(seed, arm, k_max=k_max, pct=args.pct,
+                                 model=args.model, work_root=work_root,
+                                 probe_mode=args.probe_mode,
+                                 do_adherence=not args.no_adherence,
+                                 dry_run=args.dry_run, log=log)
+        except Exception as exc:  # noqa: BLE001 — one cell must not sink the run
+            log(f"  CELL FAILED (setup): {exc}")
+            cell_rows = [{"seed": seed, "arm": arm, "kind": "cell_error",
+                          "error": str(exc)[:500]}]
+        with lock:
+            if buffered:
+                print(f"[{arm}/s{seed:04d}]")
+                for line in buf:
+                    print(line)
+            rows.extend(cell_rows)
             if not args.dry_run:
                 with open(raw_path, "a", encoding="utf-8",
                           newline="\n") as f:
-                    for r in cell:
+                    for r in cell_rows:
                         f.write(json.dumps(r) + "\n")
+
+    if args.workers > 1:
+        with ThreadPoolExecutor(max_workers=args.workers) as ex:
+            list(ex.map(process, cells))
+    else:
+        for c in cells:
+            process(c)
 
     report = build_report(rows, params)
     tag = ("dryrun" if args.dry_run else
-           "smoke" if args.smoke else "full")
+           "smoke" if args.smoke else
+           "sentinel" if args.sentinel else "full")
     out = os.path.join(RESULTS_DIR, f"compactbench-{tag}-{stamp}.json")
     with open(out, "w", encoding="utf-8", newline="\n") as f:
         json.dump(report, f, indent=2)
@@ -364,7 +431,10 @@ def main() -> int:
     print()
     for arm, e in report["arms"].items():
         drk = {k: v["recall"] for k, v in e["drk"].items()}
-        line = f"  {arm:<11} DR@K={drk} cost=${e['cost_usd']}"
+        line = (f"  {arm:<11} DR@K={drk} "
+                f"cost=${e['total_cost_usd']} "
+                f"(probe {e['probe_cost_usd']} + compact "
+                f"{e['compaction_cost_usd']})")
         if "cvk" in e:
             line += f" CV@K={ {k: v['rate'] for k, v in e['cvk'].items()} }"
         print(line)

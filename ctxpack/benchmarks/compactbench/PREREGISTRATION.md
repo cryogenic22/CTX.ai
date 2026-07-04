@@ -129,3 +129,29 @@ ship together regardless of outcome. Results files are immutable
     `CTXPACK_HOOK_SKIP=stop,session-end,pre-compact` so observing the
     session cannot overwrite its ledger; gist injection (session-start)
     stays live.
+- 2026-07-04 (post-smoke review; still zero scored runs). The K=2
+  native+ctx smoke ran end-to-end (results committed, smoke-scale, not
+  citable). Parameter and reporting decisions fixed BEFORE the scored
+  run:
+  - **pct=20 for any scored run.** pct=8 (a ~5.4K-token threshold)
+    collapsed native decision recall to 0.0 by K=2 — an adversarial
+    stress setting that invites a "benchmark-induced failure" critique.
+    pct=8 remains available as a labelled stress mode only.
+  - **Per-seed DR@K** is reported alongside the pooled curve and the
+    McNemar comparisons (pooled-only pairing invites a pseudoreplication
+    critique; one-seed b=15/c=0 is a smoke signal, not evidence).
+  - **Cost accounting**: reports carry an explicit
+    probe/compaction/memory-build cost split. The committed smoke JSON
+    over-counted probe cost ~40x (batched call cost duplicated onto
+    every probe row) — file left immutable, code fixed forward; the
+    corrected smoke figures are ~$0.77 (native) / ~$1.01 (ctx).
+  - **Run isolation**: scored runs use a run-scoped CLAUDE_CONFIG_DIR
+    (credentials seeded, empty projects store; verified: no writes to
+    the real ~/.claude) and a clean git worktree, after a concurrent
+    session committed to the repo mid-smoke.
+  - **Evidence ladder / sequential stopping**: a cheap sentinel
+    (2 seeds x K=3 x native/ctx/grep, adherence on) gates the spend on
+    the full six-arm run. If ctx is not clearly ahead of grep at the
+    sentinel, we stop and reposition claims per the pre-committed grep
+    rule instead of buying more data. The six-arm design itself is
+    unchanged and remains the citable artifact.
