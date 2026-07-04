@@ -1,0 +1,328 @@
+{
+  "benchmark": "compactbench-v1",
+  "params": {
+    "seeds": [
+      0
+    ],
+    "k_max": 2,
+    "arms": [
+      "native",
+      "ctx"
+    ],
+    "model": "haiku",
+    "pct": 8.0,
+    "forced_window": 100000,
+    "forced_threshold_tokens": 5440,
+    "probe_mode": "batched",
+    "adherence": true,
+    "claude_code_version": "2.1.201"
+  },
+  "generated_at": "20260704T175401",
+  "arms": {
+    "ctx": {
+      "drk": {
+        "1": {
+          "n": 15,
+          "correct": 15,
+          "recall": 1.0,
+          "ci95": [
+            0.7961,
+            1.0
+          ]
+        },
+        "2": {
+          "n": 15,
+          "correct": 15,
+          "recall": 1.0,
+          "ci95": [
+            0.7961,
+            1.0
+          ]
+        }
+      },
+      "by_kind": {
+        "decision_stable": {
+          "1": {
+            "n": 10,
+            "correct": 10,
+            "recall": 1.0,
+            "ci95": [
+              0.7225,
+              1.0
+            ]
+          },
+          "2": {
+            "n": 10,
+            "correct": 10,
+            "recall": 1.0,
+            "ci95": [
+              0.7225,
+              1.0
+            ]
+          }
+        },
+        "decision_revised": {
+          "1": {
+            "n": 5,
+            "correct": 5,
+            "recall": 1.0,
+            "ci95": [
+              0.5655,
+              1.0
+            ]
+          },
+          "2": {
+            "n": 5,
+            "correct": 5,
+            "recall": 1.0,
+            "ci95": [
+              0.5655,
+              1.0
+            ]
+          }
+        },
+        "constraint": {
+          "1": {
+            "n": 10,
+            "correct": 10,
+            "recall": 1.0,
+            "ci95": [
+              0.7225,
+              1.0
+            ]
+          },
+          "2": {
+            "n": 10,
+            "correct": 10,
+            "recall": 1.0,
+            "ci95": [
+              0.7225,
+              1.0
+            ]
+          }
+        },
+        "literal": {
+          "1": {
+            "n": 10,
+            "correct": 10,
+            "recall": 1.0,
+            "ci95": [
+              0.7225,
+              1.0
+            ]
+          },
+          "2": {
+            "n": 10,
+            "correct": 10,
+            "recall": 1.0,
+            "ci95": [
+              0.7225,
+              1.0
+            ]
+          }
+        },
+        "failed": {
+          "1": {
+            "n": 5,
+            "correct": 5,
+            "recall": 1.0,
+            "ci95": [
+              0.5655,
+              1.0
+            ]
+          },
+          "2": {
+            "n": 5,
+            "correct": 5,
+            "recall": 1.0,
+            "ci95": [
+              0.5655,
+              1.0
+            ]
+          }
+        }
+      },
+      "cost_usd": 3.0421,
+      "cvk": {
+        "1": {
+          "n": 10,
+          "violations": 0,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.2775
+          ]
+        },
+        "2": {
+          "n": 10,
+          "violations": 0,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.2775
+          ]
+        }
+      },
+      "lfk_plausible_wrong": {
+        "1": 0,
+        "2": 0
+      }
+    },
+    "native": {
+      "drk": {
+        "1": {
+          "n": 15,
+          "correct": 5,
+          "recall": 0.3333,
+          "ci95": [
+            0.1518,
+            0.5829
+          ]
+        },
+        "2": {
+          "n": 15,
+          "correct": 0,
+          "recall": 0.0,
+          "ci95": [
+            0.0,
+            0.2039
+          ]
+        }
+      },
+      "by_kind": {
+        "decision_stable": {
+          "1": {
+            "n": 10,
+            "correct": 0,
+            "recall": 0.0,
+            "ci95": [
+              0.0,
+              0.2775
+            ]
+          },
+          "2": {
+            "n": 10,
+            "correct": 0,
+            "recall": 0.0,
+            "ci95": [
+              0.0,
+              0.2775
+            ]
+          }
+        },
+        "decision_revised": {
+          "1": {
+            "n": 5,
+            "correct": 5,
+            "recall": 1.0,
+            "ci95": [
+              0.5655,
+              1.0
+            ]
+          },
+          "2": {
+            "n": 5,
+            "correct": 0,
+            "recall": 0.0,
+            "ci95": [
+              0.0,
+              0.4345
+            ]
+          }
+        },
+        "constraint": {
+          "1": {
+            "n": 10,
+            "correct": 10,
+            "recall": 1.0,
+            "ci95": [
+              0.7225,
+              1.0
+            ]
+          },
+          "2": {
+            "n": 10,
+            "correct": 10,
+            "recall": 1.0,
+            "ci95": [
+              0.7225,
+              1.0
+            ]
+          }
+        },
+        "literal": {
+          "1": {
+            "n": 10,
+            "correct": 0,
+            "recall": 0.0,
+            "ci95": [
+              0.0,
+              0.2775
+            ]
+          },
+          "2": {
+            "n": 10,
+            "correct": 0,
+            "recall": 0.0,
+            "ci95": [
+              0.0,
+              0.2775
+            ]
+          }
+        },
+        "failed": {
+          "1": {
+            "n": 5,
+            "correct": 5,
+            "recall": 1.0,
+            "ci95": [
+              0.5655,
+              1.0
+            ]
+          },
+          "2": {
+            "n": 5,
+            "correct": 5,
+            "recall": 1.0,
+            "ci95": [
+              0.5655,
+              1.0
+            ]
+          }
+        }
+      },
+      "cost_usd": 2.908,
+      "cvk": {
+        "1": {
+          "n": 10,
+          "violations": 0,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.2775
+          ]
+        },
+        "2": {
+          "n": 10,
+          "violations": 0,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.2775
+          ]
+        }
+      },
+      "lfk_plausible_wrong": {
+        "1": 0,
+        "2": 0
+      }
+    }
+  },
+  "comparisons": {
+    "ctx_vs_native_dr@2": {
+      "b": 15,
+      "c": 0,
+      "p_value": 6.1e-05
+    }
+  }
+}

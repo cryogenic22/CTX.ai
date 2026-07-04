@@ -119,8 +119,14 @@ def probe_cell(ctx: dict, k: int, recall: list, adherence: list, *,
             extra_env=probe_env, **tools)
         answers = probes_mod.parse_batch(res.result, len(recall))
         for i, p in enumerate(recall, 1):
-            rows.append(base(p, res, answers.get(i, ""),
-                             parse_failure=i not in answers))
+            row = base(p, res, answers.get(i, ""),
+                       parse_failure=i not in answers)
+            if i > 1:
+                # one shared call: carry its cost/usage on the first row
+                # only, or the report sums it 40x
+                row["cost_usd"] = None
+                row["usage"] = {}
+            rows.append(row)
     else:
         for p in recall:
             res = driver.run_claude(
