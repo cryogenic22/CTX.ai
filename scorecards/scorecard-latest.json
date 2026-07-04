@@ -1,0 +1,197 @@
+{
+  "schema": "ctxpack-scorecard/v1",
+  "generated_at": "2026-07-04T11:16:54+00:00",
+  "measurement_class": "observational \u2014 supports adoption and token-economics claims only; accuracy/quality claims require resume-probe or CompactBench results",
+  "cohort": {
+    "repos_total": 6,
+    "repos_active": 5,
+    "sessions": 10,
+    "checkpoints": 21,
+    "turns_packed": 7066,
+    "captured": {
+      "decisions": 49,
+      "constraints": 1,
+      "failed_approaches": 8,
+      "errors": 63,
+      "files_changed": 203,
+      "tasks": 57,
+      "requests": 70
+    },
+    "read_path": {
+      "ledger_reads": 17,
+      "transcript_greps": 6,
+      "raw_fallback_rate": 0.261
+    }
+  },
+  "repos": [
+    {
+      "repo": "CTX_mod",
+      "path": "C:/Users/kapil/Documents/CTX_mod",
+      "status": "active",
+      "sessions": 2,
+      "checkpoints": 11,
+      "captured": {
+        "decisions": 5,
+        "constraints": 1,
+        "failed_approaches": 1,
+        "errors": 14,
+        "files_changed": 55,
+        "tasks": 24,
+        "requests": 15,
+        "literals": 21
+      },
+      "read_path": {
+        "ledger_reads": 7,
+        "transcript_greps": 3,
+        "raw_fallback_rate": 0.3
+      },
+      "gist_bpe": {
+        "latest_per_session": [
+          1989
+        ]
+      },
+      "checkpoint_latency_ms": {
+        "max": 315.8,
+        "mean": 240.2
+      },
+      "turns_packed": 1402
+    },
+    {
+      "repo": "market_zero",
+      "path": "C:/Users/kapil/Documents/market_zero",
+      "status": "active",
+      "sessions": 2,
+      "checkpoints": 3,
+      "captured": {
+        "decisions": 19,
+        "constraints": 0,
+        "failed_approaches": 4,
+        "errors": 13,
+        "files_changed": 32,
+        "tasks": 20,
+        "requests": 20,
+        "literals": 145
+      },
+      "read_path": {
+        "ledger_reads": 5,
+        "transcript_greps": 0,
+        "raw_fallback_rate": 0.0
+      },
+      "gist_bpe": {
+        "latest_per_session": [
+          1964,
+          1994
+        ]
+      },
+      "checkpoint_latency_ms": {
+        "max": 324.2,
+        "mean": 264.2
+      },
+      "turns_packed": 1502
+    },
+    {
+      "repo": "KP_SDLC",
+      "path": "C:/Users/kapil/Documents/KP_SDLC",
+      "status": "active",
+      "sessions": 1,
+      "checkpoints": 1,
+      "captured": {
+        "decisions": 7,
+        "constraints": 0,
+        "failed_approaches": 2,
+        "errors": 6,
+        "files_changed": 38,
+        "tasks": 0,
+        "requests": 12,
+        "literals": 31
+      },
+      "read_path": {
+        "ledger_reads": 0,
+        "transcript_greps": 1,
+        "raw_fallback_rate": 1.0
+      },
+      "gist_bpe": {
+        "latest_per_session": [
+          1982
+        ]
+      },
+      "checkpoint_latency_ms": {
+        "max": 436.9,
+        "mean": 436.9
+      },
+      "turns_packed": 779
+    },
+    {
+      "repo": "Scriptiva_SCA",
+      "path": "C:/Users/kapil/Scriptiva_SCA",
+      "status": "active",
+      "sessions": 1,
+      "checkpoints": 2,
+      "captured": {
+        "decisions": 7,
+        "constraints": 0,
+        "failed_approaches": 0,
+        "errors": 8,
+        "files_changed": 17,
+        "tasks": 5,
+        "requests": 5,
+        "literals": 24
+      },
+      "read_path": {
+        "ledger_reads": 4,
+        "transcript_greps": 1,
+        "raw_fallback_rate": 0.2
+      },
+      "gist_bpe": {
+        "latest_per_session": [
+          1812
+        ]
+      },
+      "checkpoint_latency_ms": {
+        "max": 331.2,
+        "mean": 295.1
+      },
+      "turns_packed": 704
+    },
+    {
+      "repo": "setu",
+      "path": "C:/Users/kapil/Documents/setu",
+      "status": "active",
+      "sessions": 4,
+      "checkpoints": 4,
+      "captured": {
+        "decisions": 11,
+        "constraints": 0,
+        "failed_approaches": 1,
+        "errors": 22,
+        "files_changed": 61,
+        "tasks": 8,
+        "requests": 18,
+        "literals": 54
+      },
+      "read_path": {
+        "ledger_reads": 1,
+        "transcript_greps": 1,
+        "raw_fallback_rate": 0.5
+      },
+      "gist_bpe": {
+        "latest_per_session": [
+          911,
+          989,
+          1666,
+          1756
+        ]
+      },
+      "checkpoint_latency_ms": {
+        "max": 636.6,
+        "mean": 379.1
+      },
+      "turns_packed": 2679
+    },
+    {
+      "repo": "WhynotFamous",
+      "path": "C:/Users/kapil/Documents/WhynotFamous",
+      "status": "onboarded_no_data"
+    }
+  ]
+}

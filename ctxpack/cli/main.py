@@ -308,6 +308,19 @@ def main(argv: list[str] | None = None) -> int:
     p_onboard.add_argument("--project-dir", default=".",
                            help="Repo root (default: current directory)")
 
+    # scorecard — Layer-1 cross-repo telemetry aggregation
+    p_score = sub.add_parser(
+        "scorecard",
+        help="Aggregate every onboarded repo's ledger telemetry into a "
+             "versioned scorecard (+ optional HTML dashboard)")
+    p_score.add_argument("--repos", nargs="+", default=None,
+                         help="Repo paths; omitted = use the saved cohort "
+                              "(scorecards/cohort.json)")
+    p_score.add_argument("--out", default="scorecards",
+                         help="Output dir (default: scorecards/)")
+    p_score.add_argument("--html", action="store_true",
+                         help="Also render dashboard.html")
+
     # session — read path over the checkpoint ledger (P4)
     p_session = sub.add_parser(
         "session",
@@ -378,6 +391,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_install_hooks(args)
         elif args.command == "onboard":
             return _cmd_onboard(args)
+        elif args.command == "scorecard":
+            return _cmd_scorecard(args)
         elif args.command == "session":
             return _cmd_session(args)
     except ParseError as e:
@@ -1035,6 +1050,56 @@ def _cmd_hook(args: argparse.Namespace) -> int:
                 "additionalContext": gist,
             }
         }))
+    return 0
+
+
+def _cmd_scorecard(args: argparse.Namespace) -> int:
+    """Layer-1 aggregation: cohort ledgers → versioned scorecard (+ HTML)."""
+    from ..agent.scorecard import (
+        build_scorecard,
+        load_cohort,
+        save_cohort,
+        write_scorecard,
+    )
+
+    repos = args.repos
+    if repos:
+        save_cohort(repos, args.out)
+    else:
+        repos = load_cohort(args.out)
+        if not repos:
+            print("Error: no --repos given and no saved cohort at "
+                  f"{args.out}/cohort.json", file=sys.stderr)
+            return 1
+
+    scorecard = build_scorecard(repos)
+    json_path, latest = write_scorecard(scorecard, args.out)
+    print(f"Scorecard: {json_path}")
+
+    cohort = scorecard["cohort"]
+    rate = cohort["read_path"]["raw_fallback_rate"]
+    print(f"  repos: {cohort['repos_active']}/{cohort['repos_total']} active"
+          f"  sessions: {cohort['sessions']}"
+          f"  turns packed: {cohort['turns_packed']:,}")
+    print(f"  captured: {cohort['captured']['decisions']} decisions, "
+          f"{cohort['captured']['constraints']} constraints, "
+          f"{cohort['captured']['failed_approaches']} dead ends")
+    print(f"  raw-fallback rate: "
+          f"{'n/a (no reads yet)' if rate is None else f'{rate:.0%}'}")
+    for r in scorecard["repos"]:
+        mark = "*" if r.get("status") == "active" else "-"
+        print(f"   {mark} {r['repo']}: {r.get('status')}"
+              + (f" ({r.get('sessions')} sessions, "
+                 f"{r.get('captured', {}).get('decisions', 0)} decisions)"
+                 if r.get("status") == "active" else ""))
+
+    if args.html:
+        from ..agent.dashboard import render_dashboard
+
+        html_path = os.path.join(args.out, "dashboard.html")
+        with open(html_path, "w", encoding="utf-8", newline="\n") as f:
+            f.write(render_dashboard(scorecard))
+        print(f"Dashboard: {html_path}")
     return 0
 
 
