@@ -1,267 +1,265 @@
 # CtxPack
 
-**Progressive hydration for cost-efficient LLM domain knowledge serving.**
+**Deterministic session memory for long-running agents — and a
+zero-dependency knowledge packer with progressive hydration.**
 
-CtxPack is a deterministic knowledge compiler that structures domain files (YAML, Markdown, JSON) into an indexed knowledge base and serves relevant sections per query through progressive hydration — matching RAG fidelity (86.7%) at 24x lower cost than raw context stuffing, with zero infrastructure requirements.
+> **"Compaction is a commit, not a loss event."**
+
+When a Claude Code session compacts (or ends, or you `/clear`), the
+decisions, constraints, and dead ends it contained normally dissolve into
+a lossy LLM summary. CtxPack instead **packs the session transcript into a
+deterministic, git-committable ledger** — every fact with provenance to
+the exact turn — and re-injects a ~2K-token gist at the next session
+start. Mid-session, agents query the ledger instead of grepping megabytes
+of transcript.
 
 ```
-Your domain knowledge:                     What CtxPack does:
-  37 YAML entity definitions                 1. Pack: resolve, dedup, detect conflicts
-  11 Markdown runbooks            ------>    2. Index: ultra-lean L3 directory (1.8K tokens)
-   5 governance rule files                   3. Serve: hydrate relevant sections per query
-  92,000 BPE tokens total                      ~3,900 tokens per query (24x cheaper)
+ session transcript (L0, never deleted)
+        │  PreCompact / SessionEnd hook  (zero LLM, <2s, fail-open)
+        ▼
+ .claude/ctx/session-<id>.ctx      ← decisions, constraints, failed
+ .claude/ctx/session-<id>-gist.md    approaches, errors, files, tasks —
+ .claude/ctx/checkpoints.jsonl       each with turn provenance
+        │  SessionStart hook
+        ▼
+ next session begins knowing what was decided and why
 ```
 
-## Why
+No LLM ever writes to memory: same transcript → byte-identical ledger.
+That single property is what the incumbent memory systems (Mem0, Zep,
+Letta, LangMem) structurally lack — their LLM-in-the-write-path designs
+are nondeterministic, unauditable, and subject to documented context
+collapse (ACE, ICLR 2026).
 
-LLM APIs charge per token. Stuffing 92K tokens of domain knowledge into every prompt costs $1.39/query on Claude Opus — $42K/month at 1,000 queries/day.
+| | Native compaction | Claude auto-memory | LLM memory products | **CtxPack ledger** |
+|---|:---:|:---:|:---:|:---:|
+| Deterministic writes (no LLM scribe) | ✗ | ✗ | ✗ | ✓ |
+| Versioned with the repo (PR-reviewable) | ✗ | ✗ | ✗ | ✓ |
+| Provenance to the exact turn | ✗ | ✗ | ✗ | ✓ |
+| Survives `/clear` & machine switches | ✗ | partial | ✓ | ✓ |
 
-But the problem isn't just cost. Wang & Sun (ICML 2025) demonstrate that LLM retrieval accuracy **degrades log-linearly** as competing information accumulates in context, regardless of window size. Stuffing 37 entity definitions with overlapping field names creates exactly the interference conditions that degrade retrieval.
-
-CtxPack addresses both: **26x cost reduction** by hydrating only relevant sections, and **interference reduction** by eliminating the competing information that degrades accuracy.
-
-### Key results
-
-Evaluated on a 92K-token enterprise corpus (37 entities, 30 questions), cross-model GPT-4o judge, zero judge failures:
-
-| Method | BPE/Query | Fidelity | Cost/Query |
-|--------|:---------:|:--------:|:----------:|
-| Raw context stuffing | 92,482 | 83.3% | $1.39 |
-| RAG (embed + top-5) | 3,917 | 86.7% | $0.059 |
-| **CtxPack hydrated** | **3,876** | **86.7%** | **$0.058** |
-
-CtxPack matches RAG fidelity exactly while providing deterministic output, conflict detection, and provenance that RAG lacks. Both beat raw stuffing at 24x lower cost.
-
-By difficulty (Claude Opus 4.6):
-
-| Difficulty | Raw | Hydrated | Questions |
-|------------|:---:|:--------:|:---------:|
-| Easy | 83% | 83% | 12 |
-| Medium | 89% | 89% | 9 |
-| Hard | 78% | **89%** | 9 |
-
-On hard multi-hop questions, re-hydration beats raw stuffing by 11 percentage points.
-
-## Install
+## Quick start — session memory
 
 ```bash
-pip install -e .
+pip install "git+https://github.com/cryogenic22/CTX.ai"   # zero deps
+cd your-repo
+ctxpack onboard
 ```
 
-Requires Python 3.10+. Zero runtime dependencies.
+`onboard` idempotently wires: Claude Code **hooks** (PreCompact /
+SessionStart / SessionEnd), the **MCP server** entry in `.mcp.json`, the
+**conventions block** in `CLAUDE.md`, and the ledger dir. Then restart
+Claude Code and approve the hooks + server (config is snapshotted at
+startup — nothing fires until you restart).
 
-## Quick start
-
-### Pack a corpus
+Use it:
 
 ```bash
-ctxpack pack path/to/corpus/
+ctxpack session decisions              # decisions/constraints/failed approaches, with turns
+ctxpack session timeline --kinds DECISION,ERROR --limit 20
+ctxpack session recall "backoff"       # index → hydrate, the L3 routing pattern
+ctxpack session why "pool_size"        # provenance + supersession chain
+ctxpack session stats                  # adoption + capture metrics (see below)
 ```
 
-The corpus directory should contain YAML entity files, Markdown docs, and an optional `ctxpack.yaml` config.
+The same five operations are MCP tools (`ctx/session_recall`,
+`ctx/session_timeline`, `ctx/session_decisions`, `ctx/why`,
+`ctx/graph_query`) for agents with the server connected.
 
-### Hydrate sections
+**The one habit that matters:** state decisions explicitly —
+`Decision: use exponential backoff with base 750ms because the vendor
+limit is 40 req/min.` Structured signals extract deterministically
+(measured 100% on the convention); free-prose decision mining measured
+~0% recall on real transcripts, so the convention is load-bearing.
+
+### Built-in measurement (is it earning its keep?)
+
+Adoption telemetry is computed **from the transcript itself** at
+checkpoint time — deterministic, automatic, un-gameable. Per session,
+`checkpoints.jsonl` records ledger reads vs raw-transcript fallbacks,
+capture counts, gist size, and checkpoint latency. `ctxpack session
+stats` aggregates it; the headline is **`raw_fallback_rate`** — if agents
+keep grepping the transcript instead of using the ledger, the format
+isn't paying rent and the numbers will say so.
+
+## Measured results (read the caveats)
+
+**Agentic NIAH** (synthetic coding-agent trajectories, 12 probes incl.
+updated-value chains and adversarials; Sonnet answerer, GPT-4o judge):
+fidelity saturates for *all* conditions at ≤64K — the differentiator is
+cost. CtxPack answers from a flat **~400 BPE per query regardless of
+session length** (166x less context than raw stuffing at 64K), and the
+packed structure answers whole-corpus aggregation questions that
+budget-bounded top-k retrieval structurally misses.
+
+**GraphWalks-adapted** (service-dependency graphs, exact set-F1):
+in-context reasoning degrades on reverse-dependency questions even at
+11K BPE (RAW 0.78–0.82); the deterministic traversal over packed edges
+(`ctx/graph_query`) is exact — **F1 = 1.000 at every scale** — with zero
+model tokens spent on traversal. Packing preserved 100% of edges.
+
+**Document QA** (92K-BPE synthetic enterprise corpus, 30 questions,
+cross-model judge): hydrated **86.7%** vs raw stuffing **83.3%** on
+Opus-class models, tying embedding-RAG at ~24x fewer context tokens per
+query (full-loop accounting pending; likely 10–15x).
+
+**Caveats, stated plainly:** n=30 self-authored questions carries a
+±13–18pp CI — treat the fidelity deltas as directional, not definitive.
+Single synthetic corpus; no closed-book contamination control yet; on
+Haiku-class models raw stuffing wins; sub-Haiku routers collapse. A
+decision-recall-across-compaction benchmark (CompactBench, DR@K) with
+grep-over-transcript as the null-hypothesis arm is in progress —
+current honest numbers live in
+[`paper/status-and-value-v0.5.md`](paper/status-and-value-v0.5.md).
+
+## The knowledge packer (the original engine)
+
+The same deterministic pipeline packs domain corpora (YAML, Markdown,
+JSON, TOML, CSV) into an indexed knowledge base served by progressive
+hydration:
 
 ```bash
-# List available sections
-ctxpack hydrate output.ctx --list
-
-# Hydrate a specific section
+ctxpack pack path/to/corpus/ --layers L2,L3
 ctxpack hydrate output.ctx --section ENTITY-CUSTOMER
-
-# Keyword-based hydration
 ctxpack hydrate output.ctx --query "retention policy PII"
 ```
 
-### Parse and validate
+1. **Pack** (encoder): discover → parse → entity resolution → conflict
+   detection → salience scoring → compress. Same input = byte-identical
+   output. No LLM, no ML, no network.
+2. **Progressive hydration** (decoder): a ~1.8K-BPE **L3 directory
+   index** sits in the system prompt; the **LLM routes** (no embeddings,
+   no vector DB); requested sections (~3.5K BPE avg) are injected as
+   focused, low-interference context.
+3. **Temporal semantics**: same-key revisions supersede
+   (`SUPERSEDED-<KEY>: 250@step-0 -> 500@step-2 -> 750@step-4`) — the
+   latest value wins, history stays auditable. Negations are never
+   stripped or reordered (CI-gated).
+
+The `.ctx` format is a multi-resolution layer system (L0 raw → L3 index)
+with a formal [PEG grammar](spec/ctx.peg); spec:
+[`spec/CTXPACK-SPEC.md`](spec/CTXPACK-SPEC.md) (CC-BY-SA 4.0).
+
+## MCP server — 17 tools
 
 ```bash
-ctxpack parse file.ctx
-ctxpack validate file.ctx
-ctxpack fmt file.ctx          # Canonical formatting
+pip install "ctxpack[mcp] @ git+https://github.com/cryogenic22/CTX.ai"
+python -m ctxpack.integrations.mcp_server
 ```
 
-### Compression presets
+| Group | Tools |
+|---|---|
+| Session memory | `ctx/session_recall`, `ctx/session_timeline`, `ctx/session_decisions`, `ctx/why`, `ctx/graph_query` |
+| Documents | `ctx/pack`, `ctx/parse`, `ctx/validate`, `ctx/format`, `ctx/hydrate` |
+| Code packer (`[code]` extra) | `ctx/code_pack`, `ctx/code_version`, `ctx/code_list_symbols`, `ctx/code_hydrate_symbol`, `ctx/code_search_symbols`, `ctx/code_raw_file`, `ctx/code_telemetry` |
+
+## Install matrix
 
 ```bash
-ctxpack pack corpus/ --preset conservative   # Keep everything
-ctxpack pack corpus/ --preset balanced       # Default
-ctxpack pack corpus/ --preset aggressive     # Drop low-salience fields
+pip install "git+https://github.com/cryogenic22/CTX.ai"                    # core: hooks + session CLI (zero deps)
+pip install "ctxpack[mcp] @ git+https://github.com/cryogenic22/CTX.ai"     # + MCP server
+pip install "ctxpack[all] @ git+https://github.com/cryogenic22/CTX.ai"     # + code packer (tree-sitter, tiktoken)
 ```
 
-## How it works
+Python 3.10+. The core is and stays **zero-dependency** — hooks, the
+checkpoint engine, and `ctxpack session` need nothing but the stdlib.
 
-### 1. Pack pipeline (encoder)
-
-The packer compiles domain files through six deterministic stages:
-
-1. **Discover** — classify files (YAML/MD/JSON/TOML/CSV), load config
-2. **Parse** — extract entities, fields, relationships from each format (5 parsers)
-3. **Entity resolution** — normalize names, merge aliases, deduplicate fields across sources
-4. **Conflict detection** — flag contradictions: retention mismatches, type conflicts, PII inconsistencies
-5. **Salience scoring** — rank entities/fields by cross-reference density, golden-source status, relationship keys
-6. **Compress** — build output AST with provenance and certainty annotations
-
-Same input = byte-identical output. No LLM, no ML, no network calls.
-
-### 2. Progressive hydration (decoder)
-
-Rather than injecting the entire knowledge base, CtxPack serves content through a three-step protocol:
-
-**L3 Directory Index** (~1,800 BPE) — lists available sections with identifiers. Goes in the system prompt permanently.
-
-**LLM-as-Router** — the LLM reads the directory, decides which 1-3 sections are relevant to the question. No embeddings, no vector database.
-
-**Section Hydration** (~3,500 BPE avg) — requested sections are injected as focused context. The LLM answers from targeted, low-interference content.
-
-### 3. MCP server integration
-
-```bash
-python -m ctxpack.integrations
-```
-
-Exposes five tools: `ctx/pack`, `ctx/parse`, `ctx/validate`, `ctx/format`, `ctx/hydrate`.
-
-## The .ctx format
-
-Multi-resolution layer system with a formal [PEG grammar](spec/ctx.peg):
-
-| Layer | Purpose | Token budget |
-|-------|---------|:------------:|
-| L0 | Raw source (lossless) | Full |
-| L1 | Compressed prose | ~400 tokens |
-| L2 | Semantic graph (entities + KV) | ~140 tokens |
-| L3 | Directory index / gist | ~50 tokens |
-
-Specification: [`spec/CTXPACK-SPEC.md`](spec/CTXPACK-SPEC.md)
-
-## Opt-in modules
-
-Production-tested modules for common integration patterns. Import only what you need:
-
-```python
-from ctxpack.modules.grounding import build_grounded_prompt    # Sandwich prompt wrapper
-from ctxpack.modules.keywords import KeywordIndex              # Word-boundary matching
-from ctxpack.modules.guard import ContextGuard                 # Hallucination detection
-from ctxpack.modules.catalog_queries import is_catalog_query   # "How many?" detection
-from ctxpack.modules.analytics import compile_domain_packs     # Analytics domain packs
-```
-
-| Module | What it does | Source |
-|--------|-------------|--------|
-| **grounding** | Sandwich prompt: rules (top) + data (middle) + checklist (bottom) | Pharma team field report |
-| **keywords** | Word-boundary matching, one-to-many resolution, auto-generated from entity names | Production bug fix |
-| **guard** | Detects hallucinated entity names in LLM response, recommends warn/retry/new_session | Production bug fix |
-| **catalog_queries** | Detects "how many?" / "list all" intent, builds grouped summary with counts | Pharma team field report |
-| **analytics** | Compiles YAML domain packs into unified corpus with cross-domain dedup | Bright_Light integration |
-
-See [pharma team guide](paper/pharma-team-guide.md) and [analytics team guide](paper/analytics-team-guide.md) for detailed integration instructions.
+Team rollout guide (setup, usage habits, two-week measurement protocol,
+troubleshooting):
+[`docs/session-memory-onboarding.md`](docs/session-memory-onboarding.md).
 
 ## Project structure
 
 ```
 ctxpack/
   core/              # Parser, serializer, validator, packer (zero deps)
-    packer/          # Entity extraction, resolution, compression (YAML/MD/JSON/TOML/CSV)
-    hydrator.py      # Section-level hydration + re-hydration
-    hydration_protocol.py  # L3 directory index, LLM-as-router protocol
-    entity_graph.py  # Entity relationship graph (BFS traversal, path finding)
+    packer/          # Entity extraction, resolution, supersession, compression
+    hydrator.py      # Section hydration + layer/confidence/expiry filtering
+    entity_graph.py  # Directed entity graph (parents/bfs/path + query API)
     telemetry.py     # Append-only JSONL hydration telemetry
-  modules/           # Opt-in feature modules (grounding, keywords, guard, analytics)
-  integrations/      # MCP server (5 tools)
-  cli/               # Command-line interface
-  benchmarks/        # Evaluation framework, baselines, metrics
-    ctxpack_eval/    # Golden set (20 questions, 8 entities)
-    scaling/         # Enterprise corpus (37 entities, 30 questions, 92K BPE)
-    metrics/         # BPE-primary compression, fidelity (with retry + cross-model judge)
-    results/         # Clean eval results (definitive, scaling, model spread)
-spec/                # CTXPACK-SPEC v1.0, PEG grammar
-paper/               # Whitepaper v3, integration guides
-tests/               # 770 tests, ~17 seconds, no network calls
+  agent/             # Session-memory substrate
+    transcript_parser.py  # Claude Code JSONL → IR (structured signals, turn provenance)
+    checkpoint.py         # Pack-on-compact engine + gist builder
+    session_reader.py     # Read path: recall/timeline/decisions/why/stats
+  modules/           # Opt-in modules (grounding, keywords, guard, analytics)
+  integrations/      # MCP server (17 tools)
+  cli/               # ctxpack CLI (pack, hydrate, checkpoint, hook, onboard, session, ...)
+  benchmarks/        # Eval framework, agentic NIAH + graph generators, metrics
+spec/                # CTXPACK-SPEC, PEG grammar
+paper/               # Whitepaper, status-and-value (current honest numbers), plan
+docs/                # Team onboarding guide
+tests/               # 1,323 tests; core suite deterministic, no API keys
 ```
 
-## Tests
+## Tests & rigor
 
 ```bash
-pip install pytest
-python -m pytest tests/ -x -q
+python -m pytest tests/ -q        # full suite (~35 min); scope to touched files first
 ```
 
-770 tests including 25 eval pipeline tests, 7 metric sanity guards, and module-specific test suites. All deterministic, no API keys required.
+1,323 tests including CI gates that exist because each caught a real
+past failure: negation preservation (a compressor once turned "do not
+force-push" into "force-push"), byte-determinism (two packs → identical
+SHA-256), metric sanity guards (BPE vs word-count gaming, judge
+rate-limit failures scored as INCORRECT), and extraction regression
+tests from dogfooding this repo on its own ledger.
 
-### Metric sanity guards
+Standing eval policy: BPE tokens as the primary metric, cross-model
+judging, retry with transient-error classification (429/529/…),
+immutable versioned results, retracted claims never re-cited.
 
-Seven CI-gated tests specifically prevent measurement errors:
+## Research context
 
-| Guard | What it catches |
-|-------|----------------|
-| BPE/word ratio ≤ 5.0 | Encoding that games word-count metrics |
-| Compression ratio divergence ≤ 3.0x | Word vs BPE ratio inconsistency |
-| Header token accuracy | Misleading CTX_TOKENS metadata |
-| L3 size < 50% of L2 | Bloated system prompt |
-| NL prose readability | Degenerate serialization |
-| Judge failure detection | Rate-limit errors scored as failures |
-| Retry logic | Transient API errors handled correctly |
-
-## Evaluation
-
-The evaluation framework uses BPE tokens (tiktoken) as the primary metric, cross-model judging (GPT-4o grades other models' answers), exponential backoff retry, and automated red-team checks.
-
-### Running evaluations
-
-```bash
-# Enterprise-scale eval (requires API keys in .env)
-python run_scaling_eval.py
-
-# Model spread test (Haiku + GPT-4o-mini)
-python run_model_spread_eval.py
-```
-
-### Red team checks (run automatically)
-
-| Check | Threshold |
-|-------|-----------|
-| L3 index budget | < 10% of corpus |
-| Hydration cost vs raw | ≤ 20% |
-| Hydration fidelity floor | ≥ 50% |
-| Fidelity gap | ≤ 15pp |
-| Rule/Judge divergence | ≤ 30pp |
-| Judge failure rate | ≤ 10% |
-
-See the [whitepaper](paper/ctxpack-whitepaper-v3.md) for complete methodology and results.
-
-## Research foundation
-
-CtxPack's architecture is grounded in:
-
-- **Wang & Sun (2025)**, "Unable to Forget: Proactive Interference Reveals Working Memory Limits in LLMs Beyond Context Length" (ICML 2025 Workshop). Demonstrates that LLM retrieval degrades with competing information — validates progressive hydration as interference reduction.
+- **Wang & Sun (ICML 2025)** — proactive interference: recall of the
+  *latest* value degrades log-linearly with prior updates. CtxPack's
+  supersession chains collapse update-noise at pack time.
+- **ConstraintRot (arXiv 2606.22528)** — constraint violations go
+  0% → 30–59% after compaction; the published fix ("constraint pinning")
+  is what a deterministic re-injected RULES gist implements.
+- **ACE (ICLR 2026)** — LLM-rewrite memory collapses (18,282 → 122
+  tokens); their prescription (delta updates, non-LLM merge) is CtxPack's
+  write path.
+- **RLM (Zhang/Kraska/Khattab)** — never summarize destructively; keep
+  context externally addressable and pull slices on demand. The `.ctx`
+  ledger is that external variable; `graph_query` is their
+  "programmatic access beats in-context reasoning" argument, measured.
+- **Letta filesystem baseline** — grep-over-files at 74% on LoCoMo beats
+  dedicated memory products; accordingly, grep-over-transcript is the
+  mandatory null-hypothesis arm in our benchmark plan, and the telemetry
+  measures fallback to it in production use.
 
 ## Limitations
 
-- **7pp fidelity gap on multi-hop questions** — queries needing 4+ entities lose accuracy with 1-3 section retrieval
-- **Minimum model requirement** — LLM-as-router needs Haiku-class capability; GPT-4o-mini is too weak
-- **File-level BPE compression is ~1.0x** — value comes from per-query hydration, not file compression
-- **Synthetic corpus** — evaluated on generated enterprise data; real-world data is messier
-- **30-question sample** — directionally reliable but not statistically definitive (±18pp at 95% CI)
+- Fidelity results are n=30 / single synthetic corpus — directional, not
+  definitive (±13–18pp CI); no closed-book contamination control yet.
+- LLM-as-router needs Haiku-class capability or better; on small models
+  raw stuffing can win.
+- Decision extraction is deterministic *given the convention*
+  (`Decision: ...` lines); unmarked free-prose decisions are often
+  missed by design — we chose a convention over an LLM extractor.
+- Hooks require a Claude Code restart after install (config snapshots at
+  process startup); the ledger is per-repo, per-machine unless committed
+  to git.
+- Format schism (spec v1.1 pending): layer/confidence/expiry annotations
+  have no surface syntax yet; supersession chains use positional `->`
+  encoding rather than stable fact IDs.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, code style, and PR process.
-
-Key policies:
-- Zero external dependencies for `ctxpack/core/`
-- All 770 tests must pass before merge
-- BPE tokens as primary metric for all compression/cost claims
-- Type hints on public functions
+See [CONTRIBUTING.md](CONTRIBUTING.md). Key policies: zero external
+dependencies in `ctxpack/core/` and `ctxpack/agent/`; all tests pass
+before merge; BPE tokens for all compression/cost claims; never strip
+negations; results files are immutable.
 
 ## Disclaimer
 
-CtxPack is a research tool provided as-is. It is not a substitute for professional judgment in regulated industries. Users are responsible for validating output against source material before production use. See [NOTICE](NOTICE) for trademark attributions.
-
-Benchmark results reference commercial LLM products by name for factual comparison purposes only.
+CtxPack is a research tool provided as-is. It is not a substitute for
+professional judgment in regulated industries. Users are responsible for
+validating output against source material before production use. See
+[NOTICE](NOTICE) for trademark attributions. Benchmark results reference
+commercial LLM products by name for factual comparison purposes only.
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE).
-
-The `.ctx` format specification ([`spec/CTXPACK-SPEC.md`](spec/CTXPACK-SPEC.md)) is licensed under CC-BY-SA 4.0.
+Apache-2.0. See [LICENSE](LICENSE). The `.ctx` format specification is
+CC-BY-SA 4.0.
