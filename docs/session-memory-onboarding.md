@@ -47,8 +47,11 @@ python -m ctxpack.cli.main onboard
 This idempotently wires four things:
 
 1. **Hooks** into `.claude/settings.json` — PreCompact / SessionStart /
-   SessionEnd run the checkpoint engine (fail-open: a broken ledger never
-   breaks your session).
+   SessionEnd / Stop run the checkpoint engine (fail-open: a broken
+   ledger never breaks your session). The **Stop hook checkpoints every
+   ~10 turns** (debounced; `CTXPACK_STOP_DEBOUNCE_TURNS` to tune), so
+   even a hard crash — VS Code killed, power loss — costs at most a few
+   turns of ledger staleness, recoverable from the raw transcript.
 2. **MCP server** into `.mcp.json` — the read-path tools
    (`ctx/session_recall`, `ctx/session_timeline`, `ctx/session_decisions`,
    `ctx/why`, `ctx/graph_query`) plus the doc/code packer tools.
@@ -62,6 +65,21 @@ Then **restart Claude Code in that repo** and approve the hooks + MCP
 server when prompted. This step is not optional: Claude Code snapshots
 hook/MCP config at process startup, so until you restart, nothing fires
 (`/clear` is not a restart).
+
+**Already onboarded before?** Re-run `ctxpack onboard` after ctxpack
+upgrades — it's idempotent and picks up new hook entries (e.g. the Stop
+hook). Improvements *inside* existing hooks and MCP tools arrive with the
+package upgrade automatically, no re-onboard needed.
+
+### Multi-day memory: the project gist
+
+`latest-gist.md` covers the last session; **`project-gist.md`** rolls up
+decisions, constraints, and failed approaches across *all* earlier
+sessions (deduplicated, oldest first, each tagged `s:<session>#turn<n>`).
+Both are injected automatically at session start once the repo has more
+than one checkpointed session — so a brand-new agent (a frontend
+specialist, a teammate, a fresh machine after a crash) starts with the
+project's accumulated decisions, not just yesterday's.
 
 ## How to get max power
 
@@ -81,6 +99,16 @@ hook/MCP config at process startup, so until you restart, nothing fires
   revision chain; `--session <id>` reaches older sessions.
 - **Commit `.claude/ctx/`.** That's what makes memory branch-scoped,
   cross-machine, and reviewable — the properties nothing native has.
+- **Checkpoint before you `/clear` — every team, every session.** The
+  Stop hook keeps the ledger within ~10 turns of live automatically, but
+  banking explicitly before you wrap costs nothing and guarantees zero gap:
+  `ctxpack checkpoint --transcript <path-to-this-session.jsonl>` (transcripts
+  live under `~/.claude/projects/<project>/`). Pair it with whatever curated
+  notes your repo keeps (e.g. a `CLAUDE.md` / memory file): the curated notes
+  are the *narrative*, the ctx ledger is the deterministic *receipts* layer
+  (decisions, constraints, failed approaches, verbatim identifiers — every one
+  with turn provenance). This is a shared convention, not one person's habit —
+  any teammate resuming your branch reads the same gist.
 
 ## How we measure whether it's working (built-in)
 

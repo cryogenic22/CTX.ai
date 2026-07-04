@@ -289,6 +289,12 @@ Pre-register analysis plans in-repo before running; publish raw per-question JSO
 - **Adoption telemetry is now automatic and deterministic**: the transcript parser counts `ledger_reads` (CLI/MCP read-path calls) vs `transcript_greps` (raw-transcript fallbacks, excluding checkpoint writes) per session; checkpoint journal gains `gist_bpe` + `latency_ms`. `ctxpack session stats` aggregates the journal (last checkpoint per session wins) into the benefits report — the **raw-fallback rate** is the headline value signal, computed from the transcript itself with zero extra plumbing.
 - **First real baseline (this repo, day 1)**: 5 ledger reads vs 3 transcript greps (the greps predate the read path — this morning's hook diagnosis), fallback rate 0.375; checkpoint latency 142ms on a 1.2K-turn transcript; gist 1,029 BPE.
 
+**2026-07-04 — crash-tightness + multi-day memory.**
+
+- **Stop-hook debounced checkpoint**: new `hook stop` event checkpoints every ~10 turns (`CTXPACK_STOP_DEBOUNCE_TURNS`, 0 = every turn; journal-based debounce, fail-open). The crash-recovery window shrinks from "since last compaction" to "a few turns" with no manual step. Added to `_HOOK_SETTINGS` — already-onboarded repos re-run `ctxpack onboard` (idempotent) + restart once.
+- **Cross-session project gist**: `build_project_gist()` rolls up decisions/constraints/failed-approaches across all earlier session ledgers (journal-ordered, deduped, ≤1.5K BPE, stakes-ordered trim, excludes the current session whose own gist is injected alongside); regenerated on every checkpoint, removed when only one session exists. SessionStart now injects project rollup + last-session gist (`read_startup_context`). A new agent picking up 10 days of work starts with the project's accumulated decisions, not just yesterday's.
+- Upgrade model confirmed: behavior inside existing hooks/MCP ships with the package (all repos share the installed ctxpack); only hook-topology changes need the one-command re-onboard.
+
 Remaining from the 90-day sequence: spec v1.1 trust annotations + op-level journal, CompactBench, and the two-week dogfood telemetry report.
 
 ## Appendix A — Benchmark methodology notes (this commit)

@@ -30,6 +30,16 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -m ctxpack.cli.main hook stop"
+          }
+        ]
+      }
     ]
   }
 }

@@ -286,7 +286,8 @@ def main(argv: list[str] | None = None) -> int:
     p_hook = sub.add_parser(
         "hook", help="Claude Code hook entry points (read hook JSON on stdin)")
     p_hook.add_argument("event",
-                        choices=["pre-compact", "session-start", "session-end"],
+                        choices=["pre-compact", "session-start", "session-end",
+                                 "stop"],
                         help="Which hook event to handle")
     p_hook.add_argument("--out", default=".claude/ctx",
                         help="Ledger directory (default: .claude/ctx)")
@@ -981,7 +982,7 @@ def _cmd_hook(args: argparse.Namespace) -> int:
     import io as _io
     import json as _json
 
-    from ..agent.checkpoint import read_latest_gist, run_checkpoint
+    from ..agent.checkpoint import run_checkpoint
 
     # Read stdin as UTF-8 explicitly: on Windows the default is the locale
     # codec (cp1252), which corrupts non-ASCII transcript paths in the
@@ -1001,10 +1002,17 @@ def _cmd_hook(args: argparse.Namespace) -> int:
     if not os.path.isabs(out_dir) and payload.get("cwd"):
         out_dir = os.path.join(str(payload["cwd"]), out_dir)
 
-    if args.event in ("pre-compact", "session-end"):
+    if args.event in ("pre-compact", "session-end", "stop"):
         transcript = payload.get("transcript_path", "")
         if transcript and os.path.exists(transcript):
             try:
+                # Stop fires every turn — debounce; the other two always pack
+                if args.event == "stop":
+                    from ..agent.checkpoint import should_checkpoint_on_stop
+                    if not should_checkpoint_on_stop(
+                            transcript, out_dir,
+                            str(payload.get("session_id", ""))):
+                        return 0
                 result = run_checkpoint(transcript, out_dir)
                 print(f"ctxpack checkpoint: {result.entities} entities, "
                       f"{result.turns} turns -> {result.ctx_path}",
@@ -1013,11 +1021,13 @@ def _cmd_hook(args: argparse.Namespace) -> int:
                 print(f"ctxpack checkpoint failed: {e}", file=sys.stderr)
         return 0
 
-    # session-start: inject the previous session's gist. This includes
-    # /clear — clearing resets the CONTEXT, not the project memory
+    # session-start: inject the project rollup (cross-session decisions/
+    # constraints/failed approaches) + the previous session's gist. This
+    # includes /clear — clearing resets the CONTEXT, not the project memory
     # ("compaction is a commit, not a loss event" applies to clears too).
     # A true blank slate = temporarily disable the hooks.
-    gist = read_latest_gist(out_dir)
+    from ..agent.checkpoint import read_startup_context
+    gist = read_startup_context(out_dir)
     if gist:
         print(_json.dumps({
             "hookSpecificOutput": {
@@ -1110,6 +1120,10 @@ _HOOK_SETTINGS = {
                                  "command": f"{_HOOK_CMD} session-start"}]}],
     "SessionEnd": [{"hooks": [{"type": "command",
                                "command": f"{_HOOK_CMD} session-end"}]}],
+    # Debounced per-turn checkpoint: shrinks the crash-recovery window to
+    # ~CTXPACK_STOP_DEBOUNCE_TURNS turns (default 10) with no manual step
+    "Stop": [{"hooks": [{"type": "command",
+                         "command": f"{_HOOK_CMD} stop"}]}],
 }
 
 
@@ -1175,8 +1189,9 @@ def _cmd_install_hooks(args: argparse.Namespace) -> int:
         return 1
     print(f"Installed ctxpack hooks into {settings_path}")
     print(f"  PreCompact  -> {_HOOK_CMD} pre-compact   (pack before summarize)")
-    print(f"  SessionStart-> {_HOOK_CMD} session-start (re-inject gist)")
+    print(f"  SessionStart-> {_HOOK_CMD} session-start (re-inject gists)")
     print(f"  SessionEnd  -> {_HOOK_CMD} session-end   (final checkpoint)")
+    print(f"  Stop        -> {_HOOK_CMD} stop          (debounced per-turn checkpoint)")
     print("Ledger dir: .claude/ctx/  (commit it to give the repo durable memory)")
     print()
     _print_restart_warning()

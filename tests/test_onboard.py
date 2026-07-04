@@ -15,7 +15,7 @@ def test_onboard_fresh_repo(tmp_path):
     settings = json.loads(
         (tmp_path / ".claude" / "settings.json").read_text(encoding="utf-8"))
     assert set(settings["hooks"]) >= {"PreCompact", "SessionStart",
-                                      "SessionEnd"}
+                                      "SessionEnd", "Stop"}
 
     mcp = json.loads((tmp_path / ".mcp.json").read_text(encoding="utf-8"))
     assert mcp["mcpServers"]["ctxpack"]["args"] == [
@@ -37,7 +37,7 @@ def test_onboard_is_idempotent(tmp_path):
 
     settings = json.loads(
         (tmp_path / ".claude" / "settings.json").read_text(encoding="utf-8"))
-    for event in ("PreCompact", "SessionStart", "SessionEnd"):
+    for event in ("PreCompact", "SessionStart", "SessionEnd", "Stop"):
         ctx_entries = [e for e in settings["hooks"][event]
                        if any("ctxpack" in str(h.get("command", ""))
                               for h in e.get("hooks", []))]

@@ -1,10 +1,38 @@
-# Session memory (session bae8e5d2, 401 turns)
+# Session memory (session bae8e5d2, 543 turns)
 
 Deterministic ledger recovered from the session transcript. Full detail: `ctxpack hydrate` on the session .ctx, or grep the raw transcript.
+
+## Constraints (verbatim — do not violate)
+- how is ctx working so i am always assured that in background teh key memory is being updated so i dont lose out on the overall repo status. (turn 465)
 
 ## Decisions
 - Decision: the next build should be **P4 — the MCP session read path** (`ctx/session_recall`, `ctx/session_timeline`, `ctx/session_decisions`, `ctx/why`, `ctx/graph_query`) because everything else is gated on it: (turn 15)
 - Decision: the root cause is that Claude Code loads hook configuration once at process startup (and newly added project hooks require review via the `/hooks` menu before they're trusted). (turn 57)
+- Decision: benefits-vs-native measurement is passive and deterministic — computed from the transcript itself at checkpoint time, so teams can't forget to instrument and can't game it. (turn 415)
+- The fix is a debounced per-turn checkpoint (Claude Code's Stop hook fires after every completed turn; at <2s a re-pack every N turns is cheap), making the ledger never more than a turn or two stale — zero manual recovery even after a hard kill. (turn 467)
+
+## Exact identifiers (verbatim)
+- cee22d9 [git_sha] (turn 15)
+- paper/vision-dream-intuition-agents.md [path] (turn 15)
+- paper/agentic-context-plan-v1.md:280 [path] (turn 15)
+- #3 [pr] (turn 15)
+- .claude/settings.json [path] (turn 57)
+- 989 BPE [number_unit] (turn 57)
+- 25eb745 [git_sha] (turn 415)
+- docs/session-memory-onboarding.md [path] (turn 415)
+- 142ms [number_unit] (turn 415)
+- 0.3.0 [version] (turn 415)
+- e31872f [git_sha] (turn 443)
+- v0.5.0 [version] (turn 443)
+- https://github.com/cryogenic22/CTX.ai [url] (turn 443)
+- 374b878 [git_sha] (turn 464)
+- 400 BPE [number_unit] (turn 464)
+- 86.7% [number_unit] (turn 464)
+- 83.3% [number_unit] (turn 464)
+- 2.5MB [number_unit] (turn 464)
+
+## Failed approaches (do not retry)
+- Dead ends too: "The X approach didn't work because ...". (turn 443)
 
 ## What was asked
 - what next (turn 1)
@@ -13,6 +41,10 @@ Deterministic ledger recovered from the session transcript. Full detail: `ctxpac
 - go ahead, fix them then start p4 (turn 71)
 - can i now also ask other repos to connect to ctx mcp? this was my other project also leverage , where is the mcp hosted? (turn 315)
 - give me instructions that i can share with any repo like scriptiva in their claude code setting to then use ctx as mcp and instructiins on how to use and what to update in claude.md etc so that they can get max power, plus i want to ensure there is telemetry or approach to measur (turn 322)
+- ok give me instruction to give for local repos on this machine for now and also make the pyproject as we will release it on git as well for other. (turn 416)
+- yes lets do that (turn 444)
+- so how does ctx work in this or any repo, lets say i want to update the status so i can run a clear command and resume, will the repo automatically call ctx to create a checkpoint or it gets triggered when i run the compact command (turn 465)
+- if you build them, these work as a additional feature behind mcp so the repo doesnt need to know per say i assume? it just gets better? (turn 468)
 
 ## Tasks
 - Fix Decision: use-vs-mention + anchor marker at sentence start (turn 80)
@@ -27,23 +59,31 @@ Deterministic ledger recovered from the session transcript. Full detail: `ctxpac
 - ctxpack onboard — one-command repo setup (turn 331)
 - Shareable onboarding doc for repo teams (turn 333)
 - Verify, update plan build log, commit (turn 335)
+- Stop-hook debounced checkpoint (crash-window tightness) (turn 471)
+- Cross-session project gist (turn 473)
+- Docs + plan log + commit (turn 475)
 
 ## Errors seen
 - Exit code 2 /usr/bin/bash: eval: line 1: unexpected EOF while looking for matching `"' (turn 36)
 - Exit code 2 Name: ctxpack Version: 0.3.0 Summary: MP3 for LLM context � multi-resolution compression codec for domain knowledge Home-page: https://github.com/cryogenic22/CTX.ai --- importable from anywhere: C:\Users\kapil\Documents\CTX_mod\ (turn 319)
+- Exit code 1 Traceback (most recent call last): File "<string>", line 5, in <module> d = json.loads(raw or '{}') File "C:\Python313\Lib\json\__init__.py", line 346, in loads return _default_decoder.decode(s) ~~~~~~~~~~~~~~~~~~~~~~~^^^ File " (turn 539)
 
 ## Files changed
 - C:\Users\kapil\Documents\CTX_mod\ctxpack\core\entity_graph.py (2 edits) (turn 234)
 - C:\Users\kapil\Documents\CTX_mod\ctxpack\integrations\mcp_server.py (6 edits) (turn 242)
 - C:\Users\kapil\Documents\CTX_mod\.mcp.json (1 edits) (turn 274)
-- C:\Users\kapil\Documents\CTX_mod\CLAUDE.md (1 edits) (turn 278)
-- C:\Users\kapil\Documents\CTX_mod\paper\agentic-context-plan-v1.md (1 edits) (turn 282)
 - C:\Users\kapil\.claude\projects\C--Users-kapil-Documents-CTX-mod\memory\MEMORY.md (3 edits) (turn 311)
 - C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\transcript_parser.py (10 edits) (turn 343)
-- C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\checkpoint.py (3 edits) (turn 351)
 - C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\session_reader.py (2 edits) (turn 355)
-- C:\Users\kapil\Documents\CTX_mod\ctxpack\cli\main.py (13 edits) (turn 372)
 - C:\Users\kapil\Documents\CTX_mod\tests\test_transcript_parser.py (4 edits) (turn 375)
 - C:\Users\kapil\Documents\CTX_mod\tests\test_session_reader.py (3 edits) (turn 377)
-- C:\Users\kapil\Documents\CTX_mod\tests\test_onboard.py (1 edits) (turn 380)
 - C:\Users\kapil\Documents\CTX_mod\docs\session-memory-onboarding.md (1 edits) (turn 396)
+- C:\Users\kapil\Documents\CTX_mod\CLAUDE.md (2 edits) (turn 404)
+- C:\Users\kapil\Documents\CTX_mod\paper\agentic-context-plan-v1.md (2 edits) (turn 406)
+- C:\Users\kapil\Documents\CTX_mod\pyproject.toml (2 edits) (turn 433)
+- C:\Users\kapil\Documents\CTX_mod\ctxpack\__init__.py (1 edits) (turn 435)
+- C:\Users\kapil\Documents\CTX_mod\README.md (2 edits) (turn 457)
+- C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\checkpoint.py (6 edits) (turn 502)
+- C:\Users\kapil\Documents\CTX_mod\ctxpack\cli\main.py (20 edits) (turn 514)
+- C:\Users\kapil\Documents\CTX_mod\tests\test_stop_and_project_gist.py (1 edits) (turn 517)
+- C:\Users\kapil\Documents\CTX_mod\tests\test_onboard.py (3 edits) (turn 521)

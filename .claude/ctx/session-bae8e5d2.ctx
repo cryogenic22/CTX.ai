@@ -1,5 +1,5 @@
 §CTX v1.0 L2 DOMAIN:session-bae8e5d2
-COMPRESSED:2026-07-03 SOURCE_TOKENS:~1033 CTX_TOKENS:~1413 RATIO:~0.9x
+COMPRESSED:2026-07-04 SOURCE_TOKENS:~1691 CTX_TOKENS:~2359 RATIO:~0.9x
 
 ±ENTITY-USER-REQUEST-A4AB0502
 REQUEST:what next
@@ -12,6 +12,26 @@ TURN:4
 SRC:session:bae8e5d2#turn4
 ±ENTITY-DECISION-9FF7E602
 DECISION:Decision: the next build should be **P4 — the MCP session read path** (`ctx/session_recall`, `ctx/session_timeline`, `ctx/session_decisions`, `ctx/why`, `ctx/graph_query`) because everything else is gated on it:
+TURN:15
+SRC:session:bae8e5d2#turn15
+±ENTITY-LITERAL-4790A2C8
+VALUE:cee22d9
+KIND:git_sha
+TURN:15
+SRC:session:bae8e5d2#turn15
+±ENTITY-LITERAL-1045B01E
+VALUE:paper/vision-dream-intuition-agents.md
+KIND:path
+TURN:15
+SRC:session:bae8e5d2#turn15
+±ENTITY-LITERAL-339FC626
+VALUE:paper/agentic-context-plan-v1.md:280
+KIND:path
+TURN:15
+SRC:session:bae8e5d2#turn15
+±ENTITY-LITERAL-83189503
+VALUE:#3
+KIND:pr
 TURN:15
 SRC:session:bae8e5d2#turn15
 ±ENTITY-USER-REQUEST-01B10669
@@ -69,6 +89,16 @@ TURN:54
 SRC:session:bae8e5d2#turn54
 ±ENTITY-DECISION-E040C780
 DECISION:Decision: the root cause is that Claude Code loads hook configuration once at process startup (and newly added project hooks require review via the `/hooks` menu before they're trusted).
+TURN:57
+SRC:session:bae8e5d2#turn57
+±ENTITY-LITERAL-32BD95E6
+VALUE:.claude/settings.json
+KIND:path
+TURN:57
+SRC:session:bae8e5d2#turn57
+±ENTITY-LITERAL-B9087149
+VALUE:989 BPE
+KIND:number_unit
 TURN:57
 SRC:session:bae8e5d2#turn57
 ±ENTITY-USER-REQUEST-E87720E3
@@ -244,6 +274,194 @@ RAN:Smoke onboard on scratch repo, then run stats on real ledger
 COMMAND:SCRATCH="$HOME/AppData/Local/Temp/claude/onboard-smoke" && rm -rf "$SCRATCH" && mkdir -p "$SCRATCH" && echo "# Scriptiva-like repo" > "$SCRATCH/CLAUDE.md" && py
 TURN:400
 SRC:session:bae8e5d2#turn400
+±ENTITY-TOOL-BASH-0142
+RAN:Final test sweep and commit onboarding kit
+COMMAND:rm -rf "$HOME/AppData/Local/Temp/claude/onboard-smoke" && python -m pytest tests/test_transcript_parser.py tests/test_session_reader.py tests/test_onboard.py te
+TURN:408
+SRC:session:bae8e5d2#turn408
+±ENTITY-DECISION-D5A5F931
+DECISION:Decision: benefits-vs-native measurement is passive and deterministic — computed from the transcript itself at checkpoint time, so teams can't forget to instrument and can't game it.
+TURN:415
+SRC:session:bae8e5d2#turn415
+±ENTITY-LITERAL-4B3B936B
+VALUE:25eb745
+KIND:git_sha
+TURN:415
+SRC:session:bae8e5d2#turn415
+±ENTITY-LITERAL-1A27EC0B
+VALUE:docs/session-memory-onboarding.md
+KIND:path
+TURN:415
+SRC:session:bae8e5d2#turn415
+±ENTITY-LITERAL-F13A6228
+VALUE:142ms
+KIND:number_unit
+TURN:415
+SRC:session:bae8e5d2#turn415
+±ENTITY-LITERAL-AD99AB19
+VALUE:0.3.0
+KIND:version
+TURN:415
+SRC:session:bae8e5d2#turn415
+±ENTITY-USER-REQUEST-23D40B82
+REQUEST:ok give me instruction to give for local repos on this machine for now and also make the pyproject as we will release it on git as well for other.
+TURN:416
+SRC:session:bae8e5d2#turn416
+±ENTITY-TOOL-BASH-0146
+RAN:Find version strings in package
+COMMAND:grep -rn "__version__\|0\.3\.0" ctxpack/__init__.py ctxpack/cli/main.py 2>/dev/null | head -5
+TURN:421
+SRC:session:bae8e5d2#turn421
+±ENTITY-TOOL-BASH-0148
+RAN:Check for other hardcoded version references
+COMMAND:grep -rn "0\.3\.0" tests/ ctxpack/ --include="*.py" | grep -v __init__ | head -5
+TURN:427
+SRC:session:bae8e5d2#turn427
+±ENTITY-TOOL-BASH-0152
+RAN:Refresh editable install and verify version, console script, tests
+COMMAND:pip install -e . --no-deps -q 2>&1 | tail -1; pip show ctxpack | head -3; ctxpack session stats >/dev/null 2>&1 && echo "console script OK"; python -c "import c
+TURN:437
+SRC:session:bae8e5d2#turn437
+±ENTITY-TOOL-BASH-0153
+RAN:Commit release metadata
+COMMAND:git add pyproject.toml ctxpack/__init__.py && git commit -q -m "Release metadata v0.5.0: session-memory positioning, mcp extra, Beta status - version 0.3.0 -> 0
+TURN:441
+SRC:session:bae8e5d2#turn441
+±ENTITY-FAILED-APPROACH-E7B3318F
+NOTE:Dead ends too: "The X approach didn't work because ...".
+TURN:443
+SRC:session:bae8e5d2#turn443
+±ENTITY-LITERAL-7E7C661D
+VALUE:e31872f
+KIND:git_sha
+TURN:443
+SRC:session:bae8e5d2#turn443
+±ENTITY-LITERAL-80AF029B
+VALUE:v0.5.0
+KIND:version
+TURN:443
+SRC:session:bae8e5d2#turn443
+±ENTITY-LITERAL-D047A643
+VALUE:https://github.com/cryogenic22/CTX.ai
+KIND:url
+TURN:443
+SRC:session:bae8e5d2#turn443
+±ENTITY-USER-REQUEST-D8F95307
+REQUEST:yes lets do that
+TURN:444
+SRC:session:bae8e5d2#turn444
+±ENTITY-TOOL-BASH-0155
+RAN:Count collected tests
+COMMAND:python -m pytest tests/ --collect-only -q 2>/dev/null | tail -2
+TURN:451
+SRC:session:bae8e5d2#turn451
+±ENTITY-TOOL-BASH-0158
+RAN:Verify hydrate CLI flags cited in README
+COMMAND:python -m ctxpack.cli.main hydrate --help 2>&1 | grep -E "section|query|list" | head -4
+TURN:459
+SRC:session:bae8e5d2#turn459
+±ENTITY-TOOL-BASH-0159
+RAN:Commit README rewrite
+COMMAND:git add README.md && git commit -q -m "README: lead with session memory, purge retracted claims, current tool/test counts - Hero is now CtxPack Checkpoint ('com
+TURN:461
+SRC:session:bae8e5d2#turn461
+±ENTITY-LITERAL-AD970A1F
+VALUE:374b878
+KIND:git_sha
+TURN:464
+SRC:session:bae8e5d2#turn464
+±ENTITY-LITERAL-E17E3AB4
+VALUE:400 BPE
+KIND:number_unit
+TURN:464
+SRC:session:bae8e5d2#turn464
+±ENTITY-LITERAL-A69BD6C0
+VALUE:86.7%
+KIND:number_unit
+TURN:464
+SRC:session:bae8e5d2#turn464
+±ENTITY-LITERAL-283EA95D
+VALUE:83.3%
+KIND:number_unit
+TURN:464
+SRC:session:bae8e5d2#turn464
+±ENTITY-LITERAL-13347580
+VALUE:2.5MB
+KIND:number_unit
+TURN:464
+SRC:session:bae8e5d2#turn464
+±ENTITY-USER-REQUEST-FC276F51
+REQUEST:so how does ctx work in this or any repo, lets say i want to update the status so i can run a clear command and resume, will the repo automatically call ctx to create a checkpoint or it gets triggered when i run the compact command
+TURN:465
+SRC:session:bae8e5d2#turn465
+±ENTITY-CONSTRAINT-3A4587AD
+RULE:how is ctx working so i am always assured that in background teh key memory is being updated so i dont lose out on the overall repo status.
+STATED-TURN:465
+SRC:session:bae8e5d2#turn465
+±ENTITY-DECISION-9EEB8197
+DECISION:The fix is a debounced per-turn checkpoint (Claude Code's Stop hook fires after every completed turn; at <2s a re-pack every N turns is cheap), making the ledger never more than a turn or two stale — zero manual recovery even after a hard kill.
+TURN:467
+SRC:session:bae8e5d2#turn467
+±ENTITY-USER-REQUEST-3DFCDA3A
+REQUEST:if you build them, these work as a additional feature behind mcp so the repo doesnt need to know per say i assume? it just gets better?
+TURN:468
+SRC:session:bae8e5d2#turn468
+±ENTITY-TASK-EC74635D
+TASK:Stop-hook debounced checkpoint (crash-window tightness)
+TURN:471
+SRC:session:bae8e5d2#turn471
+±ENTITY-TASK-2F847265
+TASK:Cross-session project gist
+TURN:473
+SRC:session:bae8e5d2#turn473
+±ENTITY-TASK-6CA1720A
+TASK:Docs + plan log + commit
+TURN:475
+SRC:session:bae8e5d2#turn475
+±ENTITY-TOOL-BASH-0170
+RAN:List session_reader API and pending working-tree changes
+COMMAND:grep -n "^def \|^class \|^_KIND\|^DEFAULT\|^_TURN" ctxpack/agent/session_reader.py && git diff HEAD --stat
+TURN:495
+SRC:session:bae8e5d2#turn495
+±ENTITY-TOOL-BASH-0175
+RAN:Find the stale import line
+COMMAND:grep -n "from ..agent.checkpoint import read_latest_gist" ctxpack/cli/main.py
+TURN:510
+SRC:session:bae8e5d2#turn510
+±ENTITY-TOOL-BASH-0181
+RAN:Run new and affected tests
+COMMAND:python -m pytest tests/test_stop_and_project_gist.py tests/test_checkpoint.py tests/test_onboard.py tests/test_session_reader.py -q 2>&1 | tail -3
+TURN:523
+SRC:session:bae8e5d2#turn523
+±ENTITY-TOOL-BASH-0182
+RAN:Upgrade repo hooks, smoke stop hook, inspect project gist
+COMMAND:python -m ctxpack.cli.main onboard --project-dir . 2>&1 | head -8 && echo ================ && echo '{"session_id":"test-stop","transcript_path":"C:\\Users\\kapi
+TURN:527
+SRC:session:bae8e5d2#turn527
+±ENTITY-TOOL-BASH-0183
+RAN:Debug stop-hook gate on real transcript
+COMMAND:python -c " from ctxpack.agent.checkpoint import should_checkpoint_on_stop, _count_transcript_turns, _last_checkpoint_turns t = r'C:\Users\kapil\.claude\project
+TURN:531
+SRC:session:bae8e5d2#turn531
+±ENTITY-TOOL-BASH-0184
+RAN:Re-run stop hook with stderr visible and check journal
+COMMAND:echo '{"session_id":"test-stop","transcript_path":"C:\\Users\\kapil\\.claude\\projects\\C--Users-kapil-Documents-CTX-mod\\bae8e5d2-71a1-4e90-a4ad-cb8be2d781a9.j
+TURN:534
+SRC:session:bae8e5d2#turn534
+±ENTITY-TOOL-BASH-0185
+RAN:Isolate stdin payload parsing behavior
+COMMAND:cat > "$HOME/AppData/Local/Temp/claude/stop-payload.json" << 'EOF' {"session_id":"test-stop","transcript_path":"C:\\Users\\kapil\\.claude\\projects\\C--Users-ka
+TURN:538
+SRC:session:bae8e5d2#turn538
+±ENTITY-ERROR-1B254C98
+MESSAGE:Exit code 1 Traceback (most recent call last): File "<string>", line 5, in <module> d = json.loads(raw or '{}') File "C:\Python313\Lib\json\__init__.py", line 346, in loads return _default_decoder.decode(s) ~~~~~~~~~~~~~~~~~~~~~~~^^^ File "
+TURN:539
+SRC:session:bae8e5d2#turn539
+±ENTITY-TOOL-BASH-0186
+RAN:Re-run stop and session-start hooks with valid payloads
+COMMAND:printf '%s' '{"session_id":"test-stop","transcript_path":"C:/Users/kapil/.claude/projects/C--Users-kapil-Documents-CTX-mod/bae8e5d2-71a1-4e90-a4ad-cb8be2d781a9.
+TURN:542
+SRC:session:bae8e5d2#turn542
 ±ENTITY-FILE-E-PROJECTS-C--USERS-KAPIL-DOCUMENTS-CTX-MOD-MEMORY-MEMORY-MD
 PATH:C:\Users\kapil\.claude\projects\C--Users-kapil-Documents-CTX-mod\memory\MEMORY.md
 EDITS:3
@@ -256,14 +474,24 @@ LAST-TURN:274
 SRC:session:bae8e5d2#turn274
 ±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-CLAUDE-MD
 PATH:C:\Users\kapil\Documents\CTX_mod\CLAUDE.md
+EDITS:2
+LAST-TURN:404
+SRC:session:bae8e5d2#turn404
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-README-MD
+PATH:C:\Users\kapil\Documents\CTX_mod\README.md
+EDITS:2
+LAST-TURN:457
+SRC:session:bae8e5d2#turn457
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK---INIT---PY
+PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\__init__.py
 EDITS:1
-LAST-TURN:278
-SRC:session:bae8e5d2#turn278
+LAST-TURN:435
+SRC:session:bae8e5d2#turn435
 ±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-AGENT-CHECKPOINT-PY
 PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\checkpoint.py
-EDITS:3
-LAST-TURN:351
-SRC:session:bae8e5d2#turn351
+EDITS:6
+LAST-TURN:502
+SRC:session:bae8e5d2#turn502
 ±ENTITY-FILE-SERS-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-AGENT-SESSION-READER-PY
 PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\session_reader.py
 EDITS:2
@@ -276,9 +504,9 @@ LAST-TURN:343
 SRC:session:bae8e5d2#turn343
 ±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-CLI-MAIN-PY
 PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\cli\main.py
-EDITS:13
-LAST-TURN:372
-SRC:session:bae8e5d2#turn372
+EDITS:20
+LAST-TURN:514
+SRC:session:bae8e5d2#turn514
 ±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-CORE-ENTITY-GRAPH-PY
 PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\core\entity_graph.py
 EDITS:2
@@ -296,19 +524,29 @@ LAST-TURN:396
 SRC:session:bae8e5d2#turn396
 ±ENTITY-FILE-ERS-KAPIL-DOCUMENTS-CTX-MOD-PAPER-AGENTIC-CONTEXT-PLAN-V1-MD
 PATH:C:\Users\kapil\Documents\CTX_mod\paper\agentic-context-plan-v1.md
-EDITS:1
-LAST-TURN:282
-SRC:session:bae8e5d2#turn282
+EDITS:2
+LAST-TURN:406
+SRC:session:bae8e5d2#turn406
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-PYPROJECT-TOML
+PATH:C:\Users\kapil\Documents\CTX_mod\pyproject.toml
+EDITS:2
+LAST-TURN:433
+SRC:session:bae8e5d2#turn433
 ±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-TESTS-TEST-ONBOARD-PY
 PATH:C:\Users\kapil\Documents\CTX_mod\tests\test_onboard.py
-EDITS:1
-LAST-TURN:380
-SRC:session:bae8e5d2#turn380
+EDITS:3
+LAST-TURN:521
+SRC:session:bae8e5d2#turn521
 ±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-TESTS-TEST-SESSION-READER-PY
 PATH:C:\Users\kapil\Documents\CTX_mod\tests\test_session_reader.py
 EDITS:3
 LAST-TURN:377
 SRC:session:bae8e5d2#turn377
+±ENTITY-FILE--KAPIL-DOCUMENTS-CTX-MOD-TESTS-TEST-STOP-AND-PROJECT-GIST-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\tests\test_stop_and_project_gist.py
+EDITS:1
+LAST-TURN:517
+SRC:session:bae8e5d2#turn517
 ±ENTITY-FILE-SERS-KAPIL-DOCUMENTS-CTX-MOD-TESTS-TEST-TRANSCRIPT-PARSER-PY
 PATH:C:\Users\kapil\Documents\CTX_mod\tests\test_transcript_parser.py
 EDITS:4
