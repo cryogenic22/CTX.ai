@@ -1,4 +1,4 @@
-# Session memory (session bae8e5d2, 543 turns)
+# Session memory (session bae8e5d2, 573 turns)
 
 Deterministic ledger recovered from the session transcript. Full detail: `ctxpack hydrate` on the session .ctx, or grep the raw transcript.
 
@@ -10,6 +10,7 @@ Deterministic ledger recovered from the session transcript. Full detail: `ctxpac
 - Decision: the root cause is that Claude Code loads hook configuration once at process startup (and newly added project hooks require review via the `/hooks` menu before they're trusted). (turn 57)
 - Decision: benefits-vs-native measurement is passive and deterministic — computed from the transcript itself at checkpoint time, so teams can't forget to instrument and can't game it. (turn 415)
 - The fix is a debounced per-turn checkpoint (Claude Code's Stop hook fires after every completed turn; at <2s a re-pack every N turns is cheap), making the ledger never more than a turn or two stale — zero manual recovery even after a hard kill. (turn 467)
+- Decision: build in this order — (1) scorecard aggregator + static dashboard, (2) resume-probe harness, (3) CompactBench — because each layer's output tells us where to point the next one, and the scorecard gives you something visible this week. (turn 572)
 
 ## Exact identifiers (verbatim)
 - cee22d9 [git_sha] (turn 15)
@@ -30,6 +31,9 @@ Deterministic ledger recovered from the session transcript. Full detail: `ctxpac
 - 86.7% [number_unit] (turn 464)
 - 83.3% [number_unit] (turn 464)
 - 2.5MB [number_unit] (turn 464)
+- 31da977 [git_sha] (turn 572)
+- 93% [number_unit] (turn 572)
+- 80% [number_unit] (turn 572)
 
 ## Failed approaches (do not retry)
 - Dead ends too: "The X approach didn't work because ...". (turn 443)
@@ -67,6 +71,7 @@ Deterministic ledger recovered from the session transcript. Full detail: `ctxpac
 - Exit code 2 /usr/bin/bash: eval: line 1: unexpected EOF while looking for matching `"' (turn 36)
 - Exit code 2 Name: ctxpack Version: 0.3.0 Summary: MP3 for LLM context � multi-resolution compression codec for domain knowledge Home-page: https://github.com/cryogenic22/CTX.ai --- importable from anywhere: C:\Users\kapil\Documents\CTX_mod\ (turn 319)
 - Exit code 1 Traceback (most recent call last): File "<string>", line 5, in <module> d = json.loads(raw or '{}') File "C:\Python313\Lib\json\__init__.py", line 346, in loads return _default_decoder.decode(s) ~~~~~~~~~~~~~~~~~~~~~~~^^^ File " (turn 539)
+- Exit code 1 ctxpack checkpoint: 117 entities, 543 turns -> C:/Users/kapil/Documents/CTX_mod\.claude/ctx\session-bae8e5d2.ctx exit=0 === {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": "# Session memory (session (turn 543)
 
 ## Files changed
 - C:\Users\kapil\Documents\CTX_mod\ctxpack\core\entity_graph.py (2 edits) (turn 234)
@@ -77,9 +82,7 @@ Deterministic ledger recovered from the session transcript. Full detail: `ctxpac
 - C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\session_reader.py (2 edits) (turn 355)
 - C:\Users\kapil\Documents\CTX_mod\tests\test_transcript_parser.py (4 edits) (turn 375)
 - C:\Users\kapil\Documents\CTX_mod\tests\test_session_reader.py (3 edits) (turn 377)
-- C:\Users\kapil\Documents\CTX_mod\docs\session-memory-onboarding.md (1 edits) (turn 396)
 - C:\Users\kapil\Documents\CTX_mod\CLAUDE.md (2 edits) (turn 404)
-- C:\Users\kapil\Documents\CTX_mod\paper\agentic-context-plan-v1.md (2 edits) (turn 406)
 - C:\Users\kapil\Documents\CTX_mod\pyproject.toml (2 edits) (turn 433)
 - C:\Users\kapil\Documents\CTX_mod\ctxpack\__init__.py (1 edits) (turn 435)
 - C:\Users\kapil\Documents\CTX_mod\README.md (2 edits) (turn 457)
@@ -87,3 +90,4 @@ Deterministic ledger recovered from the session transcript. Full detail: `ctxpac
 - C:\Users\kapil\Documents\CTX_mod\ctxpack\cli\main.py (20 edits) (turn 514)
 - C:\Users\kapil\Documents\CTX_mod\tests\test_stop_and_project_gist.py (1 edits) (turn 517)
 - C:\Users\kapil\Documents\CTX_mod\tests\test_onboard.py (3 edits) (turn 521)
+- C:\Users\kapil\Documents\CTX_mod\docs\session-memory-onboarding.md (5 edits) (turn 559)

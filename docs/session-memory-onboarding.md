@@ -150,11 +150,16 @@ Key metrics and how to read them:
    in a repo *without* the ledger for the baseline.
 4. Send the stats JSON + probe results back to the CTX team.
 
-A controlled benchmark (CompactBench: decision recall across K forced
-compaction cycles, vs native compaction / CLAUDE.md notes /
-grep-over-transcript / LLM-summary memory arms) is in progress in
-CTX_mod — the passive telemetry above is what tells us which repos'
-sessions to study.
+### The full measurement stack (central — your repo does nothing extra)
+
+| Layer | Instrument | Claim it supports |
+|---|---|---|
+| 1 · observational | `ctxpack scorecard` — cross-repo rollup of every ledger's telemetry + static HTML dashboard | adoption, token economics |
+| 2 · quasi-experimental | `run_resume_probe.py` — fresh-session recall of your repo's own history under budget-parity arms (CTX vs grep-over-transcript vs closed-book), rule-based grading | recall accuracy per repo |
+| 3 · controlled | CompactBench — decision recall across K forced compaction cycles, 6 arms, pre-registered (`ctxpack/benchmarks/compactbench/PREREGISTRATION.md`) | causal, benchmark-grade |
+
+Repo teams only work normally and commit `.claude/ctx/`; the CTX team
+runs the instruments centrally.
 
 ## Troubleshooting
 

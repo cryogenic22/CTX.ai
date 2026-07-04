@@ -295,7 +295,14 @@ Pre-register analysis plans in-repo before running; publish raw per-question JSO
 - **Cross-session project gist**: `build_project_gist()` rolls up decisions/constraints/failed-approaches across all earlier session ledgers (journal-ordered, deduped, ≤1.5K BPE, stakes-ordered trim, excludes the current session whose own gist is injected alongside); regenerated on every checkpoint, removed when only one session exists. SessionStart now injects project rollup + last-session gist (`read_startup_context`). A new agent picking up 10 days of work starts with the project's accumulated decisions, not just yesterday's.
 - Upgrade model confirmed: behavior inside existing hooks/MCP ships with the package (all repos share the installed ctxpack); only hook-topology changes need the one-command re-onboard.
 
-Remaining from the 90-day sequence: spec v1.1 trust annotations + op-level journal, CompactBench, and the two-week dogfood telemetry report.
+**2026-07-04 (later) — measurement stack shipped; 6-repo cohort live.**
+
+- **Cohort onboarded**: CTX_mod + market_zero, KP_SDLC, Scriptiva_SCA, setu, WhynotFamous (idempotent `onboard`, all with the 4-hook set). First scorecard: 5/6 active, 10 sessions, 7,066 turns packed, 49 decisions banked, raw-fallback 26%.
+- **Layer 1 (observational)**: `ctxpack scorecard [--html]` — cross-repo aggregation with versioned writes + cohort registry + self-contained dashboard; the measurement-class disclaimer is rendered on the page.
+- **Layer 2 (quasi-experimental)**: resume-probe eval (`run_resume_probe.py`) — seeded probes from a repo's own ledger (decision/literal/constraint/superseded-current-value), budget-parity arms CTX / GREP / CLOSED, rule-based grading, bootstrap CIs, immutable results. The GREP arm was strengthened twice after inspecting its failures (line-prefix strawman → match-centered windows → phrase-first + rarity ranking) and is deliberately over-powered with ground-truth terms — wins against it are conservative. First smoke (n=3, CTX_mod): CTX 3/3, GREP 2/3, CLOSED 0/3 — plumbing proof, not a claim.
+- **Layer 3 (controlled)**: CompactBench **pre-registration committed before any run** (hypotheses, 6 mandatory arms, DR@K/CV@K/LF@K, Wilson CIs + McNemar, decision rules incl. the grep kill-rule); planted-session generator (15 decisions incl. 5 revised, 10 constraints, 10 literals, 5 failed approaches; seed-deterministic) and DR@K metric implemented and tested — **the ledger captures ≥8/10 plants through the real pipeline**, so the ctx arm isn't falsified by construction. The forced-compaction Claude Code driver is the remaining piece; no runs executed.
+
+Remaining from the 90-day sequence: spec v1.1 trust annotations + op-level journal, CompactBench driver + runs, and the two-week dogfood telemetry report (cohort clock started 2026-07-04).
 
 ## Appendix A — Benchmark methodology notes (this commit)
 

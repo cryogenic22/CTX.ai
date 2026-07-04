@@ -1,5 +1,5 @@
 §CTX v1.0 L2 DOMAIN:session-bae8e5d2
-COMPRESSED:2026-07-04 SOURCE_TOKENS:~1691 CTX_TOKENS:~2359 RATIO:~0.9x
+COMPRESSED:2026-07-04 SOURCE_TOKENS:~1792 CTX_TOKENS:~2500 RATIO:~0.9x
 
 ±ENTITY-USER-REQUEST-A4AB0502
 REQUEST:what next
@@ -462,6 +462,39 @@ RAN:Re-run stop and session-start hooks with valid payloads
 COMMAND:printf '%s' '{"session_id":"test-stop","transcript_path":"C:/Users/kapil/.claude/projects/C--Users-kapil-Documents-CTX-mod/bae8e5d2-71a1-4e90-a4ad-cb8be2d781a9.
 TURN:542
 SRC:session:bae8e5d2#turn542
+±ENTITY-ERROR-1E8B03A4
+MESSAGE:Exit code 1 ctxpack checkpoint: 117 entities, 543 turns -> C:/Users/kapil/Documents/CTX_mod\.claude/ctx\session-bae8e5d2.ctx exit=0 === {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": "# Session memory (session
+TURN:543
+SRC:session:bae8e5d2#turn543
+±ENTITY-TOOL-BASH-0187
+RAN:See recent edits to onboarding doc
+COMMAND:git diff docs/session-memory-onboarding.md | head -40
+TURN:546
+SRC:session:bae8e5d2#turn546
+±ENTITY-TOOL-BASH-0194
+RAN:Final test sweep and commit both features
+COMMAND:python -m pytest tests/test_stop_and_project_gist.py tests/test_checkpoint.py tests/test_onboard.py tests/test_session_reader.py tests/test_cli.py tests/test_tr
+TURN:563
+SRC:session:bae8e5d2#turn563
+±ENTITY-DECISION-CDA3B32E
+DECISION:Decision: build in this order — (1) scorecard aggregator + static dashboard, (2) resume-probe harness, (3) CompactBench — because each layer's output tells us where to point the next one, and the scorecard gives you something visible this week.
+TURN:572
+SRC:session:bae8e5d2#turn572
+±ENTITY-LITERAL-C9A496DF
+VALUE:31da977
+KIND:git_sha
+TURN:572
+SRC:session:bae8e5d2#turn572
+±ENTITY-LITERAL-9EC47261
+VALUE:93%
+KIND:number_unit
+TURN:572
+SRC:session:bae8e5d2#turn572
+±ENTITY-LITERAL-5366A741
+VALUE:80%
+KIND:number_unit
+TURN:572
+SRC:session:bae8e5d2#turn572
 ±ENTITY-FILE-E-PROJECTS-C--USERS-KAPIL-DOCUMENTS-CTX-MOD-MEMORY-MEMORY-MD
 PATH:C:\Users\kapil\.claude\projects\C--Users-kapil-Documents-CTX-mod\memory\MEMORY.md
 EDITS:3
@@ -519,14 +552,14 @@ LAST-TURN:242
 SRC:session:bae8e5d2#turn242
 ±ENTITY-FILE-RS-KAPIL-DOCUMENTS-CTX-MOD-DOCS-SESSION-MEMORY-ONBOARDING-MD
 PATH:C:\Users\kapil\Documents\CTX_mod\docs\session-memory-onboarding.md
-EDITS:1
-LAST-TURN:396
-SRC:session:bae8e5d2#turn396
+EDITS:5
+LAST-TURN:559
+SRC:session:bae8e5d2#turn559
 ±ENTITY-FILE-ERS-KAPIL-DOCUMENTS-CTX-MOD-PAPER-AGENTIC-CONTEXT-PLAN-V1-MD
 PATH:C:\Users\kapil\Documents\CTX_mod\paper\agentic-context-plan-v1.md
-EDITS:2
-LAST-TURN:406
-SRC:session:bae8e5d2#turn406
+EDITS:3
+LAST-TURN:561
+SRC:session:bae8e5d2#turn561
 ±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-PYPROJECT-TOML
 PATH:C:\Users\kapil\Documents\CTX_mod\pyproject.toml
 EDITS:2
