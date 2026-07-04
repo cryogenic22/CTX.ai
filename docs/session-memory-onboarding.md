@@ -8,10 +8,19 @@ wants durable, auditable session memory for Claude Code.*
 **"Compaction is a commit, not a loss event."** Every compaction and
 session end, a hook deterministically packs your Claude Code session
 transcript into a ledger at `.claude/ctx/` — decisions, constraints,
-failed approaches, errors, files changed, tasks, each with turn-level
-provenance. Every session start re-injects a compact gist (~2K tokens) of
-the previous session. Mid-session, the agent can query the ledger instead
-of re-deriving or grepping megabytes of transcript.
+failed approaches, errors, files changed, tasks, and **exact identifiers**
+(commit SHAs, PR numbers, UUIDs, versions, file paths, domain ids —
+verbatim), each with turn-level provenance. Every session start re-injects
+a compact gist (~2K tokens) of the previous session. Mid-session, the agent
+can query the ledger instead of re-deriving or grepping megabytes of
+transcript.
+
+**Identifier fidelity across folds.** The literals ledger is why an exact
+id survives a compaction: `508e5733-…`, `b1dda66`, `#305`, `v0.5.0`,
+`services/llm.py:42` are extracted verbatim (never truncated or
+paraphrased) so a resumed session writes the *correct* id from the gist
+rather than reconstructing a plausible-but-wrong one. `ctxpack session why
+"<id>"` resolves any of them to its origin turn.
 
 Why this beats the alternatives you already have:
 
@@ -94,6 +103,8 @@ Key metrics and how to read them:
 - **`captured.decisions` / `captured.constraints`** — how much
   load-bearing state each session banks. If decisions ≈ 0, the team
   isn't using the `Decision:` convention — fix the habit, not the tool.
+  **`captured.literals`** counts the exact identifiers banked (auto-extracted,
+  no convention needed) — the raw material for identifier fidelity across folds.
 - **`gist_bpe` vs `turns_packed`** — what a session costs to resume
   (~2K tokens) vs what it contains (hundreds of turns). The compression
   is the point: resuming from a gist is ~100x cheaper than re-reading

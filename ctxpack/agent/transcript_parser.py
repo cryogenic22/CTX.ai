@@ -142,6 +142,7 @@ class TranscriptStats:
     files_changed: int = 0
     tasks: int = 0
     bash_commands: int = 0
+    literals: int = 0
     # Read-path adoption (P4): ledger reads vs raw-transcript fallbacks
     ledger_reads: int = 0
     transcript_greps: int = 0
@@ -206,6 +207,103 @@ def _prose_of(sentence: str) -> str:
 def _is_decision(sentence: str) -> bool:
     prose = _prose_of(sentence)
     return bool(_DECISION_MARKER_RE.match(prose) or _DECISION_VERB_RE.search(prose))
+
+
+# ── Literal (verbatim-identifier) extraction ──
+# Load-bearing identifiers must survive a compaction fold VERBATIM so the agent
+# writes correct ids from the ledger instead of reconstructing them from a
+# paraphrase ("the frequency was about 0.19"). ONLY high-precision, low-ambiguity
+# classes — over-extraction is the failure mode the decision/constraint
+# extractors guard against, and it applies here too. Unlike prose facts these
+# are matched on the RAW text (backticks kept — ids live in backticks). No
+# per-turn cap: silently dropping an id defeats the ledger's whole purpose;
+# precision + dedup bound the count, and a display budget is enforced on the
+# GIST (checkpoint.build_gist), not by discarding literals at extraction.
+_LITERAL_URL_RE = re.compile(r"https?://[^\s)\]}>\"'`]+")
+_LITERAL_UUID_RE = re.compile(
+    r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+    r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b")
+# Domain identifiers (bioinformatics/registry ids seen in real sessions) — a
+# tagged prefix removes ambiguity entirely.
+_LITERAL_DOMAIN_ID_RE = re.compile(
+    r"\b(?:NCT|PMID|CHEMBL|ENSG|ENST|ENSP|GO:)\s?\d+\b|\brs\d+\b")
+# A filesystem path: at least one slash segment + a dotted extension (+ optional
+# :line). Distinguishes "services/llm.py:42" from prose containing a slash.
+_LITERAL_PATH_RE = re.compile(
+    r"(?:[\w.\-]+[/\\])+[\w.\-]+\.[A-Za-z][A-Za-z0-9]{0,5}(?::\d+)?")
+_LITERAL_VERSION_RE = re.compile(r"\bv?\d+\.\d+\.\d+(?:[-.][0-9A-Za-z]+)*\b")
+# PR/issue ref: a lone #NNN (not ## markdown, not a fragment like abc#1).
+_LITERAL_PR_RE = re.compile(r"(?<![\w#])#\d{1,6}\b")
+# Number WITH a curated unit — bare numbers are too noisy to bank.
+_LITERAL_NUMBER_UNIT_RE = re.compile(
+    r"\b\d+(?:\.\d+)?\s?(?:ms|ns|kb|mb|gb|tb|bpe|px|tokens?|req/min|%|x)\b",
+    re.IGNORECASE)
+# Git SHA: 7-40 hex, but ONLY inside a backtick span or after a commit-context
+# word (a bare hex run in prose is almost always not a sha), AND containing both
+# a letter and a digit (rules out prose words like "deadbeef" and pure decimals).
+_LITERAL_HEX_RE = re.compile(r"[0-9a-f]{7,40}", re.IGNORECASE)
+_SHA_CONTEXT_RE = re.compile(
+    r"(?i)\b(?:commit|sha|revision|rev|head|tip|merged?|hash)\s+[`']?"
+    r"([0-9a-f]{7,40})\b")
+_BACKTICK_SPAN_RE = re.compile(r"`([^`]+)`")
+
+
+def _looks_like_sha(tok: str) -> bool:
+    t = tok.lower()
+    return (7 <= len(t) <= 40
+            and all(c in "0123456789abcdef" for c in t)
+            and any(c.isdigit() for c in t)
+            and any(c in "abcdef" for c in t))
+
+
+def _extract_literals(text: str) -> list[tuple[str, str]]:
+    """(kind, value) for every high-precision identifier in ``text``, in
+    position order with longest-match-wins on overlap (so a URL is not also
+    mined as a path). Values are VERBATIM. Deterministic."""
+    # (start, -length, priority, kind, value) — priority breaks ties so a
+    # more-specific class wins an exact-span collision.
+    cands: list[tuple[int, int, int, str, str]] = []
+
+    def add(kind: str, value: str, start: int, end: int, prio: int) -> None:
+        cands.append((start, -(end - start), prio, kind, value))
+
+    for m in _LITERAL_URL_RE.finditer(text):
+        v = m.group(0).rstrip(".,);:]}\"'")
+        add("url", v, m.start(), m.start() + len(v), 0)
+    for m in _LITERAL_UUID_RE.finditer(text):
+        add("uuid", m.group(0), m.start(), m.end(), 1)
+    for m in _LITERAL_DOMAIN_ID_RE.finditer(text):
+        add("domain_id", m.group(0), m.start(), m.end(), 2)
+    for m in _LITERAL_PATH_RE.finditer(text):
+        add("path", m.group(0), m.start(), m.end(), 3)
+    for m in _LITERAL_VERSION_RE.finditer(text):
+        v = m.group(0)
+        parts = v.lstrip("v").split(".")
+        if len(parts) >= 4 and all(p.isdigit() for p in parts):
+            continue  # a.b.c.d dotted-numeric quad is an IP address, not semver
+        add("version", v, m.start(), m.end(), 4)
+    for span in _BACKTICK_SPAN_RE.finditer(text):
+        base = span.start(1)
+        for hm in _LITERAL_HEX_RE.finditer(span.group(1)):
+            if _looks_like_sha(hm.group(0)):
+                add("git_sha", hm.group(0), base + hm.start(), base + hm.end(), 5)
+    for m in _SHA_CONTEXT_RE.finditer(text):
+        if _looks_like_sha(m.group(1)):
+            add("git_sha", m.group(1), m.start(1), m.end(1), 5)
+    for m in _LITERAL_PR_RE.finditer(text):
+        add("pr", m.group(0), m.start(), m.end(), 6)
+    for m in _LITERAL_NUMBER_UNIT_RE.finditer(text):
+        add("number_unit", m.group(0), m.start(), m.end(), 7)
+
+    cands.sort(key=lambda c: (c[0], c[1], c[2]))
+    out: list[tuple[str, str]] = []
+    last_end = -1
+    for start, neg_len, _prio, kind, value in cands:
+        if start < last_end:
+            continue
+        out.append((kind, value))
+        last_end = start - neg_len
+    return out
 
 
 def _text_of(content: Any) -> str:
@@ -300,6 +398,16 @@ def parse_transcript(
         corpus.entities.append(entity)
         entities_by_name[name] = entity
 
+    def _add_literals(text: str, *, turn: int, ts: str) -> None:
+        """Bank each verbatim identifier as a LITERAL entity (dedup first-wins;
+        stats count distinct)."""
+        for kind, value in _extract_literals(text):
+            name = f"LITERAL-{_short_hash(value)}"
+            if name not in seen_names:
+                stats.literals += 1
+            _add(name, {"value": value, "kind": kind, "turn": str(turn)},
+                 turn=turn, ts=ts, salience=2.4)
+
     for turn, d in enumerate(entries):
         if turn < since_turn:
             continue
@@ -353,6 +461,9 @@ def parse_transcript(
                         _add(f"CONSTRAINT-{_short_hash(sentence)}",
                              {"rule": sentence, "stated_turn": str(turn)},
                              turn=turn, ts=ts, salience=3.0)
+                # Verbatim identifiers the user named (short turns only — a
+                # pasted log is skipped by the same threshold as constraints).
+                _add_literals(text, turn=turn, ts=ts)
 
         else:  # assistant
             blocks = content if isinstance(content, list) else []
@@ -362,7 +473,8 @@ def parse_transcript(
                 btype = blk.get("type")
 
                 if btype == "text":
-                    for sentence in _sentences(_clean_multiline(blk.get("text", ""))):
+                    atext = _clean_multiline(blk.get("text", ""))
+                    for sentence in _sentences(atext):
                         if _FAILED_RE.search(_prose_of(sentence)):
                             stats.failed_approaches += 1
                             _add(f"FAILED-APPROACH-{_short_hash(sentence)}",
@@ -373,6 +485,9 @@ def parse_transcript(
                             _add(f"DECISION-{_short_hash(sentence)}",
                                  {"decision": sentence[:280], "turn": str(turn)},
                                  turn=turn, ts=ts, salience=2.5)
+                    # Verbatim identifiers stated in the assistant's reasoning
+                    # (commit shas, PR #s, versions, paths, domain ids).
+                    _add_literals(atext, turn=turn, ts=ts)
 
                 elif btype == "tool_use":
                     tool_seq += 1

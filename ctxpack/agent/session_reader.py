@@ -38,6 +38,7 @@ _KIND_PRIMARY_KEY = (
     ("CONSTRAINT", "RULE"),
     ("TOOL-BASH", "RAN"),
     ("DECISION", "DECISION"),
+    ("LITERAL", "VALUE"),
     ("ERROR", "MESSAGE"),
     ("TASK", "TASK"),
     ("FILE", "PATH"),
@@ -382,7 +383,7 @@ def session_stats(ledger_dir: str = DEFAULT_LEDGER_DIR) -> dict[str, Any]:
         "checkpoints": len(rows),
         "captured": {k: totals.get(k, 0) for k in (
             "decisions", "constraints", "failed_approaches", "errors",
-            "files_changed", "tasks", "requests")},
+            "files_changed", "tasks", "requests", "literals")},
         "read_path": {
             "ledger_reads": ledger_reads,
             "transcript_greps": greps,

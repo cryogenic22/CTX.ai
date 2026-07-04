@@ -41,12 +41,17 @@ GIST_BPE_BUDGET = 2000
 _GIST_KINDS = (
     ("CONSTRAINT", "Constraints (verbatim — do not violate)", "RULE"),
     ("DECISION", "Decisions", "DECISION"),
+    ("LITERAL", "Exact identifiers (verbatim)", "VALUE"),
     ("FAILED-APPROACH", "Failed approaches (do not retry)", "NOTE"),
     ("USER-REQUEST", "What was asked", "REQUEST"),
     ("TASK", "Tasks", "TASK"),
     ("ERROR", "Errors seen", "MESSAGE"),
     ("FILE", "Files changed", "PATH"),
 )
+
+# Cap the gist's literal list so a session that names hundreds of ids can't
+# crowd out the prose sections; the full set stays in the ledger (ctx/recall).
+_GIST_LITERAL_CAP = 40
 
 
 @dataclass
@@ -91,8 +96,15 @@ def build_gist(parsed: ParsedTranscript) -> str:
             continue
         # Chronological: facts read in the order they happened
         matched.sort(key=lambda e: e.sources[0].turn if e.sources else 0)
+        capped_note = ""
+        if prefix == "LITERAL" and len(matched) > _GIST_LITERAL_CAP:
+            # Signal the bound, never truncate silently: the full set stays in
+            # the ledger (ctx/recall), the gist shows the most-recent slice.
+            capped_note = (f" (showing {_GIST_LITERAL_CAP} most-recent of "
+                           f"{len(matched)} — full set in the ledger)")
+            matched = matched[-_GIST_LITERAL_CAP:]
         lines.append("")
-        lines.append(f"## {title}")
+        lines.append(f"## {title}{capped_note}")
         for e in matched:
             value = next((f.value for f in e.fields if f.key == primary_key),
                          e.fields[0].value if e.fields else "")
@@ -104,6 +116,9 @@ def build_gist(parsed: ParsedTranscript) -> str:
             elif prefix == "TASK":
                 status = next((f.value for f in e.fields if f.key == "STATUS"), "")
                 extra = f" [{status}]" if status else ""
+            elif prefix == "LITERAL":
+                kind = next((f.value for f in e.fields if f.key == "KIND"), "")
+                extra = f" [{kind}]" if kind else ""
             lines.append(f"- {value}{extra} (turn {turn})")
 
     text = "\n".join(lines)
