@@ -1,4 +1,4 @@
-# Session memory (session bae8e5d2, 573 turns)
+# Session memory (session bae8e5d2, 813 turns)
 
 Deterministic ledger recovered from the session transcript. Full detail: `ctxpack hydrate` on the session .ctx, or grep the raw transcript.
 
@@ -34,6 +34,18 @@ Deterministic ledger recovered from the session transcript. Full detail: `ctxpac
 - 31da977 [git_sha] (turn 572)
 - 93% [number_unit] (turn 572)
 - 80% [number_unit] (turn 572)
+- 26% [number_unit] (turn 627)
+- 0% [number_unit] (turn 676)
+- scorecards/dashboard.html [path] (turn 733)
+- ctxpack/benchmarks/compactbench/PREREGISTRATION.md [path] (turn 733)
+- 991 BPE [number_unit] (turn 743)
+- 90d47ce [git_sha] (turn 779)
+- v0.3.0 [version] (turn 779)
+- 0.5.0 [version] (turn 782)
+- docs/upgrading-from-old-ctxpack.md [path] (turn 791)
+- b82c106 [git_sha] (turn 791)
+- d40bd21 [git_sha] (turn 802)
+- tests/test_negation_preservation.py [path] (turn 802)
 
 ## Failed approaches (do not retry)
 - Dead ends too: "The X approach didn't work because ...". (turn 443)
@@ -49,6 +61,14 @@ Deterministic ledger recovered from the session transcript. Full detail: `ctxpac
 - yes lets do that (turn 444)
 - so how does ctx work in this or any repo, lets say i want to update the status so i can run a clear command and resume, will the repo automatically call ctx to create a checkpoint or it gets triggered when i run the compact command (turn 465)
 - if you build them, these work as a additional feature behind mcp so the repo doesnt need to know per say i assume? it just gets better? (turn 468)
+- please work on all the features as you have laid out (turn 573)
+- ok update your memory so i can clear and you can resume (turn 734)
+- i faced this in one of the repo, is this your error? Compaction blocked by PreCompact hook: [python -m ctxpack.cli.main hook pre-compact]: usage: ctxpack [-h] {parse,validate,fmt,pack,eval,diff,bench,hydrate,scaling,telemetry,codebase} ...
+ctxpack: error: argument command: invali (turn 744)
+- what do i tell repos who use old ctxpack for various activities to do? can you give me an instruction that says, if you use old ctx pack this is what you do now for both use on repo and for their code functionality? (turn 780)
+- what do you make od this this trhead from marketzero repo
+- Recommended — Track B probe (cheap, in-lane, ~10 min): run one known-negation pharma string through vendored-0.3.0 pack vs installed-≥0.5 pack (turn 792)
+- what are your next steps in this repo shall we compact and clear, is your memory and context up to date? (turn 803)
 
 ## Tasks
 - Fix Decision: use-vs-mention + anchor marker at sentence start (turn 80)
@@ -66,28 +86,14 @@ Deterministic ledger recovered from the session transcript. Full detail: `ctxpac
 - Stop-hook debounced checkpoint (crash-window tightness) (turn 471)
 - Cross-session project gist (turn 473)
 - Docs + plan log + commit (turn 475)
+- Cohort: verify/onboard the 5 repos (turn 576)
+- Layer 1: ctxpack scorecard aggregator (turn 578)
+- Layer 1: static HTML dashboard from scorecard (turn 580)
+- Layer 2: resume-probe harness (turn 582)
+- Layer 3: CompactBench scaffold + pre-registration (turn 584)
+- Docs, plan log, commits (turn 586)
 
 ## Errors seen
 - Exit code 2 /usr/bin/bash: eval: line 1: unexpected EOF while looking for matching `"' (turn 36)
 - Exit code 2 Name: ctxpack Version: 0.3.0 Summary: MP3 for LLM context � multi-resolution compression codec for domain knowledge Home-page: https://github.com/cryogenic22/CTX.ai --- importable from anywhere: C:\Users\kapil\Documents\CTX_mod\ (turn 319)
 - Exit code 1 Traceback (most recent call last): File "<string>", line 5, in <module> d = json.loads(raw or '{}') File "C:\Python313\Lib\json\__init__.py", line 346, in loads return _default_decoder.decode(s) ~~~~~~~~~~~~~~~~~~~~~~~^^^ File " (turn 539)
-- Exit code 1 ctxpack checkpoint: 117 entities, 543 turns -> C:/Users/kapil/Documents/CTX_mod\.claude/ctx\session-bae8e5d2.ctx exit=0 === {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": "# Session memory (session (turn 543)
-
-## Files changed
-- C:\Users\kapil\Documents\CTX_mod\ctxpack\core\entity_graph.py (2 edits) (turn 234)
-- C:\Users\kapil\Documents\CTX_mod\ctxpack\integrations\mcp_server.py (6 edits) (turn 242)
-- C:\Users\kapil\Documents\CTX_mod\.mcp.json (1 edits) (turn 274)
-- C:\Users\kapil\.claude\projects\C--Users-kapil-Documents-CTX-mod\memory\MEMORY.md (3 edits) (turn 311)
-- C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\transcript_parser.py (10 edits) (turn 343)
-- C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\session_reader.py (2 edits) (turn 355)
-- C:\Users\kapil\Documents\CTX_mod\tests\test_transcript_parser.py (4 edits) (turn 375)
-- C:\Users\kapil\Documents\CTX_mod\tests\test_session_reader.py (3 edits) (turn 377)
-- C:\Users\kapil\Documents\CTX_mod\CLAUDE.md (2 edits) (turn 404)
-- C:\Users\kapil\Documents\CTX_mod\pyproject.toml (2 edits) (turn 433)
-- C:\Users\kapil\Documents\CTX_mod\ctxpack\__init__.py (1 edits) (turn 435)
-- C:\Users\kapil\Documents\CTX_mod\README.md (2 edits) (turn 457)
-- C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\checkpoint.py (6 edits) (turn 502)
-- C:\Users\kapil\Documents\CTX_mod\ctxpack\cli\main.py (20 edits) (turn 514)
-- C:\Users\kapil\Documents\CTX_mod\tests\test_stop_and_project_gist.py (1 edits) (turn 517)
-- C:\Users\kapil\Documents\CTX_mod\tests\test_onboard.py (3 edits) (turn 521)
-- C:\Users\kapil\Documents\CTX_mod\docs\session-memory-onboarding.md (5 edits) (turn 559)

@@ -1,0 +1,60 @@
+§CTX v1.0 L2 DOMAIN:session-a4fac788
+COMPRESSED:2026-07-05 SOURCE_TOKENS:~168 CTX_TOKENS:~231 RATIO:~0.9x
+
+±ENTITY-USER-REQUEST-A2B41BBA
+REQUEST:resume
+TURN:1
+FACT-ID:7a284b752e52c957
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:a4fac788#turn1
+±ENTITY-INCIDENT-0531F2EC
+TYPE:native-better
+PARSE-OK:true
+RAW:ctx-incident: native-better | fact="ratified 07-05 sequence with KP_SDLC ca35891c fixture turns 813/858/1173" | expected="session resume surfaces the ratified plan as a Decision" | got="ledger decisions for bdfbd48b carried CompactBench/creation-critique lines but not the ratified rank/v1 sequence; full detail recovered from auto-memory MEMORY.md instead" | evidence="resume output decisions[] vs r
+TURN:15
+FACT:ratified 07-05 sequence with KP_SDLC ca35891c fixture turns 813/858/1173
+EXPECTED:session resume surfaces the ratified plan as a Decision
+GOT:ledger decisions for bdfbd48b carried CompactBench/creation-critique lines but not the ratified rank/v1 sequence; full detail recovered from auto-memory MEMORY.md instead
+EVIDENCE:resume output decisions[] vs ratified-eval-first-drift-plan.md
+FACT-ID:512e95dcf47dddf5
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:a4fac788#turn15
+±ENTITY-FAILED-APPROACH-A06B346B
+NOTE:**rank/v1 — the event-sourced salience fold**, using the KP_SDLC ca35891c session as the labeled fixture (load-bearing turns 813/858/1173 must rise; verb-inferred junk at turns 57/74 must sink; constraints floor), plus the CTX_mod session-id-extractor false positive as additional
+TURN:15
+FACT-ID:caae1aa16974d378
+BASIS:inferred
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:a4fac788#turn15
+±ENTITY-LITERAL-33C9343B
+VALUE:619d5850a72200b7
+KIND:git_sha
+TURN:15
+FACT-ID:6fae9534c7f7fd8f
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:a4fac788#turn15
+±ENTITY-LITERAL-EFEFD5A3
+VALUE:#4
+KIND:pr
+TURN:15
+FACT-ID:69914b1ba82b19c1
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:a4fac788#turn15
+±ENTITY-LITERAL-1045B01E
+VALUE:paper/vision-dream-intuition-agents.md
+KIND:path
+TURN:15
+FACT-ID:7138b95d9a0bfa99
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:a4fac788#turn15

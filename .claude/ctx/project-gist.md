@@ -1,0 +1,37 @@
+# Project memory (4 earlier sessions, oldest first)
+
+Cross-session ledger rollup. Detail per session: `ctxpack session decisions --session <id>`.
+
+## Constraints (verbatim — do not violate)
+- how is ctx working so i am always assured that in background teh key memory is being updated so i dont lose out on the overall repo status. (s:bae8e5d2#turn465)
+- - Do not run the $60 full pass until cost reporting is fixed. (s:bdfbd48b#turn445)
+- i dont want feature bloat but only if things are of real value and creates a moat. (s:bdfbd48b#turn519)
+- The agent should not just say “the rule is X”; it (s:bdfbd48b#turn519)
+- - “do not answer unless source X is checked” rules (s:bdfbd48b#turn519)
+- i feel that ctx should work in the background and an agent should not have to do anything different? (s:bdfbd48b#turn613)
+- I don't write to it. (s:bdfbd48b#turn613)
+- > ctx should not become “smarter summaries.” It should become immutable, cited facts plus deterministic event- (s:bdfbd48b#turn621)
+- Do not try to build salience learning, DAG merges, typed edges, and consolidation all in the v1.1 (s:bdfbd48b#turn621)
+- - This is written by me, manually, with never touches it. (s:bdfbd48b#turn755)
+- Constraint: the lint is precision-first — it stays checkpoint-time, deterministic, and silent unless the match is exact, because a lint that cries wolf gets ignored, and an ignored governance signal is worse than none. (s:bdfbd48b#turn791)
+
+## Decisions
+- Decision: the next build should be **P4 — the MCP session read path** (`ctx/session_recall`, `ctx/session_timeline`, `ctx/session_decisions`, `ctx/why`, `ctx/graph_query`) because everything else is gated on it: (s:bae8e5d2#turn15)
+- Decision: the root cause is that Claude Code loads hook configuration once at process startup (and newly added project hooks require review via the `/hooks` menu before they're trusted). (s:bae8e5d2#turn57)
+- Decision: benefits-vs-native measurement is passive and deterministic — computed from the transcript itself at checkpoint time, so teams can't forget to instrument and can't game it. (s:bae8e5d2#turn415)
+- The fix is a debounced per-turn checkpoint (Claude Code's Stop hook fires after every completed turn; at <2s a re-pack every N turns is cheap), making the ledger never more than a turn or two stale — zero manual recovery even after a hard kill. (s:bae8e5d2#turn467)
+- Decision: build in this order — (1) scorecard aggregator + static dashboard, (2) resume-probe harness, (3) CompactBench — because each layer's output tells us where to point the next one, and the scorecard gives you something visible this week. (s:bae8e5d2#turn572)
+- Decision: build the CompactBench driver (drive a real Claude Code session over a planted transcript, force compaction, measure DR@K) as the next engineering task, because it's the only unblocked piece of the measurement stack and the pre-registration loses credibility the longer  (s:bdfbd48b#turn3)
+- ## Creation: the `Decision:` convention is a crutch, but the fix isn't better prose-mining (s:bdfbd48b#turn615)
+- **Derive decisions from actions, not just prose.** A decision usually leaves a deterministic fingerprint: a config value changed, a dependency chosen, a constant revised at turn N. (s:bdfbd48b#turn615)
+- The agent chose the ledger over grepping its own transcript 6:1. (s:bdfbd48b#turn785)
+- ## Why this doesn't mean new roadmap — the fix is the next two ratified items (s:bdfbd48b#turn788)
+- Decision: rank `session_why` matches section_name → field_key → value_exact → value_substring, because an entity whose VALUE equals the needle is the literals-ledger recovery path and must beat any substring hit. (s:a21df970#turn270)
+- Decision: resolve the live transcript by newest mtime under the munged `~/.claude/projects/<project>` dir with a name tie-break, because write-path input selection is outside the byte-determinism contract, which governs pack output only. (s:a21df970#turn270)
+- Decision: keep the agent-constraint extractor marker-only (`Constraint:`/`Invariant:`, no verb heuristics), because over-extraction is the established failure mode and the dogfood convention already asks sessions to mark load-bearing statements. (s:a21df970#turn270)
+- Decision: version the onboard CLAUDE.md block and refresh older blocks in place on re-onboard, because cohort repos otherwise keep stale conventions forever after upgrades. (s:a21df970#turn270)
+- Decision: excluded the concurrent CompactBench worktree changes from commit 4b49f79 by staging CLAUDE.md at the blob level, because committing another session's in-progress files (or a doc line referencing not-yet-committed scripts) would misattribute unfinished work. (s:a21df970#turn287)
+
+## Failed approaches (do not retry)
+- Dead ends too: "The X approach didn't work because ...". (s:bae8e5d2#turn443)
+- Also one plausible-wrong on CTX_mod, from a probe whose "git_sha" was actually a session-id extractor false positive — more rank/v1 fixture material. (s:bdfbd48b#turn1066)

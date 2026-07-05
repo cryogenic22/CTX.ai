@@ -1,0 +1,250 @@
+§CTX v1.0 L2 DOMAIN:session-a21df970
+COMPRESSED:2026-07-04 SOURCE_TOKENS:~738 CTX_TOKENS:~1036 RATIO:~0.9x
+
+±ENTITY-USER-REQUEST-948043BE
+REQUEST:get yourself acquainted with the repo and then i want you to play the role of fixing some of the issues other repos are facing in using ctx modules in their workflows etc.
+TURN:0
+SRC:session:a21df970#turn0
+±ENTITY-TOOL-BASH-0001
+RAN:Show recent commits and stats for feedback/upgrade docs
+COMMAND:git -C /c/Users/kapil/Documents/CTX_mod log --oneline -15 && echo --- && git -C /c/Users/kapil/Documents/CTX_mod show --stat --oneline -s 3acd1a8 b82c106 d40bd2
+TURN:3
+SRC:session:a21df970#turn3
+±ENTITY-TOOL-BASH-0007
+RAN:Show git status and locate agent/CLI/MCP source files
+COMMAND:git status --short && echo --- && ls ctxpack/agent/ ctxpack/cli/ 2>/dev/null && echo --- && ls ctxpack/mcp* 2>/dev/null || find ctxpack -maxdepth 2 -name "*mcp*
+TURN:17
+SRC:session:a21df970#turn17
+±ENTITY-TOOL-BASH-0044
+RAN:List test files and checkpoint test functions
+COMMAND:ls tests/ | head -60 && echo --- && grep -n "def test" tests/test_checkpoint.py 2>/dev/null | head -30
+TURN:122
+SRC:session:a21df970#turn122
+±ENTITY-TOOL-BASH-0050
+RAN:Show end of transcript parser test file
+COMMAND:tail -20 tests/test_transcript_parser.py
+TURN:137
+SRC:session:a21df970#turn137
+±ENTITY-TOOL-BASH-0051
+RAN:Append Constraint: marker tests to parser test file
+COMMAND:cat >> tests/test_transcript_parser.py << 'EOF' # ── Agent-stated constraints (feedback P2-8, 2026-07-04) ── # Cohort evidence: 49 decisions vs 1 constraint ban
+TURN:139
+SRC:session:a21df970#turn139
+±ENTITY-TOOL-BASH-0053
+RAN:Append feedback-fix tests to session reader test file
+COMMAND:cat >> tests/test_session_reader.py << 'EOF' # ── Agent-consumer feedback fixes (2026-07-04) ── def _write_sha_transcript(tmp_path, sid, name="sha.jsonl"): """A
+TURN:145
+SRC:session:a21df970#turn145
+±ENTITY-TOOL-BASH-0054
+RAN:Run session reader, parser, and checkpoint tests
+COMMAND:python -m pytest tests/test_session_reader.py tests/test_transcript_parser.py tests/test_checkpoint.py -q 2>&1 | tail -20
+TURN:149
+SRC:session:a21df970#turn149
+±ENTITY-TOOL-BASH-0055
+RAN:Append and run live-transcript resolver tests
+COMMAND:cat >> tests/test_checkpoint.py << 'EOF' # ── Live-transcript resolution (feedback P0-2, 2026-07-04) ── def test_claude_project_dir_name_munging(tmp_path): from
+TURN:153
+SRC:session:a21df970#turn153
+±ENTITY-TOOL-BASH-0061
+RAN:Add onboard refresh test and run onboard + CLI suites
+COMMAND:cat >> tests/test_onboard.py << 'EOF' def test_onboard_refreshes_stale_conventions_block(tmp_path): # A repo onboarded on an older ctxpack has a v1 block; re-on
+TURN:173
+SRC:session:a21df970#turn173
+±ENTITY-ERROR-4AC4D127
+MESSAGE:<tool_use_error>File has not been read yet. Read it first before writing to it.</tool_use_error>
+TURN:195
+SRC:session:a21df970#turn195
+±ENTITY-TOOL-BASH-0082
+RAN:Run touched-area tests plus determinism/negation gate suites
+COMMAND:python -m pytest tests/test_session_reader.py tests/test_transcript_parser.py tests/test_checkpoint.py tests/test_onboard.py tests/test_cli.py tests/test_stop_a
+TURN:225
+SRC:session:a21df970#turn225
+±ENTITY-TOOL-BASH-0083
+RAN:Live-test why() on the real observed failure case
+COMMAND:python -m ctxpack.cli.main session why "0308e87" 2>&1 | head -30
+TURN:229
+SRC:session:a21df970#turn229
+±ENTITY-TOOL-BASH-0084
+RAN:Live-test bulk literals view on the real ledger
+COMMAND:python -m ctxpack.cli.main session literals 2>&1 | head -25
+TURN:231
+SRC:session:a21df970#turn231
+±ENTITY-LITERAL-3CEA5608
+VALUE:bae8e5d2
+KIND:git_sha
+TURN:234
+SRC:session:a21df970#turn234
+±ENTITY-TOOL-BASH-0085
+RAN:Live-test why() exact-value tier on the original failing session
+COMMAND:python -m ctxpack.cli.main session why "0308e87" --session bae8e5d2 2>&1 | head -45
+TURN:235
+SRC:session:a21df970#turn235
+±ENTITY-TOOL-BASH-0087
+RAN:Count literal entities and git shas in the bae8e5d2 ledger
+COMMAND:grep -c "ENTITY-LITERAL" .claude/ctx/session-bae8e5d2.ctx; grep -o "KIND:git_sha" .claude/ctx/session-bae8e5d2.ctx | wc -l; ls -la .claude/ctx/
+TURN:241
+SRC:session:a21df970#turn241
+±ENTITY-TOOL-BASH-0088
+RAN:List some banked literal values from the real ledger
+COMMAND:grep -A1 "ENTITY-LITERAL" .claude/ctx/session-bae8e5d2.ctx | grep -B0 -A0 "VALUE" | head -8
+TURN:245
+SRC:session:a21df970#turn245
+±ENTITY-TOOL-BASH-0089
+RAN:Live-test exact-value tier with a sha present in the ledger
+COMMAND:python -m ctxpack.cli.main session why "cee22d9" --session bae8e5d2 2>&1 | head -40
+TURN:247
+SRC:session:a21df970#turn247
+±ENTITY-TOOL-BASH-0090
+RAN:Live-test one-call resume on the real ledger
+COMMAND:python -m ctxpack.cli.main session resume 2>&1 | head -50
+TURN:251
+SRC:session:a21df970#turn251
+±ENTITY-TOOL-BASH-0091
+RAN:Bank the current session via auto-resolved transcript
+COMMAND:python -m ctxpack.cli.main checkpoint 2>&1
+TURN:255
+SRC:session:a21df970#turn255
+±ENTITY-TOOL-BASH-0095
+RAN:Final test sweep and working-tree diff summary
+COMMAND:python -m pytest tests/test_session_reader.py tests/test_transcript_parser.py tests/test_checkpoint.py tests/test_onboard.py tests/test_cli.py tests/test_stop_a
+TURN:267
+SRC:session:a21df970#turn267
+±ENTITY-DECISION-0029F1CC
+DECISION:Decision: rank `session_why` matches section_name → field_key → value_exact → value_substring, because an entity whose VALUE equals the needle is the literals-ledger recovery path and must beat any substring hit.
+TURN:270
+SRC:session:a21df970#turn270
+±ENTITY-DECISION-38A2B9E1
+DECISION:Decision: resolve the live transcript by newest mtime under the munged `~/.claude/projects/<project>` dir with a name tie-break, because write-path input selection is outside the byte-determinism contract, which governs pack output only.
+TURN:270
+SRC:session:a21df970#turn270
+±ENTITY-DECISION-96E97BC1
+DECISION:Decision: keep the agent-constraint extractor marker-only (`Constraint:`/`Invariant:`, no verb heuristics), because over-extraction is the established failure mode and the dogfood convention already asks sessions to mark load-bearing statements.
+TURN:270
+SRC:session:a21df970#turn270
+±ENTITY-DECISION-F7C3302F
+DECISION:Decision: version the onboard CLAUDE.md block and refresh older blocks in place on re-onboard, because cohort repos otherwise keep stale conventions forever after upgrades.
+TURN:270
+SRC:session:a21df970#turn270
+±ENTITY-LITERAL-A79E17A9
+VALUE:docs/agent-consumer-feedback-2026-07-04.md
+KIND:path
+TURN:270
+SRC:session:a21df970#turn270
+±ENTITY-LITERAL-4790A2C8
+VALUE:cee22d9
+KIND:git_sha
+TURN:270
+SRC:session:a21df970#turn270
+±ENTITY-LITERAL-2A654CA9
+VALUE:0308e87
+KIND:git_sha
+TURN:270
+SRC:session:a21df970#turn270
+±ENTITY-LITERAL-8772A62A
+VALUE:#5
+KIND:pr
+TURN:270
+SRC:session:a21df970#turn270
+±ENTITY-LITERAL-A1DADD3E
+VALUE:#6
+KIND:pr
+TURN:270
+SRC:session:a21df970#turn270
+±ENTITY-LITERAL-7E262A21
+VALUE:#7
+KIND:pr
+TURN:270
+SRC:session:a21df970#turn270
+±ENTITY-LITERAL-1045B01E
+VALUE:paper/vision-dream-intuition-agents.md
+KIND:path
+TURN:270
+SRC:session:a21df970#turn270
+±ENTITY-USER-REQUEST-70DC53D0
+REQUEST:commit it
+TURN:271
+SRC:session:a21df970#turn271
+±ENTITY-TOOL-BASH-0096
+RAN:Stage only the agent-ergonomics fix files
+COMMAND:git add CLAUDE.md README.md ctxpack/agent/checkpoint.py ctxpack/agent/session_reader.py ctxpack/agent/transcript_parser.py ctxpack/cli/main.py ctxpack/integrati
+TURN:273
+SRC:session:a21df970#turn273
+±ENTITY-TOOL-BASH-0097
+RAN:Stage CLAUDE.md without the concurrent CompactBench bullet
+COMMAND:git restore --staged CLAUDE.md && SCRATCH="/c/Users/kapil/AppData/Local/Temp/claude/C--Users-kapil-Documents-CTX-mod/a21df970-76e8-44f7-b805-82d5b40a6f8e/scratc
+TURN:277
+SRC:session:a21df970#turn277
+±ENTITY-TOOL-BASH-0098
+RAN:Commit the agent-ergonomics fixes
+COMMAND:git commit -m "$(cat <<'EOF' Agent-ergonomics fixes from consumer-repo feedback (P0-1/P0-2/P1-3/P1-4/P2-8) Sourced from docs/agent-consumer-feedback-2026-07-04.
+TURN:281
+SRC:session:a21df970#turn281
+±ENTITY-DECISION-8D0CF34A
+DECISION:Decision: excluded the concurrent CompactBench worktree changes from commit 4b49f79 by staging CLAUDE.md at the blob level, because committing another session's in-progress files (or a doc line referencing not-yet-committed scripts) would misattribute unfinished work.
+TURN:287
+SRC:session:a21df970#turn287
+±ENTITY-LITERAL-DDDE2A44
+VALUE:4b49f79
+KIND:git_sha
+TURN:287
+SRC:session:a21df970#turn287
+±ENTITY-LITERAL-D879B4F7
+VALUE:tests/test_compactbench_driver.py
+KIND:path
+TURN:287
+SRC:session:a21df970#turn287
+±ENTITY-LITERAL-61FAE0E4
+VALUE:a21df970
+KIND:git_sha
+TURN:287
+SRC:session:a21df970#turn287
+±ENTITY-FILE-E-PROJECTS-C--USERS-KAPIL-DOCUMENTS-CTX-MOD-MEMORY-MEMORY-MD
+PATH:C:\Users\kapil\.claude\projects\C--Users-kapil-Documents-CTX-mod\memory\MEMORY.md
+EDITS:3
+LAST-TURN:285
+SRC:session:a21df970#turn285
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-CLAUDE-MD
+PATH:C:\Users\kapil\Documents\CTX_mod\CLAUDE.md
+EDITS:6
+LAST-TURN:210
+SRC:session:a21df970#turn210
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-README-MD
+PATH:C:\Users\kapil\Documents\CTX_mod\README.md
+EDITS:4
+LAST-TURN:190
+SRC:session:a21df970#turn190
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-AGENT-CHECKPOINT-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\checkpoint.py
+EDITS:2
+LAST-TURN:80
+SRC:session:a21df970#turn80
+±ENTITY-FILE-SERS-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-AGENT-SESSION-READER-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\session_reader.py
+EDITS:5
+LAST-TURN:74
+SRC:session:a21df970#turn74
+±ENTITY-FILE-S-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-AGENT-TRANSCRIPT-PARSER-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\transcript_parser.py
+EDITS:4
+LAST-TURN:118
+SRC:session:a21df970#turn118
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-CLI-MAIN-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\cli\main.py
+EDITS:8
+LAST-TURN:170
+SRC:session:a21df970#turn170
+±ENTITY-FILE-S-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-INTEGRATIONS-MCP-SERVER-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\integrations\mcp_server.py
+EDITS:5
+LAST-TURN:94
+SRC:session:a21df970#turn94
+±ENTITY-FILE-RS-KAPIL-DOCUMENTS-CTX-MOD-DOCS-SESSION-MEMORY-ONBOARDING-MD
+PATH:C:\Users\kapil\Documents\CTX_mod\docs\session-memory-onboarding.md
+EDITS:4
+LAST-TURN:221
+SRC:session:a21df970#turn221
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-TESTS-TEST-SESSION-READER-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\tests\test_session_reader.py
+EDITS:1
+LAST-TURN:143
+SRC:session:a21df970#turn143
