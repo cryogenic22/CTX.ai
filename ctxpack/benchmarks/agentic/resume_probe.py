@@ -43,6 +43,7 @@ from ...agent.session_reader import (
     _turn_of,
     load_session,
     resolve_session,
+    session_literals,
 )
 from ...core.hydrator import hydrate_by_query
 from ...core.serializer import serialize_section
@@ -353,11 +354,30 @@ def find_transcript(repo_path: str, sid8: str) -> Optional[str]:
     return hits[0] if hits else None
 
 
+CTX_ARM_VERSION = "v2-session-literals"
+
+
 def ctx_context(ledger_dir: str, probe: Probe, max_sections: int = 3) -> str:
-    """The hooks' view: startup gists + keyword-hydrated ledger sections."""
+    """The hooks' view: startup gists + keyword-hydrated ledger sections,
+    plus the source session's banked-literals view.
+
+    The literals block models `ctxpack session literals` — the read path
+    the onboarding conventions tell a resuming agent to use. Its absence
+    was the baseline arm's known limitation (KP_SDLC literals 1/7: the
+    arm couldn't address "the [kind] near turn N" for literals outside
+    the startup gist), with this exact fix pre-registered for the next
+    run on 2026-07-05. Still deterministic: no LLM, no per-probe tuning;
+    the grep arm's budget tracks this arm's BPE, so parity holds."""
     parts = [read_startup_context(ledger_dir)]
     try:
-        doc, _ = load_session(ledger_dir, probe.session)
+        doc, sid = load_session(ledger_dir, probe.session)
+        lits = session_literals(doc, sid)
+        if lits["literals"]:
+            rows = "\n".join(
+                f"- {r['value']} [{r['kind']}] (turn {r['turn']})"
+                for r in lits["literals"])
+            parts.append(f"## Exact identifiers banked for session {sid} "
+                         f"(`ctxpack session literals`)\n{rows}")
         result = hydrate_by_query(doc, probe.question,
                                   max_sections=max_sections,
                                   include_header=False)
@@ -526,6 +546,17 @@ def to_report(repo_path: str, probes: list[Probe],
         "repo": os.path.basename(os.path.normpath(repo_path)),
         "config": {"seed": seed, "model": model, "n_probes": len(probes),
                    "probe_set": probe_set,
+                   "ctx_arm": CTX_ARM_VERSION,
+                   "arm_notes": (
+                       "ctx arm v2 adds the source session's banked-"
+                       "literals view (`ctxpack session literals`) to the "
+                       "context — the pre-registered 2026-07-05 fix for "
+                       "the baseline arm under-modeling the real read "
+                       "path (baseline files carry no ctx_arm field = "
+                       "v1). Probe universe is regenerated from the "
+                       "current ledger, which has grown since baseline — "
+                       "per-kind accuracy, not per-probe pairing, is the "
+                       "cross-run comparator."),
                    "grading_notes": (
                        "drift probes pass only when the answer contains a "
                        "verbatim anchor of the conflicting prior that is "

@@ -6,6 +6,7 @@ from ctxpack.agent.checkpoint import run_checkpoint
 from ctxpack.benchmarks.agentic.resume_probe import (
     Probe,
     _mangle_project_dir,
+    ctx_context,
     generate_probes,
     grade,
 )
@@ -25,7 +26,7 @@ def _ledger(tmp_path):
         _entry("assistant", [{"type": "text", "text":
             "Decision: use exponential backoff with base 750ms for every "
             "vendor call because the rate limit is 40 requests per "
-            "minute."}], "aaaa1111-s"),
+            "minute. Fixed in commit deadbeef1234."}], "aaaa1111-s"),
     ]
     t = tmp_path / "s.jsonl"
     t.write_text("\n".join(json.dumps(e) for e in entries), encoding="utf-8")
@@ -61,6 +62,17 @@ def test_exact_grade_normalizes_quotes():
               question="q", expected="a1b2c3d4e5", grade_mode="exact")
     assert grade(p, "The value is `a1b2c3d4e5`.") is True
     assert grade(p, "The value is a1b2c3d4XX.") is False
+
+
+def test_ctx_arm_includes_source_session_literals(tmp_path):
+    # v2 arm (pre-registered 2026-07-05): every banked literal of the
+    # probe's source session is addressable in the ctx context, even
+    # when it never appears in the startup gist or a hydrated section
+    ledger = _ledger(tmp_path)
+    probe = next(p for p in generate_probes(ledger, n=10, seed=42))
+    ctx = ctx_context(ledger, probe)
+    assert "ctxpack session literals" in ctx
+    assert "deadbeef1234" in ctx
 
 
 def test_mangle_project_dir_matches_claude_code():
