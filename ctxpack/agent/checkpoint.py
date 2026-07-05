@@ -165,10 +165,13 @@ def _emit_events(out_dir: str, parsed: ParsedTranscript, corpus,
         return next((f.value for f in entity.fields if f.key == key), "")
 
     rows: list = []
+    # cwd is transcript-derived (never env), so rank folds can exclude
+    # eval-harness workspaces while events.jsonl stays byte-replayable.
+    cwd = parsed.stats.cwd
 
     def ev(event: str, fact_id=None, turn=None, **detail) -> None:
         rows.append({"schema": factid.EVENTS_SCHEMA, "session": sid,
-                     "checkpoint": sha[:12], "event": event,
+                     "checkpoint": sha[:12], "cwd": cwd, "event": event,
                      "fact_id": fact_id, "turn": turn, "detail": detail})
 
     for entity in corpus.entities:

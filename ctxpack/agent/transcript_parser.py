@@ -212,6 +212,11 @@ class TranscriptStats:
     # keyed by incident type, with malformed payloads under "unparsed"
     incidents: int = 0
     incident_types: dict = field(default_factory=dict)
+    # Workspace the session ran in (first cwd seen in the transcript).
+    # Stamped onto event rows so rank folds can exclude eval-harness
+    # workspaces deterministically — transcript-derived, so re-deriving
+    # events.jsonl stays byte-replayable (an env flag would not be).
+    cwd: str = ""
 
     def to_dict(self) -> dict:
         return dict(self.__dict__)
@@ -472,6 +477,8 @@ def parse_transcript(
     sid = session_id[:8] if session_id else "unknown"
     corpus = IRCorpus(domain=domain or f"session-{sid}")
     stats = TranscriptStats()
+    stats.cwd = next(
+        (str(e["cwd"]) for e in entries if e.get("cwd")), "")
     src_file = f"session:{sid}"
 
     seen_names: set[str] = set()

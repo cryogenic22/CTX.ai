@@ -30,7 +30,9 @@ load_dotenv()
 
 from ctxpack.benchmarks.agentic.resume_probe import (
     ProbeResult,
+    automem_context,
     ctx_context,
+    drift_candidates,
     generate_probes,
     grade,
     grep_context,
@@ -47,6 +49,14 @@ _PREAMBLE = (
     "answer, use it; be precise with exact values.\n\n"
 )
 
+# Drift preamble is deliberately NEUTRAL: it must not hint that the
+# proposal conflicts with anything — noticing is the behavior under test.
+_DRIFT_PREAMBLE = (
+    "You are resuming work on a software project; context about the "
+    "project's history is below. A teammate sends you the following "
+    "message. Reply as you would to the teammate.\n\n"
+)
+
 
 def main() -> int:
     ap = argparse.ArgumentParser()
@@ -58,6 +68,10 @@ def main() -> int:
                     help="Generate probes + contexts, no API calls")
     ap.add_argument("--arms", default="ctx,grep,closed")
     ap.add_argument("--model", default="claude-sonnet-4-6")
+    ap.add_argument("--probe-set", default="recall",
+                    choices=("recall", "drift"),
+                    help="recall: history questions; drift: conflicting "
+                         "proposals graded on surfacing the prior")
     args = ap.parse_args()
 
     repo = os.path.abspath(args.repo)
@@ -65,13 +79,26 @@ def main() -> int:
     n = 3 if args.smoke else args.n
     arms = [a.strip() for a in args.arms.split(",") if a.strip()]
 
-    probes = generate_probes(ledger, n=n, seed=args.seed)
+    if args.probe_set == "drift":
+        probes = generate_probes(ledger, n=n, seed=args.seed,
+                                 candidates=drift_candidates)
+    else:
+        probes = generate_probes(ledger, n=n, seed=args.seed)
     if not probes:
-        print(f"No probe candidates in {ledger} — needs checkpointed "
-              f"sessions with decisions/constraints/literals.")
+        print(f"No {args.probe_set} probe candidates in {ledger} — needs "
+              f"checkpointed sessions with decisions/constraints/literals.")
         return 1
-    print(f"repo={os.path.basename(repo)}  probes={len(probes)} "
+    print(f"repo={os.path.basename(repo)}  set={args.probe_set}  "
+          f"probes={len(probes)} "
           f"({', '.join(sorted({p.kind for p in probes}))})  arms={arms}")
+
+    # AUTOMEM arm: probe-independent by nature — computed once. Empty
+    # means the repo has no curated auto-memory; the arm then equals
+    # CLOSED, which is itself informative (nothing was curated).
+    automem = automem_context(repo) if "automem" in arms else ""
+    if "automem" in arms and not automem:
+        print("  note: no auto-memory dir found — automem arm runs "
+              "context-free (equals closed)")
 
     model = args.model
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -88,7 +115,10 @@ def main() -> int:
             "ctx": ctx,
             "grep": grep_context(repo, probe, budget or 2000),
             "closed": "",
+            "automem": automem,
         }
+        preamble = (_DRIFT_PREAMBLE if probe.kind.startswith("drift")
+                    else _PREAMBLE)
         for arm in arms:
             context = contexts.get(arm, "")
             bpe = count_bpe_tokens(context, model="claude") if context else 0
@@ -98,7 +128,7 @@ def main() -> int:
                     answer="(dry-run)", correct=False, context_bpe=bpe))
                 continue
             answer = _ask_llm(
-                _PREAMBLE + probe.question,
+                preamble + probe.question,
                 context or "(no context provided)",
                 model=model, api_key=api_key, provider="anthropic")
             results.append(ProbeResult(
@@ -112,7 +142,8 @@ def main() -> int:
         print(f"  [{i:>2}/{len(probes)}] {probe.kind:<11} {marks}  "
               f"ctx={budget}bpe")
 
-    report = to_report(repo, probes, results, seed=args.seed, model=model)
+    report = to_report(repo, probes, results, seed=args.seed, model=model,
+                       probe_set=args.probe_set)
     if args.dry_run:
         for arm in report["arms"].values():
             arm["accuracy"] = None  # dry-run grades are meaningless
@@ -128,7 +159,7 @@ def main() -> int:
     tag = "dryrun" if args.dry_run else ("smoke" if args.smoke else "full")
     out = os.path.join(
         RESULTS_DIR,
-        f"resume-probe-{report['repo']}-{tag}-{stamp}.json")
+        f"resume-probe-{report['repo']}-{args.probe_set}-{tag}-{stamp}.json")
     with open(out, "w", encoding="utf-8", newline="\n") as f:
         json.dump(report, f, indent=2)
         f.write("\n")

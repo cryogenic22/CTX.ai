@@ -63,12 +63,13 @@ _WORD_RE = re.compile(r"[A-Za-z0-9_./#@-]+")
 @dataclass
 class Probe:
     probe_id: str
-    kind: str              # literal | decision | constraint | superseded
+    kind: str              # literal | decision | constraint | superseded |
+                           # rationale | drift-{constraint,superseded,failed}
     session: str           # sid8 the fact came from
     turn: int
     question: str
     expected: str          # the graded string
-    grade_mode: str        # exact | contains
+    grade_mode: str        # exact | contains | flags
     source_text: str = ""  # full fact, for the report
 
 
@@ -133,6 +134,12 @@ def probe_candidates(ledger_dir: str, sid: str) -> list[Probe]:
                           f"state the full decision."),
                 expected=key_phrase, grade_mode="contains",
                 source_text=text))
+            # rationale probe — the narrative-adjacent cell curated memory
+            # should win (its files carry "Why:" sections); rule-gradable
+            # because the reason tail is never shown in the question
+            rat = _rationale_probe(text, pid, sid, turn)
+            if rat:
+                out.append(rat)
         elif kind == "CONSTRAINT":
             words = _distinctive_words(text)
             if len(words) < 2 or len(text.split()) < 6:
@@ -166,17 +173,148 @@ def probe_candidates(ledger_dir: str, sid: str) -> list[Probe]:
     return out
 
 
-def generate_probes(ledger_dir: str, n: int = 20,
-                    seed: int = 42) -> list[Probe]:
+_BECAUSE_RE = re.compile(r"\s+because\s+", re.IGNORECASE)
+
+
+def _rationale_probe(text: str, pid: str, sid: str,
+                     turn: int) -> Optional[Probe]:
+    parts = _BECAUSE_RE.split(text, maxsplit=1)
+    if len(parts) != 2:
+        return None
+    head, tail = parts[0].strip(), parts[1].strip(" .")
+    if len(head.split()) < 6 or len(tail.split()) < 4:
+        return None
+    stem = " ".join(head.split()[:8])
+    expected = _phrase_after(tail, 0, 5)
+    if _norm(expected) in _norm(stem):
+        return None  # reason would leak into the question
+    return Probe(
+        probe_id=f"{pid}-why", kind="rationale", session=sid, turn=turn,
+        question=(f"This project's history records a decision that begins: "
+                  f"\"{stem} ...\". WHY was it made? State the reason."),
+        expected=expected, grade_mode="contains", source_text=text)
+
+
+# ── Drift probes (course-keeping; the L2 text-anchor baseline) ──
+#
+# Each probe is a plausible teammate PROPOSAL that conflicts with a
+# banked fact. Grading is precision-first: pass = the answer contains a
+# verbatim anchor from the prior fact that is NEVER shown in the
+# proposal (the superseded key's CURRENT value, a constraint's
+# condition tail, a failed approach's failure reason) — so parroting
+# the proposal can't false-pass, and flagging requires actually
+# surfacing the prior. Paraphrased flags grade as misses (disclosed:
+# under-counts every arm; favors arms holding verbatim text, which is
+# the exactness axis the sentinel already established). Checking-
+# BEHAVIOR grading (tool attempts primary) belongs to the CompactBench
+# driver's fork probes, not this single-completion harness.
+
+_NEG_PREFIX_RE = re.compile(r"^(?:never|do not|don'?t)\s+", re.IGNORECASE)
+_COND_TAIL_RE = re.compile(
+    r"\s+(?:until|unless|because|without)\s+", re.IGNORECASE)
+_FAILED_NOTE_RE = re.compile(
+    r"^the\s+(.{3,60}?)\s+approach\s+did\s*n[o']t\s+work\s+because\s+(.{8,})",
+    re.IGNORECASE)
+
+
+def _drift_constraint(text: str, pid: str, sid: str,
+                      turn: int) -> Optional[Probe]:
+    # gist constraints often carry list/quote markers — strip before
+    # anchoring the negation match
+    text = re.sub(r"^[\s\-\*>]+", "", text).strip()
+    m = _NEG_PREFIX_RE.match(text)
+    if not m:
+        return None
+    rest = text[m.end():]
+    parts = _COND_TAIL_RE.split(rest, maxsplit=1)
+    if len(parts) != 2:
+        return None  # no condition tail → any anchor would leak
+    action, tail = parts[0].strip(" ."), parts[1].strip(" .")
+    if len(action.split()) < 3 or len(tail.split()) < 3:
+        return None
+    anchor = _phrase_after(tail, 0, 5)
+    question = (f"For my next step I'm going to {action}. "
+                f"Draft the concrete steps for me.")
+    if _norm(anchor) in _norm(question):
+        return None
+    return Probe(
+        probe_id=f"{pid}-drift", kind="drift-constraint", session=sid,
+        turn=turn, question=question, expected=anchor,
+        grade_mode="flags", source_text=text)
+
+
+def _drift_failed(text: str, pid: str, sid: str,
+                  turn: int) -> Optional[Probe]:
+    m = _FAILED_NOTE_RE.match(text.strip())
+    if not m:
+        return None
+    approach, reason = m.group(1).strip(), m.group(2).strip(" .")
+    anchor = _phrase_after(reason, 0, 5)
+    question = (f"I'm thinking we use the {approach} approach for this "
+                f"next piece — sketch the plan.")
+    if len(_distinctive_words(anchor)) < 2 or _norm(anchor) in _norm(question):
+        return None
+    return Probe(
+        probe_id=f"{pid}-drift", kind="drift-failed", session=sid,
+        turn=turn, question=question, expected=anchor,
+        grade_mode="flags", source_text=text)
+
+
+def _drift_superseded(section, pid: str, sid: str,
+                      turn: int) -> list[Probe]:
+    out: list[Probe] = []
+    for chain in section.children:
+        key = str(getattr(chain, "key", ""))
+        if not key.upper().startswith("SUPERSEDED-"):
+            continue
+        base_key = key[len("SUPERSEDED-"):]
+        current = _kv(section, base_key)
+        old = str(getattr(chain, "value", "")).split(" -> ")[-1].strip()
+        if not current or not old or _norm(old) == _norm(current):
+            continue
+        question = (f"Quick change for the next run: set {base_key} to "
+                    f"{old}, like we had before. OK to proceed?")
+        if len(current) < 2 or _norm(current) in _norm(question):
+            continue  # current value would leak into the proposal
+        out.append(Probe(
+            probe_id=f"{pid}-drift", kind="drift-superseded", session=sid,
+            turn=turn, question=question, expected=current,
+            grade_mode="flags",
+            source_text=f"{base_key}: {old} -> current {current}"))
+    return out
+
+
+def drift_candidates(ledger_dir: str, sid: str) -> list[Probe]:
+    """Deterministic drift-probe candidates from one session's ledger."""
+    doc, sid = load_session(ledger_dir, sid)
+    out: list[Probe] = []
+    for s in _sections(doc):
+        kind = _kind_of(s)
+        turn = _turn_of(s)
+        text = _primary_value(s)
+        pid = f"{sid}-{s.name[-8:]}"
+        if kind == "CONSTRAINT" and text:
+            probe = _drift_constraint(text, pid, sid, turn)
+            if probe:
+                out.append(probe)
+        elif kind == "FAILED-APPROACH" and text:
+            probe = _drift_failed(text, pid, sid, turn)
+            if probe:
+                out.append(probe)
+        out.extend(_drift_superseded(s, pid, sid, turn))
+    return out
+
+
+def generate_probes(ledger_dir: str, n: int = 20, seed: int = 42,
+                    candidates=probe_candidates) -> list[Probe]:
     """Seeded, type-stratified sample across every session in the ledger."""
-    _, latest_path = resolve_session(ledger_dir)
     sids = sorted(
         os.path.basename(p)[len("session-"):-len(".ctx")]
         for p in glob.glob(os.path.join(ledger_dir, "session-*.ctx")))
     pool: list[Probe] = []
     for sid in sids:
         try:
-            pool.extend(probe_candidates(ledger_dir, sid))
+            pool.extend(candidates(ledger_dir, sid))
         except Exception:  # noqa: BLE001 — a bad ledger skips, never aborts
             continue
     rng = random.Random(seed)
@@ -223,6 +361,35 @@ def ctx_context(ledger_dir: str, probe: Probe, max_sections: int = 3) -> str:
     except Exception:  # noqa: BLE001
         pass
     return "\n".join(p for p in parts if p)
+
+
+def automem_context(repo_path: str) -> str:
+    """AUTOMEM arm: the agent's own curated auto-memory, verbatim.
+
+    Isolation by construction (ratified non-negotiable #1): this arm's
+    context is ONLY these files, read here into a string — the
+    completion has no filesystem, no MCP, no hooks, so no ctx artifact
+    can leak in. MEMORY.md (the index the harness auto-loads) comes
+    first, then every memory file, mirroring what native recall would
+    surface. Probe-independent: curated memory is one corpus, not a
+    per-question retrieval.
+    """
+    mem_dir = os.path.join(
+        os.path.expanduser("~"), ".claude", "projects",
+        _mangle_project_dir(repo_path), "memory")
+    if not os.path.isdir(mem_dir):
+        return ""
+    names = sorted(os.listdir(mem_dir))
+    ordered = ([n for n in names if n == "MEMORY.md"]
+               + [n for n in names if n != "MEMORY.md" and n.endswith(".md")])
+    parts: list[str] = []
+    for name in ordered:
+        try:
+            with open(os.path.join(mem_dir, name), encoding="utf-8") as f:
+                parts.append(f"## {name}\n{f.read().strip()}")
+        except OSError:
+            continue
+    return "\n\n".join(parts)
 
 
 _GREP_WINDOW = 800  # chars around a hit — what `grep -o -C` style use shows
@@ -295,7 +462,11 @@ def grade(probe: Probe, answer: str) -> bool:
     e = _norm(probe.expected)
     if probe.grade_mode == "exact":
         return e in a
-    return e in a  # contains — expected is already a distinctive phrase
+    # contains — expected is already a distinctive phrase.
+    # flags (drift) — same containment, different semantics: the anchor
+    # is a verbatim fragment of the CONFLICTING PRIOR never shown in the
+    # proposal, so its presence means the answer surfaced the prior.
+    return e in a
 
 
 # ── Aggregation ──
@@ -337,7 +508,7 @@ def aggregate(results: list[ProbeResult]) -> dict[str, Any]:
 
 def to_report(repo_path: str, probes: list[Probe],
               results: list[ProbeResult], *, seed: int,
-              model: str) -> dict[str, Any]:
+              model: str, probe_set: str = "recall") -> dict[str, Any]:
     import datetime
     return {
         "schema": "ctxpack-resume-probe/v1",
@@ -348,7 +519,22 @@ def to_report(repo_path: str, probes: list[Probe],
         "generated_at": datetime.datetime.now(
             datetime.timezone.utc).isoformat(timespec="seconds"),
         "repo": os.path.basename(os.path.normpath(repo_path)),
-        "config": {"seed": seed, "model": model, "n_probes": len(probes)},
+        "config": {"seed": seed, "model": model, "n_probes": len(probes),
+                   "probe_set": probe_set,
+                   "grading_notes": (
+                       "drift probes pass only when the answer contains a "
+                       "verbatim anchor of the conflicting prior that is "
+                       "never shown in the proposal; paraphrased flags "
+                       "grade as misses (uniform under-count, favors arms "
+                       "holding verbatim text). automem arm context is "
+                       "built solely from the repo's auto-memory files — "
+                       "isolation from ctx artifacts is by construction "
+                       "in this no-tools harness. Known asymmetry: the "
+                       "probe universe is ledger-derived (the only "
+                       "deterministic ground truth with provenance), so "
+                       "facts only automem holds are never probed — "
+                       "automem results measure its coverage OF banked "
+                       "facts, not its total knowledge.")},
         "arms": aggregate(results),
         "probes": [asdict(p) for p in probes],
         "results": [asdict(r) for r in results],
