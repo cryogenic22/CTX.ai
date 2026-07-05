@@ -25,6 +25,8 @@ def test_onboard_fresh_repo(tmp_path):
     assert _CLAUDE_MD_MARKER in claude_md
     assert "Decision:" in claude_md          # the load-bearing convention
     assert "ctxpack session" in claude_md    # the read path
+    assert "turn-FINAL" in claude_md         # v4: mid-turn text is dropped
+    assert "Supersedes: <fact_id>" in claude_md  # v4: override convention
     assert (tmp_path / ".claude" / "ctx").is_dir()
 
 
@@ -135,3 +137,24 @@ def test_onboard_refreshes_stale_conventions_block(tmp_path):
     assert "Keep this." in claude_md and "Also keep this." in claude_md
     assert "session resume" in claude_md          # new surfaces present
     assert "Constraint:" in claude_md
+
+
+def test_onboard_refreshes_v3_block_with_v4_conventions(tmp_path):
+    # The live cohort state (review P1): repos onboarded at v3 lack the
+    # turn-final and Supersedes: conventions — re-onboard must deliver
+    # them, or "cohort picks up new conventions on refresh" is false.
+    v3 = (
+        "# Cohort repo\n\n"
+        "<!-- ctxpack:session-memory:v3 -->\n"
+        "## Session memory (ctxpack ledger)\n"
+        "v3 conventions: Decision:/Constraint: markers, incidents.\n"
+        "<!-- /ctxpack:session-memory -->\n"
+    )
+    (tmp_path / "CLAUDE.md").write_text(v3, encoding="utf-8")
+
+    assert _onboard(tmp_path) == 0
+    claude_md = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "ctxpack:session-memory:v3" not in claude_md
+    assert _CLAUDE_MD_MARKER in claude_md
+    assert "turn-FINAL" in claude_md
+    assert "Supersedes: <fact_id>" in claude_md

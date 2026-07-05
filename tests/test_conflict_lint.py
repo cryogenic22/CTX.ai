@@ -140,6 +140,40 @@ def test_same_message_pair_is_exposition_not_drift(tmp_path):
     assert not [r for r in _events(out) if r["event"] == "conflict"]
 
 
+def test_later_same_session_constraint_never_flags_earlier_decision(
+        tmp_path):
+    # review P1 repro: a decision must not be linted against a
+    # constraint from a LATER turn of the same session — that is a
+    # retroactive conflict from future text
+    out = tmp_path / "ctx"
+    entries = [
+        _entry("assistant", [{"type": "text", "text": DRIFT_DECISION}],
+               sid="dddd4444-session"),
+        _entry("user", CONSTRAINT_TEXT, sid="dddd4444-session"),
+    ]
+    run_checkpoint(_write(tmp_path, entries, "d.jsonl"), str(out),
+                   as_of="2026-07-06")
+    assert not [r for r in _events(out) if r["event"] == "conflict"]
+
+
+def test_earlier_same_session_constraint_flags_later_decision(tmp_path):
+    # in-session drift (the CompactBench axis): constraint at an
+    # earlier turn, conflicting decision later in the SAME session
+    out = tmp_path / "ctx"
+    entries = [
+        _entry("user", f"Plan the eval run. {CONSTRAINT_TEXT}",
+               sid="eeee5555-session"),
+        _entry("assistant", [{"type": "text", "text": DRIFT_DECISION}],
+               sid="eeee5555-session"),
+    ]
+    run_checkpoint(_write(tmp_path, entries, "e.jsonl"), str(out),
+                   as_of="2026-07-06")
+    rows = [r for r in _events(out) if r["event"] == "conflict"]
+    assert len(rows) == 1
+    assert rows[0]["detail"]["case"] == "constraint_collision"
+    assert rows[0]["detail"]["resolved"] is False
+
+
 def test_unrelated_decision_stays_silent(tmp_path):
     out = tmp_path / "ctx"
     run_checkpoint(_session_a(tmp_path), str(out), as_of="2026-07-06")
@@ -186,6 +220,52 @@ def test_earlier_journal_order_only(tmp_path):
     run_checkpoint(str(tmp_path / "b.jsonl"), str(out),
                    as_of="2026-07-06")  # re-materialize B's block
     assert not [r for r in _events(out) if r["event"] == "conflict"]
+
+
+# ------------------------------------------------- journal observability
+
+
+def test_journal_lint_status_ok_on_clean_run(tmp_path):
+    out = tmp_path / "ctx"
+    run_checkpoint(_session_a(tmp_path), str(out), as_of="2026-07-06")
+    journal = _journal_tail(out)
+    assert journal["lint_status"] == "ok"
+    assert "lint_error" not in journal
+    assert "lint_ledgers_skipped" not in journal
+
+
+def test_journal_lint_status_error_when_lint_crashes(tmp_path, monkeypatch):
+    # fail-open contract (review P2): the checkpoint hook still succeeds,
+    # but the crash is journaled — "clean lint" and "lint crashed" must
+    # not both read lint_conflicts=0 with nothing else to tell them apart
+    import ctxpack.agent.conflict_lint as cl
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("synthetic lint crash")
+
+    monkeypatch.setattr(cl, "lint_decisions", boom)
+    out = tmp_path / "ctx"
+    run_checkpoint(_session_a(tmp_path), str(out), as_of="2026-07-06")
+    journal = _journal_tail(out)
+    assert journal["lint_status"] == "error"
+    assert "synthetic lint crash" in journal["lint_error"]
+    assert journal["lint_conflicts"] == 0
+
+
+def test_journal_counts_skipped_unreadable_ledgers(tmp_path):
+    out = tmp_path / "ctx"
+    run_checkpoint(_session_a(tmp_path), str(out), as_of="2026-07-06")
+    # corrupt the banked ledger so the NEXT session's lint can't read it
+    (out / "session-aaaa1111.ctx").write_bytes(b"\xff\xfe not utf-8")
+    run_checkpoint(_session_b(tmp_path, DRIFT_DECISION), str(out),
+                   as_of="2026-07-06")
+    journal = _journal_tail(out)
+    assert journal["lint_status"] == "ok"
+    assert journal["lint_ledgers_skipped"] == 1
+    # the skipped ledger's constraints were unreachable: no conflict row,
+    # but the coverage gap is on the record instead of silent
+    assert not [r for r in _events(out) if r["event"] == "conflict"
+                and str(r["session"]).startswith("bbbb2222")]
 
 
 # ------------------------------------------------- protected subjects

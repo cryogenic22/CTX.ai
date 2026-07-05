@@ -27,10 +27,11 @@ Ratified scope, generic cases only — ctx stays domain-blind:
    the first keyed producer (``tool_observed`` knobs).
 
 Comparison base: constraints banked by sessions that first-checkpointed
-EARLIER in journal order, plus the current session's own earlier turns —
-so a session's conflict rows are stable no matter when its events block
-is re-materialized. Same-turn pairs are skipped: a decision stated in
-the same message as its constraint is exposition, not drift.
+EARLIER in journal order, plus the current session's own STRICTLY
+EARLIER turns — so a session's conflict rows are stable no matter when
+its events block is re-materialized, and no decision is ever flagged
+against text from its own or a later turn (same-turn is exposition,
+later-turn would be a retroactive conflict from future text).
 
 Lint scope guard: only canonical ``Decision:``-marked facts are linted.
 Verb-inferred decisions are the measured junk class and alias markers
@@ -129,10 +130,16 @@ def _contains(haystack: "list[str]", needle: "list[str]") -> bool:
                for i in range(len(haystack) - n + 1))
 
 
-def _banked_constraints(out_dir: str,
-                        current_sid8: str) -> "list[tuple[str, str, str]]":
-    """(fact_id, src, text) for constraints of sessions that
-    first-checkpointed earlier than the current one (journal order)."""
+def _banked_constraints(
+        out_dir: str,
+        current_sid8: str,
+        meta: "Optional[dict]" = None) -> "list[tuple[str, str, str, None]]":
+    """(fact_id, src, text, turn=None) for constraints of sessions that
+    first-checkpointed earlier than the current one (journal order).
+    turn is None because cross-session constraints are durable memory —
+    they apply to every turn of the current session. An unreadable
+    ledger is skipped fail-open and counted in meta['ledgers_skipped']
+    so a silent coverage gap is visible in the journal."""
     from ..core.parser import parse as _parse_ctx
     from .checkpoint import _journal_session_order
     from .session_reader import _kind_of, _kv, _primary_value, _sections, \
@@ -141,13 +148,15 @@ def _banked_constraints(out_dir: str,
     order = _journal_session_order(out_dir)
     if current_sid8 in order:
         order = order[:order.index(current_sid8)]
-    rows: "list[tuple[str, str, str]]" = []
+    rows: "list[tuple[str, str, str, None]]" = []
     for sid in order:
         path = os.path.join(out_dir, f"session-{sid}.ctx")
         try:
             with open(path, encoding="utf-8") as f:
                 doc = _parse_ctx(f.read(), level=2)
         except Exception:  # noqa: BLE001 — one bad ledger must not kill the lint
+            if meta is not None:
+                meta["ledgers_skipped"] = meta.get("ledgers_skipped", 0) + 1
             continue
         for section in _sections(doc):
             if _kind_of(section) != "CONSTRAINT":
@@ -156,17 +165,20 @@ def _banked_constraints(out_dir: str,
             if not text:
                 continue
             rows.append((_kv(section, "FACT-ID"),
-                         f"s:{sid}#turn{_turn_of(section)}", text))
+                         f"s:{sid}#turn{_turn_of(section)}", text, None))
     return rows
 
 
 def lint_decisions(corpus_entities, out_dir: str,
                    current_session_id: str,
-                   protected: "Optional[list[dict]]" = None) -> "list[dict]":
+                   protected: "Optional[list[dict]]" = None,
+                   meta: "Optional[dict]" = None) -> "list[dict]":
     """Lint the current session's canonical decisions against durable
     memory. Returns conflict rows (resolved ones included, flagged) —
     deterministic for a given (corpus, earlier ledgers, protected.json).
-    """
+    ``meta`` (if given) is filled with coverage telemetry, currently
+    ``ledgers_skipped`` — earlier-session ledgers that failed to parse
+    and were skipped fail-open."""
     sid8 = (current_session_id or "")[:8]
     if protected is None:
         protected = load_protected_subjects(out_dir)
@@ -181,15 +193,18 @@ def lint_decisions(corpus_entities, out_dir: str,
             continue
         decisions.append(e)
 
-    constraints = _banked_constraints(out_dir, sid8)
-    # ... plus the current session's own earlier constraints (drift
-    # across an in-session compaction is the CompactBench axis)
+    constraints = _banked_constraints(out_dir, sid8, meta)
+    # ... plus the current session's own constraints (drift across an
+    # in-session compaction is the CompactBench axis); their integer
+    # turn gates comparison to STRICTLY EARLIER turns below. A
+    # constraint without a source turn can't be ordered against the
+    # decision, so it is not comparable — precision-first.
     for e in corpus_entities:
-        if e.name.startswith("CONSTRAINT-"):
-            turn = e.sources[0].turn if e.sources else -1
+        if e.name.startswith("CONSTRAINT-") and e.sources:
+            turn = e.sources[0].turn
             constraints.append((_field(e, "FACT-ID"),
                                 f"s:{sid8}#turn{turn}",
-                                _field(e, "RULE")))
+                                _field(e, "RULE"), turn))
 
     rows: "list[dict]" = []
     seen: set = set()
@@ -201,9 +216,14 @@ def lint_decisions(corpus_entities, out_dir: str,
         sup_target = _field(e, "SUPERSEDES-FACT-ID")
         sup_reason = _field(e, "SUPERSEDES-REASON")
 
-        for c_fid, c_src, c_text in constraints:
-            if c_src == f"s:{sid8}#turn{d_turn}":
-                continue  # same message: exposition, not drift
+        for c_fid, c_src, c_text, c_turn in constraints:
+            # current-session constraints (int turn) count only when
+            # STRICTLY EARLIER than the decision: same-turn is
+            # exposition, later-turn would be a retroactive conflict
+            # from future text. Cross-session constraints (turn None)
+            # are durable memory and always apply.
+            if c_turn is not None and c_turn >= d_turn:
+                continue
             phrase = _shared_phrase(_tokens(c_text), d_tokens)
             if not phrase:
                 continue

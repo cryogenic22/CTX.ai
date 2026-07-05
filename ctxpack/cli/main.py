@@ -1339,7 +1339,7 @@ _MCP_SERVER_ENTRY = {
 # missing resume/literals/checkpoint) instead of skipping with "already
 # present". Bump the version whenever the block content changes.
 _CLAUDE_MD_MARKER_PREFIX = "<!-- ctxpack:session-memory:"
-_CLAUDE_MD_MARKER = f"{_CLAUDE_MD_MARKER_PREFIX}v3 -->"
+_CLAUDE_MD_MARKER = f"{_CLAUDE_MD_MARKER_PREFIX}v4 -->"
 _CLAUDE_MD_END = "<!-- /ctxpack:session-memory -->"
 
 _CLAUDE_MD_BLOCK = f"""
@@ -1372,10 +1372,24 @@ FIRST**; fall back to grepping the raw transcript only if it fails
 on its own sentence starting with `Decision:` — e.g. `Decision: use
 exponential backoff with base 750ms because the vendor limit is 40
 req/min.` The deterministic parser extracts these; unmarked decisions in
-free prose are often missed. Dead ends the same way: "The X approach
-didn't work because ...". Operating rules you set yourself the same way,
-sentence-leading: `Constraint: eval results are immutable — write new
-versioned files, never overwrite.`
+free prose are often missed. State marker lines in the turn-FINAL
+message (the reply that ends your turn): Claude Code 2.1.x does not
+reliably persist mid-turn assistant text to the transcript, and what
+never reaches the transcript can never reach the ledger — restate
+mid-work decisions in your closing summary. Dead ends the same way:
+"The X approach didn't work because ...". Operating rules you set
+yourself the same way, sentence-leading: `Constraint: eval results are
+immutable — write new versioned files, never overwrite.`
+
+**Override convention (conflict lint):** when a new decision knowingly
+changes a banked decision or constraint, follow the `Decision:` line
+with its own line: `Supersedes: <fact_id> — <reason>` (recover the
+fact_id via `ctxpack session why "<value>"`). The checkpoint lint
+surfaces unresolved collisions at the top of the next gist; a declared
+supersession resolves the row and demotes the old fact in rank. The
+goal is "never change decisions silently", not "never change
+decisions". Malformed overrides are ignored — the conflict stays
+visible rather than being silently waved through.
 
 **Incident convention (memory telemetry):** when the ledger visibly helps
 or fails you, record it on its own line, sentence-leading:

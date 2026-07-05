@@ -388,13 +388,19 @@ def run_checkpoint(
 
     # Decision-conflict lint (drift governance): deterministic, precision-
     # first, and fail-open — a lint crash must never break a checkpoint
-    # hook, and a missing lint row is visible in the journal counts.
+    # hook. lint_status distinguishes "clean" from "crashed": without it,
+    # a swallowed exception journals the same zeros as a genuinely clean
+    # run and the governance signal can die silently.
+    lint_meta: dict = {}
+    lint_status, lint_error = "ok", ""
     try:
         from .conflict_lint import lint_decisions
         lint_rows = lint_decisions(corpus.entities, out_dir,
-                                   parsed.session_id)
-    except Exception:  # noqa: BLE001
+                                   parsed.session_id, meta=lint_meta)
+    except Exception as exc:  # noqa: BLE001
         lint_rows = []
+        lint_status = "error"
+        lint_error = f"{type(exc).__name__}: {exc}"[:200]
 
     _emit_events(out_dir, parsed, corpus, sha, lint_rows=lint_rows)
 
@@ -432,6 +438,10 @@ def run_checkpoint(
         "rank_policy": policy,
         "lint_conflicts": sum(1 for r in lint_rows if not r["resolved"]),
         "lint_resolved": sum(1 for r in lint_rows if r["resolved"]),
+        "lint_status": lint_status,
+        **({"lint_error": lint_error} if lint_error else {}),
+        **({"lint_ledgers_skipped": lint_meta["ledgers_skipped"]}
+           if lint_meta.get("ledgers_skipped") else {}),
         "stats": parsed.stats.to_dict(),
     }
     with open(os.path.join(out_dir, "checkpoints.jsonl"), "a",
