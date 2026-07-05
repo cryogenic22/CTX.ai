@@ -178,11 +178,13 @@ def test_checkpoint_emits_replayable_events(tmp_path):
              events_path.read_text(encoding="utf-8").splitlines()]
     asserted2 = [r for r in rows2 if r["event"] == "fact_asserted"]
     assert len(asserted2) == len(asserted)
-    # journal rows carry the rank policy for future offline A/B folds
+    # journal rows carry the policy actually used, for offline A/B folds
+    from ctxpack.core import rank
     journal = [json.loads(l) for l in
                (tmp_path / "ctx" / "checkpoints.jsonl")
                .read_text(encoding="utf-8").splitlines()]
-    assert all(j["rank_policy"] == factid.RANK_POLICY for j in journal)
+    assert all(j["rank_policy"] == rank.DEFAULT_RANK_POLICY
+               for j in journal)
 
 
 def test_events_incident_row_carries_link(tmp_path):

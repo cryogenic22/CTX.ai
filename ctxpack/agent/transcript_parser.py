@@ -55,6 +55,20 @@ _DECISION_MARKER_RE = re.compile(
     r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
     r"(?:decision|conclusion|verdict|confirmed)(?:\*{1,2}|_{1,2})?\s*:"
 )
+_MARKER_WORD_RE = re.compile(r"(?i)(decision|conclusion|verdict|confirmed)")
+
+
+def decision_marker(text: str) -> str:
+    """The marker word a decision line leads with (lowercased), or ''
+    when the line is not marker-led. The canonical 'decision' is a
+    stronger commitment than the self-assessment aliases — rank folds
+    (ctxpack.core.rank) weigh them differently, so the event emitter
+    records which one fired."""
+    m = _DECISION_MARKER_RE.match(text or "")
+    if not m:
+        return ""
+    word = _MARKER_WORD_RE.search(m.group(0))
+    return word.group(1).lower() if word else ""
 # Agent-stated operating rules: the explicit "Constraint:" convention,
 # mirroring "Decision:" (same anchoring, same use-vs-mention guard). In
 # agent-driven sessions the load-bearing constraints are often stated by

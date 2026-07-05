@@ -29,12 +29,12 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
-from ..core import factid
+from ..core import factid, rank
 from ..core.packer.compressor import compress
 from ..core.packer.conflict import detect_conflicts
 from ..core.packer.entity_resolver import resolve_entities
 from ..core.serializer import serialize
-from .transcript_parser import ParsedTranscript, parse_transcript
+from .transcript_parser import ParsedTranscript, decision_marker, parse_transcript
 
 GIST_BPE_BUDGET = 2000
 
@@ -79,15 +79,48 @@ def _count_bpe(text: str) -> int:
         return max(1, len(text) // 4)
 
 
-def build_gist(parsed: ParsedTranscript) -> str:
+def _entity_line(prefix: str, e, primary_key: str) -> str:
+    value = next((f.value for f in e.fields if f.key == primary_key),
+                 e.fields[0].value if e.fields else "")
+    turn = e.sources[0].turn if e.sources else "?"
+    extra = ""
+    if prefix == "FILE":
+        edits = next((f.value for f in e.fields if f.key == "EDITS"), "")
+        extra = f" ({edits} edits)" if edits else ""
+    elif prefix == "TASK":
+        status = next((f.value for f in e.fields if f.key == "STATUS"), "")
+        extra = f" [{status}]" if status else ""
+    elif prefix == "LITERAL":
+        kind = next((f.value for f in e.fields if f.key == "KIND"), "")
+        extra = f" [{kind}]" if kind else ""
+    return f"- {value}{extra} (turn {turn})"
+
+
+def _entity_rank(e, ranks: "dict[str, float]") -> float:
+    fid = next((f.value for f in e.fields if f.key == "FACT-ID"), "")
+    if fid in ranks:
+        return ranks[fid]
+    return rank.prior_for(e.name.rsplit("-", 1)[0])
+
+
+def build_gist(parsed: ParsedTranscript,
+               ranks: "Optional[dict[str, float]]" = None) -> str:
     """Render the session ledger as a compact markdown gist.
 
     Prose-first on purpose: models read markdown natively (.ctx notation is
-    the storage format, not the injection format). Trimmed to
-    GIST_BPE_BUDGET by dropping lines from the lowest-stakes section up.
+    the storage format, not the injection format).
+
+    Without ``ranks`` (rank/v0-static-priors) this is the legacy render:
+    chronological sections, literals capped most-recent, budget trimming
+    that drops lines from the lowest-stakes section up. With ``ranks``
+    (the rank/v1 event fold) selection and trimming are salience-aware —
+    the literal cap keeps the highest-rank identifiers and budget
+    pressure evicts the lowest-rank fact of the lowest-stakes section
+    first — while the render order inside a section stays chronological
+    (facts still read in the order they happened).
     """
     ents = parsed.corpus.entities
-    lines: list[str] = [
+    header: list[str] = [
         f"# Session memory (session {parsed.session_id[:8]}, "
         f"{parsed.last_turn} turns)",
         "",
@@ -95,43 +128,88 @@ def build_gist(parsed: ParsedTranscript) -> str:
         "Full detail: `ctxpack hydrate` on the session .ctx, or grep the "
         "raw transcript.",
     ]
+
+    if not ranks:
+        lines = list(header)
+        for prefix, title, primary_key in _GIST_KINDS:
+            matched = [e for e in ents if e.name.startswith(prefix)]
+            if not matched:
+                continue
+            # Chronological: facts read in the order they happened
+            matched.sort(key=lambda e: e.sources[0].turn if e.sources else 0)
+            capped_note = ""
+            if prefix == "LITERAL" and len(matched) > _GIST_LITERAL_CAP:
+                # Signal the bound, never truncate silently: the full set
+                # stays in the ledger (ctx/recall).
+                capped_note = (f" (showing {_GIST_LITERAL_CAP} most-recent of "
+                               f"{len(matched)} — full set in the ledger)")
+                matched = matched[-_GIST_LITERAL_CAP:]
+            lines.append("")
+            lines.append(f"## {title}{capped_note}")
+            for e in matched:
+                lines.append(_entity_line(prefix, e, primary_key))
+        text = "\n".join(lines)
+        # Trim from the end until within budget — the section order
+        # guarantees constraints/decisions are the last to go.
+        while _count_bpe(text) > GIST_BPE_BUDGET and len(lines) > 4:
+            lines.pop()
+            text = "\n".join(lines)
+        return text
+
+    # rank/v1 path — sections carry their entities so trimming can evict
+    # by salience instead of by file position
+    sections: list = []  # (prefix, title, primary_key, entities, total)
     for prefix, title, primary_key in _GIST_KINDS:
         matched = [e for e in ents if e.name.startswith(prefix)]
         if not matched:
             continue
-        # Chronological: facts read in the order they happened
         matched.sort(key=lambda e: e.sources[0].turn if e.sources else 0)
-        capped_note = ""
-        if prefix == "LITERAL" and len(matched) > _GIST_LITERAL_CAP:
-            # Signal the bound, never truncate silently: the full set stays in
-            # the ledger (ctx/recall), the gist shows the most-recent slice.
-            capped_note = (f" (showing {_GIST_LITERAL_CAP} most-recent of "
-                           f"{len(matched)} — full set in the ledger)")
-            matched = matched[-_GIST_LITERAL_CAP:]
-        lines.append("")
-        lines.append(f"## {title}{capped_note}")
-        for e in matched:
-            value = next((f.value for f in e.fields if f.key == primary_key),
-                         e.fields[0].value if e.fields else "")
-            turn = e.sources[0].turn if e.sources else "?"
-            extra = ""
-            if prefix == "FILE":
-                edits = next((f.value for f in e.fields if f.key == "EDITS"), "")
-                extra = f" ({edits} edits)" if edits else ""
-            elif prefix == "TASK":
-                status = next((f.value for f in e.fields if f.key == "STATUS"), "")
-                extra = f" [{status}]" if status else ""
-            elif prefix == "LITERAL":
-                kind = next((f.value for f in e.fields if f.key == "KIND"), "")
-                extra = f" [{kind}]" if kind else ""
-            lines.append(f"- {value}{extra} (turn {turn})")
+        total = len(matched)
+        if prefix == "LITERAL" and total > _GIST_LITERAL_CAP:
+            keep = sorted(
+                matched,
+                key=lambda e: (-_entity_rank(e, ranks),
+                               -(e.sources[0].turn if e.sources else 0),
+                               e.name))[:_GIST_LITERAL_CAP]
+            keep_ids = {id(e) for e in keep}
+            matched = [e for e in matched if id(e) in keep_ids]
+        sections.append((prefix, title, primary_key, matched, total))
 
-    text = "\n".join(lines)
-    # Trim from the end until within budget — the section order guarantees
-    # constraints/decisions are the last to go.
+    def _render() -> "tuple[str, list[str]]":
+        lines = list(header)
+        for prefix, title, primary_key, matched, total in sections:
+            if not matched:
+                continue
+            note = ""
+            if prefix == "LITERAL" and len(matched) < total:
+                note = (f" (showing {len(matched)} highest-rank of {total} "
+                        f"— full set in the ledger)")
+            lines.append("")
+            lines.append(f"## {title}{note}")
+            for e in matched:
+                lines.append(_entity_line(prefix, e, primary_key))
+        return "\n".join(lines), lines
+
+    # Global lowest-rank eviction (not section-ordered): kind priors and
+    # the constraint floor already encode the stakes order, and the fold
+    # ranks a junk inferred decision BELOW a git_sha — dogfood evidence
+    # (KP_SDLC ca35891c) showed section-ordered trimming evicting 23 real
+    # identifiers while keeping six junk decision lines.
+    text, lines = _render()
     while _count_bpe(text) > GIST_BPE_BUDGET and len(lines) > 4:
-        lines.pop()
-        text = "\n".join(lines)
+        candidates = [(e, matched) for _, _, _, matched, _ in sections
+                      for e in matched]
+        if not candidates:
+            break
+        # Evict lowest rank; ties evict the oldest fact first
+        victim, owner = min(
+            candidates,
+            key=lambda pair: (_entity_rank(pair[0], ranks),
+                              pair[0].sources[0].turn
+                              if pair[0].sources else 0,
+                              pair[0].name))
+        owner.remove(victim)
+        text, lines = _render()
     return text
 
 
@@ -187,8 +265,23 @@ def _emit_events(out_dir: str, parsed: ParsedTranscript, corpus,
             continue
         if fid in seen:
             continue
-        ev("fact_asserted", fact_id=fid, turn=turn,
-           kind=entity.name.split("-")[0], basis=_field(entity, "BASIS"))
+        # rsplit: keep the full kind ("FAILED-APPROACH", "USER-REQUEST") —
+        # rows from before 2026-07-05 carry the first-segment truncation,
+        # which rank folds normalize on read
+        kind = entity.name.rsplit("-", 1)[0]
+        detail = {"kind": kind, "basis": _field(entity, "BASIS")}
+        if kind == "DECISION":
+            # which marker word fired — the canonical "Decision:" is a
+            # stronger commitment than verdict/conclusion/confirmed, and
+            # rank folds weigh them differently (ctxpack.core.rank)
+            marker = decision_marker(_field(entity, "DECISION"))
+            if marker:
+                detail["marker"] = marker
+        elif kind == "LITERAL":
+            literal_kind = _field(entity, "KIND")
+            if literal_kind:
+                detail["literal_kind"] = literal_kind
+        ev("fact_asserted", fact_id=fid, turn=turn, **detail)
         for f in entity.fields:
             if f.key.startswith("SUPERSEDED-"):
                 ev("supersession", fact_id=fid, turn=turn,
@@ -234,7 +327,20 @@ def run_checkpoint(
     with open(ctx_path, "w", encoding="utf-8", newline="\n") as f:
         f.write(ledger_text)
 
-    gist_text = build_gist(parsed)
+    sha = hashlib.sha256(ledger_text.encode("utf-8")).hexdigest()
+    _emit_events(out_dir, parsed, corpus, sha)
+
+    # rank = fold(events, policy), spec v1.1 §6 — folded AFTER this
+    # checkpoint's events land so the gist sees its own session's facts.
+    # project_root is the transcript's cwd (never env): rows from other
+    # workspaces (benchmark harnesses) are excluded from the fold.
+    policy = rank.resolve_policy()
+    ranks = rank.fold_events(
+        rank.load_events(os.path.join(out_dir, "events.jsonl")),
+        policy=policy,
+        project_root=parsed.stats.cwd or "")
+
+    gist_text = build_gist(parsed, ranks=ranks)
     gist_path = os.path.join(out_dir, f"session-{sid}-gist.md")
     with open(gist_path, "w", encoding="utf-8", newline="\n") as f:
         f.write(gist_text)
@@ -242,9 +348,7 @@ def run_checkpoint(
               encoding="utf-8", newline="\n") as f:
         f.write(gist_text)
 
-    sha = hashlib.sha256(ledger_text.encode("utf-8")).hexdigest()
     gist_bpe = _count_bpe(gist_text)
-    _emit_events(out_dir, parsed, corpus, sha)
     import datetime
     journal_entry = {
         "ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -255,9 +359,9 @@ def run_checkpoint(
         "sha256": sha,
         "gist_bpe": gist_bpe,
         "latency_ms": round((time.perf_counter() - t0) * 1000, 1),
-        # rank = fold(events, policy); recorded so future folds can be
-        # A/B-tested offline against the same event log (spec v1.1 §6)
-        "rank_policy": factid.RANK_POLICY,
+        # the policy actually used, so folds stay A/B-testable offline
+        # against the same event log (spec v1.1 §6)
+        "rank_policy": policy,
         "stats": parsed.stats.to_dict(),
     }
     with open(os.path.join(out_dir, "checkpoints.jsonl"), "a",
@@ -266,7 +370,8 @@ def run_checkpoint(
 
     # Regenerate the cross-session rollup (excludes this session — its own
     # gist is latest-gist.md, injected alongside)
-    project_text = build_project_gist(out_dir, exclude_session=sid)
+    project_text = build_project_gist(out_dir, exclude_session=sid,
+                                      ranks=ranks)
     project_path = os.path.join(out_dir, "project-gist.md")
     if project_text:
         with open(project_path, "w", encoding="utf-8", newline="\n") as f:
@@ -386,16 +491,22 @@ def _journal_session_order(out_dir: str) -> list[str]:
 
 
 def build_project_gist(out_dir: str = ".claude/ctx",
-                       exclude_session: str = "") -> str:
+                       exclude_session: str = "",
+                       ranks: "Optional[dict[str, float]]" = None) -> str:
     """Merge the stakes trio across all session ledgers, oldest first.
 
     ``exclude_session`` is the session whose own gist is injected
     alongside (latest-gist.md) — leaving it out avoids double-injection.
     Returns "" when no OTHER session exists (nothing to roll up).
     Deterministic: chronology from the journal, dedup by normalized text.
+    With ``ranks`` (rank/v1 fold), budget pressure evicts the lowest-rank
+    row of the lowest-stakes kind instead of whatever sits at the end of
+    the file — render order stays chronological.
     """
     from ..core.parser import parse as _parse_ctx
-    from .session_reader import _kind_of, _primary_value, _sections, _turn_of
+    from .session_reader import (
+        _kind_of, _kv, _primary_value, _sections, _turn_of,
+    )
 
     exclude = exclude_session[:8]
     on_disk = set()
@@ -411,9 +522,8 @@ def build_project_gist(out_dir: str = ".claude/ctx",
     if not sids:
         return ""
 
-    # kind → list of (sid, turn, text); dedup across sessions
-    rows: dict[str, list[tuple[str, int, str]]] = {
-        kind: [] for kind, _ in _PROJECT_KINDS}
+    # kind → list of (sid, turn, text, score); dedup across sessions
+    rows: dict[str, list] = {kind: [] for kind, _ in _PROJECT_KINDS}
     seen_hashes: set[str] = set()
     for sid in sids:
         path = os.path.join(out_dir, f"session-{sid}.ctx")
@@ -433,31 +543,61 @@ def build_project_gist(out_dir: str = ".claude/ctx",
             if fingerprint in seen_hashes:
                 continue
             seen_hashes.add(fingerprint)
-            rows[kind].append((sid, _turn_of(section), text))
+            score = 0.0
+            if ranks:
+                fid = _kv(section, "FACT-ID")
+                if fid and fid in ranks:
+                    score = ranks[fid]
+                else:  # pre-event-log ledgers: score from static priors
+                    score = rank.prior_for(
+                        kind, basis=_kv(section, "BASIS"),
+                        marker=decision_marker(text))
+            rows[kind].append((sid, _turn_of(section), text, score))
 
     if not any(rows.values()):
         return ""
 
-    lines: list[str] = [
+    header = [
         f"# Project memory ({len(sids)} earlier session"
         f"{'s' if len(sids) != 1 else ''}, oldest first)",
         "",
         "Cross-session ledger rollup. Detail per session: "
         "`ctxpack session decisions --session <id>`.",
     ]
-    for kind, title in _PROJECT_KINDS:
-        if not rows[kind]:
-            continue
-        lines.append("")
-        lines.append(f"## {title}")
-        for sid, turn, text in rows[kind]:
-            lines.append(f"- {text} (s:{sid}#turn{turn})")
 
-    text_out = "\n".join(lines)
-    # Stakes-ordered trim, same policy as the session gist
+    def _render() -> "tuple[str, list[str]]":
+        lines = list(header)
+        for kind, title in _PROJECT_KINDS:
+            if not rows[kind]:
+                continue
+            lines.append("")
+            lines.append(f"## {title}")
+            for sid, turn, text, _score in rows[kind]:
+                lines.append(f"- {text} (s:{sid}#turn{turn})")
+        return "\n".join(lines), lines
+
+    text_out, lines = _render()
+    if not ranks:
+        # Stakes-ordered trim, same policy as the legacy session gist
+        while (_count_bpe(text_out) > PROJECT_GIST_BPE_BUDGET
+               and len(lines) > 4):
+            lines.pop()
+            text_out = "\n".join(lines)
+        return text_out
+
+    # Global lowest-rank eviction — same rationale as the session gist:
+    # the fold's priors and the constraint floor encode the stakes order
     while _count_bpe(text_out) > PROJECT_GIST_BPE_BUDGET and len(lines) > 4:
-        lines.pop()
-        text_out = "\n".join(lines)
+        candidates = [(row, kind) for kind, _ in _PROJECT_KINDS
+                      for row in rows[kind]]
+        if not candidates:
+            break
+        # Evict lowest rank; ties evict the oldest row first
+        victim, kind = min(candidates,
+                           key=lambda pair: (pair[0][3], pair[0][1],
+                                             pair[0][0], pair[0][2]))
+        rows[kind].remove(victim)
+        text_out, lines = _render()
     return text_out
 
 
