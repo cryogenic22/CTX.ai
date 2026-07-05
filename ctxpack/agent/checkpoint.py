@@ -29,6 +29,7 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
+from ..core import factid
 from ..core.packer.compressor import compress
 from ..core.packer.conflict import detect_conflicts
 from ..core.packer.entity_resolver import resolve_entities
@@ -134,6 +135,71 @@ def build_gist(parsed: ParsedTranscript) -> str:
     return text
 
 
+def _emit_events(out_dir: str, parsed: ParsedTranscript, corpus,
+                 sha: str) -> int:
+    """Append this checkpoint's derived events to events.jsonl.
+
+    Spec v1.1 §5: the transcript is the single event source — this is a
+    materialized view of the pack, never written by live reads.
+    fact_asserted rows are emitted incrementally (only fact_ids not
+    already asserted for this session), so the debounced stop-hook
+    doesn't re-emit the whole ledger every ten turns; a fold over the
+    log must dedup by fact_id regardless, since a replay that starts
+    from an empty file emits the union in one batch.
+    """
+    events_path = os.path.join(out_dir, "events.jsonl")
+    sid = parsed.session_id
+    seen: set = set()
+    if os.path.exists(events_path):
+        with open(events_path, encoding="utf-8") as f:
+            for line in f:
+                try:
+                    prior = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if (prior.get("session") == sid
+                        and prior.get("event") == "fact_asserted"):
+                    seen.add(prior.get("fact_id"))
+
+    def _field(entity, key: str) -> str:
+        return next((f.value for f in entity.fields if f.key == key), "")
+
+    rows: list = []
+
+    def ev(event: str, fact_id=None, turn=None, **detail) -> None:
+        rows.append({"schema": factid.EVENTS_SCHEMA, "session": sid,
+                     "checkpoint": sha[:12], "event": event,
+                     "fact_id": fact_id, "turn": turn, "detail": detail})
+
+    for entity in corpus.entities:
+        fid = _field(entity, "FACT-ID")
+        if not fid:
+            continue
+        turn = entity.sources[0].turn if entity.sources else None
+        if entity.name.startswith("INCIDENT-"):
+            linked = _field(entity, "LINKED-FACT-ID") or None
+            ev("incident", fact_id=linked, turn=turn,
+               incident_id=fid, type=_field(entity, "TYPE"),
+               parse_ok=_field(entity, "PARSE-OK"))
+            continue
+        if fid in seen:
+            continue
+        ev("fact_asserted", fact_id=fid, turn=turn,
+           kind=entity.name.split("-")[0], basis=_field(entity, "BASIS"))
+        for f in entity.fields:
+            if f.key.startswith("SUPERSEDED-"):
+                ev("supersession", fact_id=fid, turn=turn,
+                   key=f.key[len("SUPERSEDED-"):], chain=str(f.value)[:300])
+
+    ev("retrieval", ledger_reads=parsed.stats.ledger_reads,
+       transcript_greps=parsed.stats.transcript_greps)
+
+    with open(events_path, "a", encoding="utf-8", newline="\n") as f:
+        for row in rows:
+            f.write(json.dumps(row) + "\n")
+    return len(rows)
+
+
 def run_checkpoint(
     transcript_path: str,
     out_dir: str = ".claude/ctx",
@@ -175,6 +241,7 @@ def run_checkpoint(
 
     sha = hashlib.sha256(ledger_text.encode("utf-8")).hexdigest()
     gist_bpe = _count_bpe(gist_text)
+    _emit_events(out_dir, parsed, corpus, sha)
     import datetime
     journal_entry = {
         "ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -185,6 +252,9 @@ def run_checkpoint(
         "sha256": sha,
         "gist_bpe": gist_bpe,
         "latency_ms": round((time.perf_counter() - t0) * 1000, 1),
+        # rank = fold(events, policy); recorded so future folds can be
+        # A/B-tested offline against the same event log (spec v1.1 §6)
+        "rank_policy": factid.RANK_POLICY,
         "stats": parsed.stats.to_dict(),
     }
     with open(os.path.join(out_dir, "checkpoints.jsonl"), "a",

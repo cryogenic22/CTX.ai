@@ -224,12 +224,29 @@ def session_recall(
                      "kinds: " + ", ".join(sorted({r['kind'] for r in rows}))),
         }
 
+    if not result.sections:
+        # Spec v1.1 §7: a miss is an asserted absence, not an empty
+        # string — auditable ("searched N as of turn T") so the agent
+        # can say "not in memory" instead of guessing.
+        return {
+            "session": sid,
+            "found": False,
+            "sections_matched": 0,
+            "sections_available": result.sections_available,
+            "searched_entities": len(_sections(doc)),
+            "as_of_turn": _max_turn(doc),
+            "text": "",
+            "note": ("No banked fact matches — asserted absence after "
+                     "searching the full ledger, not an error. Answer "
+                     "'not in memory' rather than inferring a value."),
+        }
     prose: list[str] = []
     for s in result.sections:
         prose.extend(serialize_section(s, natural_language=True))
         prose.append("")
     return {
         "session": sid,
+        "found": True,
         "sections_matched": len(result.sections),
         "sections_available": result.sections_available,
         "tokens_injected": result.tokens_injected,
@@ -282,6 +299,13 @@ def session_decisions(doc: CTXDocument, sid: str) -> dict[str, Any]:
         bucket.sort(key=lambda r: r["turn"])
     return {"session": sid, **out,
             "counts": {k: len(v) for k, v in out.items()}}
+
+
+def _max_turn(doc: CTXDocument) -> int:
+    """Latest turn any section carries — the honest 'as of' for an
+    absence assertion (facts after this turn are not yet packed)."""
+    turns = [_turn_of(s) for s in _sections(doc)]
+    return max((t for t in turns if isinstance(t, int)), default=0)
 
 
 def session_why(doc: CTXDocument, sid: str, key: str) -> dict[str, Any]:
@@ -355,11 +379,21 @@ def session_why(doc: CTXDocument, sid: str, key: str) -> dict[str, Any]:
                          {"key": c.key, "value": _scoped(c.value)})
                     break
 
+    if not matches:
+        # Spec v1.1 §7: asserted, auditable absence
+        return {"session": sid, "key": key, "matches": [], "count": 0,
+                "found": False,
+                "searched_entities": len(_sections(doc)),
+                "as_of_turn": _max_turn(doc),
+                "note": ("No banked fact matches this key — asserted "
+                         "absence after searching the full ledger, not "
+                         "an error. Answer 'not in memory' rather than "
+                         "inferring a value.")}
     note = ""
     if any(m["superseded_chains"] for m in matches):
         note = ("A SUPERSEDED-<KEY> chain reads oldest -> newest; the "
                 "section's current field value is the latest and wins.")
-    return {"session": sid, "key": key, "matches": matches,
+    return {"session": sid, "key": key, "matches": matches, "found": True,
             "count": len(matches), **({"note": note} if note else {})}
 
 

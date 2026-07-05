@@ -30,6 +30,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+from ..core import factid
 from ..core.packer.ir import IRCorpus, IREntity, IRField, IRSource
 
 # ── Extraction patterns ──
@@ -394,6 +395,47 @@ def _text_of(content: Any) -> str:
     return ""
 
 
+# Incident fact= payloads resolve against these fact kinds' primary field
+_INCIDENT_LINK_KINDS = {"DECISION": "DECISION", "CONSTRAINT": "RULE",
+                        "LITERAL": "VALUE", "FAILED-APPROACH": "NOTE"}
+_INCIDENT_LINK_MIN_LEN = 6  # below this, containment matches are noise
+
+
+def _link_incidents(entities: list) -> None:
+    """Spec v1.1 §8: resolve each incident's fact= text to a banked
+    fact_id by conservative normalized containment — exactly one
+    candidate links, anything ambiguous or unmatched stays empty
+    (never guess; a wrong link is worse than no link)."""
+    candidates: list[tuple[str, str]] = []
+    for e in entities:
+        for prefix, primary in _INCIDENT_LINK_KINDS.items():
+            if not e.name.startswith(prefix + "-"):
+                continue
+            fid = next((f.value for f in e.fields if f.key == "FACT-ID"), "")
+            val = factid.normalize_value(
+                next((f.value for f in e.fields if f.key == primary), ""))
+            if fid and len(val) >= _INCIDENT_LINK_MIN_LEN:
+                candidates.append((fid, val))
+            break
+    if not candidates:
+        return
+    for e in entities:
+        if not e.name.startswith("INCIDENT-"):
+            continue
+        fact_text = factid.normalize_value(
+            next((f.value for f in e.fields if f.key == "FACT"), ""))
+        if len(fact_text) < _INCIDENT_LINK_MIN_LEN:
+            continue
+        hits = {fid for fid, val in candidates
+                if fact_text in val or val in fact_text}
+        if len(hits) == 1:
+            src = e.sources[0] if e.sources else None
+            linked = next(iter(hits))
+            e.fields.append(IRField(
+                key="LINKED-FACT-ID", value=linked, raw_value=linked,
+                source=src, salience=e.salience))
+
+
 def parse_transcript(
     path: str,
     *,
@@ -443,8 +485,21 @@ def parse_transcript(
     entities_by_name: dict[str, IREntity] = {}
 
     def _add(name: str, fields: dict[str, str], *, turn: int, ts: str,
-             salience: float, update: bool = False) -> None:
+             salience: float, update: bool = False,
+             fact: "tuple[str, str, str] | None" = None,
+             basis: str = "") -> None:
+        """fact=(kind, key, value) stamps the v1.1 substrate fields:
+        FACT-ID (canonical content hash), BASIS (extraction mechanics,
+        an enum never a float), STATUS (lifecycle, current at birth),
+        EXTRACTOR (parser version — provenance, never identity)."""
         nonlocal source_words
+        if fact is not None:
+            kind, key, value = fact
+            fields = {**fields,
+                      "fact_id": factid.fact_id(kind, value, key=key),
+                      "basis": basis or factid.FactBasis.STRUCTURAL.value,
+                      "status": "current",
+                      "extractor": factid.EXTRACTOR_VERSION}
         if name in seen_names:
             if update and name in entities_by_name:
                 # Refresh mutable fields in place (e.g. a TodoWrite status
@@ -502,7 +557,9 @@ def parse_transcript(
             fields.update({k: rec["fields"].get(k, "")
                            for k in _INCIDENT_FIELD_KEYS})
             _add(f"INCIDENT-{_short_hash(line)}", fields,
-                 turn=turn, ts=ts, salience=2.6)
+                 turn=turn, ts=ts, salience=2.6,
+                 fact=("INCIDENT", rec["type"], line),
+                 basis=factid.FactBasis.MARKER_STATED.value)
         return "\n".join(kept)
 
     def _add_literals(text: str, *, turn: int, ts: str) -> None:
@@ -513,7 +570,9 @@ def parse_transcript(
             if name not in seen_names:
                 stats.literals += 1
             _add(name, {"value": value, "kind": kind, "turn": str(turn)},
-                 turn=turn, ts=ts, salience=2.4)
+                 turn=turn, ts=ts, salience=2.4,
+                 fact=("LITERAL", kind, value),
+                 basis=factid.FactBasis.LITERAL_EXTRACTOR.value)
 
     for turn, d in enumerate(entries):
         if turn < since_turn:
@@ -539,7 +598,9 @@ def parse_transcript(
                         stats.errors += 1
                         _add(f"ERROR-{_short_hash(text)}",
                              {"message": text, "turn": str(turn)},
-                             turn=turn, ts=ts, salience=1.5)
+                             turn=turn, ts=ts, salience=1.5,
+                             fact=("ERROR", "", text),
+                             basis=factid.FactBasis.STRUCTURAL.value)
 
             text = _clean_multiline(_text_of(content))
             if not text:
@@ -560,7 +621,9 @@ def parse_transcript(
             stats.requests += 1
             _add(f"USER-REQUEST-{_short_hash(first_line)}",
                  {"request": first_line, "turn": str(turn)},
-                 turn=turn, ts=ts, salience=2.0)
+                 turn=turn, ts=ts, salience=2.0,
+                 fact=("USER-REQUEST", "", first_line),
+                 basis=factid.FactBasis.STRUCTURAL.value)
 
             # Constraints: verbatim, never compressed — negations intact.
             # Skip pasted material (long messages) and timestamp-riddled
@@ -576,7 +639,9 @@ def parse_transcript(
                         # trailing negation
                         _add(f"CONSTRAINT-{_short_hash(sentence)}",
                              {"rule": sentence, "stated_turn": str(turn)},
-                             turn=turn, ts=ts, salience=3.0)
+                             turn=turn, ts=ts, salience=3.0,
+                             fact=("CONSTRAINT", "", sentence),
+                             basis=factid.FactBasis.USER_IMPERATIVE.value)
                 # Verbatim identifiers the user named (short turns only — a
                 # pasted log is skipped by the same threshold as constraints).
                 _add_literals(text, turn=turn, ts=ts)
@@ -598,17 +663,31 @@ def parse_transcript(
                             # truncation could sever a trailing negation
                             _add(f"CONSTRAINT-{_short_hash(sentence)}",
                                  {"rule": sentence, "stated_turn": str(turn)},
-                                 turn=turn, ts=ts, salience=3.0)
+                                 turn=turn, ts=ts, salience=3.0,
+                                 fact=("CONSTRAINT", "", sentence),
+                                 basis=factid.FactBasis.MARKER_STATED.value)
                         elif _FAILED_RE.search(_prose_of(sentence)):
                             stats.failed_approaches += 1
                             _add(f"FAILED-APPROACH-{_short_hash(sentence)}",
                                  {"note": sentence[:280], "turn": str(turn)},
-                                 turn=turn, ts=ts, salience=2.2)
+                                 turn=turn, ts=ts, salience=2.2,
+                                 fact=("FAILED-APPROACH", "", sentence),
+                                 basis=factid.FactBasis.INFERRED.value)
                         elif _is_decision(sentence):
                             stats.decisions += 1
+                            # marker-stated vs verb-pattern decisions carry
+                            # different bases: only `inferred` may be wrong
+                            # about whether this is a fact at all
+                            d_basis = (
+                                factid.FactBasis.MARKER_STATED.value
+                                if _DECISION_MARKER_RE.match(
+                                    _prose_of(sentence))
+                                else factid.FactBasis.INFERRED.value)
                             _add(f"DECISION-{_short_hash(sentence)}",
                                  {"decision": sentence[:280], "turn": str(turn)},
-                                 turn=turn, ts=ts, salience=2.5)
+                                 turn=turn, ts=ts, salience=2.5,
+                                 fact=("DECISION", "", sentence),
+                                 basis=d_basis)
                     # Verbatim identifiers stated in the assistant's reasoning
                     # (commit shas, PR #s, versions, paths, domain ids).
                     _add_literals(atext, turn=turn, ts=ts)
@@ -688,6 +767,7 @@ def parse_transcript(
     corpus.source_token_count = source_words
     corpus.source_files = [src_file]
 
+    _link_incidents(corpus.entities)
     return ParsedTranscript(
         corpus=corpus,
         stats=stats,
