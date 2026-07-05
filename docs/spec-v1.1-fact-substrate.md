@@ -130,6 +130,15 @@ fact_id when linkable), `supersession` (chain observed), `retrieval`
 (`rank_boost`, `promotion`, `expiry`) extend the enum without schema
 change.
 
+*Extended 2026-07-06 (conflict lint):* `conflict` — a checkpoint-time
+lint row (case constraint_collision | protected_subject, the shared
+phrase as evidence, resolved flag); `fact_superseded` — a declared
+decision override (`Supersedes: <fact_id> — <reason>`), fact_id is the
+SUPERSEDED fact, detail carries `by` (the superseding decision) and the
+reason. Rank folds demote superseded facts; constraints keep their
+floor. Conflict rows compare only against sessions earlier in journal
+order, so a session's block stays stable when re-materialized.
+
 ## 6. Rank policy versioning
 
 Ranking is a deterministic fold: `rank = fold(events, policy)`. v1.1

@@ -58,6 +58,9 @@ _GIST_KINDS = (
 # crowd out the prose sections; the full set stays in the ledger (ctx/recall).
 _GIST_LITERAL_CAP = 40
 
+# Unresolved lint conflicts shown in the gist (rest stay in the ledger)
+_GIST_CONFLICT_CAP = 8
+
 
 @dataclass
 class CheckpointResult:
@@ -104,7 +107,8 @@ def _entity_rank(e, ranks: "dict[str, float]") -> float:
 
 
 def build_gist(parsed: ParsedTranscript,
-               ranks: "Optional[dict[str, float]]" = None) -> str:
+               ranks: "Optional[dict[str, float]]" = None,
+               conflicts: "Optional[list[dict]]" = None) -> str:
     """Render the session ledger as a compact markdown gist.
 
     Prose-first on purpose: models read markdown natively (.ctx notation is
@@ -129,6 +133,25 @@ def build_gist(parsed: ParsedTranscript,
         "Full detail: `ctxpack hydrate` on the session .ctx, or grep the "
         "raw transcript.",
     ]
+
+    # Unresolved lint conflicts render first and are never budget-evicted:
+    # the governance signal is the one thing the next context must see
+    unresolved = [c for c in (conflicts or []) if not c.get("resolved")]
+    if unresolved:
+        shown = unresolved[:_GIST_CONFLICT_CAP]
+        header.append("")
+        header.append("## Decision conflicts (UNRESOLVED — comply, or "
+                      "restate with `Supersedes: <fact_id> — <reason>`)")
+        for c in shown:
+            against = c["against_src"]
+            if c.get("against_fact_id"):
+                against += f", fact {c['against_fact_id']}"
+            header.append(
+                f"- turn {c['decision_turn']}: \"{c['decision'][:100]}\" vs "
+                f"{c['case']} ({against}): \"{c['against'][:100]}\"")
+        if len(unresolved) > len(shown):
+            header.append(f"- ... {len(unresolved) - len(shown)} more in "
+                          f"the ledger (events.jsonl)")
 
     if not ranks:
         lines = list(header)
@@ -215,7 +238,7 @@ def build_gist(parsed: ParsedTranscript,
 
 
 def _emit_events(out_dir: str, parsed: ParsedTranscript, corpus,
-                 sha: str) -> int:
+                 sha: str, lint_rows=None) -> int:
     """Materialize this session's event rows in events.jsonl.
 
     Spec v1.1 §5: the transcript is the single event source and
@@ -303,6 +326,19 @@ def _emit_events(out_dir: str, parsed: ParsedTranscript, corpus,
             if f.key.startswith("SUPERSEDED-"):
                 ev("supersession", fact_id=fid, turn=turn,
                    key=f.key[len("SUPERSEDED-"):], chain=str(f.value)[:300])
+        # Declared decision override (Supersedes: <fact_id> — reason):
+        # a fact-level supersession event — rank folds demote the target
+        sup_target = _field(entity, "SUPERSEDES-FACT-ID")
+        if sup_target:
+            ev("fact_superseded", fact_id=sup_target, turn=turn,
+               by=fid, reason=_field(entity, "SUPERSEDES-REASON")[:200])
+
+    for row in (lint_rows or []):
+        ev("conflict", fact_id=row["decision_fact_id"],
+           turn=row["decision_turn"], case=row["case"],
+           against_fact_id=row["against_fact_id"],
+           against_src=row["against_src"], phrase=row["phrase"],
+           resolved=row["resolved"])
 
     ev("retrieval", ledger_reads=parsed.stats.ledger_reads,
        transcript_greps=parsed.stats.transcript_greps)
@@ -349,7 +385,18 @@ def run_checkpoint(
         f.write(ledger_text)
 
     sha = hashlib.sha256(ledger_text.encode("utf-8")).hexdigest()
-    _emit_events(out_dir, parsed, corpus, sha)
+
+    # Decision-conflict lint (drift governance): deterministic, precision-
+    # first, and fail-open — a lint crash must never break a checkpoint
+    # hook, and a missing lint row is visible in the journal counts.
+    try:
+        from .conflict_lint import lint_decisions
+        lint_rows = lint_decisions(corpus.entities, out_dir,
+                                   parsed.session_id)
+    except Exception:  # noqa: BLE001
+        lint_rows = []
+
+    _emit_events(out_dir, parsed, corpus, sha, lint_rows=lint_rows)
 
     # rank = fold(events, policy), spec v1.1 §6 — folded AFTER this
     # checkpoint's events land so the gist sees its own session's facts.
@@ -361,7 +408,7 @@ def run_checkpoint(
         policy=policy,
         project_root=parsed.stats.cwd or "")
 
-    gist_text = build_gist(parsed, ranks=ranks)
+    gist_text = build_gist(parsed, ranks=ranks, conflicts=lint_rows)
     gist_path = os.path.join(out_dir, f"session-{sid}-gist.md")
     with open(gist_path, "w", encoding="utf-8", newline="\n") as f:
         f.write(gist_text)
@@ -383,6 +430,8 @@ def run_checkpoint(
         # the policy actually used, so folds stay A/B-testable offline
         # against the same event log (spec v1.1 §6)
         "rank_policy": policy,
+        "lint_conflicts": sum(1 for r in lint_rows if not r["resolved"]),
+        "lint_resolved": sum(1 for r in lint_rows if r["resolved"]),
         "stats": parsed.stats.to_dict(),
     }
     with open(os.path.join(out_dir, "checkpoints.jsonl"), "a",

@@ -82,6 +82,21 @@ _CONSTRAINT_MARKER_RE = re.compile(
     r"(?:constraint|invariant)(?:\*{1,2}|_{1,2})?\s*:"
 )
 
+# Deterministic decision-override path (conflict lint, ratified
+# non-negotiable): `Supersedes: <fact_id> — <reason>` on its own line
+# directly after a Decision: line binds to that decision. The goal is
+# "never change decisions silently", not "never change decisions" — a
+# declared supersession resolves the lint row and emits a fact-level
+# fact_superseded event. Same anchoring and use-vs-mention guard as the
+# other markers; a malformed payload is IGNORED (fail-closed: the
+# conflict stays visible rather than being silently waved through).
+_SUPERSEDES_MARKER_RE = re.compile(
+    r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
+    r"supersedes(?:\*{1,2}|_{1,2})?\s*:\s*"
+)
+_SUPERSEDES_PAYLOAD_RE = re.compile(
+    r"[`']?([0-9a-fA-F]{16})\b[`']?\s*(?:[—–\-:,]\s*)?(.*)")
+
 # Memory-incident telemetry: the explicit "ctx-incident:" convention —
 # the ledger's own feedback loop (did ctx save/miss/mislead?). Same
 # anchoring and use-vs-mention guard as Decision:/Constraint:. Payload is
@@ -567,6 +582,21 @@ def parse_transcript(
         corpus.entities.append(entity)
         entities_by_name[name] = entity
 
+    def _attach(name: str, key: str, value: str, *, turn: int, ts: str,
+                salience: float = 2.5) -> None:
+        """Append one field to an already-banked entity (first wins) —
+        for markers that BIND to a prior entity (Supersedes: → the
+        decision it follows)."""
+        entity = entities_by_name.get(name)
+        if entity is None or not value:
+            return
+        key_norm = key.upper().replace("_", "-")
+        if any(f.key == key_norm for f in entity.fields):
+            return
+        entity.fields.append(IRField(key=key_norm, value=value,
+                                     raw_value=value, source=_src(turn, ts),
+                                     salience=salience))
+
     def _extract_incidents(text: str, *, turn: int, ts: str) -> str:
         """Bank ctx-incident: lines and return the text WITHOUT them, so
         downstream extractors can't re-mine incident payloads (a stale
@@ -694,7 +724,29 @@ def parse_transcript(
                 if btype == "text":
                     atext = _clean_multiline(blk.get("text", ""))
                     atext = _extract_incidents(atext, turn=turn, ts=ts)
+                    last_decision_name = ""
                     for sentence in _sentences(atext):
+                        if _SUPERSEDES_MARKER_RE.match(_prose_of(sentence)):
+                            # binds to the decision it follows in the SAME
+                            # text block; malformed payload or no preceding
+                            # decision → ignored (fail-closed: the conflict
+                            # stays visible)
+                            raw_m = _SUPERSEDES_MARKER_RE.match(sentence)
+                            if raw_m and last_decision_name:
+                                pm = _SUPERSEDES_PAYLOAD_RE.match(
+                                    sentence[raw_m.end():])
+                                if pm:
+                                    _attach(last_decision_name,
+                                            "supersedes_fact_id",
+                                            pm.group(1).lower(),
+                                            turn=turn, ts=ts)
+                                    reason = pm.group(2).strip(
+                                        " —–-:,.")[:200]
+                                    if reason:
+                                        _attach(last_decision_name,
+                                                "supersedes_reason",
+                                                reason, turn=turn, ts=ts)
+                            continue
                         if _CONSTRAINT_MARKER_RE.match(_prose_of(sentence)):
                             stats.constraints += 1
                             # full sentence, same as user-path constraints:
@@ -721,14 +773,21 @@ def parse_transcript(
                                 if _DECISION_MARKER_RE.match(
                                     _prose_of(sentence))
                                 else factid.FactBasis.INFERRED.value)
-                            _add(f"DECISION-{_short_hash(sentence)}",
+                            dname = f"DECISION-{_short_hash(sentence)}"
+                            _add(dname,
                                  {"decision": sentence[:280], "turn": str(turn)},
                                  turn=turn, ts=ts, salience=2.5,
                                  fact=("DECISION", "", sentence),
                                  basis=d_basis)
+                            last_decision_name = dname
                     # Verbatim identifiers stated in the assistant's reasoning
                     # (commit shas, PR #s, versions, paths, domain ids).
-                    _add_literals(atext, turn=turn, ts=ts)
+                    # Supersedes: lines are excluded — a 16-hex fact_id must
+                    # not be banked as a git_sha.
+                    lit_text = "\n".join(
+                        line for line in atext.splitlines()
+                        if not _SUPERSEDES_MARKER_RE.match(_prose_of(line)))
+                    _add_literals(lit_text, turn=turn, ts=ts)
 
                 elif btype == "tool_use":
                     tool_seq += 1

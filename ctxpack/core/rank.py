@@ -93,6 +93,9 @@ _LITERAL_KIND_MULT = {
 
 REASSERT_BOOST = 0.2   # per additional asserting session
 REASSERT_CAP = 1.0
+# A declared override (fact_superseded event) demotes the target once —
+# superseded facts stop competing for the gist but remain in the ledger
+SUPERSEDED_DEMOTION = -1.0
 _INCIDENT_DELTA = {
     "saved": 0.5,
     "missed": 0.5,          # the fact was needed and unreachable — demand
@@ -185,6 +188,7 @@ def fold_events(rows: Iterable[dict], *,
     last_index: "dict[str, int]" = {}
     incident_seen: set = set()
     incident_delta: "dict[str, float]" = {}
+    superseded: set = set()
 
     for i, r in enumerate(kept):
         fid = r.get("fact_id")
@@ -211,6 +215,8 @@ def fold_events(rows: Iterable[dict], *,
             incident_delta[fid] = (incident_delta.get(fid, 0.0)
                                    + _INCIDENT_DELTA.get(
                                        str(detail.get("type") or ""), 0.0))
+        elif event == "fact_superseded" and fid:
+            superseded.add(fid)
 
     lo, hi = INCIDENT_CAP
     scores: "dict[str, float]" = {}
@@ -221,6 +227,8 @@ def fold_events(rows: Iterable[dict], *,
         eps = (RECENCY_EPSILON * (last_index[fid] / (total - 1))
                if total > 1 else 0.0)
         score = p + boost + delta + eps
+        if fid in superseded:
+            score += SUPERSEDED_DEMOTION
         if kind_of.get(fid) == "CONSTRAINT":
             score = max(score, CONSTRAINT_FLOOR)
         scores[fid] = round(score, 6)

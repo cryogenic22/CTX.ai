@@ -47,6 +47,16 @@ Operating rules you set yourself the same way, sentence-leading:
 `Constraint: ...` — agent-stated constraints don't extract any other way
 (the only other constraint source is user imperatives).
 
+**Override convention (conflict lint):** when a new decision knowingly
+changes a banked decision or constraint, follow the `Decision:` line
+with its own line: `Supersedes: <fact_id> — <reason>` (recover the
+fact_id via `ctxpack session why "<value>"`). The checkpoint lint
+surfaces unresolved collisions at the top of the next gist; a declared
+supersession resolves the row and demotes the old fact in rank. The
+goal is "never change decisions silently", not "never change
+decisions". Malformed overrides are ignored — the conflict stays
+visible rather than being silently waved through.
+
 **Incident convention (memory telemetry):** when the ledger visibly
 helps or fails you, record it on its own line, sentence-leading:
 `ctx-incident: <type> | fact="<the fact involved>" | expected="..." |
