@@ -1,0 +1,1051 @@
+{
+  "schema": "ctxpack-resume-probe/v1",
+  "measurement_class": "quasi-experimental \u2014 recall accuracy for this repo's history under budget-parity arms; benchmark-grade causal claims need CompactBench",
+  "generated_at": "2026-07-05T21:37:39+00:00",
+  "repo": "CTX_mod",
+  "config": {
+    "seed": 42,
+    "model": "claude-sonnet-4-6",
+    "n_probes": 20,
+    "probe_set": "recall",
+    "grading_notes": "drift probes pass only when the answer contains a verbatim anchor of the conflicting prior that is never shown in the proposal; paraphrased flags grade as misses (uniform under-count, favors arms holding verbatim text). automem arm context is built solely from the repo's auto-memory files \u2014 isolation from ctx artifacts is by construction in this no-tools harness. Known asymmetry: the probe universe is ledger-derived (the only deterministic ground truth with provenance), so facts only automem holds are never probed \u2014 automem results measure its coverage OF banked facts, not its total knowledge."
+  },
+  "arms": {
+    "automem": {
+      "n": 20,
+      "correct": 0,
+      "accuracy": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 7155,
+      "by_kind": {
+        "constraint": {
+          "n": 5,
+          "correct": 0
+        },
+        "decision": {
+          "n": 5,
+          "correct": 0
+        },
+        "literal": {
+          "n": 5,
+          "correct": 0
+        },
+        "rationale": {
+          "n": 5,
+          "correct": 0
+        }
+      }
+    },
+    "closed": {
+      "n": 20,
+      "correct": 0,
+      "accuracy": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 0,
+      "by_kind": {
+        "constraint": {
+          "n": 5,
+          "correct": 0
+        },
+        "decision": {
+          "n": 5,
+          "correct": 0
+        },
+        "literal": {
+          "n": 5,
+          "correct": 0
+        },
+        "rationale": {
+          "n": 5,
+          "correct": 0
+        }
+      }
+    },
+    "ctx": {
+      "n": 20,
+      "correct": 15,
+      "accuracy": 0.75,
+      "ci95": [
+        0.55,
+        0.9
+      ],
+      "mean_context_bpe": 2778,
+      "by_kind": {
+        "constraint": {
+          "n": 5,
+          "correct": 3
+        },
+        "decision": {
+          "n": 5,
+          "correct": 5
+        },
+        "literal": {
+          "n": 5,
+          "correct": 2
+        },
+        "rationale": {
+          "n": 5,
+          "correct": 5
+        }
+      }
+    },
+    "grep": {
+      "n": 20,
+      "correct": 10,
+      "accuracy": 0.5,
+      "ci95": [
+        0.3,
+        0.7
+      ],
+      "mean_context_bpe": 2620,
+      "by_kind": {
+        "constraint": {
+          "n": 5,
+          "correct": 1
+        },
+        "decision": {
+          "n": 5,
+          "correct": 5
+        },
+        "literal": {
+          "n": 5,
+          "correct": 0
+        },
+        "rationale": {
+          "n": 5,
+          "correct": 4
+        }
+      }
+    }
+  },
+  "probes": [
+    {
+      "probe_id": "bdfbd48b-E0B1B210",
+      "kind": "constraint",
+      "session": "bdfbd48b",
+      "turn": 445,
+      "question": "What standing constraint did the user state about run full pass? Quote it as closely as you can.",
+      "expected": "not run the $60 full pass",
+      "grade_mode": "contains",
+      "source_text": "- Do not run the $60 full pass until cost reporting is fixed."
+    },
+    {
+      "probe_id": "bae8e5d2-9EEB8197",
+      "kind": "decision",
+      "session": "bae8e5d2",
+      "turn": 467,
+      "question": "According to this project's history, complete the decision that begins: \"The fix is a debounced per-turn checkpoint (Claude ...\" \u2014 state the full decision.",
+      "expected": "Code's Stop hook fires after every completed",
+      "grade_mode": "contains",
+      "source_text": "The fix is a debounced per-turn checkpoint (Claude Code's Stop hook fires after every completed turn; at <2s a re-pack every N turns is cheap), making the ledger never more than a turn or two stale \u2014 zero manual recovery even after a hard kill."
+    },
+    {
+      "probe_id": "bdfbd48b-5DA8E198",
+      "kind": "literal",
+      "session": "bdfbd48b",
+      "turn": 495,
+      "question": "The project's history records an exact git_sha (session bdfbd48b, around turn 495). What is its exact value? Reply with the value only.",
+      "expected": "6cb367e",
+      "grade_mode": "exact",
+      "source_text": "6cb367e"
+    },
+    {
+      "probe_id": "a21df970-38A2B9E1-why",
+      "kind": "rationale",
+      "session": "a21df970",
+      "turn": 270,
+      "question": "This project's history records a decision that begins: \"Decision: resolve the live transcript by newest mtime ...\". WHY was it made? State the reason.",
+      "expected": "write-path input selection is outside",
+      "grade_mode": "contains",
+      "source_text": "Decision: resolve the live transcript by newest mtime under the munged `~/.claude/projects/<project>` dir with a name tie-break, because write-path input selection is outside the byte-determinism contract, which governs pack output only."
+    },
+    {
+      "probe_id": "bdfbd48b-12168679",
+      "kind": "constraint",
+      "session": "bdfbd48b",
+      "turn": 621,
+      "question": "What standing constraint did the user state about ctx become smarter? Quote it as closely as you can.",
+      "expected": "should not become \u201csmarter summaries.\u201d It",
+      "grade_mode": "contains",
+      "source_text": "> ctx should not become \u201csmarter summaries.\u201d It should become immutable, cited facts plus deterministic event-"
+    },
+    {
+      "probe_id": "a21df970-38A2B9E1",
+      "kind": "decision",
+      "session": "a21df970",
+      "turn": 270,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: resolve the live transcript by newest mtime ...\" \u2014 state the full decision.",
+      "expected": "under the munged `~/.claude/projects/<project>` dir with a",
+      "grade_mode": "contains",
+      "source_text": "Decision: resolve the live transcript by newest mtime under the munged `~/.claude/projects/<project>` dir with a name tie-break, because write-path input selection is outside the byte-determinism contract, which governs pack output only."
+    },
+    {
+      "probe_id": "a21df970-61FAE0E4",
+      "kind": "literal",
+      "session": "a21df970",
+      "turn": 287,
+      "question": "The project's history records an exact git_sha (session a21df970, around turn 287). What is its exact value? Reply with the value only.",
+      "expected": "a21df970",
+      "grade_mode": "exact",
+      "source_text": "a21df970"
+    },
+    {
+      "probe_id": "a21df970-0029F1CC-why",
+      "kind": "rationale",
+      "session": "a21df970",
+      "turn": 270,
+      "question": "This project's history records a decision that begins: \"Decision: rank `session_why` matches section_name \u2192 field_key \u2192 ...\". WHY was it made? State the reason.",
+      "expected": "an entity whose VALUE equals",
+      "grade_mode": "contains",
+      "source_text": "Decision: rank `session_why` matches section_name \u2192 field_key \u2192 value_exact \u2192 value_substring, because an entity whose VALUE equals the needle is the literals-ledger recovery path and must beat any substring hit."
+    },
+    {
+      "probe_id": "bdfbd48b-1B1221A8",
+      "kind": "constraint",
+      "session": "bdfbd48b",
+      "turn": 519,
+      "question": "What standing constraint did the user state about dont want feature? Quote it as closely as you can.",
+      "expected": "want feature bloat but only if",
+      "grade_mode": "contains",
+      "source_text": "i dont want feature bloat but only if things are of real value and creates a moat."
+    },
+    {
+      "probe_id": "bae8e5d2-E040C780",
+      "kind": "decision",
+      "session": "bae8e5d2",
+      "turn": 57,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: the root cause is that Claude Code ...\" \u2014 state the full decision.",
+      "expected": "loads hook configuration once at process startup",
+      "grade_mode": "contains",
+      "source_text": "Decision: the root cause is that Claude Code loads hook configuration once at process startup (and newly added project hooks require review via the `/hooks` menu before they're trusted)."
+    },
+    {
+      "probe_id": "a21df970-A79E17A9",
+      "kind": "literal",
+      "session": "a21df970",
+      "turn": 270,
+      "question": "The project's history records an exact path (session a21df970, around turn 270). What is its exact value? Reply with the value only.",
+      "expected": "docs/agent-consumer-feedback-2026-07-04.md",
+      "grade_mode": "exact",
+      "source_text": "docs/agent-consumer-feedback-2026-07-04.md"
+    },
+    {
+      "probe_id": "bae8e5d2-9FF7E602-why",
+      "kind": "rationale",
+      "session": "bae8e5d2",
+      "turn": 15,
+      "question": "This project's history records a decision that begins: \"Decision: the next build should be **P4 \u2014 ...\". WHY was it made? State the reason.",
+      "expected": "everything else is gated on",
+      "grade_mode": "contains",
+      "source_text": "Decision: the next build should be **P4 \u2014 the MCP session read path** (`ctx/session_recall`, `ctx/session_timeline`, `ctx/session_decisions`, `ctx/why`, `ctx/graph_query`) because everything else is gated on it:"
+    },
+    {
+      "probe_id": "bdfbd48b-DC322106",
+      "kind": "constraint",
+      "session": "bdfbd48b",
+      "turn": 519,
+      "question": "What standing constraint did the user state about agent just say? Quote it as closely as you can.",
+      "expected": "should not just say \u201cthe rule",
+      "grade_mode": "contains",
+      "source_text": "The agent should not just say \u201cthe rule is X\u201d; it"
+    },
+    {
+      "probe_id": "bdfbd48b-F57D56B9",
+      "kind": "decision",
+      "session": "bdfbd48b",
+      "turn": 615,
+      "question": "According to this project's history, complete the decision that begins: \"## Creation: the `Decision:` convention is a crutch, ...\" \u2014 state the full decision.",
+      "expected": "but the fix isn't better prose-mining",
+      "grade_mode": "contains",
+      "source_text": "## Creation: the `Decision:` convention is a crutch, but the fix isn't better prose-mining"
+    },
+    {
+      "probe_id": "bae8e5d2-D047A643",
+      "kind": "literal",
+      "session": "bae8e5d2",
+      "turn": 443,
+      "question": "The project's history records an exact url (session bae8e5d2, around turn 443). What is its exact value? Reply with the value only.",
+      "expected": "https://github.com/cryogenic22/CTX.ai",
+      "grade_mode": "exact",
+      "source_text": "https://github.com/cryogenic22/CTX.ai"
+    },
+    {
+      "probe_id": "bdfbd48b-FD9A8B76-why",
+      "kind": "rationale",
+      "session": "bdfbd48b",
+      "turn": 3,
+      "question": "This project's history records a decision that begins: \"Decision: build the CompactBench driver (drive a real ...\". WHY was it made? State the reason.",
+      "expected": "it's the only unblocked piece",
+      "grade_mode": "contains",
+      "source_text": "Decision: build the CompactBench driver (drive a real Claude Code session over a planted transcript, force compaction, measure DR@K) as the next engineering task, because it's the only unblocked piece of the measurement stack and the pre-registration loses credibility the longer "
+    },
+    {
+      "probe_id": "bdfbd48b-31533EEF",
+      "kind": "constraint",
+      "session": "bdfbd48b",
+      "turn": 621,
+      "question": "What standing constraint did the user state about try build salience? Quote it as closely as you can.",
+      "expected": "try to build salience learning, DAG",
+      "grade_mode": "contains",
+      "source_text": "Do not try to build salience learning, DAG merges, typed edges, and consolidation all in the v1.1"
+    },
+    {
+      "probe_id": "bdfbd48b-8B17D522",
+      "kind": "decision",
+      "session": "bdfbd48b",
+      "turn": 615,
+      "question": "According to this project's history, complete the decision that begins: \"**Derive decisions from actions, not just prose.** A ...\" \u2014 state the full decision.",
+      "expected": "decision usually leaves a deterministic fingerprint: a",
+      "grade_mode": "contains",
+      "source_text": "**Derive decisions from actions, not just prose.** A decision usually leaves a deterministic fingerprint: a config value changed, a dependency chosen, a constant revised at turn N."
+    },
+    {
+      "probe_id": "bae8e5d2-7E7C661D",
+      "kind": "literal",
+      "session": "bae8e5d2",
+      "turn": 443,
+      "question": "The project's history records an exact git_sha (session bae8e5d2, around turn 443). What is its exact value? Reply with the value only.",
+      "expected": "e31872f",
+      "grade_mode": "exact",
+      "source_text": "e31872f"
+    },
+    {
+      "probe_id": "a21df970-96E97BC1-why",
+      "kind": "rationale",
+      "session": "a21df970",
+      "turn": 270,
+      "question": "This project's history records a decision that begins: \"Decision: keep the agent-constraint extractor marker-only (`Constraint:`/`Invariant:`, no ...\". WHY was it made? State the reason.",
+      "expected": "over-extraction is the established failure",
+      "grade_mode": "contains",
+      "source_text": "Decision: keep the agent-constraint extractor marker-only (`Constraint:`/`Invariant:`, no verb heuristics), because over-extraction is the established failure mode and the dogfood convention already asks sessions to mark load-bearing statements."
+    }
+  ],
+  "results": [
+    {
+      "probe_id": "bdfbd48b-E0B1B210",
+      "kind": "constraint",
+      "arm": "ctx",
+      "answer": "**\"Do not run the $60 full pass until cost reporting is fixed.\"**\n\n(Stated at turn 445, session bdfbd48b)",
+      "correct": true,
+      "context_bpe": 2701,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-E0B1B210",
+      "kind": "constraint",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2522,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-E0B1B210",
+      "kind": "constraint",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-E0B1B210",
+      "kind": "constraint",
+      "arm": "automem",
+      "answer": "Based on the context provided, I cannot find a specific standing constraint quoted from the user about running a \"full pass.\" The context mentions constraints around running the six-arm CompactBench run (e.g., \"DO NOT buy the $60 six-arm run for a recall-superiority claim\" and \"six-arm run ONLY as escalation, hardened probes first\"), but no explicitly labeled standing constraint about a \"full pass\" is present.\n\n**Not found in context** (as a specifically labeled standing constraint using that ex",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-9EEB8197",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "**Full Decision (Decision 9Eeb8197, Turn 467):**\n\n\"The fix is a debounced per-turn checkpoint (Claude Code's Stop hook fires after every completed turn; at <2s a re-pack every N turns is cheap), making the ledger never more than a turn or two stale \u2014 zero manual recovery even after a hard kill.\"",
+      "correct": true,
+      "context_bpe": 2655,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-9EEB8197",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "Based on the context, the full decision is:\n\n\"The fix is a debounced per-turn checkpoint (Claude Code's Stop hook fires after every completed turn; at <2s a re-pack every N turns is cheap), making the ledger never more than a turn or two stale \u2014 zero manual recovery even after a hard kill.\" (turn 467)",
+      "correct": true,
+      "context_bpe": 2546,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-9EEB8197",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-9EEB8197",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "Based on the context provided, I cannot find the complete decision text that begins \"The fix is a debounced per-turn checkpoint (Claude ...\" in the provided context.\n\nThe context does reference a **stop-hook debounced checkpoint** being shipped on 2026-07-04 (commit 31da977), described as \"Stop-hook debounced checkpoint (crash window ~10 turns),\" but the specific full decision statement beginning with \"The fix is a debounced per-turn checkpoint (Claude ...\" is **not found in context**.",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-5DA8E198",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "6cb367e",
+      "correct": true,
+      "context_bpe": 2724,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-5DA8E198",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2544,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-5DA8E198",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-5DA8E198",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-38A2B9E1-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "The decision was made **because write-path input selection is outside the byte-determinism contract, which governs pack output only.**",
+      "correct": true,
+      "context_bpe": 2681,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-38A2B9E1-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "The decision was made **because write-path input selection is outside the byte-determinism contract, which governs pack output only**.",
+      "correct": true,
+      "context_bpe": 2388,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-38A2B9E1-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-38A2B9E1-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context mentions that `ctx/checkpoint` MCP tool + bare `ctxpack checkpoint` **auto-resolves live transcript via ~/.claude/projects munging (verified live on real session)**, but it does not record the specific decision beginning \"Decision: resolve the live transcript by newest mtime ...\" nor the reason behind it.",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-12168679",
+      "kind": "constraint",
+      "arm": "ctx",
+      "answer": "From the context (turn 621):\n\n> \"ctx should not become 'smarter summaries.' It should become immutable, cited facts plus deterministic event-\"",
+      "correct": false,
+      "context_bpe": 2704,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-12168679",
+      "kind": "constraint",
+      "arm": "grep",
+      "answer": "From the context, the agreed north star constraint is:\n\n> \"ctx does not become 'smarter summaries.' It becomes **immutable, cited facts plus deterministic event-sourced learning around those facts.** Content is never rewritten \u2014 only rank, status, and links move, and every move replays from logs.\"",
+      "correct": false,
+      "context_bpe": 2446,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-12168679",
+      "kind": "constraint",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-12168679",
+      "kind": "constraint",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-38A2B9E1",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "**Decision: resolve the live transcript by newest mtime under the munged `~/.claude/projects/<project>` dir with a name tie-break, because write-path input selection is outside the byte-determinism contract, which governs pack output only.**\n\n(Source: session a21df970, turn 270)",
+      "correct": true,
+      "context_bpe": 2691,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-38A2B9E1",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "**Decision: resolve the live transcript by newest mtime under the munged `~/.claude/projects/<project>` dir with a name tie-break, because write-path input selection is outside the byte-determinism contract, which governs pack output only.**",
+      "correct": true,
+      "context_bpe": 2458,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-38A2B9E1",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-38A2B9E1",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context mentions that `ctx/checkpoint` MCP tool + bare `ctxpack checkpoint` **auto-resolves live transcript via ~/.claude/projects munging** (verified live on a real session), but the full text of the specific decision statement beginning \"Decision: resolve the live transcript by newest mtime ...\" is not present in the provided context.",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-61FAE0E4",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "4b49f79",
+      "correct": false,
+      "context_bpe": 2679,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-61FAE0E4",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2625,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-61FAE0E4",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-61FAE0E4",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-0029F1CC-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "The reason was: **because an entity whose VALUE equals the needle is the literals-ledger recovery path and must beat any substring hit.**",
+      "correct": true,
+      "context_bpe": 2668,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-0029F1CC-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "The decision to rank `session_why` matches as **section_name \u2192 field_key \u2192 value_exact \u2192 value_substring** was made because:\n\n**an entity whose VALUE equals the needle is the literals-ledger recovery path and must beat any substring hit.**\n\nIn other words, exact value matches represent the primary use case of recovering precise identifiers from the literals ledger, so they must rank higher than mere substring matches.",
+      "correct": true,
+      "context_bpe": 2574,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-0029F1CC-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-0029F1CC-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context mentions `session_why` exact-value tier improvements (value_exact ranks above substring) and the `why` MCP tool, but does not record the specific decision text \"Decision: rank `session_why` matches section_name \u2192 field_key \u2192 ...\" nor its stated reason.",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-1B1221A8",
+      "kind": "constraint",
+      "arm": "ctx",
+      "answer": "From Constraint 1B1221A8 (turn 519):\n\n> \"i dont want feature bloat but only if things are of real value and creates a moat.\"",
+      "correct": true,
+      "context_bpe": 2707,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-1B1221A8",
+      "kind": "constraint",
+      "arm": "grep",
+      "answer": "Based on the context, the user stated:\n\n**\"i dont want feature bloat but only if things are of real value and creates a moat\"**",
+      "correct": true,
+      "context_bpe": 2462,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-1B1221A8",
+      "kind": "constraint",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-1B1221A8",
+      "kind": "constraint",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-E040C780",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "**Decision: the root cause is that Claude Code loads hook configuration once at process startup (and newly added project hooks require review via the `/hooks` menu before they're trusted).**",
+      "correct": true,
+      "context_bpe": 2665,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-E040C780",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "**Decision: the root cause is that Claude Code loads hook configuration once at process startup (and newly added project hooks require review via the `/hooks` menu before they're trusted).**",
+      "correct": true,
+      "context_bpe": 2556,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-E040C780",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-E040C780",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context does not contain a complete decision statement beginning with \"Decision: the root cause is that Claude Code ...\"",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-A79E17A9",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "Not found in context\n\n(The context references decisions from session a21df970 turn 270, but no exact path identifier is recorded for that session/turn in the provided context.)",
+      "correct": false,
+      "context_bpe": 2679,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-A79E17A9",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context",
+      "correct": false,
+      "context_bpe": 2665,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-A79E17A9",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-A79E17A9",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-9FF7E602-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "Based on the context, the decision to build **P4 \u2014 the MCP session read path** was made **because everything else is gated on it**.\n\n(Source: session:bae8e5d2#turn15)",
+      "correct": true,
+      "context_bpe": 2677,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-9FF7E602-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "Based on the context, the decision to make P4 (the MCP session read path) the next build was made for the following reason:\n\n**Everything else is gated on it**, specifically:\n\n1. **The dogfood clock is already running but measuring nothing.** Hooks write the ledger every session, but with no recall tools, sessions can only grep the raw transcript \u2014 so the \"raw-transcript-fallback rate\" signal (kill-criterion #3 early warning) can't be collected until the read path exists. Every session without i",
+      "correct": true,
+      "context_bpe": 2580,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-9FF7E602-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-9FF7E602-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context references P4 (the read path) as **SHIPPED** and describes what it contains, but does not record the specific \"Decision: the next build should be **P4 \u2014 ...\" statement along with its stated reason/rationale.",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-DC322106",
+      "kind": "constraint",
+      "arm": "ctx",
+      "answer": "From the context (turn 519, Constraint Dc322106):\n\n> \"The agent should not just say 'the rule is X'; it\"\n\n(The constraint appears to be truncated in the ledger, but the verbatim captured portion is as above.)",
+      "correct": false,
+      "context_bpe": 2699,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-DC322106",
+      "kind": "constraint",
+      "arm": "grep",
+      "answer": "Based on the context provided, I cannot identify a specific standing constraint that the user stated about the agent \"just saying\" something in a clearly quotable, self-contained form.\n\nThe context contains many constraints and design rules, but there is no single clearly demarcated user-stated constraint about what the agent \"just said\" that I can quote precisely without risk of misattribution.\n\n**Not found in context** (as a specific, clearly attributable quote matching that description).",
+      "correct": false,
+      "context_bpe": 2459,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-DC322106",
+      "kind": "constraint",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-DC322106",
+      "kind": "constraint",
+      "arm": "automem",
+      "answer": "Based on the context, the standing constraint stated about the agent is:\n\n**\"DO NOT buy the $60 six-arm run for a recall-superiority claim.\"**\n\nThis was established after the SENTINEL RUN results (2026-07-04), where grep's DR@3 of 0.9 vs ctx's 1.0 was not statistically significant (McNemar p=0.25 N.S.), and per the pre-committed grep rule plus Kapil's sequential-stopping ladder, the six-arm run was blocked. The full constraint context adds: **\"Grep's failures are the differentiation axes\"** and ",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-F57D56B9",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "Based on the context, the full decision is:\n\n**\"## Creation: the `Decision:` convention is a crutch, but the fix isn't better prose-mining\"**\n\nWith the follow-on principle recorded at turn 615:\n\n> **Derive decisions from actions, not just prose.** A decision usually leaves a deterministic fingerprint: a config value changed, a dependency chosen, a constant revised at turn N.\n\n(Source: session:bdfbd48b#turn615, Fact ID: 79f60559497dcbc0)",
+      "correct": true,
+      "context_bpe": 2719,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-F57D56B9",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "Based on the context, the full decision is:\n\n**\"## Creation: the `Decision:` convention is a crutch, but the fix isn't better prose-mining\"**\n\nThe context further elaborates that the convention exists because salience (\"this sentence will matter in three weeks\") is known to the *writer* at write time and to nobody else \u2014 a deterministic pattern-matcher can't infer it, and an LLM extractor can infer it but costs determinism, reproducibility, and citation-grade provenance. The proposed fix is to *",
+      "correct": true,
+      "context_bpe": 2626,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-F57D56B9",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-F57D56B9",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-D047A643",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2925,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-D047A643",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2746,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-D047A643",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-D047A643",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-FD9A8B76-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "The decision was made **because it's the only unblocked piece of the measurement stack and the pre-registration loses credibility the longer [it waits]**.\n\n(Source: session:bdfbd48b#turn3)",
+      "correct": true,
+      "context_bpe": 3077,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-FD9A8B76-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "The decision was made because building the CompactBench driver was **the only unblocked piece of the measurement stack**, and **the pre-registration loses credibility the longer it sits unexecuted**.",
+      "correct": false,
+      "context_bpe": 2906,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-FD9A8B76-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-FD9A8B76-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context references CompactBench and its driver being built, but does not record the specific \"Decision: build the CompactBench driver (drive a real ...)\" entry along with its stated reason/rationale.",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-31533EEF",
+      "kind": "constraint",
+      "arm": "ctx",
+      "answer": "**\"Do not try to build salience learning, DAG merges, typed edges, and consolidation all in the v1.1\"**\n\n(Stated at turn 621, basis: user_imperative, status: current)",
+      "correct": true,
+      "context_bpe": 2983,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-31533EEF",
+      "kind": "constraint",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2819,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-31533EEF",
+      "kind": "constraint",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-31533EEF",
+      "kind": "constraint",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-8B17D522",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "**Derive decisions from actions, not just prose.** A decision usually leaves a deterministic fingerprint: a config value changed, a dependency chosen, a constant revised at turn N.",
+      "correct": true,
+      "context_bpe": 3095,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-8B17D522",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "Based on the context, the full decision is:\n\n**\"Derive decisions from actions, not just prose. A decision usually leaves a deterministic fingerprint: a config value changed, a dependency chosen, a constant revised at turn N.\"**",
+      "correct": true,
+      "context_bpe": 2967,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-8B17D522",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-8B17D522",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-7E7C661D",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "e31872f",
+      "correct": true,
+      "context_bpe": 2900,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-7E7C661D",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2746,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-7E7C661D",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-7E7C661D",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-96E97BC1-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "The decision was made **because over-extraction is the established failure mode and the dogfood convention already asks sessions to mark load-bearing statements**.\n\nIn other words: using verb heuristics risks flagging too many things as constraints (over-extraction), which is the known failure mode; since the project's own convention already requires contributors to explicitly mark important statements with `Constraint:` or `Invariant:`, relying solely on those markers is sufficient and safer.",
+      "correct": true,
+      "context_bpe": 2940,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-96E97BC1-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "The decision was made **because over-extraction is the established failure mode** and the dogfood convention already asks sessions to mark load-bearing statements explicitly (so verb heuristics are unnecessary and would increase false positives).",
+      "correct": true,
+      "context_bpe": 2761,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-96E97BC1-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-96E97BC1-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context references that a `Constraint:` sentence-leading marker was added (banking agent-stated constraints, noting the cohort had 49 decisions vs 1 constraint), but the specific decision beginning \"Decision: keep the agent-constraint extractor marker-only (`Constraint:`/`Invariant:`, no ...\" and its stated reason are not present in the provided context.",
+      "correct": false,
+      "context_bpe": 7155,
+      "error": false
+    }
+  ]
+}

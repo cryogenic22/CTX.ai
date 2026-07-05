@@ -1,0 +1,1037 @@
+{
+  "schema": "ctxpack-resume-probe/v1",
+  "measurement_class": "quasi-experimental \u2014 recall accuracy for this repo's history under budget-parity arms; benchmark-grade causal claims need CompactBench",
+  "generated_at": "2026-07-05T21:42:28+00:00",
+  "repo": "KP_SDLC",
+  "config": {
+    "seed": 42,
+    "model": "claude-sonnet-4-6",
+    "n_probes": 20,
+    "probe_set": "recall",
+    "grading_notes": "drift probes pass only when the answer contains a verbatim anchor of the conflicting prior that is never shown in the proposal; paraphrased flags grade as misses (uniform under-count, favors arms holding verbatim text). automem arm context is built solely from the repo's auto-memory files \u2014 isolation from ctx artifacts is by construction in this no-tools harness. Known asymmetry: the probe universe is ledger-derived (the only deterministic ground truth with provenance), so facts only automem holds are never probed \u2014 automem results measure its coverage OF banked facts, not its total knowledge."
+  },
+  "arms": {
+    "automem": {
+      "n": 20,
+      "correct": 0,
+      "accuracy": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 2694,
+      "by_kind": {
+        "decision": {
+          "n": 7,
+          "correct": 0
+        },
+        "literal": {
+          "n": 7,
+          "correct": 0
+        },
+        "rationale": {
+          "n": 6,
+          "correct": 0
+        }
+      }
+    },
+    "closed": {
+      "n": 20,
+      "correct": 0,
+      "accuracy": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 0,
+      "by_kind": {
+        "decision": {
+          "n": 7,
+          "correct": 0
+        },
+        "literal": {
+          "n": 7,
+          "correct": 0
+        },
+        "rationale": {
+          "n": 6,
+          "correct": 0
+        }
+      }
+    },
+    "ctx": {
+      "n": 20,
+      "correct": 14,
+      "accuracy": 0.7,
+      "ci95": [
+        0.5,
+        0.9
+      ],
+      "mean_context_bpe": 2365,
+      "by_kind": {
+        "decision": {
+          "n": 7,
+          "correct": 7
+        },
+        "literal": {
+          "n": 7,
+          "correct": 1
+        },
+        "rationale": {
+          "n": 6,
+          "correct": 6
+        }
+      }
+    },
+    "grep": {
+      "n": 20,
+      "correct": 11,
+      "accuracy": 0.55,
+      "ci95": [
+        0.35,
+        0.75
+      ],
+      "mean_context_bpe": 2178,
+      "by_kind": {
+        "decision": {
+          "n": 7,
+          "correct": 7
+        },
+        "literal": {
+          "n": 7,
+          "correct": 0
+        },
+        "rationale": {
+          "n": 6,
+          "correct": 4
+        }
+      }
+    }
+  },
+  "probes": [
+    {
+      "probe_id": "ca35891c-C4B282D1",
+      "kind": "decision",
+      "session": "ca35891c",
+      "turn": 260,
+      "question": "According to this project's history, complete the decision that begins: \"**Verdict: APPROVE-WITH-NITS** \u2014 with one real correctness defect ...\" \u2014 state the full decision.",
+      "expected": "I need to fix.",
+      "grade_mode": "contains",
+      "source_text": "**Verdict: APPROVE-WITH-NITS** \u2014 with one real correctness defect I need to fix."
+    },
+    {
+      "probe_id": "d1dc187e-024CD9F2",
+      "kind": "literal",
+      "session": "d1dc187e",
+      "turn": 27,
+      "question": "The project's history records an exact url (session d1dc187e, around turn 27). What is its exact value? Reply with the value only.",
+      "expected": "https://github.com/cryogenic22/KP_SDLC/pull/8",
+      "grade_mode": "exact",
+      "source_text": "https://github.com/cryogenic22/KP_SDLC/pull/8"
+    },
+    {
+      "probe_id": "ca35891c-DAA3D08E-why",
+      "kind": "rationale",
+      "session": "ca35891c",
+      "turn": 1160,
+      "question": "This project's history records a decision that begins: \"Decision: vogue starts on engine defaults with an ...\". WHY was it made? State the reason.",
+      "expected": "a new repo should carry",
+      "grade_mode": "contains",
+      "source_text": "Decision: vogue starts on engine defaults with an empty (rationale-only) `.quality-gate.json`, because a new repo should carry zero threshold debt \u2014 every future override needs a written rationale and owner review by construction."
+    },
+    {
+      "probe_id": "ca35891c-CDD9E54C",
+      "kind": "decision",
+      "session": "ca35891c",
+      "turn": 1105,
+      "question": "According to this project's history, complete the decision that begins: \"Once PR #7 merges, that includes renamed-clone detection ...\" \u2014 state the full decision.",
+      "expected": "and context-aware size limits (react/test/migration).",
+      "grade_mode": "contains",
+      "source_text": "Once PR #7 merges, that includes renamed-clone detection and context-aware size limits (react/test/migration)."
+    },
+    {
+      "probe_id": "ca35891c-E95CECAD",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 433,
+      "question": "The project's history records an exact url (session ca35891c, around turn 433). What is its exact value? Reply with the value only.",
+      "expected": "https://github.com/cryogenic22/KP_SDLC/pull/1",
+      "grade_mode": "exact",
+      "source_text": "https://github.com/cryogenic22/KP_SDLC/pull/1"
+    },
+    {
+      "probe_id": "ca35891c-77E48C3F-why",
+      "kind": "rationale",
+      "session": "ca35891c",
+      "turn": 858,
+      "question": "This project's history records a decision that begins: \"Decision: all new economy checks run diff-scoped against ...\". WHY was it made? State the reason.",
+      "expected": "SonarQube's Clean-as-You-Code model is the",
+      "grade_mode": "contains",
+      "source_text": "Decision: all new economy checks run diff-scoped against new code with legacy behind the E0.4 ratchet, because SonarQube's Clean-as-You-Code model is the only proven way to impose a floor on a brownfield repo without either a big-bang cleanup or vacuous exemptions."
+    },
+    {
+      "probe_id": "ca35891c-4BB5660F",
+      "kind": "decision",
+      "session": "ca35891c",
+      "turn": 1160,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: park the quality/eval/web workflow templates rather than ...\" \u2014 state the full decision.",
+      "expected": "activate them, because raw placeholders would fail",
+      "grade_mode": "contains",
+      "source_text": "Decision: park the quality/eval/web workflow templates rather than activate them, because raw placeholders would fail YAML parsing on every push and a gate running against a stack that doesn't exist is vacuous green."
+    },
+    {
+      "probe_id": "ca35891c-DFA0AEF4",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 31,
+      "question": "The project's history records an exact path (session ca35891c, around turn 31). What is its exact value? Reply with the value only.",
+      "expected": "C:\\Users\\kapil\\Documents\\market_zero\\docs\\sdlc-process-overview.html",
+      "grade_mode": "exact",
+      "source_text": "C:\\Users\\kapil\\Documents\\market_zero\\docs\\sdlc-process-overview.html"
+    },
+    {
+      "probe_id": "ca35891c-FB428E93-why",
+      "kind": "rationale",
+      "session": "ca35891c",
+      "turn": 813,
+      "question": "This project's history records a decision that begins: \"Decision: add `.claude/settings.json` and `CLAUDE.md` to the structural-floor ...\". WHY was it made? State the reason.",
+      "expected": "tampering with session hooks or",
+      "grade_mode": "contains",
+      "source_text": "Decision: add `.claude/settings.json` and `CLAUDE.md` to the structural-floor protected surface, because tampering with session hooks or conventions could silently disable the receipts layer \u2014 CODEOWNERS regenerated in the same change per the coupling rule (9 protected paths, syn"
+    },
+    {
+      "probe_id": "ca35891c-59AF2088",
+      "kind": "decision",
+      "session": "ca35891c",
+      "turn": 398,
+      "question": "According to this project's history, complete the decision that begins: \"The fix is exactly what the reviewer prescribed ...\" \u2014 state the full decision.",
+      "expected": "as the approval condition, with both findings",
+      "grade_mode": "contains",
+      "source_text": "The fix is exactly what the reviewer prescribed as the approval condition, with both findings now encoded as regression tests."
+    },
+    {
+      "probe_id": "ca35891c-3AF7D4DC",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 555,
+      "question": "The project's history records an exact path (session ca35891c, around turn 555). What is its exact value? Reply with the value only.",
+      "expected": "C:\\Users\\kapil\\Downloads\\zs-sdlc-harness-backlog-v0.1.md",
+      "grade_mode": "exact",
+      "source_text": "C:\\Users\\kapil\\Downloads\\zs-sdlc-harness-backlog-v0.1.md"
+    },
+    {
+      "probe_id": "ca35891c-2357B743-why",
+      "kind": "rationale",
+      "session": "ca35891c",
+      "turn": 1347,
+      "question": "This project's history records a decision that begins: \"Decision: commit the sdlc-init MVP before the review ...\". WHY was it made? State the reason.",
+      "expected": "the user is clearing context",
+      "grade_mode": "contains",
+      "source_text": "Decision: commit the sdlc-init MVP before the review completes, because the user is clearing context and a committed branch is a durable resume point \u2014 the review discipline is preserved by not opening the PR until the review is finished on resume."
+    },
+    {
+      "probe_id": "ca35891c-8D98B69A",
+      "kind": "decision",
+      "session": "ca35891c",
+      "turn": 1098,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: delete the unreachable cross-stack exemption machinery rather ...\" \u2014 state the full decision.",
+      "expected": "than keep it, because py/web signature separation",
+      "grade_mode": "contains",
+      "source_text": "Decision: delete the unreachable cross-stack exemption machinery rather than keep it, because py/web signature separation now holds by construction (AST hash vs text hash) and retaining dead config for a future maybe is exactly the speculative bloat this epic gates against."
+    },
+    {
+      "probe_id": "ca35891c-293961DF",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 551,
+      "question": "The project's history records an exact url (session ca35891c, around turn 551). What is its exact value? Reply with the value only.",
+      "expected": "https://github.com/cryogenic22/KP_SDLC/pull/4",
+      "grade_mode": "exact",
+      "source_text": "https://github.com/cryogenic22/KP_SDLC/pull/4"
+    },
+    {
+      "probe_id": "ca35891c-18266D2D-why",
+      "kind": "rationale",
+      "session": "ca35891c",
+      "turn": 1405,
+      "question": "This project's history records a decision that begins: \"Decision: address all adversarial-review findings with regression tests ...\". WHY was it made? State the reason.",
+      "expected": "the two reproduced defects (CODEOWNERS",
+      "grade_mode": "contains",
+      "source_text": "Decision: address all adversarial-review findings with regression tests before opening PR #8 rather than deferring any, because the two reproduced defects (CODEOWNERS data loss, non-empty-repo vacuous green) directly violated the born-gated guarantee the component exists to provi"
+    },
+    {
+      "probe_id": "ca35891c-CFC42F53",
+      "kind": "decision",
+      "session": "ca35891c",
+      "turn": 260,
+      "question": "According to this project's history, complete the decision that begins: \"The right fix is **per-file comparison** (compare each ...\" \u2014 state the full decision.",
+      "expected": "scanned file to its own baseline entry)",
+      "grade_mode": "contains",
+      "source_text": "The right fix is **per-file comparison** (compare each scanned file to its own baseline entry) \u2014 order-independent, kills the collision, and avoids diff-mode false positives."
+    },
+    {
+      "probe_id": "ca35891c-D2EAA384",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 514,
+      "question": "The project's history records an exact path (session ca35891c, around turn 514). What is its exact value? Reply with the value only.",
+      "expected": ".github/workflows/structural-floor.yml",
+      "grade_mode": "exact",
+      "source_text": ".github/workflows/structural-floor.yml"
+    },
+    {
+      "probe_id": "ca35891c-41F9D687-why",
+      "kind": "rationale",
+      "session": "ca35891c",
+      "turn": 833,
+      "question": "This project's history records a decision that begins: \"Decision: the immediate next build item is E0.2 ...\". WHY was it made? State the reason.",
+      "expected": "every remaining Loop-0 item and",
+      "grade_mode": "contains",
+      "source_text": "Decision: the immediate next build item is E0.2 self-CI, because every remaining Loop-0 item and all later loops assume a CI gate exists on this repo, and it's the cheapest way to lock in the packaging fix."
+    },
+    {
+      "probe_id": "ca35891c-2357B743",
+      "kind": "decision",
+      "session": "ca35891c",
+      "turn": 1347,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: commit the sdlc-init MVP before the review ...\" \u2014 state the full decision.",
+      "expected": "completes, because the user is clearing context",
+      "grade_mode": "contains",
+      "source_text": "Decision: commit the sdlc-init MVP before the review completes, because the user is clearing context and a committed branch is a durable resume point \u2014 the review discipline is preserved by not opening the PR until the review is finished on resume."
+    },
+    {
+      "probe_id": "ca35891c-B844658C",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 433,
+      "question": "The project's history records an exact url (session ca35891c, around turn 433). What is its exact value? Reply with the value only.",
+      "expected": "https://github.com/cryogenic22/KP_SDLC/pull/2",
+      "grade_mode": "exact",
+      "source_text": "https://github.com/cryogenic22/KP_SDLC/pull/2"
+    }
+  ],
+  "results": [
+    {
+      "probe_id": "ca35891c-C4B282D1",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "Based on the context, the full decision is:\n\n**\"Verdict: APPROVE-WITH-NITS** \u2014 with one real correctness defect I need to fix.\"\n\nThat is the complete stated decision (from session `ca35891c#turn260`, Fact Id `4b9afe5a658c817d`). The context does not provide additional text beyond that exact phrasing for this decision entry.\n\nThe associated fix decision (recorded separately at the same turn) was: **\"The right fix is per-file comparison (compare each scanned file to its own baseline entry) \u2014 order",
+      "correct": true,
+      "context_bpe": 2377,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C4B282D1",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "Based on the context, here is the full decision:\n\n**\"Verdict: APPROVE-WITH-NITS** \u2014 with one real correctness defect I need to fix. The reviewer found and *reproduced* a genuine bug:\n\n**Finding #1 (must-fix):** `_merge_models` keys by class name only, so two files defining a same-named model (`Config`, `Settings`, `Meta` \u2014 common) collide last-wins. Since `ck baseline` (repo mode) and `ck analyze` (diff mode) can pass files in different orders, a pure reorder with **zero schema change** produces",
+      "correct": true,
+      "context_bpe": 2119,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C4B282D1",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C4B282D1",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context references that the adversarial review of PR #8 (sdlc-init) \"blocked on two real defects (CODEOWNERS data-loss, non-empty-repo vacuous green) \u2014 both fixed with regression tests before merge,\" but the full verbatim text of the **\"Verdict: APPROVE-WITH-NITS\"** decision statement is not present in the provided context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "d1dc187e-024CD9F2",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "https://github.com/cryogenic22/KP_SDLC/pull/8",
+      "correct": true,
+      "context_bpe": 2266,
+      "error": false
+    },
+    {
+      "probe_id": "d1dc187e-024CD9F2",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2081,
+      "error": false
+    },
+    {
+      "probe_id": "d1dc187e-024CD9F2",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "d1dc187e-024CD9F2",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-DAA3D08E-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "**Because a new repo should carry zero threshold debt** \u2014 every future override needs a written rationale and owner review by construction.",
+      "correct": true,
+      "context_bpe": 2387,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-DAA3D08E-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "Based on the context, the decision that \"vogue starts on engine defaults with an empty (rationale-only) `.quality-gate.json`\" was made **because a new repo should carry zero threshold debt** \u2014 every future override needs a written rationale and owner review by construction.",
+      "correct": true,
+      "context_bpe": 2225,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-DAA3D08E-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-DAA3D08E-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context references the vogue pilot project and its friction log, but does not contain a decision statement beginning with \"Decision: vogue starts on engine defaults with an ...\" nor its associated reasoning.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-CDD9E54C",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "**\"Once PR #7 merges, that includes renamed-clone detection and context-aware size limits (react/test/migration).\"**",
+      "correct": true,
+      "context_bpe": 2332,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-CDD9E54C",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "Based on the context provided, the full statement is:\n\n**\"Once PR #7 merges, that includes renamed-clone detection and context-aware size limits (react/test/migration).\"**\n\nThis refers to additions to the **Quality Gate** check packs that will be included once PR #7 merges.",
+      "correct": true,
+      "context_bpe": 2272,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-CDD9E54C",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-CDD9E54C",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context mentions PR #7 being merged to KP_SDLC main on 2026-07-05 and references \"body-hash duplicate detection\" in relation to it, but does not contain a decision statement beginning with \"Once PR #7 merges, that includes renamed-clone detection ...\" \u2014 the full decision text is not present.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-E95CECAD",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2370,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-E95CECAD",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2152,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-E95CECAD",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-E95CECAD",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-77E48C3F-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "The reason given was: **because SonarQube's Clean-as-You-Code model is the only proven way to impose a floor on a brownfield repo without either a big-bang cleanup or vacuous exemptions.**",
+      "correct": true,
+      "context_bpe": 2404,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-77E48C3F-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "Based on the context, the decision that \"all new economy checks run diff-scoped against new code with legacy behind the E0.4 ratchet\" was made **because SonarQube's Clean-as-You-Code model is the only proven way to impose a floor on a brownfield repo without either a big-bang cleanup or vacuous exemptions.**",
+      "correct": true,
+      "context_bpe": 2064,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-77E48C3F-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-77E48C3F-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-4BB5660F",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "**Decision: park the quality/eval/web workflow templates rather than activate them, because raw placeholders would fail YAML parsing on every push and a gate running against a stack that doesn't exist is vacuous green.**",
+      "correct": true,
+      "context_bpe": 2385,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-4BB5660F",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "**Full decision:**\n\n\"Decision: park the quality/eval/web workflow templates rather than activate them, because raw placeholders would fail YAML parsing on every push and a gate running against a stack that doesn't exist is vacuous green.\"",
+      "correct": true,
+      "context_bpe": 2199,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-4BB5660F",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-4BB5660F",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "The context describes *that* quality/eval/web workflows are parked in `.github/workflows-parked/` \"until their stack exists,\" but it does not contain the full verbatim decision statement beginning \"Decision: park the quality/eval/web workflow templates rather than ...\" \u2014 the complete decision text with its \"because\" clause is not present in the provided context.\n\n**Not found in context.**",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-DFA0AEF4",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "Not found in context",
+      "correct": false,
+      "context_bpe": 2339,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-DFA0AEF4",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2127,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-DFA0AEF4",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-DFA0AEF4",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "`C:\\Users\\kapil\\Documents\\CTX_mod`",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-FB428E93-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "Because tampering with session hooks or conventions could silently disable the receipts layer \u2014 CODEOWNERS regenerated in the same change per the coupling rule (9 protected paths).",
+      "correct": true,
+      "context_bpe": 2390,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-FB428E93-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "Because tampering with session hooks or conventions could silently disable the receipts layer.",
+      "correct": true,
+      "context_bpe": 2370,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-FB428E93-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-FB428E93-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context references that `.claude/settings.json` and `CLAUDE.md` are on the \"structural-floor protected surface,\" but it does not contain the specific decision statement you quoted nor its stated reason (\"because <why>\").",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-59AF2088",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "**\"The fix is exactly what the reviewer prescribed as the approval condition, with both findings now encoded as regression tests.\"**\n\n(Source: session ca35891c, turn 398 / Decision 59Af2088)",
+      "correct": true,
+      "context_bpe": 2354,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-59AF2088",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "Based on the context, the full statement is:\n\n**\"The fix is exactly what the reviewer prescribed as the approval condition, with both findings now encoded as regression tests.\"**",
+      "correct": true,
+      "context_bpe": 2134,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-59AF2088",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-59AF2088",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context does not contain a decision statement beginning with \"The fix is exactly what the reviewer prescribed ...\" \u2014 no such decision line appears in any of the provided memory documents.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-3AF7D4DC",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2345,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-3AF7D4DC",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2020,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-3AF7D4DC",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-3AF7D4DC",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "`C:\\Users\\kapil\\Documents\\CTX_mod`",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-2357B743-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "The decision was made **because the user is clearing context and a committed branch is a durable resume point** \u2014 the review discipline is preserved by not opening the PR until the review is finished on resume.",
+      "correct": true,
+      "context_bpe": 2374,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-2357B743-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "The decision was made because the user was clearing context, and a committed branch is a durable resume point \u2014 ensuring the work would not be lost while preserving review discipline by not opening the PR until the review is finished on resume.",
+      "correct": false,
+      "context_bpe": 2184,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-2357B743-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-2357B743-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context references the sdlc-init executor and its merge (PR #8, commit `e4f97ea`), and mentions an adversarial review that blocked on two real defects before merge \u2014 but it does not contain a decision statement beginning with \"Decision: commit the sdlc-init MVP before the review ...\" nor its associated reason.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-8D98B69A",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "**Decision: delete the unreachable cross-stack exemption machinery rather than keep it, because py/web signature separation now holds by construction (AST hash vs text hash) and retaining dead config for a future maybe is exactly the speculative bloat this epic gates against.**\n\n(Source: s:ca35891c#turn1098, Fact ID: 84cc3d5053d2c628)",
+      "correct": true,
+      "context_bpe": 2387,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-8D98B69A",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "Based on the context, the full decision is:\n\n**\"Decision: delete the unreachable cross-stack exemption machinery rather than keep it, because py/web signature separation now holds by construction (AST hash vs text hash) and retaining dead config for a future maybe is exactly the speculative bloat this epic gates against.\"**",
+      "correct": true,
+      "context_bpe": 2167,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-8D98B69A",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-8D98B69A",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-293961DF",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2370,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-293961DF",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2300,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-293961DF",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-293961DF",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-18266D2D-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "The decision was made **because the two reproduced defects (CODEOWNERS data loss, non-empty-repo vacuous green) directly violated the born-gated guarantee the component exists to provide**.",
+      "correct": true,
+      "context_bpe": 2365,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-18266D2D-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "The decision was made because **two reproduced defects \u2014 CODEOWNERS data loss and non-empty-repo vacuous green \u2014 directly violated the born-gated guarantee the component exists to provide**.",
+      "correct": false,
+      "context_bpe": 2349,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-18266D2D-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-18266D2D-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context references that the adversarial review of `sdlc init` (PR #8) \"blocked on two real defects (CODEOWNERS data-loss, non-empty-repo vacuous green) \u2014 both fixed with regression tests before merge,\" but it does not contain a `Decision: address all adversarial-review findings with regression tests ...` line with an explicit stated reason in the required format.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-CFC42F53",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "**The right fix is **per-file comparison** (compare each scanned file to its own baseline entry) \u2014 order-independent, kills the collision, and avoids diff-mode false positives.**",
+      "correct": true,
+      "context_bpe": 2367,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-CFC42F53",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "Based on the context, the full decision is:\n\n**\"The right fix is **per-file comparison** (compare each scanned file to its own baseline entry) \u2014 order-independent, kills the collision, and avoids diff-mode false positives.\"**\n\n(Recorded at turn 260, section ENTITY-DECISION-CFC42F53)",
+      "correct": true,
+      "context_bpe": 2339,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-CFC42F53",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-CFC42F53",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context does not contain a decision statement beginning with \"The right fix is **per-file comparison** (compare each ...\" \u2014 no such decision is recorded in any of the provided memory files.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-D2EAA384",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2345,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-D2EAA384",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2020,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-D2EAA384",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-D2EAA384",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-41F9D687-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "**Because every remaining Loop-0 item and all later loops assume a CI gate exists on this repo, and it's the cheapest way to lock in the packaging fix.**",
+      "correct": true,
+      "context_bpe": 2387,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-41F9D687-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "Based on the context, the decision to make E0.2 self-CI the immediate next build item was made **because every remaining Loop-0 item and all later loops assume a CI gate exists on this repo, and it's the cheapest way to lock in the packaging fix.**",
+      "correct": true,
+      "context_bpe": 2136,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-41F9D687-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-41F9D687-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-2357B743",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "**Decision: commit the sdlc-init MVP before the review completes, because the user is clearing context and a committed branch is a durable resume point \u2014 the review discipline is preserved by not opening the PR until the review is finished on resume.**\n\n(Source: session:ca35891c#turn1347, confirmed in session d1dc187e Decision 2357B743)",
+      "correct": true,
+      "context_bpe": 2388,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-2357B743",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "**Full decision:**\n\n\"Decision: commit the sdlc-init MVP before the review completes, because the user is clearing context and a committed branch is a durable resume point \u2014 the review discipline is preserved by not opening the PR until the review is finished on resume.\"",
+      "correct": true,
+      "context_bpe": 2154,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-2357B743",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-2357B743",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context describes the sdlc-init executor and its merge (PR #8, commit `e4f97ea`), including that an adversarial review blocked on two real defects before merge \u2014 but no `Decision: ...` line beginning with \"Decision: commit the sdlc-init MVP before the review ...\" appears anywhere in the provided context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-B844658C",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2370,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-B844658C",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2152,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-B844658C",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-B844658C",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    }
+  ],
+  "regrade_of": "resume-probe-KP_SDLC-recall-full-20260705T214228+0000.json",
+  "regrade_reason": "quote-normalization fix: _norm now maps curly and straight quotes identically; verbatim-correct answers with ASCII quotes were under-graded against banked typographic quotes"
+}
