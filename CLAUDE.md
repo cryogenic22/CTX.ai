@@ -36,7 +36,13 @@ state it in your reply on its own sentence starting with `Decision:` —
 e.g. `Decision: use exponential backoff with base 750ms because the
 vendor limit is 40 req/min.` The transcript parser extracts these
 deterministically; unmarked decisions in free prose are often missed.
-Dead ends the same way: "The X approach didn't work because ...".
+State marker lines in the turn-FINAL message (the reply that ends your
+turn): Claude Code 2.1.x does not reliably persist mid-turn assistant
+text to the transcript (verified 2026-07-05 — 11 mid-turn `Decision:`
+lines never reached the JSONL), and what never reaches the transcript
+can never reach the ledger. Restate mid-work decisions in your closing
+summary. Dead ends the same way: "The X approach didn't work because
+...".
 Operating rules you set yourself the same way, sentence-leading:
 `Constraint: ...` — agent-stated constraints don't extract any other way
 (the only other constraint source is user imperatives).
