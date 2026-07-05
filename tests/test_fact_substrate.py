@@ -187,6 +187,97 @@ def test_checkpoint_emits_replayable_events(tmp_path):
                for j in journal)
 
 
+def test_events_view_is_cadence_independent(tmp_path):
+    # Spec §5 amendment: N debounced checkpoints and one single-shot
+    # checkpoint must materialize byte-identical views
+    entries = [
+        _entry("user", "Fix retries. Never bypass the rate limiter."),
+        _entry("assistant", [{"type": "text", "text":
+            "Decision: use exponential backoff with base 750ms.\n"
+            'ctx-incident: saved | fact="rate limiter rule"'}]),
+        _entry("user", "Now harden the parser too."),
+        _entry("assistant", [{"type": "text", "text":
+            "Decision: reject unclosed brackets at the tokenizer.\n"
+            "Landed as commit deadbeef1234."}]),
+    ]
+    # arm A: checkpoint after turn 2, then again after turn 4
+    t_a = tmp_path / "a.jsonl"
+    t_a.write_text("\n".join(json.dumps(e) for e in entries[:2]),
+                   encoding="utf-8")
+    run_checkpoint(str(t_a), str(tmp_path / "ctx_a"), as_of="2026-07-06")
+    t_a.write_text("\n".join(json.dumps(e) for e in entries),
+                   encoding="utf-8")
+    run_checkpoint(str(t_a), str(tmp_path / "ctx_a"), as_of="2026-07-06")
+    # arm B: one single-shot checkpoint of the full transcript
+    t_b = tmp_path / "b.jsonl"
+    t_b.write_text("\n".join(json.dumps(e) for e in entries),
+                   encoding="utf-8")
+    run_checkpoint(str(t_b), str(tmp_path / "ctx_b"), as_of="2026-07-06")
+
+    read = lambda d: (tmp_path / d / "events.jsonl").read_bytes()  # noqa: E731
+    assert read("ctx_a") == read("ctx_b")
+
+
+def test_events_rebuild_reproduces_bytes(tmp_path):
+    entries = [
+        _entry("user", "Fix retries. Never bypass the rate limiter."),
+        _entry("assistant", [{"type": "text", "text":
+            "Decision: use exponential backoff with base 750ms.\n"
+            'ctx-incident: saved | fact="rate limiter rule"'}]),
+    ]
+    t = _write(tmp_path, entries)
+    out = tmp_path / "ctx"
+    run_checkpoint(t, str(out), as_of="2026-07-06")
+    original = (out / "events.jsonl").read_bytes()
+    (out / "events.jsonl").unlink()
+    run_checkpoint(t, str(out), as_of="2026-07-06")
+    assert (out / "events.jsonl").read_bytes() == original
+
+
+def test_incident_and_retrieval_rows_not_duplicated(tmp_path):
+    entries = [
+        _entry("assistant", [{"type": "text", "text":
+            'ctx-incident: saved | fact="rate limiter rule"'}]),
+    ]
+    t = _write(tmp_path, entries)
+    out = tmp_path / "ctx"
+    for _ in range(3):
+        run_checkpoint(t, str(out), as_of="2026-07-06")
+    rows = [json.loads(l) for l in (out / "events.jsonl")
+            .read_text(encoding="utf-8").splitlines()]
+    assert sum(r["event"] == "incident" for r in rows) == 1
+    assert sum(r["event"] == "retrieval" for r in rows) == 1
+
+
+def test_recheckpoint_replaces_block_in_place(tmp_path):
+    # session A's regenerated block must keep its position and leave
+    # session B's rows byte-identical
+    a1 = [_entry("user", "Never push straight to main.")]
+    for e in a1:
+        e["sessionId"] = "aaaa1111-session"
+    b1 = [_entry("assistant", [{"type": "text", "text":
+          "Decision: pin the retry base at 750ms."}])]
+    for e in b1:
+        e["sessionId"] = "bbbb2222-session"
+    out = tmp_path / "ctx"
+    run_checkpoint(_write(tmp_path, a1, "a.jsonl"), str(out),
+                   as_of="2026-07-06")
+    run_checkpoint(_write(tmp_path, b1, "b.jsonl"), str(out),
+                   as_of="2026-07-06")
+    b_rows_before = [l for l in (out / "events.jsonl")
+                     .read_text(encoding="utf-8").splitlines()
+                     if "bbbb2222" in l]
+    run_checkpoint(str(tmp_path / "a.jsonl"), str(out), as_of="2026-07-06")
+    lines = (out / "events.jsonl").read_text(encoding="utf-8").splitlines()
+    sessions = [json.loads(l)["session"][:8] for l in lines]
+    # A's block still precedes B's, blocks stay contiguous, and B's rows
+    # are byte-identical
+    n_a = sessions.count("aaaa1111")
+    assert sessions == ["aaaa1111"] * n_a + ["bbbb2222"] * (len(sessions) - n_a)
+    b_rows_after = [l for l in lines if "bbbb2222" in l]
+    assert b_rows_after == b_rows_before
+
+
 def test_events_incident_row_carries_link(tmp_path):
     entries = [
         _entry("assistant", [{"type": "text", "text":

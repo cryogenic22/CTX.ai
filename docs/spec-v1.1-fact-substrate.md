@@ -101,6 +101,22 @@ the transcript already records every retrieval as tool_use entries
 (the parser counts them today). Deleting events.jsonl and re-running
 checkpoints over the same transcripts MUST reproduce it byte-for-byte.
 
+*Amendment (2026-07-06, review finding):* the original implementation
+appended rows per checkpoint, which made the file reproducible only
+under the same checkpoint *cadence* — a weaker property than claimed.
+Materialized-view semantics are now literal: each checkpoint
+REGENERATES its session's whole block in place (a session's first
+checkpoint appends its block; other sessions' rows are preserved
+byte-for-byte). Consequences of the contract: (a) the final file is
+cadence-independent — N debounced checkpoints and one single-shot
+checkpoint materialize identical bytes; (b) block order is the order
+sessions were first checkpointed; (c) each row's `checkpoint` field is
+the sha the block was *last materialized at* — turn provenance, not
+the checkpoint field, is the stable anchor; (d) files written before
+this amendment carry historical duplicate incident/retrieval rows,
+which folds must (and do) tolerate — a full rebuild is
+delete-and-recheckpoint over the surviving transcripts.
+
 One JSON object per line:
 
 ```json

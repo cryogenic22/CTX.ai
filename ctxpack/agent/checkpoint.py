@@ -115,8 +115,9 @@ def build_gist(parsed: ParsedTranscript,
     that drops lines from the lowest-stakes section up. With ``ranks``
     (the rank/v1 event fold) selection and trimming are salience-aware —
     the literal cap keeps the highest-rank identifiers and budget
-    pressure evicts the lowest-rank fact of the lowest-stakes section
-    first — while the render order inside a section stays chronological
+    pressure evicts the GLOBALLY lowest-rank fact across all sections
+    (kind priors and the constraint floor encode the stakes order) —
+    while the render order inside a section stays chronological
     (facts still read in the order they happened).
     """
     ents = parsed.corpus.entities
@@ -215,36 +216,50 @@ def build_gist(parsed: ParsedTranscript,
 
 def _emit_events(out_dir: str, parsed: ParsedTranscript, corpus,
                  sha: str) -> int:
-    """Append this checkpoint's derived events to events.jsonl.
+    """Materialize this session's event rows in events.jsonl.
 
-    Spec v1.1 §5: the transcript is the single event source — this is a
-    materialized view of the pack, never written by live reads.
-    fact_asserted rows are emitted incrementally (only fact_ids not
-    already asserted for this session), so the debounced stop-hook
-    doesn't re-emit the whole ledger every ten turns; a fold over the
-    log must dedup by fact_id regardless, since a replay that starts
-    from an empty file emits the union in one batch.
+    Spec v1.1 §5: the transcript is the single event source and
+    events.jsonl is a materialized view of it — so the session's block
+    is REGENERATED from the current parse and replaces its previous
+    block in place (a session's first checkpoint appends its block at
+    the end). The final file is cadence-independent: ten debounced
+    stop-hook checkpoints and one single-shot checkpoint materialize
+    byte-identical views, and deleting the file and re-running one
+    checkpoint per transcript (journal order) reproduces it exactly.
+    Rows carry the checkpoint sha they were last materialized at —
+    turn provenance, not the checkpoint field, is the stable anchor.
     """
     events_path = os.path.join(out_dir, "events.jsonl")
     sid = parsed.session_id
-    seen: set = set()
+
+    # Split the existing file around this session's previous block so the
+    # regenerated block lands in the same position (other sessions' rows
+    # are preserved byte-for-byte, order untouched).
+    before: list = []
+    after: list = []
+    target = before
     if os.path.exists(events_path):
         with open(events_path, encoding="utf-8") as f:
             for line in f:
-                try:
-                    prior = json.loads(line)
-                except json.JSONDecodeError:
+                raw = line.rstrip("\n")
+                if not raw.strip():
                     continue
-                if (prior.get("session") == sid
-                        and prior.get("event") == "fact_asserted"):
-                    seen.add(prior.get("fact_id"))
+                try:
+                    row_sid = json.loads(raw).get("session")
+                except json.JSONDecodeError:
+                    target.append(raw)  # unparseable line: keep in place
+                    continue
+                if row_sid == sid:
+                    target = after  # drop old block; regenerating below
+                    continue
+                target.append(raw)
 
     def _field(entity, key: str) -> str:
         return next((f.value for f in entity.fields if f.key == key), "")
 
     rows: list = []
     # cwd is transcript-derived (never env), so rank folds can exclude
-    # eval-harness workspaces while events.jsonl stays byte-replayable.
+    # eval-harness workspaces while events.jsonl stays rebuildable.
     cwd = parsed.stats.cwd
 
     def ev(event: str, fact_id=None, turn=None, **detail) -> None:
@@ -252,6 +267,7 @@ def _emit_events(out_dir: str, parsed: ParsedTranscript, corpus,
                      "checkpoint": sha[:12], "cwd": cwd, "event": event,
                      "fact_id": fact_id, "turn": turn, "detail": detail})
 
+    seen: set = set()  # one fact_asserted per fact_id within the block
     for entity in corpus.entities:
         fid = _field(entity, "FACT-ID")
         if not fid:
@@ -265,6 +281,7 @@ def _emit_events(out_dir: str, parsed: ParsedTranscript, corpus,
             continue
         if fid in seen:
             continue
+        seen.add(fid)
         # rsplit: keep the full kind ("FAILED-APPROACH", "USER-REQUEST") —
         # rows from before 2026-07-05 carry the first-segment truncation,
         # which rank folds normalize on read
@@ -290,9 +307,13 @@ def _emit_events(out_dir: str, parsed: ParsedTranscript, corpus,
     ev("retrieval", ledger_reads=parsed.stats.ledger_reads,
        transcript_greps=parsed.stats.transcript_greps)
 
-    with open(events_path, "a", encoding="utf-8", newline="\n") as f:
+    with open(events_path, "w", encoding="utf-8", newline="\n") as f:
+        for raw in before:
+            f.write(raw + "\n")
         for row in rows:
             f.write(json.dumps(row) + "\n")
+        for raw in after:
+            f.write(raw + "\n")
     return len(rows)
 
 
