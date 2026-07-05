@@ -165,3 +165,10 @@ def test_event_rows_carry_transcript_cwd(tmp_path):
             .read_text(encoding="utf-8").splitlines()]
     assert rows
     assert all(row["cwd"] == "C:\\work\\eval-harness-ws" for row in rows)
+
+
+def test_norm_equates_curly_and_straight_quotes():
+    # regression: verbatim-correct answers were under-graded when the
+    # banked text carried typographic quotes and the answer used ASCII
+    assert _norm("say “the rule is X”") == _norm("say 'the rule is X'")
+    assert _norm("didn’t work") == _norm("didn't work")

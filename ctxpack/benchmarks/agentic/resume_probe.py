@@ -94,9 +94,14 @@ def _phrase_after(text: str, skip_words: int, take: int) -> str:
     return " ".join(words[skip_words:skip_words + take])
 
 
+_QUOTES = str.maketrans({c: " " for c in "`\"“”‘’'"})
+
+
 def _norm(s: str) -> str:
-    return " ".join(s.lower().replace("`", " ").replace('"', " ")
-                    .replace("**", " ").split())
+    # all quote characters normalize to spaces SYMMETRICALLY (both the
+    # expected anchor and the answer) — curly-vs-straight quote
+    # mismatches were under-grading verbatim-correct answers
+    return " ".join(s.lower().translate(_QUOTES).replace("**", " ").split())
 
 
 def probe_candidates(ledger_dir: str, sid: str) -> list[Probe]:
