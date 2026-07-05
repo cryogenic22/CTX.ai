@@ -275,11 +275,28 @@ def _file_entity_name(path: str) -> str:
     return f"FILE-{norm[-60:]}"
 
 
+# Non-marker sentences above 300 chars are merged-blob noise and are
+# dropped — but a MARKER-led sentence (Decision:/Constraint:) is an
+# explicit convention statement; dropping it for length silently loses
+# exactly the facts the convention exists to bank (found live 2026-07-06:
+# a 430-char turn-final Decision: vanished). Bounded, not unbounded.
+_MARKER_SENTENCE_CAP = 900
+
+
 def _sentences(text: str) -> list[str]:
-    return [
-        s.strip() for s in _SENTENCE_SPLIT_RE.split(text)
-        if 15 <= len(s.strip()) <= 300
-    ]
+    out: list[str] = []
+    for raw in _SENTENCE_SPLIT_RE.split(text):
+        s = raw.strip()
+        if len(s) < 15:
+            continue
+        if len(s) <= 300:
+            out.append(s)
+        elif len(s) <= _MARKER_SENTENCE_CAP:
+            prose = _prose_of(s)
+            if (_DECISION_MARKER_RE.match(prose)
+                    or _CONSTRAINT_MARKER_RE.match(prose)):
+                out.append(s)
+    return out
 
 
 def _prose_of(sentence: str) -> str:

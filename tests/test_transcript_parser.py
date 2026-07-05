@@ -350,3 +350,27 @@ def test_agent_constraint_mention_not_extracted(tmp_path):
     assert _constraint_values(parsed) == [], (
         f"mention extracted as constraint: {_constraint_values(parsed)}")
     assert parsed.stats.constraints == 0
+
+
+def test_long_marker_decision_survives_sentence_cap(tmp_path):
+    # Found live 2026-07-06: a 430-char turn-final "Decision:" sentence
+    # was silently dropped by the 300-char sentence filter. Marker-led
+    # sentences are explicit convention statements and must bank (up to
+    # a bounded cap); non-marker prose of the same length stays dropped.
+    long_tail = ("because the fold combines kind priors with basis and "
+                 "marker multipliers, capped cross-session re-assertion "
+                 "boosts, capped incident-linked deltas, a recency "
+                 "tie-break, and a constraint floor, which together are "
+                 "every signal deterministically present in the event "
+                 "log today and none that would require a wall clock, "
+                 "an embedding, or any nondeterministic ranking input "
+                 "under any circumstances at all")
+    marked = "Decision: adopt the fold " + long_tail + "."
+    unmarked = "We settled on adopting the fold " + long_tail + "."
+    assert len(marked) > 300
+    parsed = _parse_assistant_text(tmp_path, marked + "\n" + unmarked)
+    values = _decision_values(parsed)
+    assert any(v.startswith("Decision: adopt the fold") for v in values), (
+        f"long marker decision dropped: {values}")
+    assert not any("settled on adopting" in v for v in values), (
+        "over-length non-marker sentence should stay dropped")
