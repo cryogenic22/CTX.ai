@@ -336,28 +336,24 @@ def load_supersession(ledger_dir: str):
     return edges, build_graph(edges)
 
 
-def session_why(doc: CTXDocument, sid: str, key: str,
-                ledger_dir: Optional[str] = None) -> dict[str, Any]:
-    """Provenance for a key: which sections/fields carry it, set at which
-    turn, and the supersession chain when the value was revised.
+_MATCH_TIER = {"section_name": 0, "field_key": 1,
+               "value_exact": 2, "value_substring": 3}
+_WHY_MAX_MATCHES = 25
 
-    Match order: exact section name → exact field key (including
-    SUPERSEDED-<KEY> chains) → exact field VALUE (a LITERAL whose VALUE
-    equals the needle beats every substring hit — the literals-ledger
-    recovery path) → substring in values.
+_CHAIN_NOTE = ("A SUPERSEDED-<KEY> chain reads oldest -> newest; the "
+               "section's current field value is the latest and wins.")
+_FORK_NOTE = ("An unresolved supersession fork touches this key — two or "
+              "more current values compete. Surface both; do not silently "
+              "pick one.")
 
-    ``ledger_dir`` (optional) folds the supersession DAG from
-    events.jsonl and annotates any matched fact that participates in a
-    supersession with its ``supersession`` view (current/superseded
-    status, supersedes/superseded_by edges with provenance, and its
-    unresolved fork if the fold found one). Facts in no edge are left
-    untouched — a ledger with no declared supersessions reads exactly as
-    before. Gist rendering and candidate emission are deliberately NOT
-    done here (they wait for real ledgers to produce edges).
-    """
-    if not key or not key.strip():
-        return {"session": sid, "key": key, "matches": [],
-                "error": "key is required"}
+
+def _why_matches(doc: CTXDocument,
+                 key: str) -> "tuple[list[dict[str, Any]], int, int]":
+    """The single-doc match cascade behind ``why``: exact section name →
+    field key (incl. SUPERSEDED-<KEY>) → exact field value → substring.
+    Returns (matches, entities_searched, max_turn). No DAG annotation and
+    no absence shaping — the callers add those, so single- and
+    cross-session ``why`` share one match semantics."""
     needle = key.strip().upper()
     needle_bare = needle[len("ENTITY-"):] if needle.startswith("ENTITY-") else needle
     needle_lower = key.strip().lower()
@@ -417,45 +413,138 @@ def session_why(doc: CTXDocument, sid: str, key: str,
                          {"key": c.key, "value": _scoped(c.value)})
                     break
 
+    return matches, len(_sections(doc)), _max_turn(doc)
+
+
+def _annotate_supersession(matches: "list[dict[str, Any]]",
+                           ledger_dir: Optional[str]) -> bool:
+    """Attach a ``supersession`` view to each matched fact that
+    participates in a supersession edge; return True if any match sits in
+    an unresolved fork. ``ledger_dir`` None, or a zero-edge ledger, leaves
+    every match untouched — the read path stays boring."""
+    if ledger_dir is None:
+        return False
+    from ..core.supersession_dag import fact_view
+
+    edges, graph = load_supersession(ledger_dir)
+    if not edges:
+        return False
+    forked = False
+    for m in matches:
+        fid = next((f["value"] for f in m["fields"]
+                    if f["key"].upper() == "FACT-ID"), "")
+        view = fact_view(fid, edges, graph) if fid else None
+        if view is not None:
+            m["supersession"] = view
+            if view["conflict"] is not None:
+                forked = True
+    return forked
+
+
+def session_why(doc: CTXDocument, sid: str, key: str,
+                ledger_dir: Optional[str] = None) -> dict[str, Any]:
+    """Provenance for a key: which sections/fields carry it, set at which
+    turn, and the supersession chain when the value was revised.
+
+    Match order: exact section name → exact field key (including
+    SUPERSEDED-<KEY> chains) → exact field VALUE (a LITERAL whose VALUE
+    equals the needle beats every substring hit — the literals-ledger
+    recovery path) → substring in values.
+
+    ``ledger_dir`` (optional) folds the supersession DAG from
+    events.jsonl and annotates any matched fact that participates in a
+    supersession with its ``supersession`` view (current/superseded
+    status, supersedes/superseded_by edges with provenance, and its
+    unresolved fork if the fold found one). Facts in no edge are left
+    untouched — a ledger with no declared supersessions reads exactly as
+    before. Gist rendering and candidate emission are deliberately NOT
+    done here (they wait for real ledgers to produce edges). This searches
+    ONE session's doc; ``session_why_across`` searches the whole ledger.
+    """
+    if not key or not key.strip():
+        return {"session": sid, "key": key, "matches": [],
+                "error": "key is required"}
+    matches, searched, max_turn = _why_matches(doc, key)
     if not matches:
         # Spec v1.1 §7: asserted, auditable absence
         return {"session": sid, "key": key, "matches": [], "count": 0,
-                "found": False,
-                "searched_entities": len(_sections(doc)),
-                "as_of_turn": _max_turn(doc),
+                "found": False, "searched_entities": searched,
+                "as_of_turn": max_turn,
                 "note": ("No banked fact matches this key — asserted "
                          "absence after searching the full ledger, not "
                          "an error. Answer 'not in memory' rather than "
                          "inferring a value.")}
-    note = ""
-    if any(m["superseded_chains"] for m in matches):
-        note = ("A SUPERSEDED-<KEY> chain reads oldest -> newest; the "
-                "section's current field value is the latest and wins.")
-
-    # Supersession DAG (fact-level, cross-session): annotate a matched
-    # fact only when it actually participates in a supersession, so a
-    # ledger with no declared overrides stays byte-for-byte as before.
-    forked = False
-    if ledger_dir is not None:
-        from ..core.supersession_dag import fact_view
-
-        edges, graph = load_supersession(ledger_dir)
-        if edges:
-            for m in matches:
-                fid = next((f["value"] for f in m["fields"]
-                            if f["key"].upper() == "FACT-ID"), "")
-                view = fact_view(fid, edges, graph) if fid else None
-                if view is not None:
-                    m["supersession"] = view
-                    if view["conflict"] is not None:
-                        forked = True
+    note = _CHAIN_NOTE if any(m["superseded_chains"] for m in matches) else ""
+    forked = _annotate_supersession(matches, ledger_dir)
     if forked and not note:
-        note = ("An unresolved supersession fork touches this key — two "
-                "or more current values compete. Surface both; do not "
-                "silently pick one.")
-
+        note = _FORK_NOTE
     return {"session": sid, "key": key, "matches": matches, "found": True,
             "count": len(matches),
+            **({"has_conflict": True} if forked else {}),
+            **({"note": note} if note else {})}
+
+
+def session_why_across(ledger_dir: str = DEFAULT_LEDGER_DIR, key: str = "",
+                       session: Optional[str] = None,
+                       max_matches: int = _WHY_MAX_MATCHES) -> dict[str, Any]:
+    """Cross-session ``why``: search every banked session (journal order),
+    so a value banked in an earlier session is recoverable while resuming
+    on a later one — the single-session ``session_why`` only sees the doc
+    it is handed (memory feedback #6). Each match carries its source
+    ``session``; the supersession DAG is folded once across all events, so
+    a fork spanning sessions surfaces here too. ``session`` scopes back to
+    one session (prefix match). Matches rank by tier (exact > substring)
+    then most-recent session, capped at ``max_matches``.
+
+    Stdlib only, deterministic: same ledger → same answer."""
+    if not key or not key.strip():
+        return {"key": key, "matches": [], "error": "key is required"}
+    from .checkpoint import _journal_session_order
+
+    order = _journal_session_order(ledger_dir)
+    if session:
+        s8 = session.strip()[:8]
+        order = [s for s in order if s.startswith(s8) or s8.startswith(s)]
+
+    collected: list[dict[str, Any]] = []
+    searched = 0
+    max_turn = 0
+    for idx, sid in enumerate(order):
+        try:
+            doc, rsid = load_session(ledger_dir, sid)
+        except LedgerError:
+            continue  # one unreadable session must not blind the search
+        found, n, mt = _why_matches(doc, key)
+        for m in found:
+            m["session"] = rsid
+            m["_recency"] = idx
+            collected.append(m)
+        searched += n
+        max_turn = max(max_turn, mt)
+
+    if not collected:
+        return {"key": key, "matches": [], "count": 0, "found": False,
+                "sessions_searched": len(order),
+                "searched_entities": searched, "as_of_turn": max_turn,
+                "note": ("No banked fact matches this key in ANY session — "
+                         "asserted absence after searching the whole "
+                         "ledger, not an error. Answer 'not in memory'.")}
+
+    collected.sort(key=lambda m: (_MATCH_TIER.get(m["matched_on"], 9),
+                                  -m["_recency"], m.get("turn", 0)))
+    truncated = len(collected) > max_matches
+    matches = collected[:max_matches]
+    for m in matches:
+        m.pop("_recency", None)
+
+    note = _CHAIN_NOTE if any(m["superseded_chains"] for m in matches) else ""
+    forked = _annotate_supersession(matches, ledger_dir)
+    if forked and not note:
+        note = _FORK_NOTE
+    return {"key": key, "matches": matches, "found": True,
+            "count": len(matches), "sessions_searched": len(order),
+            **({"truncated": True, "total_matches": len(collected)}
+               if truncated else {}),
             **({"has_conflict": True} if forked else {}),
             **({"note": note} if note else {})}
 

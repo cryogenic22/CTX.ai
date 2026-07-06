@@ -359,7 +359,8 @@ def _run(argv: list[str]) -> int:
     p_session.add_argument("--ledger", default=".claude/ctx",
                            help="Ledger directory (default: .claude/ctx)")
     p_session.add_argument("--session", dest="session_id", default=None,
-                           help="Session id (default: most recent checkpoint)")
+                           help="Session id (default: most recent checkpoint; "
+                                "`why` defaults to ALL sessions)")
     p_session.add_argument("--section", default="",
                            help="recall: section name(s), comma-separated")
     p_session.add_argument("--kinds", default="",
@@ -1165,6 +1166,7 @@ def _cmd_session(args: argparse.Namespace) -> int:
         session_stats,
         session_timeline,
         session_why,
+        session_why_across,
     )
 
     if args.action == "stats":
@@ -1189,40 +1191,51 @@ def _cmd_session(args: argparse.Namespace) -> int:
             print(gist)
         return 0
 
-    try:
-        doc, sid = load_session(args.ledger, args.session_id)
-    except LedgerError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
-
-    if args.action == "recall":
-        result = session_recall(doc, sid, section=args.section,
-                                query=args.key)
-    elif args.action == "timeline":
-        kinds = [k.strip() for k in args.kinds.split(",") if k.strip()]
-        result = session_timeline(doc, sid, kinds=kinds or None,
-                                  limit=args.limit)
-    elif args.action == "decisions":
-        result = session_decisions(doc, sid)
-    elif args.action == "literals":
-        result = session_literals(doc, sid)
-    elif args.action == "graph":
-        from ..core.entity_graph import EntityGraph
-
-        if not args.key:
-            print("Error: `ctxpack session graph <entity>` needs an entity",
-                  file=sys.stderr)
-            return 1
-        result = EntityGraph.from_document(doc).query(
-            args.op, args.key, to=args.to, depth=args.depth,
-            direction=args.direction)
-        result = {"session": sid, **result}
-    else:  # why
+    # `why` defaults to CROSS-SESSION — the whole ledger, "what do we know
+    # about this across the repo's history?" — because that is the question
+    # an agent actually asks; `--session <id>` preserves explicit
+    # single-session scope.
+    if args.action == "why" and not args.session_id:
         if not args.key:
             print("Error: `ctxpack session why <key>` needs a key",
                   file=sys.stderr)
             return 1
-        result = session_why(doc, sid, args.key, ledger_dir=args.ledger)
+        result = session_why_across(args.ledger, args.key)
+    else:
+        try:
+            doc, sid = load_session(args.ledger, args.session_id)
+        except LedgerError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+        if args.action == "recall":
+            result = session_recall(doc, sid, section=args.section,
+                                    query=args.key)
+        elif args.action == "timeline":
+            kinds = [k.strip() for k in args.kinds.split(",") if k.strip()]
+            result = session_timeline(doc, sid, kinds=kinds or None,
+                                      limit=args.limit)
+        elif args.action == "decisions":
+            result = session_decisions(doc, sid)
+        elif args.action == "literals":
+            result = session_literals(doc, sid)
+        elif args.action == "graph":
+            from ..core.entity_graph import EntityGraph
+
+            if not args.key:
+                print("Error: `ctxpack session graph <entity>` needs an "
+                      "entity", file=sys.stderr)
+                return 1
+            result = EntityGraph.from_document(doc).query(
+                args.op, args.key, to=args.to, depth=args.depth,
+                direction=args.direction)
+            result = {"session": sid, **result}
+        else:  # why --session <id>: explicit single-session scope
+            if not args.key:
+                print("Error: `ctxpack session why <key>` needs a key",
+                      file=sys.stderr)
+                return 1
+            result = session_why(doc, sid, args.key, ledger_dir=args.ledger)
 
     # Prose payloads print as prose; structured payloads as JSON.
     text = result.pop("text", None)

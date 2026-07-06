@@ -994,13 +994,17 @@ def handle_session_decisions(arguments: dict[str, Any]) -> str:
 
 
 def handle_session_why(arguments: dict[str, Any]) -> str:
-    from ..agent.session_reader import session_why
+    from ..agent.session_reader import session_why, session_why_across
 
     key = arguments.get("key", "")
     ledger_dir = arguments.get("ledger_dir") or ".claude/ctx"
-    return _with_session_doc(
-        arguments,
-        lambda doc, sid: session_why(doc, sid, key, ledger_dir=ledger_dir))
+    # Default: search the whole ledger ("what do we know across history?").
+    # A `session` argument preserves explicit single-session scope.
+    if arguments.get("session"):
+        return _with_session_doc(
+            arguments,
+            lambda doc, sid: session_why(doc, sid, key, ledger_dir=ledger_dir))
+    return json.dumps(session_why_across(ledger_dir, key), indent=2)
 
 
 def handle_session_literals(arguments: dict[str, Any]) -> str:
