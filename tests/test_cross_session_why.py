@@ -6,8 +6,11 @@ the whole ledger. Eval-first — the first test IS the gap.
 
 import json
 
+import pytest
+
 from ctxpack.agent.checkpoint import run_checkpoint
 from ctxpack.agent.session_reader import (
+    LedgerError,
     load_session,
     session_why,
     session_why_across,
@@ -149,3 +152,41 @@ def test_mcp_why_defaults_to_cross_session(tmp_path):
     scoped = json.loads(srv.handle_session_why(
         {"ledger_dir": str(out), "key": "quokka", "session": "bbbb2222"}))
     assert scoped["found"] is False
+
+
+# ---- Codex review fixes: don't mask a missing ledger or abort on one bad session
+
+
+def test_across_missing_ledger_raises_not_absence(tmp_path):
+    # a wrong/empty ledger is a config error, NOT "not in memory"
+    with pytest.raises(LedgerError):
+        session_why_across(str(tmp_path / "nonexistent-ctx"), "anything")
+
+
+def test_cli_why_missing_ledger_exits_nonzero(tmp_path, capsys):
+    from ctxpack.cli.main import main
+
+    rc = main(["session", "why", "quokka",
+               "--ledger", str(tmp_path / "nonexistent-ctx")])
+    assert rc == 1
+    assert "Error" in capsys.readouterr().err
+
+
+def test_mcp_why_missing_ledger_returns_error(tmp_path):
+    from ctxpack.integrations import mcp_server as srv
+
+    res = json.loads(srv.handle_session_why(
+        {"ledger_dir": str(tmp_path / "nonexistent-ctx"), "key": "quokka"}))
+    assert res["error"]["code"] == "ledger_not_found"
+
+
+def test_across_skips_a_malformed_session(tmp_path):
+    out = tmp_path / "ctx"
+    _bank(tmp_path, out, "aaaa1111-s", "Decision: use the quokka gateway.")
+    _bank(tmp_path, out, "bbbb2222-s", "Decision: use exponential backoff.")
+    # corrupt one session's ledger file — the search must skip it, not abort
+    (out / "session-bbbb2222.ctx").write_bytes(b"\xff\xfe not valid utf-8")
+
+    res = session_why_across(str(out), "quokka")
+    assert res["found"] is True
+    assert res["matches"][0]["session"].startswith("aaaa1111")

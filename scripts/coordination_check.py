@@ -23,7 +23,6 @@ import re
 import sys
 
 _DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})")
-_RESOLVED_WORDS = ("resolved", "closed", "done", "answered")
 
 
 def _sections(text: str) -> "dict[str, list[str]]":
@@ -87,23 +86,34 @@ def _handoffs(lines: "list[str]") -> "list[tuple[str, datetime.date | None]]":
     return out
 
 
+_STATUS_RE = re.compile(r"^\s*[-*]?\s*(?:\*\*|__)?status(?:\*\*|__)?\s*:\s*(.+)",
+                        re.IGNORECASE)
+_RESOLVED_RE = re.compile(r"\b(?:resolved|closed|done|answered)\b",
+                          re.IGNORECASE)
+
+
 def _unresolved_notes(lines: "list[str]") -> "list[str]":
-    """'### ' reviewer-note entries with no resolved Status: line."""
+    """'### ' reviewer-note entries whose Status: field is not resolved.
+
+    Matches the Status value with word boundaries, so ``Status: unresolved``
+    is NOT counted as resolved (a substring check treats "unresolved" as
+    "resolved"). A note with no Status line is treated as unresolved."""
     notes: "list[str]" = []
     cur = None
-    body: "list[str]" = []
+    status = ""
 
     def _flush() -> None:
-        if cur is not None and not any(
-                w in " ".join(body).lower() for w in _RESOLVED_WORDS):
+        if cur is not None and not _RESOLVED_RE.search(status):
             notes.append(cur)
 
     for ln in lines:
         if ln.startswith("### "):
             _flush()
-            cur, body = ln[4:].strip(), []
+            cur, status = ln[4:].strip(), ""
         elif cur is not None:
-            body.append(ln)
+            m = _STATUS_RE.match(ln)
+            if m:
+                status = m.group(1)
     _flush()
     return notes
 

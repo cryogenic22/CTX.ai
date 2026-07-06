@@ -1200,7 +1200,11 @@ def _cmd_session(args: argparse.Namespace) -> int:
             print("Error: `ctxpack session why <key>` needs a key",
                   file=sys.stderr)
             return 1
-        result = session_why_across(args.ledger, args.key)
+        try:
+            result = session_why_across(args.ledger, args.key)
+        except LedgerError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
     else:
         try:
             doc, sid = load_session(args.ledger, args.session_id)

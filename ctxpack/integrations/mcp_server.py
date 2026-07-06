@@ -994,7 +994,11 @@ def handle_session_decisions(arguments: dict[str, Any]) -> str:
 
 
 def handle_session_why(arguments: dict[str, Any]) -> str:
-    from ..agent.session_reader import session_why, session_why_across
+    from ..agent.session_reader import (
+        LedgerError,
+        session_why,
+        session_why_across,
+    )
 
     key = arguments.get("key", "")
     ledger_dir = arguments.get("ledger_dir") or ".claude/ctx"
@@ -1004,7 +1008,11 @@ def handle_session_why(arguments: dict[str, Any]) -> str:
         return _with_session_doc(
             arguments,
             lambda doc, sid: session_why(doc, sid, key, ledger_dir=ledger_dir))
-    return json.dumps(session_why_across(ledger_dir, key), indent=2)
+    try:
+        return json.dumps(session_why_across(ledger_dir, key), indent=2)
+    except LedgerError as e:
+        return json.dumps({"error": {"code": "ledger_not_found",
+                                     "message": str(e)}})
 
 
 def handle_session_literals(arguments: dict[str, Any]) -> str:

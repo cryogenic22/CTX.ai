@@ -26,6 +26,7 @@ import os
 import re
 from typing import Any, Optional
 
+from ..core.errors import ParseError
 from ..core.hydrator import hydrate_by_name, hydrate_by_query, list_sections
 from ..core.model import CTXDocument, KeyValue, Section
 from ..core.parser import parse
@@ -506,14 +507,24 @@ def session_why_across(ledger_dir: str = DEFAULT_LEDGER_DIR, key: str = "",
         s8 = session.strip()[:8]
         order = [s for s in order if s.startswith(s8) or s8.startswith(s)]
 
+    # No sessions at all is a ledger/config problem, NOT asserted absence:
+    # reporting "not in memory" for a wrong --ledger would hide the mistake.
+    if not order:
+        raise LedgerError(
+            f"no checkpointed sessions in {ledger_dir}"
+            + (f" matching session {session!r}" if session else ""))
+
     collected: list[dict[str, Any]] = []
     searched = 0
     max_turn = 0
     for idx, sid in enumerate(order):
         try:
             doc, rsid = load_session(ledger_dir, sid)
-        except LedgerError:
-            continue  # one unreadable session must not blind the search
+        except (LedgerError, ParseError, UnicodeDecodeError, OSError):
+            # one unreadable/malformed session must not blind the search:
+            # missing (LedgerError/OSError), bad bytes (UnicodeDecodeError),
+            # or structurally invalid (ParseError)
+            continue
         found, n, mt = _why_matches(doc, key)
         for m in found:
             m["session"] = rsid
