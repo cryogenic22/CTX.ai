@@ -72,6 +72,20 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 - **Risks / concerns:** none open. SessionStart hook injection + any scheduler are intentionally **not** built — gated per owner + Codex on the board proving useful over a few real handoffs.
 - **Next recommended action:** use the board for the next 3–5 real handoffs, then decide whether SessionStart injection earns its keep.
 
+
+### 2026-07-06 - Codex - reporter false-unresolved fix
+- **What changed:** fixed `scripts/coordination_check.py` so multi-finding reviewer notes with inline `Status: resolved` markers are not falsely reported as unresolved.
+- **Files touched:** `scripts/coordination_check.py`, `tests/test_coordination_check.py`.
+- **Tests run:** `python -m pytest tests/test_coordination_check.py -q` -> 6 passed; `python scripts/coordination_check.py` -> 0 open questions, 0 unresolved reviewer notes.
+- **Risks / concerns:** small reporter-only change; no production CTX path touched.
+- **Next recommended action:** commit this reporter fix separately from unrelated `.claude/ctx` hook churn and the untracked investor brief.
+
+### 2026-07-06 — Claude Code (session `eca3f61c`) — accept Codex reporter fix
+- **What changed:** committed Codex's `_unresolved_notes` fix (inline `**Status: resolved**` markers were wrongly read as unresolved — a gap in the earlier `a15dde0` fix) + its test; tidied blank-line spacing in the inserted test.
+- **Files touched:** `scripts/coordination_check.py`, `tests/test_coordination_check.py`.
+- **Tests run:** `python -m pytest tests/test_coordination_check.py -q` → 6 passed; reporter on the live board → 0 unresolved reviewer notes.
+- **Next recommended action:** none open — the reporter-fix loop is closed.
+
 ---
 
 ## Reviewer Notes

@@ -86,34 +86,48 @@ def _handoffs(lines: "list[str]") -> "list[tuple[str, datetime.date | None]]":
     return out
 
 
-_STATUS_RE = re.compile(r"^\s*[-*]?\s*(?:\*\*|__)?status(?:\*\*|__)?\s*:\s*(.+)",
-                        re.IGNORECASE)
+_STATUS_MARKER_RE = re.compile(r"(?:\*\*|__)?status(?:\*\*|__)?\s*:",
+                               re.IGNORECASE)
 _RESOLVED_RE = re.compile(r"\b(?:resolved|closed|done|answered)\b",
                           re.IGNORECASE)
 
 
+def _status_values(line: str) -> "list[str]":
+    """Extract every Status: value from a reviewer-note line."""
+    values = []
+    for m in _STATUS_MARKER_RE.finditer(line):
+        value = line[m.end():]
+        # Inline findings usually bold only the status value:
+        # ``... **Status: resolved** - more text``. Stop at that delimiter
+        # without requiring it for plain ``- Status: resolved`` lines.
+        value = re.split(r"(?:\*\*|__)", value, maxsplit=1)[0]
+        values.append(value.strip(" \t-—.;:"))
+    return values
+
+
 def _unresolved_notes(lines: "list[str]") -> "list[str]":
-    """'### ' reviewer-note entries whose Status: field is not resolved.
+    """'### ' reviewer-note entries whose Status: fields are not resolved.
 
     Matches the Status value with word boundaries, so ``Status: unresolved``
     is NOT counted as resolved (a substring check treats "unresolved" as
     "resolved"). A note with no Status line is treated as unresolved."""
     notes: "list[str]" = []
     cur = None
-    status = ""
+    statuses: "list[str]" = []
 
     def _flush() -> None:
-        if cur is not None and not _RESOLVED_RE.search(status):
+        if cur is not None and (
+                not statuses
+                or any(not _RESOLVED_RE.search(status)
+                       for status in statuses)):
             notes.append(cur)
 
     for ln in lines:
         if ln.startswith("### "):
             _flush()
-            cur, status = ln[4:].strip(), ""
+            cur, statuses = ln[4:].strip(), []
         elif cur is not None:
-            m = _STATUS_RE.match(ln)
-            if m:
-                status = m.group(1)
+            statuses.extend(_status_values(ln))
     _flush()
     return notes
 

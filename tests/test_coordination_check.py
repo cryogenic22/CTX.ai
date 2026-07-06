@@ -40,6 +40,15 @@ def test_resolved_note_is_excluded():
     assert cc._unresolved_notes(lines) == []
 
 
+def test_inline_resolved_statuses_exclude_reviewer_note():
+    lines = [
+        "### 2026-07-06 — Codex",
+        "- **[P2] first issue** — detail. **Status: resolved** — fixed.",
+        "- **[P3] second issue** — detail. **Status: resolved** — fixed.",
+    ]
+    assert cc._unresolved_notes(lines) == []
+
+
 def test_note_without_status_counts_as_unresolved():
     lines = ["### 2026-07-06 — Codex", "- Finding: no status line here"]
     assert cc._unresolved_notes(lines) == ["2026-07-06 — Codex"]
