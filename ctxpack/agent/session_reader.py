@@ -678,8 +678,8 @@ def session_stats(ledger_dir: str = DEFAULT_LEDGER_DIR) -> dict[str, Any]:
         "sessions": len(last_per_session),
         "checkpoints": len(rows),
         "captured": {k: totals.get(k, 0) for k in (
-            "decisions", "constraints", "failed_approaches", "errors",
-            "files_changed", "tasks", "requests", "literals",
+            "decisions", "findings", "constraints", "failed_approaches",
+            "errors", "files_changed", "tasks", "requests", "literals",
             "incidents")},
         "incident_types": totals.get("incident_types", {}),
         "read_path": {

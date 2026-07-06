@@ -43,8 +43,11 @@ def transcript(tmp_path):
         _entry("user", "Look at this article I found. " + (
             "You should not use global variables. Never mix tabs and spaces. "
             "Always write docstrings. " * 40)),
-        # sidechain (subagent) chatter must be ignored entirely
-        _entry("assistant", [{"type": "text", "text": "Decision: sidechain noise."}],
+        # UNMARKED sidechain (subagent) chatter is ignored; a marker-led
+        # verdict banks as a FINDING instead (see test_subagent_verdicts.py)
+        _entry("assistant",
+               [{"type": "text", "text": "Poked around the sidechain, "
+                                         "nothing worth noting."}],
                sidechain=True),
     ]
     path = tmp_path / "session.jsonl"
@@ -88,9 +91,11 @@ def test_pasted_material_not_mined_for_constraints(transcript):
 
 
 def test_sidechain_ignored(transcript):
+    # unmarked subagent chatter must not leak into memory; a marker-led
+    # verdict banks as a FINDING instead (covered in test_subagent_verdicts)
     parsed = parse_transcript(transcript)
     all_values = " ".join(f.value for e in parsed.corpus.entities for f in e.fields)
-    assert "sidechain noise" not in all_values
+    assert "worth noting" not in all_values
 
 
 def test_turn_provenance(transcript):

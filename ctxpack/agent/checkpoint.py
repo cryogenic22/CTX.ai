@@ -43,6 +43,7 @@ GIST_BPE_BUDGET = 2000
 _GIST_KINDS = (
     ("CONSTRAINT", "Constraints (verbatim — do not violate)", "RULE"),
     ("DECISION", "Decisions", "DECISION"),
+    ("FINDING", "Subagent verdicts", "FINDING"),
     ("LITERAL", "Exact identifiers (verbatim)", "VALUE"),
     ("FAILED-APPROACH", "Failed approaches (do not retry)", "NOTE"),
     # RAW = the verbatim ctx-incident line — auditable as stated; stale/

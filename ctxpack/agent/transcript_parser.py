@@ -228,6 +228,7 @@ class TranscriptStats:
     requests: int = 0
     constraints: int = 0
     decisions: int = 0
+    findings: int = 0            # subagent/workflow verdicts (feedback #5)
     failed_approaches: int = 0
     errors: int = 0
     files_changed: int = 0
@@ -503,6 +504,7 @@ def parse_transcript(
     """
     session_id = ""
     entries: list[dict] = []
+    sidechain_entries: list[dict] = []
     with open(path, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -514,7 +516,15 @@ def parse_transcript(
                 continue
             if d.get("type") not in ("user", "assistant"):
                 continue
-            if d.get("isSidechain") or d.get("isMeta"):
+            if d.get("isMeta"):
+                continue  # harness chatter (task-notifications) — never banked
+            if d.get("isSidechain"):
+                # Subagent/workflow turns are dropped from the main parse,
+                # but a marker-led verdict in one is a load-bearing finding
+                # the main thread never sees (feedback #5). Keep assistant
+                # sidechains for the narrow verdict-only pass after the loop.
+                if d.get("type") == "assistant":
+                    sidechain_entries.append(d)
                 continue
             entries.append(d)
             if not session_id:
@@ -860,6 +870,33 @@ def parse_transcript(
              {"path": fpath, "edits": str(rec["count"]),
               "last_turn": str(rec["last_turn"])},
              turn=rec["last_turn"], ts=rec["ts"], salience=1.4)
+
+    # Subagent/workflow verdicts (feedback #5): the main parse drops every
+    # sidechain, but a marker-led line in one (`Verdict:`/`Decision:`/…) is a
+    # load-bearing finding — an APPROVE_WITH_NITS / BLOCK the main thread
+    # never sees. Marker-GATED (opt-in, precision-first): only marker-led
+    # sentences bank, as FINDINGs tagged source=subagent, which keeps them
+    # out of the main-thread decision lint (that only lints DECISION facts).
+    # Full re-packs capture verdicts; skip on incremental tails (since_turn)
+    # so an already-banked verdict is not re-reported as new.
+    verdict_turn = len(entries)
+    for d in (sidechain_entries if not since_turn else ()):
+        ts = str(d.get("timestamp", ""))
+        content = d.get("message", {}).get("content", [])
+        for blk in content if isinstance(content, list) else []:
+            if not (isinstance(blk, dict) and blk.get("type") == "text"):
+                continue
+            for sentence in _sentences(str(blk.get("text", ""))):
+                marker = decision_marker(_prose_of(sentence))
+                if not marker:
+                    continue
+                stats.findings += 1
+                _add(f"FINDING-{_short_hash(sentence)}",
+                     {"finding": sentence[:280], "source": "subagent",
+                      "marker": marker, "turn": str(verdict_turn)},
+                     turn=verdict_turn, ts=ts, salience=2.3,
+                     fact=("FINDING", "", sentence),
+                     basis=factid.FactBasis.MARKER_STATED.value)
 
     corpus.source_token_count = source_words
     corpus.source_files = [src_file]
