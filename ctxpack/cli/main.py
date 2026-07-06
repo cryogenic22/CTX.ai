@@ -1222,7 +1222,7 @@ def _cmd_session(args: argparse.Namespace) -> int:
             print("Error: `ctxpack session why <key>` needs a key",
                   file=sys.stderr)
             return 1
-        result = session_why(doc, sid, args.key)
+        result = session_why(doc, sid, args.key, ledger_dir=args.ledger)
 
     # Prose payloads print as prose; structured payloads as JSON.
     text = result.pop("text", None)

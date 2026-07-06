@@ -109,6 +109,18 @@ project's accumulated decisions, not just yesterday's.
   `Constraint: ...` in an assistant reply banks as a CONSTRAINT with turn
   provenance — use it for operating rules the agent sets for itself
   (review gates, immutability rules, "do not merge until X").
+- **Revising a prior decision? Declare it with `Supersedes:`.** When a new
+  `Decision:` knowingly changes a banked fact, follow it with a
+  sentence-leading `Supersedes: <fact_id> — <reason>` line (recover the id
+  via `ctxpack session why "<value>"`). `session why` then reports that
+  fact's supersession state — current vs superseded, what it supersedes or
+  is superseded by, and an unresolved **fork** when two decisions
+  independently replaced the same fact. Operational status today: the
+  supersession DAG is **dormant until this convention is used** (a fresh
+  repo has zero edges); the producer records **one superseded target per
+  decision**, so parallel-session **forks** are real but **diamonds** (one
+  decision reconciling two) are synthetic-test-only; gist surfacing and
+  top-of-gist conflict warnings stay gated until real ledgers produce edges.
 - **Commit `.claude/ctx/`.** That's what makes memory branch-scoped,
   cross-machine, and reviewable — the properties nothing native has.
 - **Checkpoint before you `/clear` — every team, every session.** The

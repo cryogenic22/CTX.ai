@@ -308,7 +308,36 @@ def _max_turn(doc: CTXDocument) -> int:
     return max((t for t in turns if isinstance(t, int)), default=0)
 
 
-def session_why(doc: CTXDocument, sid: str, key: str) -> dict[str, Any]:
+def load_supersession(ledger_dir: str):
+    """(edges, graph) folded from the ledger's events.jsonl — the
+    read-path twin of the checkpoint's fact_superseded emission. Missing
+    or unreadable events → ([], empty graph), so callers stay boring on a
+    ledger with no declared supersessions (the common case today)."""
+    from ..core.supersession_dag import (
+        build_graph,
+        edges_from_events,
+    )
+
+    rows: list[dict[str, Any]] = []
+    path = os.path.join(ledger_dir, "events.jsonl")
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rows.append(json.loads(line))
+                except (ValueError, json.JSONDecodeError):
+                    continue  # one bad row must not blind the read path
+    except OSError:
+        return [], build_graph([])
+    edges = edges_from_events(rows)
+    return edges, build_graph(edges)
+
+
+def session_why(doc: CTXDocument, sid: str, key: str,
+                ledger_dir: Optional[str] = None) -> dict[str, Any]:
     """Provenance for a key: which sections/fields carry it, set at which
     turn, and the supersession chain when the value was revised.
 
@@ -316,6 +345,15 @@ def session_why(doc: CTXDocument, sid: str, key: str) -> dict[str, Any]:
     SUPERSEDED-<KEY> chains) → exact field VALUE (a LITERAL whose VALUE
     equals the needle beats every substring hit — the literals-ledger
     recovery path) → substring in values.
+
+    ``ledger_dir`` (optional) folds the supersession DAG from
+    events.jsonl and annotates any matched fact that participates in a
+    supersession with its ``supersession`` view (current/superseded
+    status, supersedes/superseded_by edges with provenance, and its
+    unresolved fork if the fold found one). Facts in no edge are left
+    untouched — a ledger with no declared supersessions reads exactly as
+    before. Gist rendering and candidate emission are deliberately NOT
+    done here (they wait for real ledgers to produce edges).
     """
     if not key or not key.strip():
         return {"session": sid, "key": key, "matches": [],
@@ -393,8 +431,33 @@ def session_why(doc: CTXDocument, sid: str, key: str) -> dict[str, Any]:
     if any(m["superseded_chains"] for m in matches):
         note = ("A SUPERSEDED-<KEY> chain reads oldest -> newest; the "
                 "section's current field value is the latest and wins.")
+
+    # Supersession DAG (fact-level, cross-session): annotate a matched
+    # fact only when it actually participates in a supersession, so a
+    # ledger with no declared overrides stays byte-for-byte as before.
+    forked = False
+    if ledger_dir is not None:
+        from ..core.supersession_dag import fact_view
+
+        edges, graph = load_supersession(ledger_dir)
+        if edges:
+            for m in matches:
+                fid = next((f["value"] for f in m["fields"]
+                            if f["key"].upper() == "FACT-ID"), "")
+                view = fact_view(fid, edges, graph) if fid else None
+                if view is not None:
+                    m["supersession"] = view
+                    if view["conflict"] is not None:
+                        forked = True
+    if forked and not note:
+        note = ("An unresolved supersession fork touches this key — two "
+                "or more current values compete. Surface both; do not "
+                "silently pick one.")
+
     return {"session": sid, "key": key, "matches": matches, "found": True,
-            "count": len(matches), **({"note": note} if note else {})}
+            "count": len(matches),
+            **({"has_conflict": True} if forked else {}),
+            **({"note": note} if note else {})}
 
 
 def session_literals(doc: CTXDocument, sid: str) -> dict[str, Any]:

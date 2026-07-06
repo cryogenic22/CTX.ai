@@ -997,8 +997,10 @@ def handle_session_why(arguments: dict[str, Any]) -> str:
     from ..agent.session_reader import session_why
 
     key = arguments.get("key", "")
+    ledger_dir = arguments.get("ledger_dir") or ".claude/ctx"
     return _with_session_doc(
-        arguments, lambda doc, sid: session_why(doc, sid, key))
+        arguments,
+        lambda doc, sid: session_why(doc, sid, key, ledger_dir=ledger_dir))
 
 
 def handle_session_literals(arguments: dict[str, Any]) -> str:
