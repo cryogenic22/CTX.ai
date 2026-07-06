@@ -1,4 +1,4 @@
-# Session memory (session a4fac788, 548 turns)
+# Session memory (session a4fac788, 551 turns)
 
 Deterministic ledger recovered from the session transcript. Full detail: `ctxpack hydrate` on the session .ctx, or grep the raw transcript.
 
@@ -31,6 +31,8 @@ Deterministic ledger recovered from the session transcript. Full detail: `ctxpac
 - 7b38fd3 [git_sha] (turn 536)
 - b29352f [git_sha] (turn 536)
 - .claude/ctx/protected.json [path] (turn 536)
+- C:\Users\kapil\.claude\projects\C--Users-kapil-Documents-CTX-mod\memory\rank-v1-conflict-lint-shipped.md [path] (turn 550)
+- 2f27a0a [git_sha] (turn 550)
 
 ## Failed approaches (do not retry)
 - **rank/v1 — the event-sourced salience fold**, using the KP_SDLC ca35891c session as the labeled fixture (load-bearing turns 813/858/1173 must rise; verb-inferred junk at turns 57/74 must sink; constraints floor), plus the CTX_mod session-id-extractor false positive as additional (turn 15)
@@ -64,7 +66,5 @@ Deterministic ledger recovered from the session transcript. Full detail: `ctxpac
 - Exit code 1 warning: in the working copy of 'ctxpack/agent/checkpoint.py', LF will be replaced by CRLF the next time Git touches it warning: in the working copy of 'ctxpack/agent/transcript_parser.py', LF will be replaced by CRLF the next t (turn 337)
 
 ## Files changed
-- C:\Users\kapil\Documents\CTX_mod\docs\spec-v1.1-fact-substrate.md (2 edits) (turn 523)
-- C:\Users\kapil\AppData\Local\Temp\claude\C--Users-kapil-Documents-CTX-mod\a4fac788-e76c-4473-8c0b-6dc33c18a556\scratchpad\commitmsg5.txt (1 edits) (turn 529)
 - C:\Users\kapil\.claude\projects\C--Users-kapil-Documents-CTX-mod\memory\rank-v1-conflict-lint-shipped.md (1 edits) (turn 540)
 - C:\Users\kapil\.claude\projects\C--Users-kapil-Documents-CTX-mod\memory\MEMORY.md (4 edits) (turn 544)

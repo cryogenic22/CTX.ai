@@ -1,5 +1,5 @@
 §CTX v1.0 L2 DOMAIN:session-a4fac788
-COMPRESSED:2026-07-06 SOURCE_TOKENS:~1189 CTX_TOKENS:~1779 RATIO:~0.9x
+COMPRESSED:2026-07-06 SOURCE_TOKENS:~1203 CTX_TOKENS:~1813 RATIO:~0.9x
 
 ±ENTITY-USER-REQUEST-A2B41BBA
 REQUEST:resume
@@ -376,6 +376,24 @@ BASIS:structural
 STATUS:current
 EXTRACTOR:tp/1.1
 SRC:session:a4fac788#turn537
+±ENTITY-LITERAL-C0AE5DDB
+VALUE:C:\Users\kapil\.claude\projects\C--Users-kapil-Documents-CTX-mod\memory\rank-v1-conflict-lint-shipped.md
+KIND:path
+TURN:550
+FACT-ID:26e62835d98fc705
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:a4fac788#turn550
+±ENTITY-LITERAL-9404564B
+VALUE:2f27a0a
+KIND:git_sha
+TURN:550
+FACT-ID:cd12b7f1ed75c073
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:a4fac788#turn550
 ±ENTITY-FILE-E-PROJECTS-C--USERS-KAPIL-DOCUMENTS-CTX-MOD-MEMORY-MEMORY-MD
 PATH:C:\Users\kapil\.claude\projects\C--Users-kapil-Documents-CTX-mod\memory\MEMORY.md
 EDITS:4

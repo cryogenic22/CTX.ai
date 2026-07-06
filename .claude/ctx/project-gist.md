@@ -1,4 +1,4 @@
-# Project memory (4 earlier sessions, oldest first)
+# Project memory (5 earlier sessions, oldest first)
 
 Cross-session ledger rollup. Detail per session: `ctxpack session decisions --session <id>`.
 
@@ -16,22 +16,22 @@ Cross-session ledger rollup. Detail per session: `ctxpack session decisions --se
 - Constraint: the lint is precision-first — it stays checkpoint-time, deterministic, and silent unless the match is exact, because a lint that cries wolf gets ignored, and an ignored governance signal is worse than none. (s:bdfbd48b#turn791)
 
 ## Decisions
-- Decision: the next build should be **P4 — the MCP session read path** (`ctx/session_recall`, `ctx/session_timeline`, `ctx/session_decisions`, `ctx/why`, `ctx/graph_query`) because everything else is gated on it: (s:bae8e5d2#turn15)
-- Decision: the root cause is that Claude Code loads hook configuration once at process startup (and newly added project hooks require review via the `/hooks` menu before they're trusted). (s:bae8e5d2#turn57)
 - Decision: benefits-vs-native measurement is passive and deterministic — computed from the transcript itself at checkpoint time, so teams can't forget to instrument and can't game it. (s:bae8e5d2#turn415)
 - The fix is a debounced per-turn checkpoint (Claude Code's Stop hook fires after every completed turn; at <2s a re-pack every N turns is cheap), making the ledger never more than a turn or two stale — zero manual recovery even after a hard kill. (s:bae8e5d2#turn467)
 - Decision: build in this order — (1) scorecard aggregator + static dashboard, (2) resume-probe harness, (3) CompactBench — because each layer's output tells us where to point the next one, and the scorecard gives you something visible this week. (s:bae8e5d2#turn572)
 - Decision: build the CompactBench driver (drive a real Claude Code session over a planted transcript, force compaction, measure DR@K) as the next engineering task, because it's the only unblocked piece of the measurement stack and the pre-registration loses credibility the longer  (s:bdfbd48b#turn3)
-- ## Creation: the `Decision:` convention is a crutch, but the fix isn't better prose-mining (s:bdfbd48b#turn615)
-- **Derive decisions from actions, not just prose.** A decision usually leaves a deterministic fingerprint: a config value changed, a dependency chosen, a constant revised at turn N. (s:bdfbd48b#turn615)
-- The agent chose the ledger over grepping its own transcript 6:1. (s:bdfbd48b#turn785)
-- ## Why this doesn't mean new roadmap — the fix is the next two ratified items (s:bdfbd48b#turn788)
-- Decision: rank `session_why` matches section_name → field_key → value_exact → value_substring, because an entity whose VALUE equals the needle is the literals-ledger recovery path and must beat any substring hit. (s:a21df970#turn270)
-- Decision: resolve the live transcript by newest mtime under the munged `~/.claude/projects/<project>` dir with a name tie-break, because write-path input selection is outside the byte-determinism contract, which governs pack output only. (s:a21df970#turn270)
-- Decision: keep the agent-constraint extractor marker-only (`Constraint:`/`Invariant:`, no verb heuristics), because over-extraction is the established failure mode and the dogfood convention already asks sessions to mark load-bearing statements. (s:a21df970#turn270)
 - Decision: version the onboard CLAUDE.md block and refresh older blocks in place on re-onboard, because cohort repos otherwise keep stale conventions forever after upgrades. (s:a21df970#turn270)
 - Decision: excluded the concurrent CompactBench worktree changes from commit 4b49f79 by staging CLAUDE.md at the blob level, because committing another session's in-progress files (or a doc line referencing not-yet-committed scripts) would misattribute unfinished work. (s:a21df970#turn287)
-
-## Failed approaches (do not retry)
-- Dead ends too: "The X approach didn't work because ...". (s:bae8e5d2#turn443)
-- Also one plausible-wrong on CTX_mod, from a probe whose "git_sha" was actually a session-id extractor false positive — more rank/v1 fixture material. (s:bdfbd48b#turn1066)
+- Decision: rank/v1-event-fold scores facts as kind-prior × basis × decision-marker × literal-kind multipliers, plus capped cross-session re-assertion (+0.2/session, cap +1.0), capped incident-linked deltas, a recency tie-break ≤0.01, and a CONSTRAINT floor of 2.5, because these ar (s:a4fac788#turn354)
+- Decision: extend fact_asserted detail with marker and literal_kind, because turn-74's junk is marker_stated by design (the parser accepts Verdict:/Conclusion:/Confirmed:) and the marker word is the only deterministic discriminator. (s:a4fac788#turn354)
+- Decision: eval exclusion compares each event row's transcript-derived cwd to the current transcript's cwd; rows predating the cwd stamp are kept, because a missing stamp is not evidence of eval traffic. (s:a4fac788#turn354)
+- Decision: the rank/v1 gist trim evicts the globally lowest-rank fact instead of lowest-stakes-section-first, because section-ordered eviction kept rank-1.2 junk decisions while dropping rank-1.8 identifiers on the real KP_SDLC gist. (s:a4fac788#turn354)
+- Decision: the inferred-basis penalty applies to DECISION facts only, because measured over-extraction is exclusively decision-verb junk, and penalizing FAILED-APPROACH evicted "do not retry" facts below number_unit table noise. (s:a4fac788#turn354)
+- Decision: within-session re-mention counting is deferred to rank/v2, because the parser banks entities first-wins and the ratified fixture labels don't require it. (s:a4fac788#turn354)
+- Decision: fix the events.jsonl contract by regenerating each session's block in place at checkpoint (true materialized view), because append-with-partial-dedup was reproducible only under the same checkpoint cadence — a weaker property than spec §5 claimed. (s:a4fac788#turn536)
+- Decision: conflict evidence is a shared contiguous 5-word content n-gram, not full-text containment, because the flagship drift case contains neither text in the other — the quoted phrase is the exact match precision-first demands. (s:a4fac788#turn536)
+- Decision: lint only canonical Decision:-marked facts, because verb-inferred junk and Verdict:/Conclusion: self-assessments would make the lint cry wolf. (s:a4fac788#turn536)
+- Decision: conflict comparisons run only against sessions earlier in journal order plus the current session's own earlier turns, so a session's events block stays stable no matter when it is re-materialized. (s:a4fac788#turn536)
+- Decision: the ratified same-key/different-value case ships as documented-reserved, because fact keys today are only literal kinds where same-key/different-value is normal — it lands with the first keyed producer (tool_observed knobs). (s:a4fac788#turn536)
+- Decision: malformed Supersedes payloads are ignored rather than fail-open, because the safe failure direction for governance is the conflict staying visible. (s:a4fac788#turn536)
+- Decision: marker-led Decision:/Constraint: sentences bank up to a 900-char cap, because the 300-char sentence filter was silently dropping long convention-following statements. (s:a4fac788#turn536)
