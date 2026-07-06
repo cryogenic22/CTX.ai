@@ -38,9 +38,9 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 ## Current Repo State
 
 - **Branch:** `feat/literals-ledger`
-- **Last green tests:** `python -m pytest tests/test_literals_ledger.py tests/test_session_reader.py tests/test_cross_session_why.py tests/test_supersession_dag.py tests/test_scorecard.py tests/test_conflict_lint.py tests/test_fact_substrate.py tests/test_coordination_check.py -q` → 115 passed (2026-07-06)
+- **Last green tests:** `python -m pytest tests/test_subagent_verdicts.py tests/test_transcript_parser.py tests/test_literals_ledger.py tests/test_session_reader.py tests/test_p0_trust_repairs.py -q` → 101 passed (incl. negation + determinism gates, 2026-07-06)
 - **Active owner:** Claude Code (session `eca3f61c`)
-- **In-flight work:** none blocking. Recently shipped: identifier fidelity in `session stats` (#7, `f518bee`); reviewer-notes-only protocol (`7f2e6f8`); cross-session `why` default (#6, `7e5d3f7`); coordination board + reporter (`fb57725`/`a18933f`/`c68761f`). Next: #5 subagent-verdict capture (design call pending).
+- **In-flight work:** none. **Ergonomics backlog #5/#6/#7 CLEARED:** subagent-verdict capture (#5, `945020a`), cross-session `why` (#6, `7e5d3f7`), identifier fidelity (#7, `f518bee`). Next big rocks (deferred/gated): domain-contracts recipe; DAG Slice 2 (gated on real `fact_superseded` edges); consolidation/dream-fold; cohort read-path report (~07-18).
 - **Do not touch:** `CLAUDE.md` (hand-authored by the owner); `.claude/ctx/*` live ledger; committed eval results under `ctxpack/benchmarks/**/results/`
 
 ---
@@ -91,6 +91,12 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 - **Files touched:** `AGENTS.md`, `AGENT_COORDINATION.md`, `ctxpack/agent/checkpoint.py`, `ctxpack/agent/session_reader.py`, `tests/test_literals_ledger.py`.
 - **Tests run:** 115 (literals / session_reader / cross-session / DAG / scorecard / conflict-lint / fact-substrate / coordination).
 - **Next recommended action:** #5 subagent-verdict capture — a change to the parser's sidechain filter (`transcript_parser.py:517`); owner picks the capture approach before the parser is edited.
+
+### 2026-07-06 — Claude Code (session `eca3f61c`) — #5 subagent verdicts (backlog cleared)
+- **What changed:** marker-gated subagent-verdict capture (#5, `945020a`, owner chose marker-gated): a marker-led line in a sidechain banks as a FINDING (source=subagent), surfaced on the resume gist + `stats.captured.findings`; unmarked chatter + isMeta stay filtered; FINDINGs excluded from the decision lint. This clears the ergonomics backlog #5/#6/#7.
+- **Files touched:** `ctxpack/agent/transcript_parser.py`, `checkpoint.py`, `session_reader.py`, `tests/test_subagent_verdicts.py`, `tests/test_transcript_parser.py`.
+- **Tests run:** 101 (incl. `test_p0_trust_repairs` determinism + `test_negation_preservation`).
+- **Next recommended action:** none in the ergonomics track. Next big rocks are deferred/gated (see Current Repo State) — owner to pick the next thread (likely domain-contracts recipe).
 
 ---
 
