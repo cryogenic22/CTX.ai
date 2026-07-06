@@ -25,11 +25,11 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 - **One active owner at a time** (see Current Repo State). Do not run Claude and
   Codex against this repo simultaneously — concurrent edits have clobbered
   in-flight work here before.
-- **Reviewer-only board edits are allowed when explicitly requested** (e.g.
-  answering an open question or leaving a review note); a reviewer must **not**
-  touch code while another active owner is listed. This is the one exception to
-  the single-owner rule — it keeps the anti-concurrency guard intact without
-  blocking review.
+- **Reviewer scope is notes-only.** A reviewer writes to the board (answers
+  questions, leaves review notes with *proposed* fixes) but does **not** edit
+  code or tests, apply fixes, or commit — the active owner applies every fix.
+  This is the one board exception to the single-owner rule; it keeps ownership
+  clean and edits non-concurrent while still unblocking review.
 - **No agent makes an irreversible or outward-facing call from this file
   without human or reviewer confirmation.**
 

@@ -18,6 +18,10 @@ act on anything addressed to you. Before you stop, **append a Handoff** there.
   human confirmation.
 - One active owner at a time — do not run against this repo while a Claude Code
   session is active on it (concurrent edits have clobbered work here before).
+- **You flag; the owner fixes.** As reviewer, leave findings and *proposed*
+  fixes as review notes on the board — do **not** edit code or tests, apply
+  fixes, or commit. The active owner (Claude Code) applies and commits every
+  fix. This keeps ownership clean and edits non-concurrent.
 
 ## Load-bearing invariants (CLAUDE.md is authoritative)
 
