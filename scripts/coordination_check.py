@@ -40,14 +40,20 @@ def _sections(text: str) -> "dict[str, list[str]]":
 
 
 def _field(lines: "list[str]", label: str) -> str:
-    """Value of a '- **Label:** value' (or '- Label: value') line."""
-    lab = label.lower()
+    """Value of a '- **Label:** value' (or '- Label: value') line.
+
+    Bold is stripped only around the LABEL — never inside the value, so a
+    value like ``ctxpack/benchmarks/**/results/`` keeps its ``**``."""
+    lab = label.strip().lower()
     for ln in lines:
-        s = ln.strip().replace("**", "").replace("__", "").lstrip("-* ").strip()
-        if s.lower().startswith(lab):
-            rest = s[len(label):].lstrip()
-            if rest.startswith(":"):
-                return rest[1:].strip()
+        s = re.sub(r"^\s*[-*]\s*", "", ln.strip())   # drop the list bullet
+        if ":" not in s:
+            continue
+        left, right = s.split(":", 1)
+        if left.replace("**", "").replace("__", "").strip().lower() == lab:
+            # the label's closing bold can sit at the value's start; strip
+            # only that leading marker, leaving any bold inside the value
+            return re.sub(r"^\s*(?:\*\*|__)\s*", "", right).strip()
     return ""
 
 
