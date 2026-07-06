@@ -4,11 +4,13 @@ import json
 
 from ctxpack.agent.checkpoint import run_checkpoint
 from ctxpack.benchmarks.agentic.resume_probe import (
+    LITERAL_DISAMBIGUATION,
     Probe,
     _mangle_project_dir,
     ctx_context,
     generate_probes,
     grade,
+    to_report,
 )
 
 
@@ -78,3 +80,55 @@ def test_ctx_arm_includes_source_session_literals(tmp_path):
 def test_mangle_project_dir_matches_claude_code():
     assert _mangle_project_dir(r"C:\Users\kapil\Documents\CTX_mod") == \
         "C--Users-kapil-Documents-CTX-mod"
+
+
+def _ambiguous_ledger(tmp_path):
+    # one assistant turn banking TWO distinct git_sha literals — "the
+    # exact git_sha around turn N" admits either, so both probes must be
+    # skipped (pre-registered A2, PREREGISTRATION-resume-probe.md)
+    entries = [
+        _entry("user", "Please land the retry fix and revert the probe.",
+               "bbbb2222-s"),
+        _entry("assistant", [{"type": "text", "text":
+            "Decision: land the retry fix ahead of the release branch "
+            "cut because the vendor limit change ships next week. "
+            "Fixed in commit deadbeef1234 and reverted the probe in "
+            "commit cafebabe5678."}], "bbbb2222-s"),
+    ]
+    t = tmp_path / "amb.jsonl"
+    t.write_text("\n".join(json.dumps(e) for e in entries), encoding="utf-8")
+    out = tmp_path / "ctx-amb"
+    run_checkpoint(str(t), str(out), as_of="2026-07-04")
+    return str(out)
+
+
+def test_ambiguous_same_turn_literals_are_skipped(tmp_path):
+    ledger = _ambiguous_ledger(tmp_path)
+    meta = {}
+    probes = generate_probes(ledger, n=20, seed=42, meta=meta)
+    lit_expected = {p.expected for p in probes if p.kind == "literal"}
+    assert "deadbeef1234" not in lit_expected
+    assert "cafebabe5678" not in lit_expected
+    assert meta.get("ambiguous_literals_skipped", 0) == 2
+
+
+def test_single_literal_per_turn_still_probes(tmp_path):
+    # the control: one git_sha at the turn (plus a number_unit — a
+    # DIFFERENT kind never collides) → probe kept, nothing skipped
+    ledger = _ledger(tmp_path)
+    meta = {}
+    probes = generate_probes(ledger, n=20, seed=42, meta=meta)
+    assert any(p.kind == "literal" and p.expected == "deadbeef1234"
+               for p in probes)
+    assert meta.get("ambiguous_literals_skipped", 0) == 0
+
+
+def test_report_config_stamps_disambiguation_policy(tmp_path):
+    ledger = _ledger(tmp_path)
+    meta = {}
+    probes = generate_probes(ledger, n=5, seed=42, meta=meta)
+    report = to_report(str(tmp_path), probes, [], seed=42,
+                       model="none", probe_set="recall", gen_meta=meta)
+    cfg = report["config"]
+    assert cfg["literal_disambiguation"] == LITERAL_DISAMBIGUATION
+    assert cfg["ambiguous_literals_skipped"] == 0  # disclosed even at 0

@@ -79,11 +79,12 @@ def main() -> int:
     n = 3 if args.smoke else args.n
     arms = [a.strip() for a in args.arms.split(",") if a.strip()]
 
+    gen_meta: dict = {}
     if args.probe_set == "drift":
         probes = generate_probes(ledger, n=n, seed=args.seed,
-                                 candidates=drift_candidates)
+                                 candidates=drift_candidates, meta=gen_meta)
     else:
-        probes = generate_probes(ledger, n=n, seed=args.seed)
+        probes = generate_probes(ledger, n=n, seed=args.seed, meta=gen_meta)
     if not probes:
         print(f"No {args.probe_set} probe candidates in {ledger} — needs "
               f"checkpointed sessions with decisions/constraints/literals.")
@@ -91,6 +92,10 @@ def main() -> int:
     print(f"repo={os.path.basename(repo)}  set={args.probe_set}  "
           f"probes={len(probes)} "
           f"({', '.join(sorted({p.kind for p in probes}))})  arms={arms}")
+    if gen_meta.get("ambiguous_literals_skipped"):
+        print(f"  note: {gen_meta['ambiguous_literals_skipped']} ambiguous "
+              f"same-turn literal candidates skipped (pre-registered A2, "
+              f"PREREGISTRATION-resume-probe.md)")
 
     # AUTOMEM arm: probe-independent by nature — computed once. Empty
     # means the repo has no curated auto-memory; the arm then equals
@@ -143,7 +148,7 @@ def main() -> int:
               f"ctx={budget}bpe")
 
     report = to_report(repo, probes, results, seed=args.seed, model=model,
-                       probe_set=args.probe_set)
+                       probe_set=args.probe_set, gen_meta=gen_meta)
     if args.dry_run:
         for arm in report["arms"].values():
             arm["accuracy"] = None  # dry-run grades are meaningless

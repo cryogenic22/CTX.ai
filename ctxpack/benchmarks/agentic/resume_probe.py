@@ -105,10 +105,16 @@ def _norm(s: str) -> str:
     return " ".join(s.lower().translate(_QUOTES).replace("**", " ").split())
 
 
-def probe_candidates(ledger_dir: str, sid: str) -> list[Probe]:
+LITERAL_DISAMBIGUATION = "skip-ambiguous-same-turn/v1"
+
+
+def probe_candidates(ledger_dir: str, sid: str, *,
+                     meta: "Optional[dict]" = None) -> list[Probe]:
     """Deterministic probe candidates from one session's ledger."""
     doc, sid = load_session(ledger_dir, sid)
     out: list[Probe] = []
+    lit_groups: "dict[tuple[int, str], list[Probe]]" = {}
+    lit_values: "dict[tuple[int, str], set[str]]" = {}
     for s in _sections(doc):
         kind = _kind_of(s)
         turn = _turn_of(s)
@@ -120,7 +126,9 @@ def probe_candidates(ledger_dir: str, sid: str) -> list[Probe]:
             lit_kind = _kv(s, "KIND") or "identifier"
             if len(text) < 6:
                 continue  # too short to grade exactly with confidence
-            out.append(Probe(
+            group = (turn, lit_kind)
+            lit_values.setdefault(group, set()).add(text)
+            lit_groups.setdefault(group, []).append(Probe(
                 probe_id=pid, kind="literal", session=sid, turn=turn,
                 question=(f"The project's history records an exact "
                           f"{lit_kind} (session {sid}, around turn {turn}). "
@@ -176,6 +184,21 @@ def probe_candidates(ledger_dir: str, sid: str) -> list[Probe]:
                 expected=current, grade_mode="exact",
                 source_text=f"{base_key}: {getattr(chain, 'value', '')} "
                             f"-> current {current}"))
+    # LITERAL_DISAMBIGUATION (pre-registered 2026-07-06, amendment A2 in
+    # PREREGISTRATION-resume-probe.md): "the exact {kind} around turn N"
+    # is degenerate when that turn banks more than one DISTINCT same-kind
+    # value — every one of them is a correct reading of the question, so
+    # an exact grade measures which value the sampler drew, not
+    # addressability (both 2026-07-06 KP_SDLC misses were valid same-turn
+    # paths that weren't the sampled one). Skip the whole group;
+    # identical duplicates keep (one value = one right answer).
+    for group in sorted(lit_groups):
+        if len(lit_values[group]) == 1:
+            out.extend(lit_groups[group])
+        elif meta is not None:
+            meta["ambiguous_literals_skipped"] = (
+                meta.get("ambiguous_literals_skipped", 0)
+                + len(lit_groups[group]))
     return out
 
 
@@ -290,8 +313,13 @@ def _drift_superseded(section, pid: str, sid: str,
     return out
 
 
-def drift_candidates(ledger_dir: str, sid: str) -> list[Probe]:
-    """Deterministic drift-probe candidates from one session's ledger."""
+def drift_candidates(ledger_dir: str, sid: str, *,
+                     meta: "Optional[dict]" = None) -> list[Probe]:
+    """Deterministic drift-probe candidates from one session's ledger.
+
+    ``meta`` is accepted for the uniform candidates interface; drift
+    generation has no disambiguation rule (anchors are unique by
+    construction) and never writes to it."""
     doc, sid = load_session(ledger_dir, sid)
     out: list[Probe] = []
     for s in _sections(doc):
@@ -312,7 +340,8 @@ def drift_candidates(ledger_dir: str, sid: str) -> list[Probe]:
 
 
 def generate_probes(ledger_dir: str, n: int = 20, seed: int = 42,
-                    candidates=probe_candidates) -> list[Probe]:
+                    candidates=probe_candidates,
+                    meta: "Optional[dict]" = None) -> list[Probe]:
     """Seeded, type-stratified sample across every session in the ledger."""
     sids = sorted(
         os.path.basename(p)[len("session-"):-len(".ctx")]
@@ -320,7 +349,7 @@ def generate_probes(ledger_dir: str, n: int = 20, seed: int = 42,
     pool: list[Probe] = []
     for sid in sids:
         try:
-            pool.extend(candidates(ledger_dir, sid))
+            pool.extend(candidates(ledger_dir, sid, meta=meta))
         except Exception:  # noqa: BLE001 — a bad ledger skips, never aborts
             continue
     rng = random.Random(seed)
@@ -533,7 +562,8 @@ def aggregate(results: list[ProbeResult]) -> dict[str, Any]:
 
 def to_report(repo_path: str, probes: list[Probe],
               results: list[ProbeResult], *, seed: int,
-              model: str, probe_set: str = "recall") -> dict[str, Any]:
+              model: str, probe_set: str = "recall",
+              gen_meta: "Optional[dict]" = None) -> dict[str, Any]:
     import datetime
     return {
         "schema": "ctxpack-resume-probe/v1",
@@ -557,6 +587,18 @@ def to_report(repo_path: str, probes: list[Probe],
                        "current ledger, which has grown since baseline — "
                        "per-kind accuracy, not per-probe pairing, is the "
                        "cross-run comparator."),
+                   "literal_disambiguation": LITERAL_DISAMBIGUATION,
+                   "disambiguation_notes": (
+                       "literal probes whose source turn banks more than "
+                       "one distinct same-kind value are skipped at "
+                       "generation — the question is degenerate, not the "
+                       "arm (pre-registered 2026-07-06, amendment A2 in "
+                       "PREREGISTRATION-resume-probe.md; applies to all "
+                       "arms symmetrically). Files without this field "
+                       "predate the rule; no prior result is regraded."),
+                   **({"ambiguous_literals_skipped":
+                       gen_meta.get("ambiguous_literals_skipped", 0)}
+                      if gen_meta is not None else {}),
                    "grading_notes": (
                        "drift probes pass only when the answer contains a "
                        "verbatim anchor of the conflicting prior that is "
