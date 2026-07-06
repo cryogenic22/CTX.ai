@@ -341,6 +341,8 @@ def _run(argv: list[str]) -> int:
                          help="Output dir (default: scorecards/)")
     p_score.add_argument("--html", action="store_true",
                          help="Also render dashboard.html")
+    p_score.add_argument("--md", action="store_true",
+                         help="Also render scorecard.md exec-summary")
 
     # session — read path over the checkpoint ledger (P4)
     p_session = sub.add_parser(
@@ -1140,6 +1142,13 @@ def _cmd_scorecard(args: argparse.Namespace) -> int:
         with open(html_path, "w", encoding="utf-8", newline="\n") as f:
             f.write(render_dashboard(scorecard))
         print(f"Dashboard: {html_path}")
+    if args.md:
+        from ..agent.dashboard import render_markdown
+
+        md_path = os.path.join(args.out, "scorecard.md")
+        with open(md_path, "w", encoding="utf-8", newline="\n") as f:
+            f.write(render_markdown(scorecard))
+        print(f"Exec-summary: {md_path}")
     return 0
 
 

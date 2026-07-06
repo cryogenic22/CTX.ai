@@ -165,3 +165,105 @@ def render_dashboard(scorecard: dict[str, Any]) -> str:
  no content leaves the repo, only counts.</footer>
 </div></body></html>
 """
+
+
+def _fallback_md(read_path: dict[str, Any]) -> str:
+    reads = read_path.get("ledger_reads", 0)
+    greps = read_path.get("transcript_greps", 0)
+    rate = read_path.get("raw_fallback_rate")
+    if rate is None:
+        return "no reads yet"
+    return f"{rate:.0%} ({greps}/{reads + greps})"
+
+
+def render_markdown(scorecard: dict[str, Any]) -> str:
+    """Concise, commit-friendly exec-summary of a scorecard.
+
+    Same deterministic Layer-1 counts as the HTML dashboard, rendered as
+    Markdown for a PR comment or a cohort read-path report. Surfaces the
+    per-repo ledger-read vs transcript-grep split the dashboard folds into
+    a single rate — that per-repo pull is the whole point of a read-path
+    report (does each repo's agents actually use the ledger?).
+    """
+    cohort = scorecard.get("cohort", {})
+    repos = scorecard.get("repos", [])
+    captured = cohort.get("captured", {})
+    rp = cohort.get("read_path", {})
+    rate = rp.get("raw_fallback_rate")
+    reads = rp.get("ledger_reads", 0)
+    greps = rp.get("transcript_greps", 0)
+    rate_txt = ("n/a (no reads yet)" if rate is None
+                else f"**{rate:.0%}** ({greps}/{reads + greps} fell back)")
+
+    lines = [
+        "# CtxPack session-memory scorecard",
+        "",
+        f"_Generated {scorecard.get('generated_at', '?')} · "
+        f"schema {scorecard.get('schema', '?')}_",
+        "",
+        "> **Measurement class: observational.** These numbers support "
+        "adoption and token-economics claims only. Accuracy claims come "
+        "from the resume-probe evals; causal claims from CompactBench.",
+        "",
+        "## Cohort",
+        "",
+        "| Metric | Value |",
+        "| --- | --- |",
+        f"| Repos active | {cohort.get('repos_active', 0)} / "
+        f"{cohort.get('repos_total', 0)} |",
+        f"| Sessions banked | {cohort.get('sessions', 0)} |",
+        f"| Turns packed | {cohort.get('turns_packed', 0):,} |",
+        f"| Decisions / constraints / dead ends | "
+        f"{captured.get('decisions', 0)} / {captured.get('constraints', 0)} / "
+        f"{captured.get('failed_approaches', 0)} |",
+        f"| Raw-fallback rate | {rate_txt} |",
+        "",
+        "Raw-fallback rate = raw-transcript greps ÷ (ledger reads + greps); "
+        "lower is better — the earliest honest signal of whether the ledger "
+        "earns its keep.",
+        "",
+        "### Incidents (agent-reported)",
+        "",
+    ]
+
+    incidents = cohort.get("incident_types") or {}
+    if incidents:
+        for itype, count in sorted(incidents.items(),
+                                   key=lambda kv: (-kv[1], kv[0])):
+            lines.append(f"- {itype}: {count}")
+    else:
+        lines.append("- none recorded")
+
+    lines += [
+        "",
+        "## By repo",
+        "",
+        "| Repo | Status | Sessions | Turns | Decisions | "
+        "Constraints / dead ends | Ledger reads | Greps | Fallback |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    for r in repos:
+        name = str(r.get("repo", "?")).replace("|", "\\|")
+        status = str(r.get("status", "?"))
+        if status != "active":
+            lines.append(
+                f"| {name} | {status.replace('_', ' ')} | — | — | — | — | "
+                f"— | — | — |")
+            continue
+        cap = r.get("captured", {})
+        rpr = r.get("read_path", {})
+        lines.append(
+            f"| {name} | active | {r.get('sessions', 0)} | "
+            f"{r.get('turns_packed', 0):,} | {cap.get('decisions', 0)} | "
+            f"{cap.get('constraints', 0)} / {cap.get('failed_approaches', 0)} | "
+            f"{rpr.get('ledger_reads', 0)} | {rpr.get('transcript_greps', 0)} | "
+            f"{_fallback_md(rpr)} |")
+
+    lines += [
+        "",
+        "_Deterministic Layer-1 telemetry from each repo's committed "
+        "`.claude/ctx/checkpoints.jsonl` — no content leaves the repo, only "
+        "counts._",
+        "",
+    ]
+    return "\n".join(lines)

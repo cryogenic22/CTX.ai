@@ -3,7 +3,7 @@
 import json
 
 from ctxpack.agent.checkpoint import run_checkpoint
-from ctxpack.agent.dashboard import render_dashboard
+from ctxpack.agent.dashboard import render_dashboard, render_markdown
 from ctxpack.agent.scorecard import (
     build_scorecard,
     load_cohort,
@@ -93,3 +93,46 @@ def test_dashboard_escapes_repo_names(tmp_path):
     (quiet / ".claude").mkdir(parents=True)
     html = render_dashboard(build_scorecard([str(quiet)]))
     assert "repo &amp; b" in html
+
+
+def test_markdown_exec_summary_renders(tmp_path):
+    active = _make_repo(tmp_path, "repo-a", decisions=2)
+    quiet = tmp_path / "repo-b"
+    (quiet / ".claude").mkdir(parents=True)
+    md = render_markdown(build_scorecard([active, str(quiet)]))
+
+    assert md.startswith("# CtxPack session-memory scorecard")
+    assert "Measurement class: observational" in md
+    # per-repo read-path split is surfaced (the point of a read-path report)
+    assert "Ledger reads | Greps | Fallback" in md
+    assert "| repo-a | active |" in md
+    # quiet repo renders as a placeholder row, not an active one
+    assert "| repo-b | onboarded no data |" in md
+    # no reads banked in this synthetic ledger → honest n/a, not a fake 0%
+    assert "n/a (no reads yet)" in md
+
+
+def test_markdown_reports_incident_types(tmp_path):
+    active = _make_repo(tmp_path, "repo-a", decisions=1)
+    card = build_scorecard([active])
+    # inject a couple of incident rows to prove the section aggregates + sorts
+    card["cohort"]["incident_types"] = {"saved": 3, "missed": 1}
+    md = render_markdown(card)
+    assert "### Incidents (agent-reported)" in md
+    # sorted by count desc: saved (3) before missed (1)
+    assert md.index("- saved: 3") < md.index("- missed: 1")
+
+
+def test_markdown_escapes_table_pipes():
+    # "|" is illegal in a Windows path, so build the scorecard dict directly:
+    # a repo name with a pipe must not break the markdown table structure
+    card = {
+        "schema": "ctxpack-scorecard/v1",
+        "generated_at": "2026-07-06T00:00:00+00:00",
+        "cohort": {"repos_active": 0, "repos_total": 1, "sessions": 0,
+                   "turns_packed": 0, "captured": {}, "read_path": {},
+                   "incident_types": {}},
+        "repos": [{"repo": "repo|b", "status": "not_onboarded"}],
+    }
+    md = render_markdown(card)
+    assert r"repo\|b" in md  # literal pipe escaped so the table stays intact
