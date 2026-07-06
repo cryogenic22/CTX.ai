@@ -1,0 +1,1037 @@
+{
+  "schema": "ctxpack-resume-probe/v1",
+  "measurement_class": "quasi-experimental \u2014 recall accuracy for this repo's history under budget-parity arms; benchmark-grade causal claims need CompactBench",
+  "generated_at": "2026-07-06T00:08:16+00:00",
+  "repo": "KP_SDLC",
+  "config": {
+    "seed": 42,
+    "model": "claude-sonnet-4-6",
+    "n_probes": 20,
+    "probe_set": "recall",
+    "ctx_arm": "v2-session-literals",
+    "arm_notes": "ctx arm v2 adds the source session's banked-literals view (`ctxpack session literals`) to the context \u2014 the pre-registered 2026-07-05 fix for the baseline arm under-modeling the real read path (baseline files carry no ctx_arm field = v1). Probe universe is regenerated from the current ledger, which has grown since baseline \u2014 per-kind accuracy, not per-probe pairing, is the cross-run comparator.",
+    "grading_notes": "drift probes pass only when the answer contains a verbatim anchor of the conflicting prior that is never shown in the proposal; paraphrased flags grade as misses (uniform under-count, favors arms holding verbatim text). automem arm context is built solely from the repo's auto-memory files \u2014 isolation from ctx artifacts is by construction in this no-tools harness. Known asymmetry: the probe universe is ledger-derived (the only deterministic ground truth with provenance), so facts only automem holds are never probed \u2014 automem results measure its coverage OF banked facts, not its total knowledge."
+  },
+  "arms": {
+    "automem": {
+      "n": 20,
+      "correct": 2,
+      "accuracy": 0.1,
+      "ci95": [
+        0.0,
+        0.25
+      ],
+      "mean_context_bpe": 2694,
+      "by_kind": {
+        "decision": {
+          "n": 7,
+          "correct": 1
+        },
+        "literal": {
+          "n": 7,
+          "correct": 1
+        },
+        "rationale": {
+          "n": 6,
+          "correct": 0
+        }
+      }
+    },
+    "closed": {
+      "n": 20,
+      "correct": 0,
+      "accuracy": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 0,
+      "by_kind": {
+        "decision": {
+          "n": 7,
+          "correct": 0
+        },
+        "literal": {
+          "n": 7,
+          "correct": 0
+        },
+        "rationale": {
+          "n": 6,
+          "correct": 0
+        }
+      }
+    },
+    "ctx": {
+      "n": 20,
+      "correct": 18,
+      "accuracy": 0.9,
+      "ci95": [
+        0.75,
+        1.0
+      ],
+      "mean_context_bpe": 3841,
+      "by_kind": {
+        "decision": {
+          "n": 7,
+          "correct": 7
+        },
+        "literal": {
+          "n": 7,
+          "correct": 5
+        },
+        "rationale": {
+          "n": 6,
+          "correct": 6
+        }
+      }
+    },
+    "grep": {
+      "n": 20,
+      "correct": 12,
+      "accuracy": 0.6,
+      "ci95": [
+        0.4,
+        0.8
+      ],
+      "mean_context_bpe": 3666,
+      "by_kind": {
+        "decision": {
+          "n": 7,
+          "correct": 7
+        },
+        "literal": {
+          "n": 7,
+          "correct": 0
+        },
+        "rationale": {
+          "n": 6,
+          "correct": 5
+        }
+      }
+    }
+  },
+  "probes": [
+    {
+      "probe_id": "ca35891c-DF077329",
+      "kind": "decision",
+      "session": "ca35891c",
+      "turn": 57,
+      "question": "According to this project's history, complete the decision that begins: \"I'll hold the full analysis until they return, ...\" \u2014 state the full decision.",
+      "expected": "but here's the key finding on your",
+      "grade_mode": "contains",
+      "source_text": "I'll hold the full analysis until they return, but here's the key finding on your specific question already taking shape:"
+    },
+    {
+      "probe_id": "ca35891c-33029311",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 858,
+      "question": "The project's history records an exact path (session ca35891c, around turn 858). What is its exact value? Reply with the value only.",
+      "expected": "qg/checks_complexity.py",
+      "grade_mode": "exact",
+      "source_text": "qg/checks_complexity.py"
+    },
+    {
+      "probe_id": "ca35891c-4BB5660F-why",
+      "kind": "rationale",
+      "session": "ca35891c",
+      "turn": 1160,
+      "question": "This project's history records a decision that begins: \"Decision: park the quality/eval/web workflow templates rather than ...\". WHY was it made? State the reason.",
+      "expected": "raw placeholders would fail YAML",
+      "grade_mode": "contains",
+      "source_text": "Decision: park the quality/eval/web workflow templates rather than activate them, because raw placeholders would fail YAML parsing on every push and a gate running against a stack that doesn't exist is vacuous green."
+    },
+    {
+      "probe_id": "9f6f1f88-7021D729",
+      "kind": "decision",
+      "session": "9f6f1f88",
+      "turn": 25,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: the next build item is E0.2 self-CI, ...\" \u2014 state the full decision.",
+      "expected": "because the diagnosis is confirmed (only `structural-floor.yml`",
+      "grade_mode": "contains",
+      "source_text": "Decision: the next build item is E0.2 self-CI, because the diagnosis is confirmed (only `structural-floor.yml` is deployed, the shipped template never runs here) and it matches both the plan sequencing and the prior session's stated next step."
+    },
+    {
+      "probe_id": "ca35891c-7DEE673D",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 49,
+      "question": "The project's history records an exact path (session ca35891c, around turn 49). What is its exact value? Reply with the value only.",
+      "expected": "cathedral-keeper/coherence.py",
+      "grade_mode": "exact",
+      "source_text": "cathedral-keeper/coherence.py"
+    },
+    {
+      "probe_id": "ca35891c-8D98B69A-why",
+      "kind": "rationale",
+      "session": "ca35891c",
+      "turn": 1098,
+      "question": "This project's history records a decision that begins: \"Decision: delete the unreachable cross-stack exemption machinery rather ...\". WHY was it made? State the reason.",
+      "expected": "py/web signature separation now holds",
+      "grade_mode": "contains",
+      "source_text": "Decision: delete the unreachable cross-stack exemption machinery rather than keep it, because py/web signature separation now holds by construction (AST hash vs text hash) and retaining dead config for a future maybe is exactly the speculative bloat this epic gates against."
+    },
+    {
+      "probe_id": "ca35891c-257BC202",
+      "kind": "decision",
+      "session": "ca35891c",
+      "turn": 1105,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: this project formally activates E12.3 (TS/React depth ...\" \u2014 state the full decision.",
+      "expected": "+ CK multi-language graph) and E12.6 (visual",
+      "grade_mode": "contains",
+      "source_text": "Decision: this project formally activates E12.3 (TS/React depth + CK multi-language graph) and E12.6 (visual regression + design-token lint) under Epic 12's demand-gating rule \u2014 they move from \"waiting for demand\" to the backlog proper, prioritized after Loop 0 closes."
+    },
+    {
+      "probe_id": "ca35891c-C8D89030",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 555,
+      "question": "The project's history records an exact path (session ca35891c, around turn 555). What is its exact value? Reply with the value only.",
+      "expected": "C:\\Users\\kapil\\Downloads\\zs-init-spec-v0.1.md",
+      "grade_mode": "exact",
+      "source_text": "C:\\Users\\kapil\\Downloads\\zs-init-spec-v0.1.md"
+    },
+    {
+      "probe_id": "ca35891c-E8C19BFF-why",
+      "kind": "rationale",
+      "session": "ca35891c",
+      "turn": 858,
+      "question": "This project's history records a decision that begins: \"Decision: every generation-time convention ships paired with a ...\". WHY was it made? State the reason.",
+      "expected": "the METR perception-gap result shows",
+      "grade_mode": "contains",
+      "source_text": "Decision: every generation-time convention ships paired with a deterministic gate, because the METR perception-gap result shows agent self-report of \"I reused existing code\" cannot be trusted without measurement."
+    },
+    {
+      "probe_id": "ca35891c-C4B282D1",
+      "kind": "decision",
+      "session": "ca35891c",
+      "turn": 260,
+      "question": "According to this project's history, complete the decision that begins: \"**Verdict: APPROVE-WITH-NITS** \u2014 with one real correctness defect ...\" \u2014 state the full decision.",
+      "expected": "I need to fix.",
+      "grade_mode": "contains",
+      "source_text": "**Verdict: APPROVE-WITH-NITS** \u2014 with one real correctness defect I need to fix."
+    },
+    {
+      "probe_id": "ca35891c-3D82A6B3",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 30,
+      "question": "The project's history records an exact path (session ca35891c, around turn 30). What is its exact value? Reply with the value only.",
+      "expected": "C:\\Users\\kapil\\Documents\\KP_SDLC\\KP_SDLC_Overview.html",
+      "grade_mode": "exact",
+      "source_text": "C:\\Users\\kapil\\Documents\\KP_SDLC\\KP_SDLC_Overview.html"
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5-why",
+      "kind": "rationale",
+      "session": "9f6f1f88",
+      "turn": 111,
+      "question": "This project's history records a decision that begins: \"Decision: sequence Tier C as Loop 1 \u2192 ...\". WHY was it made? State the reason.",
+      "expected": "E1.7 unblocks G1/G2/G4/G5 simultaneously (the",
+      "grade_mode": "contains",
+      "source_text": "Decision: sequence Tier C as Loop 1 \u2192 {Loop 2 \u2225 Loop 4} \u2192 Loop 3 \u2192 Loop 5 \u2192 Loop 6, because E1.7 unblocks G1/G2/G4/G5 simultaneously (the plan's own critical path) and runtime-verify vs eval-engine are disjoint new components safely built in parallel worktrees."
+    },
+    {
+      "probe_id": "d1dc187e-C3574D74",
+      "kind": "decision",
+      "session": "d1dc187e",
+      "turn": 99,
+      "question": "According to this project's history, complete the decision that begins: \"It's also v0.1.x beta with self-reported benchmarks and ...\" \u2014 state the full decision.",
+      "expected": "heavy branding churn (the same author renames",
+      "grade_mode": "contains",
+      "source_text": "It's also v0.1.x beta with self-reported benchmarks and heavy branding churn (the same author renames projects often; \"meta-harness\" also refers to his separate *ruflo*)."
+    },
+    {
+      "probe_id": "ca35891c-80AF029B",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 869,
+      "question": "The project's history records an exact version (session ca35891c, around turn 869). What is its exact value? Reply with the value only.",
+      "expected": "v0.5.0",
+      "grade_mode": "exact",
+      "source_text": "v0.5.0"
+    },
+    {
+      "probe_id": "9f6f1f88-6DF28579-why",
+      "kind": "rationale",
+      "session": "9f6f1f88",
+      "turn": 111,
+      "question": "This project's history records a decision that begins: \"Decision: every implementation agent works in an isolated ...\". WHY was it made? State the reason.",
+      "expected": "the repo's doctrine (separation of",
+      "grade_mode": "contains",
+      "source_text": "Decision: every implementation agent works in an isolated worktree and every PR gets a fresh-context adversarial review before merge, because the repo's doctrine (separation of authorship, no vacuous green) applies to agent-authored code even more than human-authored."
+    },
+    {
+      "probe_id": "ca35891c-42F74C94",
+      "kind": "decision",
+      "session": "ca35891c",
+      "turn": 1328,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: build the golden-path init executor as the ...\" \u2014 state the full decision.",
+      "expected": "MVP and demand-gate the rest of Epic",
+      "grade_mode": "contains",
+      "source_text": "Decision: build the golden-path init executor as the MVP and demand-gate the rest of Epic 11 (manifest signing, profile-driven workflow activation, the automated failing-fixture proof phase, UI), because that scope retires the friction log now while each deferred piece lands when"
+    },
+    {
+      "probe_id": "ca35891c-EB2A3559",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 514,
+      "question": "The project's history records an exact path (session ca35891c, around turn 514). What is its exact value? Reply with the value only.",
+      "expected": "tests/test_protected_surface_sync.py",
+      "grade_mode": "exact",
+      "source_text": "tests/test_protected_surface_sync.py"
+    },
+    {
+      "probe_id": "ca35891c-C74C0CE4-why",
+      "kind": "rationale",
+      "session": "ca35891c",
+      "turn": 1105,
+      "question": "This project's history records a decision that begins: \"Decision: start the new repo on the manual ...\". WHY was it made? State the reason.",
+      "expected": "Epic 11 sits behind Loop",
+      "grade_mode": "contains",
+      "source_text": "Decision: start the new repo on the manual bootstrap path now rather than waiting for sdlc-init, because Epic 11 sits behind Loop 1, the pilot is what the plan's kill-switch requires, and the friction log from doing it by hand becomes the ground-truth spec for E11's interview and"
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5",
+      "kind": "decision",
+      "session": "9f6f1f88",
+      "turn": 111,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: sequence Tier C as Loop 1 \u2192 ...\" \u2014 state the full decision.",
+      "expected": "{Loop 2 \u2225 Loop 4} \u2192 Loop",
+      "grade_mode": "contains",
+      "source_text": "Decision: sequence Tier C as Loop 1 \u2192 {Loop 2 \u2225 Loop 4} \u2192 Loop 3 \u2192 Loop 5 \u2192 Loop 6, because E1.7 unblocks G1/G2/G4/G5 simultaneously (the plan's own critical path) and runtime-verify vs eval-engine are disjoint new components safely built in parallel worktrees."
+    },
+    {
+      "probe_id": "ca35891c-F2B1E8E7",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 1148,
+      "question": "The project's history records an exact git_sha (session ca35891c, around turn 1148). What is its exact value? Reply with the value only.",
+      "expected": "b620e64",
+      "grade_mode": "exact",
+      "source_text": "b620e64"
+    }
+  ],
+  "results": [
+    {
+      "probe_id": "ca35891c-DF077329",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "Based on the context, the full decision recorded is:\n\n**\"I'll hold the full analysis until they return, but here's the key finding on your specific question already taking shape.\"**\n\nThat is the complete text of Decision Df077329 as recorded in the ledger (turn 57, session ca35891c). No further text beyond that sentence is captured in the stored decision entry.",
+      "correct": true,
+      "context_bpe": 4051,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-DF077329",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "Based on the context, the full decision text is:\n\n**\"I'll hold the full analysis until they return, but here's the key finding on your specific question already taking shape:\"**\n\n(Turn 57, section ENTITY-DECISION-DF077329)\n\nThat is the complete recorded decision text as stored in the deterministic ledger \u2014 it ends there, functioning as a transition statement before presenting the Market Zero doctrine vs. KP_SDLC status table.",
+      "correct": true,
+      "context_bpe": 3738,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-DF077329",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-DF077329",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-33029311",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "`qg/checks_duplicates.py`\n\nWait, the question asks for the exact path recorded around turn 858 in session ca35891c.\n\nLooking at the identifiers banked for session ca35891c around turn 858:\n\n- `qg/checks_duplicates.py` (turn 855)\n- `qg/checks_size.py` (turn 858)\n- `qg/checks_complexity.py` (turn 858)\n\nThe question asks for \"an exact path\" around turn 858. There are multiple paths at turn 858. The first one at that exact turn is:\n\n`qg/checks_size.py`",
+      "correct": true,
+      "context_bpe": 4020,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-33029311",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 3844,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-33029311",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-33029311",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-4BB5660F-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "The decision was made because **raw placeholders would fail YAML parsing on every push**, and **a gate running against a stack that doesn't exist is vacuous green**.",
+      "correct": true,
+      "context_bpe": 4060,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-4BB5660F-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "The decision was made because **raw placeholders (`{{PLACEHOLDERS}}`) would fail YAML parsing on every push**, and **a gate running against a stack that doesn't exist is vacuous green** (i.e., it would pass meaninglessly without actually validating anything).",
+      "correct": false,
+      "context_bpe": 3948,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-4BB5660F-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-4BB5660F-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context references that quality/eval/web workflows were parked in `.github/workflows-parked/` \"until their stack exists,\" but it does not contain the specific `Decision:` line beginning \"Decision: park the quality/eval/web workflow templates rather than ...\" nor its stated reason.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-7021D729",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "**Decision: the next build item is E0.2 self-CI, because the diagnosis is confirmed (only `structural-floor.yml` is deployed, the shipped template never runs here) and it matches both the plan sequencing and the prior session's stated next step.**\n\n(Source: session:9f6f1f88#turn25, Fact Id: 102c6b1ba288c1bb)",
+      "correct": true,
+      "context_bpe": 3199,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-7021D729",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "Based on the context provided, the full decision is:\n\n**\"Decision: the next build item is E0.2 self-CI, because the diagnosis is confirmed (only `structural-floor.yml` is deployed, the shipped template never runs here) and it matches both the plan sequencing and the prior session's stated next step.\"**",
+      "correct": true,
+      "context_bpe": 3034,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-7021D729",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-7021D729",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-7DEE673D",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "`cathedral-keeper/coherence.py`",
+      "correct": true,
+      "context_bpe": 4020,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-7DEE673D",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 3805,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-7DEE673D",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-7DEE673D",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-8D98B69A-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "The reason was: **py/web signature separation now holds by construction (AST hash vs text hash), and retaining dead config for a future maybe is exactly the speculative bloat this epic gates against.**",
+      "correct": true,
+      "context_bpe": 4060,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-8D98B69A-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "The decision was made because **py/web signature separation now holds by construction** (AST hash vs text hash), meaning the cross-stack exemption machinery was no longer needed \u2014 and retaining dead configuration for a potential future use was exactly the kind of speculative bloat this epic gates against.",
+      "correct": true,
+      "context_bpe": 3909,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-8D98B69A-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-8D98B69A-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-257BC202",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "**Decision: this project formally activates E12.3 (TS/React depth + CK multi-language graph) and E12.6 (visual regression + design-token lint) under Epic 12's demand-gating rule \u2014 they move from \"waiting for demand\" to the backlog proper, prioritized after Loop 0 closes.**\n\nSource: `s:ca35891c#turn1105`",
+      "correct": true,
+      "context_bpe": 4076,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-257BC202",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "Based on the context, the full decision is:\n\n**\"Decision: this project formally activates E12.3 (TS/React depth + CK multi-language graph) and E12.6 (visual regression + design-token lint) under Epic 12's demand-gating rule \u2014 they move from \"waiting for demand\" to the backlog proper, prioritized after Loop 0 closes.\"**",
+      "correct": true,
+      "context_bpe": 3962,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-257BC202",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-257BC202",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context references that the vogue pilot \"demand-activates E12.3 (TS/React + CK multi-language graph) and E12.6 (visual regression + design tokens) under Epic 12's demand-gating,\" but no formally stated `Decision: ...` line beginning with \"Decision: this project formally activates E12.3 (TS/React depth ...\" appears anywhere in the provided context.",
+      "correct": true,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C8D89030",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "C:\\Users\\kapil\\Downloads\\eval-engine-spec-v0.1.md",
+      "correct": false,
+      "context_bpe": 4020,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C8D89030",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 3972,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C8D89030",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C8D89030",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "`C:\\Users\\kapil\\Documents\\CTX_mod`",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-E8C19BFF-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "The decision was made **because the METR perception-gap result shows agent self-report of \"I reused existing code\" cannot be trusted without measurement.**",
+      "correct": true,
+      "context_bpe": 4054,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-E8C19BFF-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "The decision was made **because the METR perception-gap result shows agent self-report of \"I reused existing code\" cannot be trusted without measurement.**",
+      "correct": true,
+      "context_bpe": 3952,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-E8C19BFF-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-E8C19BFF-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C4B282D1",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "Based on the context, the full decision is:\n\n**\"Verdict: APPROVE-WITH-NITS** \u2014 with one real correctness defect I need to fix.\"\n\nThat is the complete text as recorded (session `ca35891c`, turn 260, Fact Id `4b9afe5a658c817d`). No additional detail beyond that phrase is stored in the ledger for this decision entry.",
+      "correct": true,
+      "context_bpe": 4052,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C4B282D1",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "Based on the context, here is the full decision:\n\n**Verdict: APPROVE-WITH-NITS** \u2014 with one real correctness defect I need to fix. The reviewer found and *reproduced* a genuine bug:\n\n**Finding #1 (must-fix):** `_merge_models` keys by class name only, so two files defining a same-named model (`Config`, `Settings`, `Meta` \u2014 common) collide last-wins. Since `ck baseline` (repo mode) and `ck analyze` (diff mode) can pass files in different orders, a pure reorder with **zero schema change** produces ",
+      "correct": true,
+      "context_bpe": 4013,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C4B282D1",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C4B282D1",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context references that PR #8 (sdlc-init) underwent an adversarial review that \"blocked on two real defects (CODEOWNERS data-loss, non-empty-repo vacuous green) \u2014 both fixed with regression tests before merge,\" but the full text of the **\"APPROVE-WITH-NITS\"** verdict/decision statement is not present in the provided context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-3D82A6B3",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "`C:\\Users\\kapil\\Documents\\KP_SDLC\\KP_SDLC_Overview.html`",
+      "correct": true,
+      "context_bpe": 4020,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-3D82A6B3",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 3805,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-3D82A6B3",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-3D82A6B3",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "The decision was made **because E1.7 unblocks G1/G2/G4/G5 simultaneously (the plan's own critical path) and runtime-verify vs eval-engine are disjoint new components safely built in parallel worktrees.**",
+      "correct": true,
+      "context_bpe": 3280,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "The decision to sequence Tier C as Loop 1 \u2192 {Loop 2 \u2225 Loop 4} \u2192 Loop 3 \u2192 Loop 5 \u2192 Loop 6 was made **because E1.7 unblocks G1/G2/G4/G5 simultaneously (the plan's own critical path) and runtime-verify vs eval-engine are disjoint new components safely built in parallel worktrees.**",
+      "correct": true,
+      "context_bpe": 3052,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "d1dc187e-C3574D74",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "\"It's also v0.1.x beta with self-reported benchmarks and heavy branding churn (the same author renames projects often; \"meta-harness\" also refers to his separate *ruflo*).\"",
+      "correct": true,
+      "context_bpe": 3215,
+      "error": false
+    },
+    {
+      "probe_id": "d1dc187e-C3574D74",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "Based on the context, the full passage reads:\n\n\"It's also v0.1.x beta with self-reported benchmarks and **heavy branding churn (the same author renames projects often; \"meta-harness\" also refers to his separate *ruflo*).**\"\n\nThis is part of the rationale for **not porting KP_SDLC/metaharness's machinery**, concluding: \"So: **don't port the machinery. Steal four ideas**.\"",
+      "correct": true,
+      "context_bpe": 2881,
+      "error": false
+    },
+    {
+      "probe_id": "d1dc187e-C3574D74",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "d1dc187e-C3574D74",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-80AF029B",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "v0.5.0",
+      "correct": true,
+      "context_bpe": 4052,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-80AF029B",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context.\n\n(The context mentions session ca35891c had **779 turns**, not turn 869.)",
+      "correct": false,
+      "context_bpe": 3966,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-80AF029B",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-80AF029B",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "v0.5.0",
+      "correct": true,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-6DF28579-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "The reason was: **because the repo's doctrine (separation of authorship, no vacuous green) applies to agent-authored code even more than human-authored.**",
+      "correct": true,
+      "context_bpe": 3215,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-6DF28579-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "The decision was made because **the repo's doctrine (separation of authorship, no vacuous green) applies to agent-authored code even more than human-authored code**.\n\nSpecifically: every implementation agent works in an isolated worktree and every PR gets a fresh-context adversarial review before merge \u2014 the rationale being that the same principles governing human-authored code apply with even greater force to agent-authored code.",
+      "correct": true,
+      "context_bpe": 2986,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-6DF28579-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-6DF28579-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-42F74C94",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "**Decision: build the golden-path init executor as the MVP and demand-gate the rest of Epic 11 (manifest signing, profile-driven workflow activation, the automated failing-fixture proof phase, UI), because that scope retires the friction log now while each deferred piece lands when [demand arrives].**\n\n*(Source: s:ca35891c#turn1328 / Decision 42F74C94)*",
+      "correct": true,
+      "context_bpe": 4058,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-42F74C94",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "Based on the context, the full decision is:\n\n**\"Decision: build the golden-path init executor as the MVP and demand-gate the rest of Epic 11 (manifest signing, profile-driven workflow activation, the automated failing-fixture proof phase, UI), because that scope retires the friction log now while each deferred piece lands when a pilot needs it.\"**",
+      "correct": true,
+      "context_bpe": 3889,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-42F74C94",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-42F74C94",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context references ADR 0002 and describes the sdlc-init executor's design (one manifest \u2192 one executor \u2192 any surface), but does not contain a verbatim `Decision: build the golden-path init executor as the ...` statement with its completion.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-EB2A3559",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "scripts/gen_codeowners.py",
+      "correct": false,
+      "context_bpe": 4027,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-EB2A3559",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 3840,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-EB2A3559",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-EB2A3559",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C74C0CE4-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "The decision was made **because Epic 11 sits behind Loop 1, the pilot is what the plan's kill-switch requires, and the friction log from doing it by hand becomes the ground-truth spec for E11's interview** (and subsequent automation design).",
+      "correct": true,
+      "context_bpe": 4081,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C74C0CE4-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "Based on the context, the decision to start the new repo on the manual bootstrap path (rather than waiting for sdlc-init) was made for three reasons:\n\n1. **Epic 11 sits behind Loop 1** \u2014 sdlc-init (E11) is a dependency that isn't yet available.\n2. **The pilot is what the plan's kill-switch requires** \u2014 the pilot must proceed now.\n3. **The friction log from doing it by hand becomes the ground-truth spec** for E11's interview and executor phases \u2014 the manual process itself generates the specificat",
+      "correct": true,
+      "context_bpe": 3856,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C74C0CE4-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C74C0CE4-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "Not found in context.\n\nThe context does not contain a decision statement beginning with \"Decision: start the new repo on the manual ...\" or its associated reasoning.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "**Decision: sequence Tier C as Loop 1 \u2192 {Loop 2 \u2225 Loop 4} \u2192 Loop 3 \u2192 Loop 5 \u2192 Loop 6, because E1.7 unblocks G1/G2/G4/G5 simultaneously (the plan's own critical path) and runtime-verify vs eval-engine are disjoint new components safely built in parallel worktrees.**\n\n*(Source: s:9f6f1f88#turn111, Fact Id: 6bc10063de9a0afd)*",
+      "correct": true,
+      "context_bpe": 3254,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "Based on the context provided, the full decision is:\n\n**\"Decision: sequence Tier C as Loop 1 \u2192 {Loop 2 \u2225 Loop 4} \u2192 Loop 3 \u2192 Loop 5 \u2192 Loop 6, because E1.7 unblocks G1/G2/G4/G5 simultaneously (the plan's own critical path) and runtime-verify vs eval-engine are disjoint new components safely built in parallel worktrees.\"**",
+      "correct": true,
+      "context_bpe": 3025,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-F2B1E8E7",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "b620e64",
+      "correct": true,
+      "context_bpe": 4004,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-F2B1E8E7",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "Not found in context.",
+      "correct": false,
+      "context_bpe": 3838,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-F2B1E8E7",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "Not found in context",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-F2B1E8E7",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "e4f97ea",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    }
+  ]
+}
