@@ -38,9 +38,9 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 ## Current Repo State
 
 - **Branch:** `feat/literals-ledger`
-- **Last green tests:** `python -m pytest tests/test_supersession_dag.py tests/test_cross_session_why.py tests/test_session_reader.py tests/test_scorecard.py tests/test_fact_substrate.py tests/test_literals_ledger.py -q` → 77 passed (2026-07-06)
+- **Last green tests:** `python -m pytest tests/test_literals_ledger.py tests/test_session_reader.py tests/test_cross_session_why.py tests/test_supersession_dag.py tests/test_scorecard.py tests/test_conflict_lint.py tests/test_fact_substrate.py tests/test_coordination_check.py -q` → 115 passed (2026-07-06)
 - **Active owner:** Claude Code (session `eca3f61c`)
-- **In-flight work:** none blocking. Recently shipped: cross-session `why` default (#6, `7e5d3f7`); coordination board + AGENTS.md (`fb57725`); status reporter (`a18933f`)
+- **In-flight work:** none blocking. Recently shipped: identifier fidelity in `session stats` (#7, `f518bee`); reviewer-notes-only protocol (`7f2e6f8`); cross-session `why` default (#6, `7e5d3f7`); coordination board + reporter (`fb57725`/`a18933f`/`c68761f`). Next: #5 subagent-verdict capture (design call pending).
 - **Do not touch:** `CLAUDE.md` (hand-authored by the owner); `.claude/ctx/*` live ledger; committed eval results under `ctxpack/benchmarks/**/results/`
 
 ---
@@ -85,6 +85,12 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 - **Files touched:** `scripts/coordination_check.py`, `tests/test_coordination_check.py`.
 - **Tests run:** `python -m pytest tests/test_coordination_check.py -q` → 6 passed; reporter on the live board → 0 unresolved reviewer notes.
 - **Next recommended action:** none open — the reporter-fix loop is closed.
+
+### 2026-07-06 — Claude Code (session `eca3f61c`) — reviewer-notes-only + #7 fidelity
+- **What changed:** codified reviewer-notes-only (`7f2e6f8` — reviewer flags, owner fixes); shipped identifier fidelity in `session stats` (#7, `f518bee`) — every checkpoint stamps `literal_fidelity` (verbatim id recovery across the fold), surfaced as `{min, latest}` complementing `raw_fallback_rate`.
+- **Files touched:** `AGENTS.md`, `AGENT_COORDINATION.md`, `ctxpack/agent/checkpoint.py`, `ctxpack/agent/session_reader.py`, `tests/test_literals_ledger.py`.
+- **Tests run:** 115 (literals / session_reader / cross-session / DAG / scorecard / conflict-lint / fact-substrate / coordination).
+- **Next recommended action:** #5 subagent-verdict capture — a change to the parser's sidechain filter (`transcript_parser.py:517`); owner picks the capture approach before the parser is edited.
 
 ---
 
