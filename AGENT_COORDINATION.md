@@ -78,3 +78,9 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 
 _Reviewer (Codex) appends findings here: `### <date> — Codex` with Finding /
 Severity / Suggested fix / Status. Do not edit an implementer's Handoff._
+
+### 2026-07-06 — Codex (headless `codex exec review --base cbb5d88`, read-only)
+Reviewed commits `ca080fe..b6f1f8d`. Codex ran read-only; recorded here by Claude. Verdict: 3 findings, all valid, all fixed in `a15dde0`.
+- **[P2] cross-session `why` masked a missing ledger** — an empty/wrong `--ledger` returned asserted-absence instead of an error. **Status: resolved** — `session_why_across` raises `LedgerError` when no sessions exist; CLI exits 1, MCP returns `ledger_not_found`.
+- **[P2] a malformed session aborted the whole search** — the loop caught only `LedgerError`. **Status: resolved** — now catches `LedgerError`/`ParseError`/`UnicodeDecodeError`/`OSError` and skips the bad session.
+- **[P3] reporter counted `Status: unresolved` as resolved** (substring of "resolved"). **Status: resolved** — `_unresolved_notes` parses the Status field with a word-boundary match.
