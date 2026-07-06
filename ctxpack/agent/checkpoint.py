@@ -353,6 +353,35 @@ def _emit_events(out_dir: str, parsed: ParsedTranscript, corpus,
     return len(rows)
 
 
+def _literal_fidelity(corpus, ledger_text: str) -> "tuple[float, int, int]":
+    """(fidelity, extracted, recovered) — the fraction of parser-extracted
+    literal VALUES recoverable verbatim by RE-PARSING the serialized
+    ledger (feedback #7, the identifier-fidelity-across-fold signal).
+
+    1.0 = the compress→serialize→parse fold is lossless for ids. Unlike
+    raw_fallback_rate (recall), this catches the read path silently
+    corrupting/dropping an id — e.g. the bracket blast-radius class, where
+    the gist looked fine but 177/193 entities vanished on parse-back.
+    Fail-safe: any error scores 0.0 (a visible dip, never a hidden pass)."""
+    extracted = {
+        next((f.value for f in e.fields if f.key == "VALUE"), "")
+        for e in corpus.entities if e.name.startswith("LITERAL")}
+    extracted.discard("")
+    if not extracted:
+        return 1.0, 0, 0
+    try:
+        from ..core.parser import parse
+        from .session_reader import _kind_of, _kv, _sections
+        reparsed = parse(ledger_text, level=2)
+        recovered = {_kv(s, "VALUE") for s in _sections(reparsed)
+                     if _kind_of(s) == "LITERAL"}
+        recovered.discard("")
+    except Exception:  # noqa: BLE001 — a fidelity probe must never break a checkpoint
+        return 0.0, len(extracted), 0
+    hit = len(extracted & recovered)
+    return round(hit / len(extracted), 4), len(extracted), len(recovered)
+
+
 def run_checkpoint(
     transcript_path: str,
     out_dir: str = ".claude/ctx",
@@ -423,6 +452,8 @@ def run_checkpoint(
         f.write(gist_text)
 
     gist_bpe = _count_bpe(gist_text)
+    lit_fidelity, lit_extracted, lit_recovered = _literal_fidelity(
+        corpus, ledger_text)
     import datetime
     journal_entry = {
         "ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -433,6 +464,11 @@ def run_checkpoint(
         "sha256": sha,
         "gist_bpe": gist_bpe,
         "latency_ms": round((time.perf_counter() - t0) * 1000, 1),
+        # identifier fidelity across the fold (feedback #7): 1.0 = the
+        # ledger is lossless for ids; a dip means the read path dropped one
+        "literal_fidelity": lit_fidelity,
+        "literals_extracted": lit_extracted,
+        "literals_recovered": lit_recovered,
         # the policy actually used, so folds stay A/B-testable offline
         # against the same event log (spec v1.1 §6)
         "rank_policy": policy,

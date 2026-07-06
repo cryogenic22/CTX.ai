@@ -666,6 +666,12 @@ def session_stats(ledger_dir: str = DEFAULT_LEDGER_DIR) -> dict[str, Any]:
                  if isinstance(row.get("latency_ms"), (int, float))]
     gists = [row["gist_bpe"] for row in last_per_session.values()
              if isinstance(row.get("gist_bpe"), int)]
+    # identifier fidelity across the fold (feedback #7) — complements
+    # raw_fallback_rate: recall says the id was found, fidelity says it was
+    # found VERBATIM. `min` is the honest headline (the worst any checkpoint
+    # ever did); rows before this feature carry no value and are skipped.
+    fidelities = [row["literal_fidelity"] for row in rows
+                  if isinstance(row.get("literal_fidelity"), (int, float))]
 
     return {
         "ledger_dir": ledger_dir,
@@ -682,6 +688,11 @@ def session_stats(ledger_dir: str = DEFAULT_LEDGER_DIR) -> dict[str, Any]:
             "raw_fallback_rate": fallback_rate,
         },
         "gist_bpe": {"latest_per_session": sorted(gists)} if gists else {},
+        "identifier_fidelity": {
+            "min": min(fidelities),
+            "latest": fidelities[-1],
+            "checkpoints_measured": len(fidelities),
+        } if fidelities else {},
         "checkpoint_latency_ms": {
             "max": max(latencies), "mean": round(
                 sum(latencies) / len(latencies), 1),

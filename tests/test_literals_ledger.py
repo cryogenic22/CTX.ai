@@ -281,3 +281,58 @@ def test_identifier_fidelity_across_fold(tmp_path):
         res = session_why(doc, sid, value)
         assert res["count"] >= 1, (
             f"literal {value!r} not recoverable from the ledger after the fold")
+
+
+def test_checkpoint_stamps_literal_fidelity(tmp_path):
+    """Feedback #7: every checkpoint records identifier fidelity across the
+    fold — 1.0 when the ledger round-trips every id verbatim."""
+    from ctxpack.agent.checkpoint import run_checkpoint
+
+    text = ("Decision: pin session 508e5733-56aa-46e7-975b-ed2be637d643. "
+            "Shipped `b1dda66` in PR #305, bumped v0.5.0.")
+    tp = tmp_path / "s.jsonl"
+    tp.write_text(json.dumps(_entry("assistant", [{"type": "text", "text": text}])),
+                  encoding="utf-8")
+    out = tmp_path / "ctx"
+    run_checkpoint(str(tp), str(out), as_of="2026-07-04")
+
+    row = json.loads((out / "checkpoints.jsonl").read_text(
+        encoding="utf-8").splitlines()[-1])
+    assert row["literal_fidelity"] == 1.0
+    assert row["literals_extracted"] > 0
+    assert row["literals_recovered"] == row["literals_extracted"]
+
+
+def test_session_stats_surfaces_identifier_fidelity(tmp_path):
+    from ctxpack.agent.checkpoint import run_checkpoint
+    from ctxpack.agent.session_reader import session_stats
+
+    tp = tmp_path / "s.jsonl"
+    tp.write_text(json.dumps(_entry("assistant", [{"type": "text", "text":
+        "Shipped `b1dda66`, bumped v0.5.0, fixed `services/llm.py:42`."}])),
+        encoding="utf-8")
+    out = tmp_path / "ctx"
+    run_checkpoint(str(tp), str(out), as_of="2026-07-04")
+
+    fid = session_stats(str(out))["identifier_fidelity"]
+    assert fid["min"] == 1.0 and fid["latest"] == 1.0
+    assert fid["checkpoints_measured"] >= 1
+
+
+def test_literal_fidelity_flags_lost_ids(tmp_path):
+    # the metric must DETECT loss, not always read 1.0
+    from ctxpack.agent.checkpoint import _literal_fidelity, run_checkpoint
+
+    tp = tmp_path / "s.jsonl"
+    tp.write_text(json.dumps(_entry("assistant", [{"type": "text", "text":
+        "Shipped `b1dda66` and bumped v0.5.0."}])), encoding="utf-8")
+    out = tmp_path / "ctx"
+    run_checkpoint(str(tp), str(out), as_of="2026-07-04")
+    ledger_text = (out / "session-abcd1234.ctx").read_text(encoding="utf-8")
+    corpus = parse_transcript(str(tp)).corpus
+
+    full, ext, rec = _literal_fidelity(corpus, ledger_text)
+    assert full == 1.0 and ext >= 2 and rec == ext
+    # a ledger that recovers nothing scores 0.0 — a visible dip, never hidden
+    lost, ext2, rec2 = _literal_fidelity(corpus, "")
+    assert lost == 0.0 and ext2 >= 2 and rec2 == 0
