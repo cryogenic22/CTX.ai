@@ -94,3 +94,12 @@ flattering one.
   `ctxpack/benchmarks/compactbench/PREREGISTRATION.md` before any full
   run; full 6-arm pre-registered run ≈ $2/cell × 30 cells ≈ $60 on
   haiku, `--no-adherence` roughly halves it)
+
+## Agent coordination
+
+At session start, read `AGENT_COORDINATION.md` (the multi-agent coordination
+board) and act on anything addressed to you; before stopping, append a concise
+handoff with files touched, tests run, risks, and open reviewer questions. The
+board is the operating surface — `.claude/ctx/` stays the receipt layer, so
+link fact_ids / commit shas rather than restating them. Read-only status:
+`python scripts/coordination_check.py`.
