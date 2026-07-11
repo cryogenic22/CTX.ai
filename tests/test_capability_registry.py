@@ -70,14 +70,18 @@ def test_absolute_import_of_legacy_also_fails(tmp_path):
 def test_agent_package_import_does_not_load_state_parser():
     # the Q2-5 contradiction itself: importing the core package (as any
     # hook or MCP consumer does) must not execute the eval-tier
-    # state_parser; compress_state loads it lazily on first call
-    import importlib
-    import sys
-    for name in [n for n in list(sys.modules)
-                 if n == "ctxpack.agent" or n.startswith("ctxpack.agent.")]:
-        del sys.modules[name]
-    agent = importlib.import_module("ctxpack.agent")
-    assert "ctxpack.agent.state_parser" not in sys.modules
-    result = agent.compress_state([{"decision": "use exponential backoff"}])
-    assert "ctxpack.agent.state_parser" in sys.modules  # loaded lazily
-    assert result.step_count == 1
+    # state_parser; compress_state loads it lazily on first call.
+    # Run in a SUBPROCESS: purging sys.modules in-process re-imports
+    # ctxpack.agent with new class identities and breaks later tests.
+    import subprocess
+    code = (
+        "import sys; import ctxpack.agent as a; "
+        "assert 'ctxpack.agent.state_parser' not in sys.modules, "
+        "'state_parser loaded eagerly by the package init'; "
+        "r = a.compress_state([{'decision': 'use exponential backoff'}]); "
+        "assert 'ctxpack.agent.state_parser' in sys.modules; "
+        "assert r.step_count == 1"
+    )
+    proc = subprocess.run([sys.executable, "-c", code], cwd=str(ROOT),
+                          capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stderr
