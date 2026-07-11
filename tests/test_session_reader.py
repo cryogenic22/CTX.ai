@@ -120,6 +120,18 @@ def test_recall_by_query(ledger):
     assert "backoff" in result["text"].lower()
 
 
+def test_recall_estimate_describes_the_returned_text(ledger):
+    # Q2-1: session_recall emits PROSE — the reported estimate and label
+    # must describe that exact string, not the hydrator's internal raw
+    # .ctx budget count
+    from ctxpack.core.tokens import estimate_tokens, estimator_label
+    doc, sid = load_session(ledger)
+    result = session_recall(doc, sid, query="exponential backoff retry")
+    assert result["token_estimator"] == estimator_label("prose")
+    assert result["tokens_injected"] == estimate_tokens(
+        result["text"], kind="prose")
+
+
 def test_timeline_is_turn_ordered_and_filterable(ledger):
     doc, sid = load_session(ledger)
     full = session_timeline(doc, sid)

@@ -63,6 +63,36 @@ def test_mcp_pack_metrics_never_say_bare_tokens(tmp_path):
     assert "compression_ratio_words" in metrics
 
 
+def test_mcp_hydrate_estimates_the_emitted_representation(tmp_path):
+    """Q2-1: prose and raw responses estimate THEIR OWN text, each
+    carrying the matching estimator label."""
+    from ctxpack.integrations.mcp_server import handle_hydrate, handle_pack
+
+    (tmp_path / "svc.yaml").write_text(
+        "service: billing\nowner: core-team\nsla: '99.9'\n"
+        "note: do not restart without draining\n", encoding="utf-8")
+    ctx_text = json.loads(handle_pack({"corpus_dir": str(tmp_path)}))[
+        "ctx_text"]
+    ctx_file = tmp_path / "packed.ctx"
+    ctx_file.write_text(ctx_text, encoding="utf-8")
+
+    prose = json.loads(handle_hydrate(
+        {"file_path": str(ctx_file), "query": "billing restart drain"}))
+    assert prose["format"] == "prose"
+    assert prose["token_estimator"] == estimator_label("prose")
+    assert prose["tokens_injected"] == estimate_tokens(
+        prose["ctx_text"], kind="prose")
+
+    raw = json.loads(handle_hydrate(
+        {"file_path": str(ctx_file), "query": "billing restart drain",
+         "raw": True}))
+    assert raw["format"] == "ctx"
+    assert raw["token_estimator"] == estimator_label("ctx")
+    assert raw["tokens_injected"] == estimate_tokens(
+        raw["ctx_text"], kind="ctx")
+    assert raw["ctx_text"] != prose["ctx_text"]
+
+
 def _load_expected():
     spec = json.loads(EXPECTED.read_text(encoding="utf-8"))
     assert len(spec["files"]) >= 5, "calibration corpus went missing"

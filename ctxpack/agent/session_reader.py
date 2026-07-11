@@ -31,6 +31,7 @@ from ..core.hydrator import hydrate_by_name, hydrate_by_query, list_sections
 from ..core.model import CTXDocument, KeyValue, Section
 from ..core.parser import parse
 from ..core.serializer import serialize_section
+from ..core.tokens import estimate_tokens, estimator_label
 
 DEFAULT_LEDGER_DIR = ".claude/ctx"
 
@@ -245,14 +246,17 @@ def session_recall(
     for s in result.sections:
         prose.extend(serialize_section(s, natural_language=True))
         prose.append("")
+    text = "\n".join(prose).strip()
+    # Q2-1: the estimate must describe the text actually RETURNED (the
+    # prose render), not the raw .ctx the hydrator counted internally
     return {
         "session": sid,
         "found": True,
         "sections_matched": len(result.sections),
         "sections_available": result.sections_available,
-        "tokens_injected": result.tokens_injected,
-        "token_estimator": result.token_estimator,
-        "text": "\n".join(prose).strip(),
+        "tokens_injected": estimate_tokens(text, kind="prose"),
+        "token_estimator": estimator_label("prose"),
+        "text": text,
     }
 
 

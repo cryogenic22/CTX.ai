@@ -546,7 +546,8 @@ def _cmd_pack(args: argparse.Namespace) -> int:
             print(f"  Manifest: {manifest_path}")
 
         print(f"  Entities: {result.entity_count}")
-        print(f"  Source tokens: ~{result.source_token_count}")
+        # whitespace word count — never presented as tokens (W1-3/Q2-1)
+        print(f"  Source words: ~{result.source_token_count}")
         print(f"  Warnings: {result.warning_count}")
     else:
         print(output_text, end="")
@@ -578,21 +579,25 @@ def _cmd_hydrate(args: argparse.Namespace) -> int:
         print("Provide --section, --query, or --list", file=sys.stderr)
         return 1
 
-    # Print header
-    if result.header_text:
-        print(result.header_text)
-        print()
-
-    # Print matched sections — prose by default for LLM consumption
+    # Emit header + matched sections — prose by default for LLM
+    # consumption; the summary estimate describes THIS emitted text,
+    # not the hydrator's internal raw-.ctx budget count (Q2-1)
+    from ..core.tokens import estimate_tokens, estimator_label
     use_raw = getattr(args, "raw", False)
+    emitted: list[str] = []
+    if result.header_text:
+        emitted.append(result.header_text)
+        emitted.append("")
     for section in result.sections:
-        for line in serialize_section(section, natural_language=not use_raw):
-            print(line)
-        print()
+        emitted.extend(serialize_section(section, natural_language=not use_raw))
+        emitted.append("")
+    out_text = "\n".join(emitted)
+    print(out_text, end="\n" if out_text else "")
 
-    # Summary to stderr
+    kind = "ctx" if use_raw else "prose"
     print(f"[{len(result.sections)}/{result.sections_available} sections, "
-          f"~{result.tokens_injected} tokens ({result.token_estimator})]",
+          f"~{estimate_tokens(out_text, kind=kind)} tokens "
+          f"({estimator_label(kind)})]",
           file=sys.stderr)
     return 0
 
@@ -730,7 +735,9 @@ def _cmd_telemetry(args: argparse.Namespace) -> int:
         print(f"{'='*50}")
         print(f"  Total hydrations:       {summary['total_hydrations']}")
         print(f"  Unique sessions:        {summary['unique_sessions']}")
-        print(f"  Avg tokens/hydration:   {summary['avg_tokens_per_hydration']:.1f}")
+        for label, row in summary["tokens_by_estimator"].items():
+            print(f"  Avg tokens/hydration:   {row['avg_tokens']:.1f} "
+                  f"({label}, {row['events']} events)")
         print(f"  Avg latency (ms):       {summary['avg_latency_ms']:.2f}")
         print(f"  Rehydration rate:       {summary['rehydration_rate']:.1%}")
         print(f"  Zero-match rate:        {summary['zero_match_rate']:.1%}")

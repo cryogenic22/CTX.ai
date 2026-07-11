@@ -39,7 +39,7 @@ from ..core.json_export import to_json
 from ..core.parser import parse
 from ..core.serializer import serialize, serialize_iter, serialize_section
 from ..core.telemetry import TelemetryLog
-from ..core.tokens import ESTIMATOR_CTX, estimate_tokens
+from ..core.tokens import ESTIMATOR_CTX, estimate_tokens, estimator_label
 from ..core.validator import validate
 
 # Packer import (may fail if corpus tools not needed)
@@ -789,12 +789,17 @@ def handle_hydrate(arguments: dict[str, Any], telemetry: TelemetryLog | None = N
             lines.append(line)
         lines.append("")
 
+    # Q2-1: estimate the representation actually emitted (prose or raw
+    # .ctx per raw_format), and say which estimator produced the number
+    emitted = "\n".join(lines)
+    kind = "prose" if use_nl else "ctx"
     return json.dumps({
         "sections_matched": len(result.sections),
         "sections_available": result.sections_available,
-        "tokens_injected": result.tokens_injected,
+        "tokens_injected": estimate_tokens(emitted, kind=kind),
+        "token_estimator": estimator_label(kind),
         "format": "prose" if use_nl else "ctx",
-        "ctx_text": "\n".join(lines),
+        "ctx_text": emitted,
     }, indent=2)
 
 

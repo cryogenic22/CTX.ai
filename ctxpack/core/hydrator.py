@@ -32,6 +32,12 @@ class HydrationResult:
     """Result of hydrating sections from a .ctx document."""
 
     sections: list[Section] = field(default_factory=list)
+    # tokens_injected estimates the raw .ctx serialization (the storage
+    # representation) — it drives hydration BUDGET decisions and
+    # telemetry, and is labelled ESTIMATOR_CTX. It does NOT describe a
+    # consumer's emitted render: a surface that emits prose
+    # (natural_language=True) must estimate its own final string with
+    # kind="prose" and report that label instead (Q2-1).
     tokens_injected: int = 0
     sections_available: int = 0
     header_text: str = ""
