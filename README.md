@@ -187,7 +187,7 @@ ctxpack/
     transcript_parser.py  # Claude Code JSONL → IR (structured signals, turn provenance)
     checkpoint.py         # Pack-on-compact engine + gist builder
     session_reader.py     # Read path: resume/recall/timeline/decisions/why/literals/stats
-  modules/           # Opt-in modules (grounding, keywords, guard, analytics)
+  modules/           # Experimental / legacy prototypes — not product (see registry)
   integrations/      # MCP server (20 tools)
   cli/               # ctxpack CLI (pack, hydrate, checkpoint, hook, onboard, session, ...)
   benchmarks/        # Eval framework, agentic NIAH + graph generators, metrics
@@ -196,6 +196,11 @@ paper/               # Whitepaper, status-and-value (current honest numbers), pl
 docs/                # Team onboarding guide
 tests/               # 1,323 tests; core suite deterministic, no API keys
 ```
+
+Every module is classified **core / eval / experimental /
+legacy-deprecation-candidate** in the machine-checked
+[capability registry](docs/capability-registry.md) — anything not
+labelled core is not validated product capability.
 
 ## Tests & rigor
 
