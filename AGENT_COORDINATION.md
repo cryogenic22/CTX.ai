@@ -38,9 +38,9 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 ## Current Repo State
 
 - **Branch:** `feat/literals-ledger`
-- **Last green tests:** `python -m pytest tests/test_subagent_verdicts.py tests/test_transcript_parser.py tests/test_literals_ledger.py tests/test_session_reader.py tests/test_p0_trust_repairs.py -q` → 101 passed (incl. negation + determinism gates, 2026-07-06)
-- **Active owner:** Claude Code (session `f40335cc`)
-- **In-flight work:** Q2 review-response fixes SHIPPED (all 5 findings, `af542a2..a1416b8` — awaiting reviewer re-check); A5 drift-fork/v2 prereg DESIGN committed (`af71a6d`) awaiting reviewer approval, then owner's ≤$2 run authorization; fork-surfacing implementation PARKED on `feat/fork-surfacing-parked` (`cf2753c`) pending A5 + separate code review. Next big rocks per plan: E-1 probe hardening / E-2 CompactBench prereg v2, E-6 security elevated; cohort read-path report (~07-18).
+- **Last green tests:** `python -m pytest tests/test_fork_cluster.py tests/test_fork_probe.py tests/test_resume_probe.py tests/test_supersession_dag.py tests/test_negation_preservation.py tests/test_p0_trust_repairs.py -q` → 70 passed (incl. negation + determinism gates, 2026-07-12); three standing gates green
+- **Active owner:** Claude Code (session `b6331eef`)
+- **In-flight work:** Q2 review-response fixes SHIPPED (all 5 findings, `af542a2..a1416b8` — awaiting reviewer re-check); A5 drift-fork/v2 prereg (`af71a6d`) + HARNESS now SHIPPED (`af6dda5` + dry-run receipt `94e31c4`) — awaiting reviewer approval (**Q4**), then owner's ≤$2 run authorization; fork-surfacing implementation PARKED on `feat/fork-surfacing-parked` (`cf2753c`) pending A5 + separate code review. Next big rocks per plan: E-1 probe hardening / E-2 CompactBench prereg v2, E-6 security elevated; cohort read-path report (~07-18).
 - **Do not touch:** `CLAUDE.md` (hand-authored by the owner); `.claude/ctx/*` live ledger; committed eval results under `ctxpack/benchmarks/**/results/`
 
 ---
@@ -65,6 +65,12 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
   - Context: prereg A3+A4 in `ctxpack/benchmarks/agentic/PREREGISTRATION-resume-probe.md`; commits `f7beb16..3773d89`. The first smoke false-passed 3/3 nowarn answers (linear-recency dismissal of the other head); A4 now requires a pinned conflict token PLUS an exact anchor (v2 verbatim, or both head sids).
   - Specific asks: (a) false-pass/false-miss modes in the pinned token list (`conflict/unreconciled/unresolved/fork/diverg/competing/contradict`; `superseded` deliberately excluded)? (b) is the honesty gate (v2 must be present in the nowarn context) the right presence control, or should presence be an assumption stamped per probe? (c) any objection to grep = all fixture transcripts at max(ctx arms) budget?
   - Reviewer: findings under Reviewer Notes (or here); notes-only — owner applies fixes.
+
+- [ ] **Q4 — A5 harness approval: drift-fork/v2 is built; approve text + harness (+ notes) before any paid call.** *(queue after Q2 re-check)*
+  - Asked by: Claude Code (session `b6331eef`), 2026-07-12
+  - Harness: `af6dda5` (`fork_cluster.py`, `run_resume_probe.py --probe-set drift-fork-v2`, 22 tests); zero-cost 8-cluster dry-run receipt: `94e31c4` (96 completions enumerated, all presence receipts pass, `pad_delta=0` everywhere, grep ≤ warn budget). Harness notes appended to the prereg (pre-approval, part of the reviewable package).
+  - Specific asks: **(a)** cost-table correction — the A5 Arms section pins 4 contexts for fork probes but the Cost arithmetic said "3 arms"; harness implements the Arms section (96 completions ≈ $1.1–1.5, ceiling $2 unchanged). OK, or drop the unpadded `ctx-nowarn` secondary arm back to 80? **(b)** false-alarm control: on the clean no-fork ledger the product warning is correctly EMPTY, so the two ctx arms coincide by construction — the control measures fork-vs-linear discrimination + inverted-grade specificity. Acceptable as pinned, or should the control take a different shape? **(c)** inverted-grade anchors for false alarms pinned as prior chain values (vB/v0) verbatim or both chain sids — any modes missed?
+  - Reviewer: findings under Reviewer Notes (or here); notes-only — owner applies fixes. After approval, the scored run additionally waits on Kapil's explicit ≤$2 go.
 
 ---
 
@@ -143,6 +149,13 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 - **Tests run:** 177 across all touched suites + the three standing gates green (registry, claims, tool budget); full sweep includes negation-preservation + determinism gates.
 - **Risks / concerns:** Q2-3 partially applied by design — line-FAIL outside README stays gated on the banked false-positive kill condition (papers/docs warn with per-file summaries instead); reviewer may want more. The smoke-to-bill ≤5% reconciliation (Q2-2 validation) is a live step needing separate approval. README's unevidenced `<2s` hook-latency claim was REMOVED rather than ledgered (no immutable artifact exists for it).
 - **Next recommended action:** reviewer re-checks the five fixes (statuses link shas) + approves/amends A5; then Kapil's ≤$2 authorization for the drift-fork/v2 scored run. E-1/E-2 remain the next plan items.
+
+### 2026-07-12 — Claude Code (session `b6331eef`) — A5 drift-fork/v2 harness shipped
+- **What changed:** the A5 harness (`af6dda5`): `fork_cluster.py` — 8 pinned independent clusters (distinct ledger dirs, sid pairs, key/value families; run-wide non-substring + conflict-token validation), each with 2 planted forks + 1 linear displacement key plus a no-fork variant, ALL built through the real checkpoint producer; fixed-budget primary arms via a pinned sha256-stamped neutral filler (exact BPE parity — dry-run shows `pad_delta=0` on every padded arm, abort at |Δ|>3); per-probe presence receipts with the pinned >1-exclusion abort; cluster-level sign test / Wilson intervals / false-alarm gate / unlock. Runner: `--probe-set drift-fork-v2`, deterministic 96-completion enumeration, live-run interlock (`--authorized-run` required; `--clusters` dry-run only). Zero-cost dry-run receipt committed (`94e31c4`). Prereg harness notes appended pre-approval (cost-table arm-count correction 96-vs-80 among them — flagged as Q4 ask (a)).
+- **Files touched:** `ctxpack/benchmarks/agentic/fork_cluster.py` (new), `run_resume_probe.py`, `tests/test_fork_cluster.py` (new, 22 tests), `ctxpack/benchmarks/agentic/PREREGISTRATION-resume-probe.md`, 1 result artifact (dry-run receipt).
+- **Tests run:** 70 across fork/resume/DAG suites incl. negation-preservation + determinism gates; capability-registry, claims, and tool-budget gates green; end-to-end 8-cluster dry run verified (no API calls).
+- **Risks / concerns:** the false-alarm control's two ctx arms coincide by construction (disclosed — Q4 ask (b)); A4's pinned-token under-count disclosure carries over arm-symmetrically; fixture remains synthetic (`fork_source` stamped) — a real cohort fork still supersedes it as preferred source.
+- **Next recommended action:** Codex reviews Q2 fixes re-check + Q4 (A5 text + harness + notes). On approval, Kapil's explicit ≤$2 authorization unlocks the scored run (runner enforces the interlock). Owner's next plan items meanwhile: E-1 probe hardening / E-2 CompactBench prereg v2.
 
 ---
 
