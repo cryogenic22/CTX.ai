@@ -52,11 +52,12 @@ This idempotently wires four things:
    ~10 turns** (debounced; `CTXPACK_STOP_DEBOUNCE_TURNS` to tune), so
    even a hard crash — VS Code killed, power loss — costs at most a few
    turns of ledger staleness, recoverable from the raw transcript.
-2. **MCP server** into `.mcp.json` — the read-path tools
-   (`ctx/resume`, `ctx/session_recall`, `ctx/session_timeline`,
-   `ctx/session_decisions`, `ctx/session_literals`, `ctx/why`,
-   `ctx/graph_query`), the agent-invokable write path (`ctx/checkpoint`),
-   plus the doc/code packer tools.
+2. **MCP server** into `.mcp.json` — the **default agent surface is
+   five operations**: `ctx/resume`, `ctx/session_recall`, `ctx/why`,
+   `ctx/session_literals`, and the agent-invokable write path
+   `ctx/checkpoint`. Advanced tools (`ctx/session_timeline`,
+   `ctx/session_decisions`, `ctx/graph_query`) and the doc/code packer
+   tools are there when the five defaults aren't enough.
 3. **CLAUDE.md conventions** (marker-guarded, versioned block) — tells
    every session to state decisions as `Decision: ...` lines (and its own
    operating rules as `Constraint: ...`) and to use the ledger read path

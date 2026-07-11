@@ -65,10 +65,11 @@ ctxpack session stats                  # adoption + capture metrics (see below)
 ctxpack checkpoint                     # bank the live session NOW (auto-resolves the transcript)
 ```
 
-The same operations are MCP tools (`ctx/resume`, `ctx/session_recall`,
-`ctx/session_timeline`, `ctx/session_decisions`, `ctx/session_literals`,
-`ctx/why`, `ctx/graph_query`, plus the agent-invokable write path
-`ctx/checkpoint`) for agents with the server connected.
+The same operations are MCP tools. The **default agent surface is five
+operations** — `ctx/resume`, `ctx/session_recall`, `ctx/why`,
+`ctx/session_literals`, `ctx/checkpoint` (the agent-invokable write
+path) — with `ctx/session_timeline`, `ctx/session_decisions`, and
+`ctx/graph_query` available as advanced tools when those aren't enough.
 
 **The one habit that matters:** state decisions explicitly —
 `Decision: use exponential backoff with base 750ms because the vendor
@@ -155,7 +156,8 @@ python -m ctxpack.integrations.mcp_server
 
 | Group | Tools |
 |---|---|
-| Session memory | `ctx/resume`, `ctx/session_recall`, `ctx/session_timeline`, `ctx/session_decisions`, `ctx/session_literals`, `ctx/why`, `ctx/graph_query`, `ctx/checkpoint` |
+| Session memory — default surface | `ctx/resume`, `ctx/session_recall`, `ctx/why`, `ctx/session_literals`, `ctx/checkpoint` |
+| Session memory — advanced | `ctx/session_timeline`, `ctx/session_decisions`, `ctx/graph_query` |
 | Documents | `ctx/pack`, `ctx/parse`, `ctx/validate`, `ctx/format`, `ctx/hydrate` |
 | Code packer (`[code]` extra) | `ctx/code_pack`, `ctx/code_version`, `ctx/code_list_symbols`, `ctx/code_hydrate_symbol`, `ctx/code_search_symbols`, `ctx/code_raw_file`, `ctx/code_telemetry` |
 
