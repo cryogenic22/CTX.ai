@@ -22,19 +22,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# Calibration runs against REAL committed artifacts, not synthetic
-# strings — synthetic .ctx mixes measured anywhere from 2.5 to 3.9
-# chars/token depending on prose/symbol balance, while every real
-# committed .ctx artifact sits in 2.73-3.16 (measured vs cl100k_base,
-# 2026-07-11, chars/3 error -9%..+5%).
-CTX_ARTIFACTS = [
-    "ctx_mod.ctx",
-    "spec/CTXPACK-SPEC.L2.ctx",
-    "paper/ctxpack-whitepaper.L2.ctx",
-    ".claude/ctx/session-eca3f61c.ctx",
-    ".claude/ctx/session-bdfbd48b.ctx",
-]
-PROSE_ARTIFACTS = ["README.md", "docs/session-memory-onboarding.md"]
+# Calibration runs against FROZEN fixtures with committed cl100k
+# counts (reviewer finding Q2-4: live dogfood ledgers are mutable, and
+# importorskip made the whole gate optional in a pytest-only CI).
+# Provenance + edit protocol: tests/fixtures/token_calibration/README.md
+FIXTURE_DIR = ROOT / "tests" / "fixtures" / "token_calibration"
+EXPECTED = FIXTURE_DIR / "expected_cl100k.json"
 
 CTX_SAMPLE = "KEY:value | TIER:2\nDEPS:svc-1,svc-2 -> gw\n" * 20
 
@@ -70,27 +63,61 @@ def test_mcp_pack_metrics_never_say_bare_tokens(tmp_path):
     assert "compression_ratio_words" in metrics
 
 
-def test_calibration_against_cl100k():
+def _load_expected():
+    spec = json.loads(EXPECTED.read_text(encoding="utf-8"))
+    assert len(spec["files"]) >= 5, "calibration corpus went missing"
+    return spec
+
+
+def test_calibration_fixtures_are_intact():
+    """sha256 pinning — runs everywhere, no tiktoken needed. An edited
+    fixture without a re-measured count fails HERE, loudly."""
+    import hashlib
+    spec = _load_expected()
+    for name, meta in spec["files"].items():
+        raw = (FIXTURE_DIR / name).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == meta["sha256"], (
+            f"{name} changed without re-measuring — see "
+            f"tests/fixtures/token_calibration/README.md")
+
+
+def test_calibration_against_frozen_cl100k():
+    """The drift gate (kill threshold 15%): ALWAYS runs — ground truth
+    is the committed cl100k counts, so a pytest-only CI still enforces
+    it. The <=5% target is reported separately and is not a gate."""
+    spec = _load_expected()
+    kill, target_misses = [], []
+    for name, meta in spec["files"].items():
+        # raw-bytes decode: the committed bytes are the canonical text —
+        # read_text() newline translation would silently shift counts
+        text = (FIXTURE_DIR / name).read_bytes().decode("utf-8")
+        estimate = estimate_tokens(text, kind=meta["kind"])
+        err = (estimate - meta["cl100k"]) / meta["cl100k"]
+        print(f"calibration {meta['kind']} {name}: est={estimate} "
+              f"cl100k={meta['cl100k']} err={err:+.1%}")
+        if abs(err) > 0.15:
+            kill.append(f"{name}: {err:+.1%}")
+        elif abs(err) > 0.05:
+            target_misses.append(f"{name}: {err:+.1%}")
+    n = len(spec["files"])
+    print(f"calibration target (<=5%): {n - len(target_misses) - len(kill)}"
+          f"/{n} met; target misses (reported, not gated): "
+          f"{target_misses or 'none'}")
+    assert not kill, (
+        f"estimator over the 15% kill threshold on: {kill} — "
+        f"recalibrate divisors in core/tokens.py")
+
+
+def test_frozen_counts_match_live_tokenizer():
+    """Integrity re-measure — the only tiktoken-gated piece: verifies
+    the COMMITTED counts against the live cl100k encoding when the
+    tokenizer is installed (dedicated CI job installs it)."""
     tiktoken = pytest.importorskip("tiktoken")
     enc = tiktoken.get_encoding("cl100k_base")
-
-    checked = 0
-    for paths, kind in ((CTX_ARTIFACTS, "ctx"), (PROSE_ARTIFACTS, "prose")):
-        for rel in paths:
-            p = ROOT / rel
-            if not p.is_file():
-                continue
-            text = p.read_text(encoding="utf-8", errors="replace")
-            actual = len(enc.encode(text, disallowed_special=()))
-            if actual < 500:
-                continue
-            estimate = estimate_tokens(text, kind=kind)
-            err = (estimate - actual) / actual
-            checked += 1
-            print(f"calibration {kind} {rel}: est={estimate} "
-                  f"actual={actual} err={err:+.1%}")
-            assert abs(err) <= 0.15, (
-                f"{kind} estimator drifted {err:+.1%} from cl100k on "
-                f"{rel} — over the 15% kill threshold; recalibrate "
-                f"divisors in core/tokens.py")
-    assert checked >= 3, "calibration corpus went missing"
+    spec = _load_expected()
+    for name, meta in spec["files"].items():
+        text = (FIXTURE_DIR / name).read_bytes().decode("utf-8")
+        live = len(enc.encode(text, disallowed_special=()))
+        assert live == meta["cl100k"], (
+            f"{name}: committed count {meta['cl100k']} != live {live} — "
+            f"tokenizer version drift or stale expected_cl100k.json")

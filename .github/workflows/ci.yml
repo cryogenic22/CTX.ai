@@ -24,3 +24,19 @@ jobs:
         run: pip install pytest
       - name: Run tests
         run: python -m pytest tests/ -x -q
+
+  # Dedicated tokenizer job (reviewer finding Q2-4): the calibration
+  # KILL gate runs everywhere via committed cl100k counts; this job
+  # additionally installs tiktoken so the frozen counts are re-verified
+  # against the live encoding on every push.
+  tokenizer-calibration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package + tokenizer
+        run: pip install -e . pytest tiktoken
+      - name: Run token-accounting gate (with live tokenizer)
+        run: python -m pytest tests/test_token_accounting.py -q

@@ -1,0 +1,250 @@
+§CTX v1.0 L2 DOMAIN:session-eca3f61c
+COMPRESSED:2026-07-06 SOURCE_TOKENS:~678 CTX_TOKENS:~960 RATIO:~0.9x
+
+±ENTITY-USER-REQUEST-EEE0BBBA
+REQUEST:continue
+TURN:1
+FACT-ID:093890bd932a5a2a
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn1
+±ENTITY-TASK-CC7C4656
+TASK:Re-materialize CTX_mod + KP_SDLC ledgers under rank/v1
+TURN:35
+SRC:session:eca3f61c#turn35
+±ENTITY-TASK-EAF56EBE
+TASK:Run drift + recall probe re-runs (rank/v1 delta)
+TURN:37
+SRC:session:eca3f61c#turn37
+±ENTITY-TASK-393AD1D1
+TASK:Fix same-session temporal filtering in conflict_lint.py
+TURN:92
+SRC:session:eca3f61c#turn92
+±ENTITY-TASK-8FBE2BE2
+TASK:Update onboard CLAUDE.md template with turn-final + Supersedes conventions
+TURN:94
+SRC:session:eca3f61c#turn94
+±ENTITY-TASK-603FB616
+TASK:Journal lint_status so lint crashes are distinguishable from clean
+TURN:96
+SRC:session:eca3f61c#turn96
+±ENTITY-ERROR-B2E3313C
+MESSAGE:Exit code 1 warning: in the working copy of 'ctxpack/benchmarks/agentic/resume_probe.py', LF will be replaced by CRLF the next time Git touches it warning: in the working copy of 'tests/test_resume_probe.py', LF will be replaced by CRLF the
+TURN:205
+FACT-ID:6811b2dc7b12c63a
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn205
+±ENTITY-ERROR-EC5A2EE2
+MESSAGE:Exit code 1 repo=KP_SDLC set=recall probes=20 (decision, literal, rationale) arms=['ctx', 'grep', 'closed', 'automem'] [ 1/20] decision ???? ctx=4051bpe [ 2/20] literal ???? ctx=4020bpe [ 3/20] rationale ???? ctx=4060bpe [ 4/20] decision ??
+TURN:221
+FACT-ID:3a70e56707063580
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn221
+±ENTITY-USER-REQUEST-CE020F48
+REQUEST:done?
+TURN:238
+FACT-ID:9a4c4a8300137e97
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn238
+±ENTITY-ERROR-03F002AB
+MESSAGE:Exit code 1 Traceback (most recent call last): File "<string>", line 1, in <module> import json,sys; d=json.load(sys.stdin); [print(r['turn'], r['kind'], r['value'][:70]) for r in d['literals'] if 480 <= r['turn'] <= 600] ~~~~~~~~~^^^^^^^^^
+TURN:254
+FACT-ID:7088c056ed1f1a0a
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn254
+±ENTITY-ERROR-EE727E9B
+MESSAGE:Exit code 1 Exception calling "Substring" with "2" argument(s): "Index and length must refer to a location within the string. Parameter name: length" At line:1 char:138 + ... tFrom-Json; ($j.results | Where-Object { $_.arm -eq 'ctx' }).answ
+TURN:261
+FACT-ID:ee2227dbf59d3e9c
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn261
+±ENTITY-ERROR-4AC4D127
+MESSAGE:<tool_use_error>File has not been read yet. Read it first before writing to it.</tool_use_error>
+TURN:273
+FACT-ID:3fd7b25518a725d1
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn273
+±ENTITY-INCIDENT-D20686B5
+TYPE:saved
+PARSE-OK:true
+RAW:ctx-incident: saved | fact="rank/v1+lint ship state and next action after /clear" | expected="one-call resume restores working state" | got="ctxpack session resume returned all 13 decisions, commits f2e7dae/b29352f/db9f37a/2f27a0a, and the drift-re-run next step" | evidence="zero transcript greps needed this session"
+TURN:281
+FACT:rank/v1+lint ship state and next action after /clear
+EXPECTED:one-call resume restores working state
+GOT:ctxpack session resume returned all 13 decisions, commits f2e7dae/b29352f/db9f37a/2f27a0a, and the drift-re-run next step
+EVIDENCE:zero transcript greps needed this session
+FACT-ID:c607b3879d582d3d
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn281
+±ENTITY-INCIDENT-866ABE73
+TYPE:native-better
+PARSE-OK:true
+RAW:ctx-incident: native-better | fact="pre-registered ctx-arm fix wording (arm under-models session_literals/why read path)" | expected="ledger why/recall surfaces the registration text" | got="session why 'under-models' returned found=false (235 entities searched); wording recovered from auto-memory automem-drift-baseline-2026-07-05.md" | evidence="why output found:false; the registration existed on
+TURN:281
+FACT:pre-registered ctx-arm fix wording (arm under-models session_literals/why read path)
+EXPECTED:ledger why/recall surfaces the registration text
+GOT:session why 'under-models' returned found=false (235 entities searched); wording recovered from auto-memory automem-drift-baseline-2026-07-05.md
+EVIDENCE:why output found:false; the registration existed only as a curated-memory sentence, never a marker line
+FACT-ID:13d07f5631880a53
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn281
+±ENTITY-DECISION-0438F975
+DECISION:Decision: current-session lint comparisons gate on strictly-earlier constraint turns (integer turn carried per constraint; cross-session rows always apply), because the old same-turn-only skip let a decision be flagged against future text — a retroactive conflict the contract for
+TURN:281
+FACT-ID:3cee9644dbd8122f
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn281
+±ENTITY-DECISION-294863BC
+DECISION:Decision: the onboard conventions block is bumped to v4 with the turn-FINAL marker rule and the Supersedes: override convention, because the v3 template silently withheld both from cohort repos on refresh.
+TURN:281
+FACT-ID:1543e1111e43a032
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn281
+±ENTITY-DECISION-DEF31EF2
+DECISION:Decision: the checkpoint journal carries lint_status/lint_error/lint_ledgers_skipped, because a swallowed lint exception journaled the same zeros as a clean run and the governance signal could die silently.
+TURN:281
+FACT-ID:614c5e605284c79b
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn281
+±ENTITY-DECISION-1AC74D31
+DECISION:Decision: the resume-probe ctx arm (v2) appends the source session's session-literals block, because the baseline arm under-modeled the documented read path — this is the fix pre-registered on 2026-07-05, not post-hoc tuning, and the result files self-describe via the new ctx_arm
+TURN:281
+FACT-ID:32a4d6ba4529bcf2
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn281
+±ENTITY-DECISION-5EA4C1E6
+DECISION:Decision: the two remaining KP_SDLC literal misses stand as graded; before the next probe run, pre-register a same-turn disambiguation rule (skip or hint probes where more than one same-kind literal shares the source turn), because "the exact path near turn N" is degenerate when 
+TURN:281
+FACT-ID:ce6a63c00cb699d0
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn281
+±ENTITY-LITERAL-97CECF38
+VALUE:d2ed148
+KIND:git_sha
+TURN:281
+FACT-ID:e26624c6559c0ac3
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn281
+±ENTITY-LITERAL-B78AD794
+VALUE:tests/test_conflict_lint.py
+KIND:path
+TURN:281
+FACT-ID:c3d6fa6e5e85b19a
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn281
+±ENTITY-LITERAL-8BE4DD5C
+VALUE:3b25fbf
+KIND:git_sha
+TURN:281
+FACT-ID:1981c3f2f1844d76
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn281
+±ENTITY-LITERAL-F4BA2E77
+VALUE:e393408
+KIND:git_sha
+TURN:281
+FACT-ID:3460df090a5a3f4c
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn281
+±ENTITY-LITERAL-33C9343B
+VALUE:619d5850a72200b7
+KIND:git_sha
+TURN:281
+FACT-ID:6fae9534c7f7fd8f
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn281
+±ENTITY-USER-REQUEST-4686C52A
+REQUEST:I’m mostly aligned
+TURN:282
+FACT-ID:56b054f39b36e21c
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+SRC:session:eca3f61c#turn282
+±ENTITY-FILE-E-PROJECTS-C--USERS-KAPIL-DOCUMENTS-CTX-MOD-MEMORY-MEMORY-MD
+PATH:C:\Users\kapil\.claude\projects\C--Users-kapil-Documents-CTX-mod\memory\MEMORY.md
+EDITS:2
+LAST-TURN:276
+SRC:session:eca3f61c#turn276
+±ENTITY-FILE-IL-DOCUMENTS-CTX-MOD-MEMORY-RANK-V1-CONFLICT-LINT-SHIPPED-MD
+PATH:C:\Users\kapil\.claude\projects\C--Users-kapil-Documents-CTX-mod\memory\rank-v1-conflict-lint-shipped.md
+EDITS:2
+LAST-TURN:270
+SRC:session:eca3f61c#turn270
+±ENTITY-FILE-CA3F61C-A652-42B3-B60B-D427B24BBC5C-SCRATCHPAD-COMMITMSG-TXT
+PATH:C:\Users\kapil\AppData\Local\Temp\claude\C--Users-kapil-Documents-CTX-mod\eca3f61c-a652-42b3-b60b-d427b24bbc5c\scratchpad\commitmsg.txt
+EDITS:1
+LAST-TURN:208
+SRC:session:eca3f61c#turn208
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-AGENT-CHECKPOINT-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\checkpoint.py
+EDITS:2
+LAST-TURN:182
+SRC:session:eca3f61c#turn182
+±ENTITY-FILE-USERS-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-AGENT-CONFLICT-LINT-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\conflict_lint.py
+EDITS:10
+LAST-TURN:177
+SRC:session:eca3f61c#turn177
+±ENTITY-FILE-DOCUMENTS-CTX-MOD-CTXPACK-BENCHMARKS-AGENTIC-RESUME-PROBE-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\benchmarks\agentic\resume_probe.py
+EDITS:3
+LAST-TURN:80
+SRC:session:eca3f61c#turn80
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-CLI-MAIN-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\cli\main.py
+EDITS:2
+LAST-TURN:146
+SRC:session:eca3f61c#turn146
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-TESTS-TEST-CONFLICT-LINT-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\tests\test_conflict_lint.py
+EDITS:2
+LAST-TURN:190
+SRC:session:eca3f61c#turn190
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-TESTS-TEST-ONBOARD-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\tests\test_onboard.py
+EDITS:2
+LAST-TURN:154
+SRC:session:eca3f61c#turn154
+±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-TESTS-TEST-RESUME-PROBE-PY
+PATH:C:\Users\kapil\Documents\CTX_mod\tests\test_resume_probe.py
+EDITS:3
+LAST-TURN:88
+SRC:session:eca3f61c#turn88
