@@ -15,7 +15,7 @@ of transcript.
 
 ```
  session transcript (L0, never deleted)
-        │  PreCompact / SessionEnd hook  (zero LLM, <2s, fail-open)
+        │  PreCompact / SessionEnd hook  (zero LLM, no network, fail-open)
         ▼
  .claude/ctx/session-<id>.ctx      ← decisions, constraints, failed
  .claude/ctx/session-<id>-gist.md    approaches, errors, files, tasks —
