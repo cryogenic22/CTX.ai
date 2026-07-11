@@ -225,6 +225,13 @@ def run_cell(seed: int, arm: str, *, k_max: int, pct: float, model: str,
 
 # --------------------------------------------------------------- report
 
+def _sum_usage(acc: dict, usage: dict) -> None:
+    """Aggregate top-level numeric usage fields (input/output/cache tokens)."""
+    for key, val in (usage or {}).items():
+        if isinstance(val, (int, float)) and not isinstance(val, bool):
+            acc[key] = acc.get(key, 0) + val
+
+
 def build_report(rows: list[dict], params: dict) -> dict:
     arms_present = sorted({r["arm"] for r in rows if r.get("kind") != "cycle"})
     report: dict = {"benchmark": "compactbench-v1", "params": params,
@@ -244,6 +251,17 @@ def build_report(rows: list[dict], params: dict) -> dict:
                               if r.get("kind") == "cycle")
         memory_cost = sum(r.get("cost_usd") or 0 for r in arm_rows
                           if r.get("kind") == "memory_build")
+        # measured usage + per-seed cost (W1-5): budget projections must
+        # come from measured cells, never from smoke extrapolation — the
+        # "$1/cell -> $25 full run" estimate was off 2.4x ($60 actual)
+        usage_breakdown: dict = {}
+        for r in arm_rows:
+            _sum_usage(usage_breakdown,
+                       r.get("nudge_usage") if r.get("kind") == "cycle"
+                       else r.get("usage"))
+        seeds_completed = {r["seed"] for r in arm_rows
+                           if r.get("kind") != "cell_error"
+                           and "seed" in r}
         for r in arm_rows:
             if (r.get("kind") in ("cycle", "cell_error", "memory_build")
                     or "k" not in r or r.get("dry_run")):
@@ -269,6 +287,12 @@ def build_report(rows: list[dict], params: dict) -> dict:
             "memory_build_cost_usd": round(memory_cost, 4),
             "total_cost_usd": round(
                 probe_cost + compaction_cost + memory_cost, 4),
+            "usage_breakdown": {k: usage_breakdown[k]
+                                for k in sorted(usage_breakdown)},
+            "n_seeds": len(seeds_completed),
+            "cost_per_seed_usd": (round(
+                (probe_cost + compaction_cost + memory_cost)
+                / len(seeds_completed), 4) if seeds_completed else None),
         }
         if cv:
             entry["cvk"] = {
@@ -305,6 +329,20 @@ def build_report(rows: list[dict], params: dict) -> dict:
             if pairs:
                 report["comparisons"][f"{a}_vs_{b}_dr@{kmax}"] = \
                     mcnemar_b_c(pairs)
+
+    # run-level rollup (W1-5): the one number a budget decision reads,
+    # plus measured per-seed cell costs for projecting a planned run
+    run_usage: dict = {}
+    for e in report["arms"].values():
+        _sum_usage(run_usage, e.get("usage_breakdown"))
+    report["run_cost_usd"] = round(
+        sum(e["total_cost_usd"] for e in report["arms"].values()), 4)
+    report["run_usage"] = {k: run_usage[k] for k in sorted(run_usage)}
+    report["cost_model"] = {
+        arm: {"cost_per_seed_usd": e["cost_per_seed_usd"],
+              "n_seeds_measured": e["n_seeds"],
+              "k_max": kmax}
+        for arm, e in report["arms"].items()}
     return report
 
 
@@ -440,6 +478,10 @@ def main() -> int:
         print(line)
     for name, c in report.get("comparisons", {}).items():
         print(f"  {name}: b={c['b']} c={c['c']} p={c['p_value']}")
+    per_seed = {arm: m["cost_per_seed_usd"]
+                for arm, m in report.get("cost_model", {}).items()}
+    print(f"\n  RUN TOTAL: ${report.get('run_cost_usd', 0)} "
+          f"(measured per-seed: {per_seed})")
     print(f"\nResults: {out}")
     if not args.dry_run:
         print(f"Raw rows: {raw_path}")

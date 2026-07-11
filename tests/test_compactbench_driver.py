@@ -261,6 +261,41 @@ def test_report_cost_split_and_per_seed_dr():
     assert arm["cvk"][1]["rate"] == 0.0
 
 
+def test_report_usage_rollup_and_cost_model():
+    """W1-5: measured usage + per-seed cost + run rollup in the report."""
+    from run_compactbench import build_report
+    rows = [
+        {"seed": 0, "arm": "ctx", "kind": "cycle", "k": 1,
+         "nudge_cost": 0.10,
+         "nudge_usage": {"input_tokens": 50, "output_tokens": 5}},
+        {"seed": 0, "arm": "ctx", "kind": "decision_stable", "k": 1,
+         "probe_id": "d1", "correct": True, "cost_usd": 0.30,
+         "usage": {"input_tokens": 1000, "output_tokens": 100,
+                   "service_tier": "standard"}},
+        {"seed": 1, "arm": "ctx", "kind": "decision_stable", "k": 1,
+         "probe_id": "d1", "correct": True, "cost_usd": 0.20,
+         "usage": {"input_tokens": 800, "output_tokens": 80}},
+        {"seed": 0, "arm": "grep", "kind": "decision_stable", "k": 1,
+         "probe_id": "d1", "correct": False, "cost_usd": 0.40,
+         "usage": {"input_tokens": 4000, "output_tokens": 90}},
+        # a failed cell must not count toward per-seed cost denominators
+        {"seed": 1, "arm": "grep", "kind": "cell_error", "error": "boom"},
+    ]
+    rep = build_report(rows, {"k_max": 1})
+    ctx = rep["arms"]["ctx"]
+    # non-numeric usage fields ignored; nudge + probe usage aggregated
+    assert ctx["usage_breakdown"] == {"input_tokens": 1850,
+                                      "output_tokens": 185}
+    assert ctx["n_seeds"] == 2
+    assert ctx["cost_per_seed_usd"] == 0.3    # (0.30+0.20+0.10)/2
+    grep = rep["arms"]["grep"]
+    assert grep["n_seeds"] == 1 and grep["cost_per_seed_usd"] == 0.4
+    assert rep["run_cost_usd"] == 1.0
+    assert rep["run_usage"]["input_tokens"] == 5850
+    assert rep["cost_model"]["ctx"] == {
+        "cost_per_seed_usd": 0.3, "n_seeds_measured": 2, "k_max": 1}
+
+
 def test_batch_roundtrip(seed0):
     recall = probes_mod.build_recall_probes(seed0)
     prompt = probes_mod.format_batch(recall)
