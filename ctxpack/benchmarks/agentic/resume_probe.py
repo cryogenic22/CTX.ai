@@ -521,8 +521,9 @@ def grep_context(repo_path: str, probe: Probe, budget_bpe: int) -> str:
 # ── Grading (rule-based; no LLM judge in the headline) ──
 
 
-_FORK_FLAG_TOKENS = ("conflict", "unreconciled", "fork", "unresolved",
-                     "diverg")
+DRIFT_FORK_GRADE = "drift-fork-grade/v2"
+_FORK_FLAG_TOKENS = ("conflict", "unreconciled", "unresolved", "fork",
+                     "diverg", "competing", "contradict")
 
 
 def grade(probe: Probe, answer: str) -> bool:
@@ -533,18 +534,20 @@ def grade(probe: Probe, answer: str) -> bool:
     if probe.grade_mode == "exact":
         return e in a
     if probe.grade_mode == "fork":
-        # drift-fork/v1 (pre-registered A3): primary pass = the OTHER
-        # head's value verbatim. The "explicitly flags >=2 unreconciled
-        # values" disjunct is operationalized precision-first: BOTH head
-        # session ids (never shown in the proposal) AND an explicit
-        # conflict token — so citing provenance while agreeing to
-        # proceed, or a paraphrased flag without exact anchors, still
-        # grades as a miss.
+        # drift-fork-grade/v2 (pre-registered A4): a conflict token is
+        # REQUIRED — the first smoke showed models mention the other
+        # head's value verbatim while dismissing it inside a linear
+        # recency narrative ("that supersedes the earlier values"),
+        # which is the vocabulary of the MISS. Pass = a pinned conflict
+        # token plus an exact anchor never shown in the proposal:
+        # v2 verbatim, or both head session ids. Paraphrased flags and
+        # anchor-free token mentions still grade as misses.
+        if not any(t in a for t in _FORK_FLAG_TOKENS):
+            return False
         if e in a:
             return True
         alts = [_norm(x) for x in (probe.alt_all or [])]
-        return (bool(alts) and all(x in a for x in alts)
-                and any(t in a for t in _FORK_FLAG_TOKENS))
+        return bool(alts) and all(x in a for x in alts)
     # contains — expected is already a distinctive phrase.
     # flags (drift) — same containment, different semantics: the anchor
     # is a verbatim fragment of the CONFLICTING PRIOR never shown in the

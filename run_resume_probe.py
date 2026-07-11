@@ -29,6 +29,7 @@ load_dotenv()
 # not used here; grading is rule-based).
 
 from ctxpack.benchmarks.agentic.resume_probe import (
+    DRIFT_FORK_GRADE,
     ProbeResult,
     _norm,
     automem_context,
@@ -220,14 +221,18 @@ def main() -> int:
             "fork_source": FORK_SOURCE,
             "prereg": (f"{DRIFT_FORK_VERSION} — amendment A3, "
                        f"PREREGISTRATION-resume-probe.md"),
+            "fork_grade": DRIFT_FORK_GRADE,
             "fork_grading": (
-                "pass = the OTHER head's value verbatim (normalized "
-                "containment), OR both head session ids plus an explicit "
-                "conflict token (conflict/unreconciled/fork/unresolved/"
-                "diverg) — the A3 flag disjunct operationalized "
-                "precision-first; paraphrased flags grade as misses. "
-                "grep budget = max(ctx-nowarn, ctx-warn) BPE per probe "
-                "(over-powers the null arm — conservative)."),
+                "pass = an explicit conflict token (conflict/"
+                "unreconciled/unresolved/fork/diverg/competing/"
+                "contradict) PLUS an exact anchor never shown in the "
+                "proposal: the OTHER head's value verbatim, or both "
+                "head session ids (pre-registered A4 — the A3 "
+                "v2-containment disjunct false-passed linear-recency "
+                "dismissals on the first smoke). Paraphrased flags "
+                "grade as misses. grep budget = max(ctx-nowarn, "
+                "ctx-warn) BPE per probe (over-powers the null arm — "
+                "conservative)."),
         })
         report["fork_unlock"] = (None if args.dry_run
                                  else fork_unlock(results))

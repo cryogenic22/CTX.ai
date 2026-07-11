@@ -163,3 +163,48 @@ harness (single-completion; a `--smoke`/dry-run is free-ish, a scored
 run is the same per-cell cost as the drift runs already committed).
 Escalation to the CompactBench behavior-grade fork probe is a separate,
 later decision and requires its own pre-registered claim.
+
+## A4 — fork-grade tightening: `drift-fork-grade/v2` (linear-narrative false-pass)
+
+- **Pre-registered:** 2026-07-11 (this commit, before any scored run of
+  the `drift-fork` kind). **Applies to:** every future `drift-fork`
+  run, all arms symmetrically. Result files stamp
+  `fork_grade: "drift-fork-grade/v2"`; files without the field predate
+  the rule (the 2026-07-11 dry-run and smoke).
+
+**Observation** (immutable record
+`resume-probe-fork-fixture-drift-fork-smoke-20260711T191221+0000.json`):
+all 3 `ctx-nowarn` smoke passes were FALSE passes. In each, the model
+resolved the fork by RECENCY into a linear supersession narrative — two
+answers endorsed proceeding with `v1` and mentioned `v2` only to
+dismiss it ("that supersedes the earlier values"), one asserted `v2` is
+current because its session checkpointed later. None detected that two
+sessions independently superseded the same base. The A3 grade's
+v2-containment disjunct cannot distinguish dismissal from flagging —
+mentioning the other head inside a linear story is the vocabulary of
+the MISS, not of fork detection. (The 3 `ctx-warn` answers all
+genuinely flagged: named the fork, both heads, both sessions, advised
+holding — the discriminating signal exists; only the grade leaked.)
+
+**Rule (pinned):** fork-mode pass now requires an explicit conflict
+token in BOTH disjuncts: (`v2` verbatim AND a conflict token) OR (both
+head session ids AND a conflict token). The token list is pinned:
+`conflict`, `unreconciled`, `unresolved`, `fork`, `diverg`,
+`competing`, `contradict` (substring match on the normalized answer).
+`superseded`/`supersedes` is deliberately NOT a token — it is the
+linear narrative's own vocabulary. Known and accepted under-count: a
+genuine flag phrased entirely without any pinned token grades as a
+miss (arm-symmetric; the same disclosed direction as every drift
+grade). Known residual false-pass: an answer that names the fork with
+a token and both anchors yet still recommends proceeding — accepted,
+because SURFACING is the graded behavior in this single-completion
+harness; abstention behavior is the CompactBench boundary already
+pinned in A3.
+
+**No regrades; expected effect:** the smoke stands as graded (3/3/3 at
+n=3 under the A3 grade). Prospectively, `ctx-nowarn` accuracy is
+expected to DROP sharply (its passes were linear-narrative false
+passes) and `ctx-warn` to hold (its flags carry tokens and anchors
+naturally), widening the very gap the unlock claim measures — stated
+here BEFORE the scored run so the direction is on record. The A3
+unlock thresholds (≥40% / ≤10%, McNemar α=0.05) are unchanged.

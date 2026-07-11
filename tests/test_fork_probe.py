@@ -130,6 +130,16 @@ def test_fork_grade_fails_on_parroting_v1():
                  "expo-base-750ms as agreed.") is False
 
 
+def test_fork_grade_fails_on_linear_recency_dismissal():
+    # the A4 regression, verbatim shape of the first smoke's false
+    # passes: v2 is mentioned only to DISMISS it inside a linear
+    # recency narrative — no conflict token, so it must grade as a miss
+    assert grade(_fork_probe(), "Yes — K is currently expo-base-750ms, "
+                 "established in session cccc3333; that supersedes the "
+                 "earlier linear-step-2000ms. Good to proceed on that "
+                 "basis.") is False
+
+
 def test_fork_grade_passes_on_exact_anchored_flag():
     assert grade(_fork_probe(), "Wait: sessions bbbb2222 and cccc3333 "
                  "both revised K independently — that fork is "
