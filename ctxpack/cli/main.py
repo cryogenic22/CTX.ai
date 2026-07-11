@@ -592,7 +592,8 @@ def _cmd_hydrate(args: argparse.Namespace) -> int:
 
     # Summary to stderr
     print(f"[{len(result.sections)}/{result.sections_available} sections, "
-          f"~{result.tokens_injected} tokens]", file=sys.stderr)
+          f"~{result.tokens_injected} tokens ({result.token_estimator})]",
+          file=sys.stderr)
     return 0
 
 

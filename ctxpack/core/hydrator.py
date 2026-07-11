@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from .layers import ContextLayer
 from .model import CTXDocument, KeyValue, NumberedItem, PlainLine, Provenance, Section
 from .serializer import serialize_section, _serialize_header_iter
+from .tokens import ESTIMATOR_CTX, estimate_tokens
 
 if TYPE_CHECKING:
     from .telemetry import TelemetryLog
@@ -35,6 +36,7 @@ class HydrationResult:
     sections_available: int = 0
     header_text: str = ""
     layer_breakdown: dict[str, int] = field(default_factory=dict)
+    token_estimator: str = ESTIMATOR_CTX
 
 
 # ── Section Index (O(1) lookup) ──
@@ -50,9 +52,9 @@ def _build_section_index(doc: CTXDocument) -> dict[str, Section]:
 
 
 def _count_section_tokens(section: Section) -> int:
-    """Count tokens in a serialized section (whitespace-split)."""
+    """Estimate tokens in a serialized section (see core.tokens)."""
     lines = list(serialize_section(section))
-    return len("\n".join(lines).split())
+    return estimate_tokens("\n".join(lines), kind="ctx")
 
 
 def _section_provenance(section: Section) -> Optional[Provenance]:
@@ -193,7 +195,7 @@ def hydrate_by_name(
             doc.header, canonical=False, ascii_mode=False
         ))
         header_text = "\n".join(header_lines)
-        total_tokens += len(header_text.split())
+        total_tokens += estimate_tokens(header_text, kind="ctx")
 
     breakdown: dict[str, int] = {}
     if include_layer_metadata:
@@ -226,6 +228,7 @@ def hydrate_by_name(
             tokens_injected=total_tokens,
             rehydration_triggered=rehydration_triggered,
             latency_ms=round(elapsed_ms, 3),
+            token_estimator=ESTIMATOR_CTX,
         )
         telemetry.log_hydration(event)
 
@@ -294,7 +297,7 @@ def hydrate_by_query(
             doc.header, canonical=False, ascii_mode=False
         ))
         header_text = "\n".join(header_lines)
-        total_tokens += len(header_text.split())
+        total_tokens += estimate_tokens(header_text, kind="ctx")
 
     return HydrationResult(
         sections=matched,

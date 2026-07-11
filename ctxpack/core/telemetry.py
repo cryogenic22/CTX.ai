@@ -28,6 +28,7 @@ class HydrationEvent:
     tokens_injected: int
     rehydration_triggered: bool
     latency_ms: float  # Time to serialize and return
+    token_estimator: str = ""  # label for tokens_injected (see core.tokens)
 
 
 class TelemetryLog:

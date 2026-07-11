@@ -125,13 +125,16 @@ class TestHydrateByName:
     def test_hydrate_tokens_count_is_accurate(self):
         from ctxpack.core.hydrator import hydrate_by_name
         from ctxpack.core.serializer import serialize_section
+        from ctxpack.core.tokens import ESTIMATOR_CTX, estimate_tokens
 
         result = hydrate_by_name(SAMPLE_DOC, ["ENTITY-CUSTOMER"],
                                   include_header=False)
-        # Token count should match serialized output
+        # Token count is the labelled ctx-kind estimate of the serialized
+        # output (W1-3: whitespace counts are never presented as tokens)
         serialized = "\n".join(serialize_section(result.sections[0]))
-        expected_tokens = len(serialized.split())
-        assert abs(result.tokens_injected - expected_tokens) <= 2  # Allow small rounding
+        expected_tokens = estimate_tokens(serialized, kind="ctx")
+        assert result.tokens_injected == expected_tokens
+        assert result.token_estimator == ESTIMATOR_CTX
 
     def test_hydrate_preserves_section_content(self):
         from ctxpack.core.hydrator import hydrate_by_name

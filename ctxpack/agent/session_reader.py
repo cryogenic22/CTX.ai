@@ -251,6 +251,7 @@ def session_recall(
         "sections_matched": len(result.sections),
         "sections_available": result.sections_available,
         "tokens_injected": result.tokens_injected,
+        "token_estimator": result.token_estimator,
         "text": "\n".join(prose).strip(),
     }
 

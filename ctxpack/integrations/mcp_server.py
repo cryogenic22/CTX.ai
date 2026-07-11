@@ -39,6 +39,7 @@ from ..core.json_export import to_json
 from ..core.parser import parse
 from ..core.serializer import serialize, serialize_iter, serialize_section
 from ..core.telemetry import TelemetryLog
+from ..core.tokens import ESTIMATOR_CTX, estimate_tokens
 from ..core.validator import validate
 
 # Packer import (may fail if corpus tools not needed)
@@ -632,16 +633,21 @@ def handle_pack(arguments: dict[str, Any]) -> str:
     ascii_mode = arguments.get("ascii_mode", False)
     ctx_text = serialize(result.document, ascii_mode=ascii_mode)
 
+    # Whitespace word counts are never presented as tokens (W1-3): the
+    # packer's source count is a word count, so the ratio is words/words;
+    # the token estimate carries its estimator label (see core.tokens).
+    ctx_words = len(ctx_text.split())
     output: dict[str, Any] = {
         "ctx_text": ctx_text,
         "metrics": {
-            "source_tokens": result.source_token_count,
+            "source_words": result.source_token_count,
             "source_files": result.source_file_count,
             "entities": result.entity_count,
             "warnings": result.warning_count,
-            "ctx_tokens": len(ctx_text.split()),
-            "compression_ratio": round(
-                result.source_token_count / max(len(ctx_text.split()), 1), 1
+            "ctx_token_estimate": estimate_tokens(ctx_text, kind="ctx"),
+            "token_estimator": ESTIMATOR_CTX,
+            "compression_ratio_words": round(
+                result.source_token_count / max(ctx_words, 1), 1
             ),
         },
     }
