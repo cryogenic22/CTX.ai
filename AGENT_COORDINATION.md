@@ -39,8 +39,8 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 
 - **Branch:** `feat/literals-ledger`
 - **Last green tests:** `python -m pytest tests/test_subagent_verdicts.py tests/test_transcript_parser.py tests/test_literals_ledger.py tests/test_session_reader.py tests/test_p0_trust_repairs.py -q` → 101 passed (incl. negation + determinism gates, 2026-07-06)
-- **Active owner:** Claude Code (session `eca3f61c`)
-- **In-flight work:** none. **Ergonomics backlog #5/#6/#7 CLEARED:** subagent-verdict capture (#5, `945020a`), cross-session `why` (#6, `7e5d3f7`), identifier fidelity (#7, `f518bee`). Next big rocks (deferred/gated): domain-contracts recipe; DAG Slice 2 (gated on real `fact_superseded` edges); consolidation/dream-fold; cohort read-path report (~07-18).
+- **Active owner:** Claude Code (session `a21df970`)
+- **In-flight work:** Week-1 of the ratified execution plan (`docs/execution-plan-2026-07.md`): W1-1 capability registry, W1-2 claims ledger + CI gate, W1-3 token accounting, W1-4 default tool surface, W1-5 CompactBench cost reporting, W1-6 pilot brief. Next big rocks (deferred/gated): E-1..E-7 evidence program per the plan; domain-contracts recipe; DAG Slice 2 (gated on real `fact_superseded` edges); consolidation/dream-fold; cohort read-path report (~07-18).
 - **Do not touch:** `CLAUDE.md` (hand-authored by the owner); `.claude/ctx/*` live ledger; committed eval results under `ctxpack/benchmarks/**/results/`
 
 ---
@@ -97,6 +97,20 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 - **Files touched:** `ctxpack/agent/transcript_parser.py`, `checkpoint.py`, `session_reader.py`, `tests/test_subagent_verdicts.py`, `tests/test_transcript_parser.py`.
 - **Tests run:** 101 (incl. `test_p0_trust_repairs` determinism + `test_negation_preservation`).
 - **Next recommended action:** none in the ergonomics track. Next big rocks are deferred/gated (see Current Repo State) — owner to pick the next thread (likely domain-contracts recipe).
+
+### 2026-07-11 — Claude Code (session a21df970) — alignment response to external verdict
+- **What changed:** appended an alignment response to the external repo verdict + 90-day directive pasted in `docs/notes.md` (verdict accepted with 3 corrections; directive re-sequenced for one-owner capacity; deep-tech rec = Track C post-T10). Docs-only; no code, no tests.
+- **Files touched:** `docs/notes.md`.
+- **Verified while responding:** the reviewer's T4 claim is real — whitespace-split token counts in `ctxpack/core/hydrator.py:55,196,297` and `mcp_server.py:642` user-facing telemetry.
+- **Risks / concerns:** the external directive's T10 (powered CompactBench) conflicts with two banked preconditions — cost-reporting fix + probe hardening — flagged in the response §3.
+- **Next recommended action:** Kapil answers the 5 decisions in `docs/notes.md` §7 (ratify plan, powered-run go/no-go, pilot recruitment, deep-tech track, claims-ledger enforcement); owner then starts week-1 items (T1/T3/T4/T16 + cost-reporting fix).
+
+### 2026-07-11 — Claude Code (session a21df970) — plan ratified; execution plan published
+- **What changed:** owner ratified the re-sequenced plan with statistical amendments (recorded in `docs/notes.md` ratification section — the reviewer's sandbox again could not write to repo files, so the owner recorded it). Key amendment accepted: 240 sentinel probes from 2 seeds are clustered, not independent — powered run moves to seed-level (cluster) analysis, preregistered endpoint hierarchy, Holm–Bonferroni across 4 co-primaries, power+budget frozen after an unscored pilot. Published `docs/execution-plan-2026-07.md`: W1-1..W1-6 (capability registry, claims ledger CI, token accounting, 5-tool surface, cost-reporting fix, recruitment brief), E-1..E-7 (probe hardening, prereg amendment v2, unscored pilot, powered run, fuzzing, security+redaction, Track C spec spike), G-1..G-8 gated, L-1..L-6 standing loops.
+- **Files touched:** `docs/notes.md`, `docs/execution-plan-2026-07.md`, `AGENT_COORDINATION.md`.
+- **Tests run:** none (docs only).
+- **Risks / concerns:** the reviewer remains write-blocked on this repo from its sandbox — owner records reviewer positions verbatim-in-substance; flag if that relay ever distorts.
+- **Next recommended action:** owner starts W1-1..W1-5 (W1-6 brief drafted for Kapil to send); external onboarding stays hard-gated on E-6 + G-4.
 
 ---
 
