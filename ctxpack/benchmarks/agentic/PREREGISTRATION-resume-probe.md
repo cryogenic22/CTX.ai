@@ -295,3 +295,41 @@ regrades of any prior file.
 displacement × 2 arms + 1 false-alarm × 2 arms) = 80 completions ≈
 $0.9–1.2 on the default model — within the authorized $2. If the
 harness or model changes push past $2, the run does not start.
+
+### A5 harness notes (2026-07-12 — pre-approval, part of the reviewable package)
+
+Written while implementing the harness (`fork_cluster.py`,
+`run_resume_probe.py --probe-set drift-fork-v2`), BEFORE reviewer
+approval and before any paid call. These resolve ambiguities in the A5
+text; the reviewer approves text + harness + these notes together.
+
+1. **Cost-table correction (arm count).** The Arms section pins FOUR
+   contexts for fork probes — `ctx-nowarn` (additive-overhead
+   secondary), `ctx-nowarn-padded`, `ctx-warn`, `grep` — but the Cost
+   arithmetic above says "3 arms". The harness implements the Arms
+   section: 8 × (2×4 + 1×2 + 1×2) = **96 completions ≈ $1.1–1.5**,
+   still under the $2 ceiling (which is unchanged and still aborts the
+   run if exceeded). If the reviewer prefers the 80-completion budget,
+   dropping the unpadded `ctx-nowarn` secondary arm is a one-line
+   change and the additive-overhead secondary becomes BPE-only.
+2. **False-alarm arms coincide by construction.** On the no-fork
+   variant's clean linear ledger the product warning is EMPTY (the
+   build aborts if it ever is not), so `ctx-warn` and
+   `ctx-nowarn-padded` are the identical context there (pad delta 0).
+   The control therefore measures fork-vs-linear discrimination and
+   the specificity of the inverted A4 grade — a model that reads a
+   linear SUPERSEDED chain as a conflict false-alarms here.
+3. **False-alarm flag anchors (pinned).** Inverted-A4 pass = a pinned
+   conflict token PLUS an exact anchor never shown in the proposal:
+   a prior chain value verbatim (vB or v0), or both chain session ids.
+4. **Padding mechanics (pinned).** The neutral filler is appended as a
+   tail block — the same position the warn block occupies. Per-probe
+   `pad_delta` is stamped; |delta| > 3 BPE aborts the run; the filler's
+   sha256 is stamped in every result file. The filler is validated at
+   build time against conflict-token vocabulary and every cluster key
+   and value.
+5. **Live-run interlock.** The runner refuses any non-dry-run
+   `drift-fork-v2` invocation without `--authorized-run`, whose help
+   text names both gates (reviewer approval of A5 text + harness; the
+   owner's explicit ≤$2 authorization). `--clusters` overrides are
+   dry-run only; live runs require the pinned 8.

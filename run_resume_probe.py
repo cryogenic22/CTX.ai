@@ -74,15 +74,31 @@ def main() -> int:
                          "ctx-nowarn,ctx-warn,grep for drift-fork")
     ap.add_argument("--model", default="claude-sonnet-4-6")
     ap.add_argument("--probe-set", default="recall",
-                    choices=("recall", "drift", "drift-fork"),
+                    choices=("recall", "drift", "drift-fork",
+                             "drift-fork-v2"),
                     help="recall: history questions; drift: conflicting "
                          "proposals graded on surfacing the prior; "
                          "drift-fork: planted unresolved-supersession "
                          "forks (pre-registered A3) — ignores --repo, "
-                         "runs on a synthetic fixture ledger")
+                         "runs on a synthetic fixture ledger; "
+                         "drift-fork-v2: independent clusters + "
+                         "fixed-budget arms + negative controls "
+                         "(pre-registered A5)")
     ap.add_argument("--work-dir", default=None,
                     help="drift-fork only: fixture dir (default: temp)")
+    ap.add_argument("--clusters", type=int, default=None,
+                    help="drift-fork-v2 only: cluster count override "
+                         "(dry-run only; live runs require the pinned 8)")
+    ap.add_argument("--authorized-run", action="store_true",
+                    help="drift-fork-v2 only: assert BOTH pinned gates "
+                         "are cleared — reviewer (Codex) approval of the "
+                         "A5 text + harness, and the owner's explicit "
+                         "<=$2 authorization. Live v2 runs refuse to "
+                         "start without this flag.")
     args = ap.parse_args()
+
+    if args.probe_set == "drift-fork-v2":
+        return _run_fork_v2(args)
 
     repo = os.path.abspath(args.repo)
     ledger = os.path.join(repo, ".claude", "ctx")
@@ -259,6 +275,139 @@ def main() -> int:
     out = os.path.join(
         RESULTS_DIR,
         f"resume-probe-{report['repo']}-{args.probe_set}-{tag}-{stamp}.json")
+    with open(out, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(report, f, indent=2)
+        f.write("\n")
+    print(f"\nResults: {out}")
+    return 0
+
+
+def _run_fork_v2(args) -> int:
+    """drift-fork/v2 (pre-registered A5): deterministic full enumeration
+    over >= 8 independent clusters; every inferential statistic at
+    cluster level. Live runs are interlocked on --authorized-run (the
+    reviewer-approval + <=$2 gates are procedural; the flag makes an
+    accidental paid run impossible)."""
+    import tempfile
+
+    from ctxpack.benchmarks.agentic import fork_cluster as fc
+
+    n_clusters = args.clusters or fc.N_CLUSTERS_PINNED
+    if not args.dry_run:
+        if n_clusters != fc.N_CLUSTERS_PINNED:
+            print(f"live drift-fork-v2 runs require the pinned "
+                  f"{fc.N_CLUSTERS_PINNED} clusters (got {n_clusters}); "
+                  f"--clusters is dry-run only.")
+            return 1
+        if not args.authorized_run:
+            print("drift-fork-v2 live runs are gated (A5 + Q3 ruling "
+                  "2026-07-11): (1) reviewer (Codex) approval of the A5 "
+                  "text AND this harness, then (2) the owner's explicit "
+                  "<=$2 authorization. Re-run with --authorized-run "
+                  "once BOTH gates are cleared, or use --dry-run.")
+            return 1
+        if not os.environ.get("ANTHROPIC_API_KEY", ""):
+            print("ANTHROPIC_API_KEY missing (set it in .env) — use "
+                  "--dry-run to inspect the plan without API calls.")
+            return 1
+
+    work = args.work_dir or tempfile.mkdtemp(prefix="ctx-drift-forkv2-")
+    print(f"building {n_clusters} independent clusters through the real "
+          f"producer at {work} (fork_source={fc.FORK_SOURCE}) ...")
+    clusters = fc.build_clusters(work, n_clusters)
+    plan, excluded = fc.build_plan(clusters)
+    completions = sum(1 for row in plan if not row.excluded)
+    print(f"clusters={len(clusters)}  plan_rows={len(plan)}  "
+          f"completions={completions}  receipts_failed={excluded or 'none'}")
+    if len(excluded) > fc.MAX_RECEIPTS_FAILED:
+        print(f"ABORT (A5): {len(excluded)} fork probes failed presence "
+              f"receipts (max {fc.MAX_RECEIPTS_FAILED}) — the eval "
+              f"measures noticing, never absence.")
+        return 1
+
+    from dataclasses import asdict
+
+    model = args.model
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    results: "list[dict]" = []
+    probes_seen: "dict[str, dict]" = {}
+    for i, row in enumerate(plan, 1):
+        probes_seen.setdefault(row.probe.probe_id, asdict(row.probe))
+        rec = {"probe_id": row.probe.probe_id, "cluster": row.cluster,
+               "ptype": row.ptype, "arm": row.arm,
+               "context_bpe": row.context_bpe, "receipts": row.receipts,
+               "pad_delta": row.pad_delta, "excluded": row.excluded,
+               "answer": None, "correct": None, "flagged": None}
+        if not row.excluded and not args.dry_run:
+            answer = _ask_llm(
+                (_DRIFT_PREAMBLE if row.ptype in ("fork", "false-alarm")
+                 else _PREAMBLE) + row.probe.question,
+                row.context or "(no context provided)",
+                model=model, api_key=api_key, provider="anthropic")
+            correct, flagged = fc.grade_row(row, answer)
+            rec.update(answer=answer[:500], correct=correct,
+                       flagged=flagged,
+                       error=answer.startswith("(error:"))
+            time.sleep(_INTER_CALL_DELAY)
+        results.append(rec)
+        if not args.dry_run:
+            mark = ("X" if rec["excluded"]
+                    else ("Y" if rec["correct"] else "n"))
+            print(f"  [{i:>3}/{len(plan)}] {row.cluster} "
+                  f"{row.ptype:<12} {row.arm:<17} {mark}  "
+                  f"ctx={row.context_bpe}bpe")
+
+    analysis = None if args.dry_run else fc.cluster_analysis(results)
+    import datetime
+    report = {
+        "schema": "ctxpack-drift-fork-v2/v1",
+        "measurement_class": (
+            "quasi-experimental — planted-fork surfacing under "
+            "fixed-budget arms on synthetic cluster fixtures; the claim "
+            "under test is scoped to SURFACING (A5); behavior-grade "
+            "claims belong to CompactBench"),
+        "generated_at": datetime.datetime.now(
+            datetime.timezone.utc).isoformat(timespec="seconds"),
+        "repo": "fork-fixture-v2",
+        "config": {
+            "model": model, "n_clusters": n_clusters,
+            "sampling": "none — deterministic full enumeration of the "
+                        "pinned cluster table",
+            "fork_source": fc.FORK_SOURCE,
+            "prereg": (f"{fc.DRIFT_FORK_V2_VERSION} — amendment A5 (+ "
+                       f"harness notes), "
+                       f"PREREGISTRATION-resume-probe.md"),
+            "fork_grade": DRIFT_FORK_GRADE,
+            "arms": {"fork": list(fc.FORK_ARMS),
+                     "displacement": list(fc.CONTROL_ARMS),
+                     "false-alarm": list(fc.CONTROL_ARMS)},
+            "pad_filler_sha256": fc.pad_filler_sha256(),
+            "authorized_run": bool(args.authorized_run),
+        },
+        "receipts_failed": excluded,
+        "cluster_analysis": analysis,
+        "probes": list(probes_seen.values()),
+        "results": results,
+    }
+    if not args.dry_run and analysis:
+        pr = analysis["primary"]
+        print(f"\n  padded-nowarn cluster-mean miss="
+              f"{pr['cluster_mean_miss_padded_nowarn']}  warn="
+              f"{pr['cluster_mean_miss_warn']}  sign-test "
+              f"p={pr['sign_test']['p_one_sided']}")
+        print(f"  false-alarm gate passed="
+              f"{analysis['false_alarm_gate']['passed']}  "
+              f"unlock={analysis['unlock']}")
+    else:
+        print("\nDRY RUN — clusters built, contexts + receipts computed, "
+              "no answers requested.")
+
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+    stamp = report["generated_at"].replace(":", "").replace("-", "")
+    tag = "dryrun" if args.dry_run else ("smoke" if args.smoke else "full")
+    out = os.path.join(
+        RESULTS_DIR,
+        f"resume-probe-fork-fixture-v2-drift-fork-v2-{tag}-{stamp}.json")
     with open(out, "w", encoding="utf-8", newline="\n") as f:
         json.dump(report, f, indent=2)
         f.write("\n")
