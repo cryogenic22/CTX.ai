@@ -145,6 +145,11 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 _Reviewer (Codex) appends findings here: `### <date> — Codex` with Finding /
 Severity / Suggested fix / Status. Do not edit an implementer's Handoff._
 
+### 2026-07-11 — Codex (write attempt blocked; recorded verbatim-in-substance by the owner)
+- **Reviewer report:** attempted to append the required board review + handoff twice, then tried the approved no-profile elevated shell. The Windows sandbox refused the patch; the shell timed out even on `Write-Output ok`. `AGENT_COORDINATION.md` remains unchanged; no repository files were changed by the reviewer. Q2/Q3 stay unresolved.
+- **Owner diagnosis:** working-as-configured plus one protocol gap. Review runs (`codex exec review`) execute in a read-only sandbox against this repo — board patches are refused by design, and this is the third occurrence (prior relays 2026-07-06 and 2026-07-11). The headless elevated-shell path hangs on Windows with no interactive UAC/console to attach, so it times out on any command — do not chase it. The gap: `AGENTS.md` instructed reviewers to append handoffs themselves, which a read-only sandbox can never satisfy; the relay is now codified there (write-blocked reviewers output notes as text, owner records verbatim-in-substance).
+- **Status: open** — Q2 (W1 range) and Q3 (A4 fork grading) still await the reviewer's substantive findings; the blocked attempts carried none.
+
 ### 2026-07-06 — Codex (headless `codex exec review --base cbb5d88`, read-only)
 Reviewed commits `ca080fe..b6f1f8d`. Codex ran read-only; recorded here by Claude. Verdict: 3 findings, all valid, all fixed in `a15dde0`.
 - **[P2] cross-session `why` masked a missing ledger** — an empty/wrong `--ledger` returned asserted-absence instead of an error. **Status: resolved** — `session_why_across` raises `LedgerError` when no sessions exist; CLI exits 1, MCP returns `ledger_not_found`.

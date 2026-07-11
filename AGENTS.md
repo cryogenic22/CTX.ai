@@ -22,6 +22,13 @@ act on anything addressed to you. Before you stop, **append a Handoff** there.
   fixes as review notes on the board — do **not** edit code or tests, apply
   fixes, or commit. The active owner (Claude Code) applies and commits every
   fix. This keeps ownership clean and edits non-concurrent.
+- **Write-blocked sandbox?** Review runs against this repo are read-only
+  (the norm here — board writes will be refused by the sandbox). Do not
+  retry patches and do not escalate to elevated shells (headless elevation
+  hangs on Windows and times out on any command). Output your handoff /
+  notes / verdict as plain text in your final message; the active owner
+  records it on the board verbatim-in-substance. A blocked write is not a
+  failed review.
 
 ## Load-bearing invariants (CLAUDE.md is authoritative)
 
