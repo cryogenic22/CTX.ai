@@ -112,6 +112,13 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 - **Risks / concerns:** the reviewer remains write-blocked on this repo from its sandbox — owner records reviewer positions verbatim-in-substance; flag if that relay ever distorts.
 - **Next recommended action:** owner starts W1-1..W1-5 (W1-6 brief drafted for Kapil to send); external onboarding stays hard-gated on E-6 + G-4.
 
+### 2026-07-11 — Claude Code (session a21df970) — Week-1 of the execution plan SHIPPED
+- **What changed:** all six W1 tasks landed as separate review units: `07b740b` plan+board docs → `007a775` W1-1 capability registry + gate → `5041ae0` W1-2 claims ledger + CI gate → `860d1a8` W1-3 labelled token estimator (whitespace measured -49%..-78% vs cl100k; ctx-kind chars/3 lands -9%..+5% on real committed artifacts) → `d8b4bb0` W1-4 five-tool default surface + 4,500-char description budget → `9336af0` W1-5 CompactBench usage/per-seed-cost/run rollup (half the powered-run precondition; probe hardening E-1 remains) → `a3242ed` W1-6 pilot brief.
+- **Files touched:** docs (capability-registry, claims-ledger, pilot-brief, execution-plan), scripts (check_capability_registry, check_claims), ctxpack/core/tokens.py (new), hydrator/telemetry/mcp_server/session_reader/cli, run_compactbench.py, 5 new/extended test files.
+- **Tests run:** 135 passed across all touched suites incl. negation-preservation + determinism gates; three standing gates green (registry, claims, tool budget).
+- **Risks / concerns:** MCP pack metrics keys renamed honestly (`source_words`, `ctx_token_estimate`, `compression_ratio_words`) — any external consumer of the old keys breaks loudly, none known in-repo. A zero-value dryrun artifact created during W1-5 plumbing verification was deleted (contained no measurements); the 2026-07-04 dryrun file remains untouched as the owner's decision.
+- **Next recommended action:** Kapil sends `docs/pilot-brief.md` when ready; next thread is E-1 probe hardening + E-2 preregistration amendment v2 (owner), keeping E-6 security elevated.
+
 ---
 
 ## Reviewer Notes
