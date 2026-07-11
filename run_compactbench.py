@@ -52,17 +52,35 @@ def _stamp() -> str:
 # ------------------------------------------------------------ llm-memory
 
 def build_llm_memory(seed: int, entries: list[dict], model: str,
-                     work_root: str, log) -> tuple[str, float]:
+                     work_root: str, log) -> tuple[str, dict]:
     """Mem0-style memory file, built once per (seed, model) by an LLM
     over the full pre-compaction transcript and cached under results/.
     Deliberately generous: real systems build incrementally.
-    Returns (content, cost_usd) — cost 0 on cache hit."""
+
+    Returns (content, memory_build row). Q2-2 accounting: the row
+    always carries BOTH cost_usd (spent THIS run — 0 on cache hit) and
+    build_cost_usd (the true one-time build cost, read from the cache
+    sidecar on hits) plus usage, so cache hits never make the build
+    look free in cost projections; a legacy cache without a sidecar
+    reports build_cost_usd=None, which flips accounting_complete off.
+    """
     os.makedirs(MEMORY_CACHE, exist_ok=True)
     cache = os.path.join(MEMORY_CACHE, f"seed-{seed:04d}-{model}.md")
+    meta_path = cache + ".meta.json"
     if os.path.exists(cache):
-        log(f"  llm-memory: cache hit {cache}")
+        meta = None
+        if os.path.exists(meta_path):
+            with open(meta_path, encoding="utf-8") as f:
+                meta = json.load(f)
+        log(f"  llm-memory: cache hit {cache} (build_cost="
+            f"{meta['cost_usd'] if meta else 'UNKNOWN — legacy cache'})")
         with open(cache, encoding="utf-8") as f:
-            return f.read(), 0.0
+            return f.read(), {
+                "kind": "memory_build", "cache_hit": True,
+                "cost_usd": 0.0,
+                "build_cost_usd": meta["cost_usd"] if meta else None,
+                "usage": (meta or {}).get("usage", {}),
+            }
     prep = os.path.join(work_root, f"memprep-{seed:04d}")
     os.makedirs(prep, exist_ok=True)
     with open(os.path.join(prep, "session-log.jsonl"), "w",
@@ -85,9 +103,16 @@ def build_llm_memory(seed: int, entries: list[dict], model: str,
             f"llm-memory build failed for seed {seed}: {res.stderr[:300]}")
     with open(cache, "w", encoding="utf-8", newline="\n") as f:
         f.write(res.result)
+    with open(meta_path, "w", encoding="utf-8", newline="\n") as f:
+        json.dump({"cost_usd": res.cost_usd, "usage": res.usage,
+                   "model": model}, f, indent=2)
     log(f"  llm-memory: built ({len(res.result)} chars, "
         f"${res.cost_usd or 0:.3f}) -> {cache}")
-    return res.result, res.cost_usd or 0.0
+    return res.result, {
+        "kind": "memory_build", "cache_hit": False,
+        "cost_usd": res.cost_usd, "build_cost_usd": res.cost_usd,
+        "usage": res.usage,
+    }
 
 
 # ---------------------------------------------------------------- cells
@@ -126,9 +151,11 @@ def probe_cell(ctx: dict, k: int, recall: list, adherence: list, *,
                        parse_failure=i not in answers)
             if i > 1:
                 # one shared call: carry its cost/usage on the first row
-                # only, or the report sums it 40x
+                # only, or the report sums it 40x. cost_carried marks the
+                # None as deliberate — distinct from a MISSING cost (Q2-2)
                 row["cost_usd"] = None
                 row["usage"] = {}
+                row["cost_carried"] = True
             rows.append(row)
     else:
         for p in recall:
@@ -171,10 +198,10 @@ def run_cell(seed: int, arm: str, *, k_max: int, pct: float, model: str,
     recall = probes_mod.build_recall_probes(manifest)
     adherence = probes_mod.build_adherence_probes(manifest)
 
-    llm_memory, mem_cost = None, 0.0
+    llm_memory, mem_row = None, None
     if arm == "llm-memory" and not dry_run:
-        llm_memory, mem_cost = build_llm_memory(seed, entries, model,
-                                                work_root, log)
+        llm_memory, mem_row = build_llm_memory(seed, entries, model,
+                                               work_root, log)
     ctx = driver.setup_workspace(work_root, arm, seed, entries, manifest,
                                  llm_memory=llm_memory)
     if arm == "llm-memory":
@@ -193,9 +220,10 @@ def run_cell(seed: int, arm: str, *, k_max: int, pct: float, model: str,
                 for k in range(1, k_max + 1) for p in recall]
 
     rows: list[dict] = []
-    if mem_cost:
-        rows.append({"seed": seed, "arm": arm, "kind": "memory_build",
-                     "cost_usd": mem_cost})
+    if mem_row is not None:
+        # always recorded — a cache hit is an accounting fact, not a
+        # non-event (Q2-2: cache hits must not make the build look free)
+        rows.append({"seed": seed, "arm": arm, **mem_row})
     try:
         for k in range(1, k_max + 1):
             if arm == "oracle":
@@ -242,26 +270,67 @@ def build_report(rows: list[dict], params: dict) -> dict:
         per_seed: dict[int, dict[int, list]] = {}
         by_kind: dict[str, dict[int, list]] = {}
         cv: dict[int, list] = {}
-        # explicit cost split: probe calls, compaction nudges (carried as
-        # nudge_cost on cycle rows), llm-memory builds
-        probe_cost = sum(r.get("cost_usd") or 0 for r in arm_rows
+        # Q2-2 accounting: explicit per-cell status + separated cost
+        # buckets. attempted = any live row; failed = cell_error and no
+        # graded rows; partial = cell_error after some graded rows;
+        # completed = ran to the end (no cell_error). Cost projections
+        # use COMPLETED cells only, while every dollar of failed/partial
+        # spend stays reported — the two mistakes this replaces were
+        # counting a partial seed as completed (understating cell cost)
+        # and letting failed spend vanish.
+        live_rows = [r for r in arm_rows if not r.get("dry_run")]
+        attempted = {r["seed"] for r in live_rows if "seed" in r}
+        errored = {r["seed"] for r in live_rows
+                   if r.get("kind") == "cell_error"}
+        graded = {r["seed"] for r in live_rows
+                  if r.get("kind") not in ("cycle", "cell_error",
+                                           "memory_build")}
+        cells = {
+            "completed": sorted(attempted - errored),
+            "partial": sorted(errored & graded),
+            "failed": sorted(errored - graded),
+        }
+        seeds_completed = attempted - errored
+
+        def _cost(rows_subset) -> float:
+            total = 0.0
+            for r in rows_subset:
+                if r.get("kind") == "cycle":
+                    total += r.get("nudge_cost") or 0
+                else:
+                    total += r.get("cost_usd") or 0
+            return total
+
+        attempt_cost = _cost(live_rows)
+        completed_cost = _cost([r for r in live_rows
+                                if r.get("seed") in seeds_completed])
+        probe_cost = sum(r.get("cost_usd") or 0 for r in live_rows
                          if r.get("kind") not in ("cycle", "cell_error",
                                                   "memory_build"))
-        compaction_cost = sum(r.get("nudge_cost") or 0 for r in arm_rows
+        compaction_cost = sum(r.get("nudge_cost") or 0 for r in live_rows
                               if r.get("kind") == "cycle")
-        memory_cost = sum(r.get("cost_usd") or 0 for r in arm_rows
+        memory_cost = sum(r.get("cost_usd") or 0 for r in live_rows
                           if r.get("kind") == "memory_build")
+        # missing cost = a live row whose spend is unknown (None) and
+        # not deliberately carried on a batch's first row — silently
+        # treating it as zero is the exact bug this replaces
+        rows_missing_cost = sum(
+            1 for r in live_rows
+            if r.get("kind") not in ("cell_error",)
+            and not r.get("cost_carried")
+            and (r.get("nudge_cost") if r.get("kind") == "cycle"
+                 else r.get("cost_usd")) is None)
+        memory_build_unknown = sum(
+            1 for r in live_rows if r.get("kind") == "memory_build"
+            and r.get("build_cost_usd") is None)
         # measured usage + per-seed cost (W1-5): budget projections must
         # come from measured cells, never from smoke extrapolation — the
         # "$1/cell -> $25 full run" estimate was off 2.4x ($60 actual)
         usage_breakdown: dict = {}
-        for r in arm_rows:
+        for r in live_rows:
             _sum_usage(usage_breakdown,
                        r.get("nudge_usage") if r.get("kind") == "cycle"
                        else r.get("usage"))
-        seeds_completed = {r["seed"] for r in arm_rows
-                           if r.get("kind") != "cell_error"
-                           and "seed" in r}
         for r in arm_rows:
             if (r.get("kind") in ("cycle", "cell_error", "memory_build")
                     or "k" not in r or r.get("dry_run")):
@@ -285,14 +354,21 @@ def build_report(rows: list[dict], params: dict) -> dict:
             "probe_cost_usd": round(probe_cost, 4),
             "compaction_cost_usd": round(compaction_cost, 4),
             "memory_build_cost_usd": round(memory_cost, 4),
-            "total_cost_usd": round(
-                probe_cost + compaction_cost + memory_cost, 4),
+            "total_cost_usd": round(attempt_cost, 4),
+            "attempt_cost_usd": round(attempt_cost, 4),
+            "completed_cells_cost_usd": round(completed_cost, 4),
+            "failed_partial_cost_usd": round(
+                attempt_cost - completed_cost, 4),
+            "cells": cells,
+            "rows_missing_cost": rows_missing_cost,
+            "accounting_complete": (rows_missing_cost == 0
+                                    and memory_build_unknown == 0),
             "usage_breakdown": {k: usage_breakdown[k]
                                 for k in sorted(usage_breakdown)},
             "n_seeds": len(seeds_completed),
             "cost_per_seed_usd": (round(
-                (probe_cost + compaction_cost + memory_cost)
-                / len(seeds_completed), 4) if seeds_completed else None),
+                completed_cost / len(seeds_completed), 4)
+                if seeds_completed else None),
         }
         if cv:
             entry["cvk"] = {
@@ -331,18 +407,53 @@ def build_report(rows: list[dict], params: dict) -> dict:
                     mcnemar_b_c(pairs)
 
     # run-level rollup (W1-5): the one number a budget decision reads,
-    # plus measured per-seed cell costs for projecting a planned run
+    # plus measured per-seed cell costs for projecting a planned run.
+    # cost_per_seed_usd comes from COMPLETED cells only (Q2-2);
+    # fresh_memory_build_per_seed_usd projects the llm-memory build for
+    # a run WITHOUT the cache (build_cost, not this run's spend).
     run_usage: dict = {}
     for e in report["arms"].values():
         _sum_usage(run_usage, e.get("usage_breakdown"))
     report["run_cost_usd"] = round(
-        sum(e["total_cost_usd"] for e in report["arms"].values()), 4)
+        sum(e["attempt_cost_usd"] for e in report["arms"].values()), 4)
     report["run_usage"] = {k: run_usage[k] for k in sorted(run_usage)}
+
+    def _fresh_build(arm: str):
+        builds = [r.get("build_cost_usd") for r in rows
+                  if r.get("arm") == arm and r.get("kind") == "memory_build"
+                  and not r.get("dry_run")]
+        if not builds:
+            return None
+        known = [b for b in builds if b is not None]
+        return (round(sum(known) / len(known), 4) if len(known) == len(builds)
+                else None)  # any legacy cache w/o sidecar -> unknown
+
     report["cost_model"] = {
         arm: {"cost_per_seed_usd": e["cost_per_seed_usd"],
               "n_seeds_measured": e["n_seeds"],
+              "fresh_memory_build_per_seed_usd": _fresh_build(arm),
               "k_max": kmax}
         for arm, e in report["arms"].items()}
+
+    # invocation ledger (Q2-2): one record per model call, incl.
+    # timeouts/errors whose spend never reached a result row. The
+    # run-level accounting_complete flag is the honest-budget gate: it
+    # is False whenever any spend is unknown anywhere.
+    inv = driver.invocation_records()
+    by_status: dict[str, int] = {}
+    for i in inv:
+        by_status[i["status"]] = by_status.get(i["status"], 0) + 1
+    unknown_cost = sum(1 for i in inv if i["cost_usd"] is None)
+    report["invocations"] = {
+        "total": len(inv),
+        "by_status": by_status,
+        "unknown_cost": unknown_cost,
+        "ledger_cost_usd": round(
+            sum(i["cost_usd"] or 0 for i in inv), 4),
+    }
+    report["accounting_complete"] = (
+        unknown_cost == 0
+        and all(e["accounting_complete"] for e in report["arms"].values()))
     return report
 
 
@@ -414,6 +525,7 @@ def main() -> int:
     if isolate:
         print(f"  config: {os.environ['CLAUDE_CONFIG_DIR']}")
 
+    driver.reset_invocations()  # per-run ledger, one record per model call
     rows: list[dict] = []
     raw_path = os.path.join(RESULTS_DIR,
                             f"compactbench-{stamp}-raw.jsonl")
@@ -480,8 +592,13 @@ def main() -> int:
         print(f"  {name}: b={c['b']} c={c['c']} p={c['p_value']}")
     per_seed = {arm: m["cost_per_seed_usd"]
                 for arm, m in report.get("cost_model", {}).items()}
+    inv = report.get("invocations", {})
     print(f"\n  RUN TOTAL: ${report.get('run_cost_usd', 0)} "
-          f"(measured per-seed: {per_seed})")
+          f"(completed-cell per-seed: {per_seed})")
+    print(f"  accounting_complete={report.get('accounting_complete')} "
+          f"(invocations={inv.get('total', 0)} "
+          f"by_status={inv.get('by_status', {})} "
+          f"unknown_cost={inv.get('unknown_cost', 0)})")
     print(f"\nResults: {out}")
     if not args.dry_run:
         print(f"Raw rows: {raw_path}")

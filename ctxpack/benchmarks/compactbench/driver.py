@@ -28,6 +28,7 @@ import random
 import re
 import shutil
 import subprocess
+import threading
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
@@ -237,6 +238,41 @@ class ClaudeResult:
     raw: dict = field(default_factory=dict)
 
 
+# Per-run invocation ledger (reviewer finding Q2-2): ONE record per
+# model call, including timeouts and errors whose spend never reaches a
+# result row. cost_usd None = spend unknown (a killed CLI reports
+# nothing) — the runner's accounting_complete flag keys off that, so
+# unrecorded spend can never silently read as zero.
+_INVOCATIONS: "list[dict]" = []
+_INV_LOCK = threading.Lock()
+
+
+def reset_invocations() -> None:
+    with _INV_LOCK:
+        _INVOCATIONS.clear()
+
+
+def invocation_records() -> "list[dict]":
+    with _INV_LOCK:
+        return list(_INVOCATIONS)
+
+
+def _record_invocation(status: str, workspace: str,
+                       cost_usd: "float | None" = None,
+                       usage: "dict | None" = None,
+                       duration_ms: "int | None" = None,
+                       error: str = "") -> None:
+    with _INV_LOCK:
+        _INVOCATIONS.append({
+            "status": status,  # ok | error | timeout
+            "workspace": os.path.basename(os.path.normpath(workspace)),
+            "cost_usd": cost_usd,
+            "usage": usage or {},
+            "duration_ms": duration_ms,
+            **({"error": error[:200]} if error else {}),
+        })
+
+
 def run_claude(workspace: str, prompt: str, *,
                resume: "str | None" = None, fork: bool = False,
                model: "str | None" = None, pct: "float | None" = None,
@@ -284,17 +320,33 @@ def run_claude(workspace: str, prompt: str, *,
     if extra_env:
         env.update(extra_env)
 
-    proc = subprocess.run(cmd, cwd=workspace, env=env, capture_output=True,
-                          text=True, encoding="utf-8", errors="replace",
-                          timeout=timeout)
+    try:
+        proc = subprocess.run(cmd, cwd=workspace, env=env,
+                              capture_output=True, text=True,
+                              encoding="utf-8", errors="replace",
+                              timeout=timeout)
+    except subprocess.TimeoutExpired:
+        # the killed CLI reports nothing — record the call with unknown
+        # cost BEFORE propagating, else the stall's spend vanishes from
+        # every ledger (Q2-2)
+        _record_invocation("timeout", workspace,
+                           error=f"timeout after {timeout}s")
+        raise
     raw: dict = {}
     if proc.stdout:
         try:
             raw = json.loads(proc.stdout)
         except json.JSONDecodeError:
             raw = {"unparsed_stdout": proc.stdout[-2000:]}
+    ok = proc.returncode == 0 and not raw.get("is_error", False)
+    _record_invocation(
+        "ok" if ok else "error", workspace,
+        cost_usd=raw.get("total_cost_usd"),
+        usage=raw.get("usage") or {},
+        duration_ms=raw.get("duration_ms"),
+        error="" if ok else (proc.stderr or "")[-200:])
     return ClaudeResult(
-        ok=(proc.returncode == 0 and not raw.get("is_error", False)),
+        ok=ok,
         result=str(raw.get("result", "")),
         session_id=raw.get("session_id"),
         usage=raw.get("usage") or {},

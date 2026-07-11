@@ -293,7 +293,12 @@ def test_report_usage_rollup_and_cost_model():
     assert rep["run_cost_usd"] == 1.0
     assert rep["run_usage"]["input_tokens"] == 5850
     assert rep["cost_model"]["ctx"] == {
-        "cost_per_seed_usd": 0.3, "n_seeds_measured": 2, "k_max": 1}
+        "cost_per_seed_usd": 0.3, "n_seeds_measured": 2,
+        "fresh_memory_build_per_seed_usd": None, "k_max": 1}
+    # Q2-2: the failed grep seed's status is explicit (only a
+    # cell_error row -> failed, not partial)
+    assert rep["arms"]["grep"]["cells"] == {
+        "completed": [0], "partial": [], "failed": [1]}
 
 
 def test_batch_roundtrip(seed0):
