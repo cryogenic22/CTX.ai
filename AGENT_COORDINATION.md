@@ -60,6 +60,12 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
   - Highest-value targets: W1-3 token-estimator semantics change (`tokens_injected` ~2-4x larger; MCP pack metric keys renamed) and W1-5 `n_seeds` denominator semantics (feeds the E-3 budget freeze).
   - Reviewer: findings under Reviewer Notes (or here); notes-only — owner applies fixes.
 
+- [ ] **Q3 — drift-fork/v1 grading (A4): does the operationalization hold, and any modes we missed?** *(queue after Q2)*
+  - Asked by: Claude Code (session `f40335cc`), 2026-07-11
+  - Context: prereg A3+A4 in `ctxpack/benchmarks/agentic/PREREGISTRATION-resume-probe.md`; commits `f7beb16..3773d89`. The first smoke false-passed 3/3 nowarn answers (linear-recency dismissal of the other head); A4 now requires a pinned conflict token PLUS an exact anchor (v2 verbatim, or both head sids).
+  - Specific asks: (a) false-pass/false-miss modes in the pinned token list (`conflict/unreconciled/unresolved/fork/diverg/competing/contradict`; `superseded` deliberately excluded)? (b) is the honesty gate (v2 must be present in the nowarn context) the right presence control, or should presence be an assumption stamped per probe? (c) any objection to grep = all fixture transcripts at max(ctx arms) budget?
+  - Reviewer: findings under Reviewer Notes (or here); notes-only — owner applies fixes.
+
 ---
 
 ## Handoffs
@@ -124,6 +130,13 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 - **Tests run:** 135 passed across all touched suites incl. negation-preservation + determinism gates; three standing gates green (registry, claims, tool budget).
 - **Risks / concerns:** MCP pack metrics keys renamed honestly (`source_words`, `ctx_token_estimate`, `compression_ratio_words`) — any external consumer of the old keys breaks loudly, none known in-repo. A zero-value dryrun artifact created during W1-5 plumbing verification was deleted (contained no measurements); the 2026-07-04 dryrun file remains untouched as the owner's decision.
 - **Next recommended action:** Kapil sends `docs/pilot-brief.md` when ready; next thread is E-1 probe hardening + E-2 preregistration amendment v2 (owner), keeping E-6 security elevated.
+
+### 2026-07-11 — Claude Code (session `f40335cc`) — drift-fork/v1 eval shipped (prereg A3+A4); first live evidence on the fork-warning unlock
+- **What changed:** committed the A3 amendment drafted by session `a4f3cf5f` (`f7beb16`), then built the harness (`75bf151`): planted-fork fixture built through the REAL producer (`run_checkpoint` over synthetic transcripts — ledger/gists/events/fact_ids all from the shipped write path), arms `ctx-nowarn`/`ctx-warn`/`grep`, an honesty gate (abort unless the other head's value is PRESENT in every nowarn context — the arm must measure noticing, never absence), and paired-McNemar unlock reporting of the pinned thresholds. The FIRST smoke exposed a grading false-pass: models resolve the fork by RECENCY into a linear narrative and mention the other head only to dismiss it — v2-containment cannot tell dismissal from flagging. Prereg **A4** + `drift-fork-grade/v2` (`1713ff9`): conflict token required in all disjuncts, no regrades, expected direction stated prospectively. Second smoke under the honest grade (`3773d89`, n=3, NOT citable): **nowarn 0/3, warn 3/3, b=3 c=0** — direction exactly as A4 predicted.
+- **Files touched:** `ctxpack/benchmarks/agentic/PREREGISTRATION-resume-probe.md` (A3+A4), `fork_fixture.py` (new), `resume_probe.py`, `run_resume_probe.py`, `tests/test_fork_probe.py` (new, 16 tests), 4 committed result artifacts.
+- **Tests run:** 16 new + 60 regression (resume-probe/fork/supersession/drift suites) + the three standing gates (capability registry, claims, tool budget) green.
+- **Risks / concerns:** A4's pinned token list under-counts genuine flags phrased without any token (disclosed, arm-symmetric); the grep arm passes when handed ground-truth terms (standing over-powering disclosure); fixture is synthetic and stamped `fork_source: "synthetic-fixture"` — a real cohort fork supersedes it as the preferred source.
+- **Next recommended action:** Kapil's go/no-go on the scored drift-fork run (8 probes × 3 arms ≈ 24 completions, well under $1). If it replicates the smoke (b=8, c=0 → p≈0.004), the pinned A3 claim fires and DAG Slice 2b gist surfacing + dream-fold `possible_conflict` emission get built; below threshold they are cut as bloat. Reviewer question queued as Q3 (after Q2).
 
 ---
 
