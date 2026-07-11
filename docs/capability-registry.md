@@ -26,12 +26,17 @@ validated product capability (directive T1).
   deprecation review (with the ~2026-07-18 cohort report).
 
 Rules: a row is an exact file or a directory prefix (trailing `/`);
-the most specific match wins; every `ctxpack/**/*.py` (except
-`__init__.py`/`__main__.py`) must be covered. Reclassification happens by
-PR to this file; promotion **to core requires a claims-ledger row** with
-a measured artifact. The `Aka` column lists public names the gate scans
-for in `README.md` — an experimental/legacy name may only appear there on
-a line carrying its label.
+the most specific match wins; every `ctxpack/**/*.py` **including
+`__init__.py`/`__main__.py`** must be covered (package inits carry
+public exports and are where classification contradictions hide —
+reviewer finding Q2-5, 2026-07-11). Reclassification happens by PR to
+this file; promotion **to core requires a claims-ledger row** with a
+measured artifact. The `Aka` column lists public names the gate scans
+for in `README.md` — an experimental/legacy name may only appear there
+on a line carrying its label. **Dependency rule (gate-checked):** a
+file classified core must not import a `legacy-deprecation-candidate`
+file at module level — non-core access from core must be lazy (inside
+a function), so importing the product never executes non-product code.
 
 ## Registry
 
@@ -41,9 +46,11 @@ a line carrying its label.
 | `ctxpack/core/code/` | core | — | code packer (`[code]` extra: tree-sitter, tiktoken) |
 | `ctxpack/core/confidence.py` | experimental | ConfidenceTracker | prototype confidence learning; only consumer is `modules/dream.py`; banked "prototype evidence, never revive as-is" |
 | `ctxpack/core/incremental.py` | legacy-deprecation-candidate | IncrementalPacker | zero callers |
+| `ctxpack/__init__.py` | core | — | package root |
 | `ctxpack/agent/` | core | — | session-memory substrate: transcript parser, checkpoint engine, read path, conflict lint, scorecard |
+| `ctxpack/agent/__init__.py` | core | — | package init; exports `compress_state` (eval-tier trace-compression API) via **lazy** import of `state_parser` — core imports must never execute eval code (reviewer finding Q2-5) |
 | `ctxpack/agent/session.py` | legacy-deprecation-candidate | — | rolling merge+evict prototype; superseded by checkpoint/read-path architecture |
-| `ctxpack/agent/state_parser.py` | legacy-deprecation-candidate | — | pre-transcript_parser prototype; no production callers |
+| `ctxpack/agent/state_parser.py` | eval | — | agent-trace step parser behind `compress_state`; imported by the agentic benchmark runners (`run_agentic_niah.py`, `run_graphwalks_eval.py`) — reclassified from legacy 2026-07-11 (the "no production callers" note was contradicted by the public export; reviewer finding Q2-5). Still not on the session-memory product path |
 | `ctxpack/cli/` | core | — | `ctxpack` CLI (note: `dream`/`elicit`/`codebase` subcommands drive *experimental* modules) |
 | `ctxpack/integrations/` | core | — | MCP server (20 tools) |
 | `ctxpack/benchmarks/` | eval | — | eval framework, agentic NIAH/graph generators, CompactBench, baselines, metrics |
