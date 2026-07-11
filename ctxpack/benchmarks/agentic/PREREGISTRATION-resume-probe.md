@@ -208,3 +208,90 @@ passes) and `ctx-warn` to hold (its flags carry tokens and anchors
 naturally), widening the very gap the unlock claim measures — stated
 here BEFORE the scored run so the direction is on record. The A3
 unlock thresholds (≥40% / ≤10%, McNemar α=0.05) are unchanged.
+
+## A5 — drift-fork/v2: independent clusters, fixed-budget arms, negative controls
+
+- **Status: DESIGN — reviewer approval required before any paid call.**
+  Pre-registered 2026-07-11 (this commit). The scored run this section
+  governs is additionally gated on (i) reviewer (Codex) approval of
+  this text AND the harness implementing it, then (ii) owner
+  authorization up to **$2** (Q3 ruling, 2026-07-11). **Supersedes the
+  A3 run design** for every future scored `drift-fork` run — the A3
+  fixture mechanics and the A4 grade carry over; the sampling unit,
+  arms, endpoints, and analysis below replace A3's. The 2026-07-11 run
+  (`0ee35c8`) stands as graded: confirmatory for A3's narrow
+  within-fixture claim only; per the Q3 ruling it does not authorize
+  the production build (parked at `cf2753c`).
+
+**Claim under test (scoped).** *The gist fork warning causes a resuming
+agent to SURFACE unresolved supersession forks it otherwise misses.*
+Surfacing only — any "prevents wrong action" claim requires a behavior
+endpoint (tool-attempt grading), which belongs to the CompactBench
+fork probe and its own pre-registration.
+
+**Sampling unit (pinned): the cluster.** ≥8 INDEPENDENT clusters — not
+8 keys inside one fixture. Each cluster is its own fixture instance:
+distinct ledger directory, distinct session-id pair, and a distinct
+key/value family with **no value or key shared across clusters** (the
+A3 non-substring validation applies across the whole run). Per
+cluster: 2 fork probes (2 planted forks) + 1 displacement-control
+probe + 1 no-fork false-alarm probe (see controls). All probe-level
+results are reported, but **every inferential statistic is computed at
+cluster level**; probe-level p-values never appear in headline claims.
+
+**Arms (pinned).**
+- Primary comparison — **fixed total context budget**: `ctx-warn` (the
+  product gist warning, present naturally) vs `ctx-nowarn-padded`
+  (warning stripped, then padded to the SAME BPE as that probe's warn
+  context with a deterministic, value-free neutral filler block; the
+  filler is pinned in the harness and contains no fork content, no
+  cluster values, and no conflict-token vocabulary). Any pass/miss
+  difference is then attributable to the warning's content, not its
+  size.
+- Secondary (disclosed, not inferential) — **additive overhead**: the
+  A3-style unpadded `ctx-nowarn` vs `ctx-warn`, measuring the real
+  deployment delta including the extra tokens, plus the warning's BPE
+  cost per probe.
+- `grep` runs on fork probes only, budget-parity at the warn size, as
+  the standing over-powered null (disclosed as such; not part of the
+  unlock decision).
+
+**Negative controls (pinned).**
+- *False alarms*: each cluster also builds a NO-FORK variant (same
+  keys, linear supersession only). The same teammate proposal (using
+  the true current value) runs in both ctx arms. An answer that flags
+  a conflict (A4 grade inverted: conflict token + exact anchors) is a
+  FALSE ALARM. Gate: false-alarm rate must be ≤ 1/8 clusters, else the
+  run fails regardless of the primary endpoint (a warning that cries
+  wolf is cut — the lint's precision-first standard).
+- *Attention displacement*: inside each fork cluster, one probe asks
+  about a NON-fork, linearly-superseded key (correct answer = its
+  current value, exact-graded) while the warning about OTHER keys is
+  present (warn arm) or absent (padded-nowarn arm). Reported as a
+  secondary: a warn-arm accuracy drop on displacement probes is
+  disclosed with its cluster-level interval.
+
+**Presence receipts (pinned).** The result file stamps, per probe and
+per arm: `v1_present`, `v2_present`, `base_present` (normalized
+containment in that arm's final context), and
+`supersession_edges_present` (both `fact_superseded` edges visible to
+the fold). A fork probe missing any receipt in the arm under test is
+EXCLUDED and disclosed (`receipts_failed` count); a run with >1
+excluded probe aborts — the eval measures noticing, never absence.
+
+**Analysis (pinned).** Per cluster and arm: miss-fraction over its 2
+fork probes. Primary test: one-sided exact sign test at cluster level
+on paired (padded-nowarn, warn) miss-fractions, α=0.05. Interval
+reporting: Wilson 95% intervals over clusters (n≥8) for (a) proportion
+of clusters where padded-nowarn missed ≥1 fork probe, (b) proportion
+where warn missed ≥1. **Unlock (merge eligibility) iff ALL of:**
+sign-test p < 0.05; cluster-mean miss (padded-nowarn) ≥ 0.40;
+cluster-mean miss (warn) ≤ 0.10; false-alarm gate passed. Merge of the
+parked implementation additionally requires the separate code review
+of `cf2753c` (Q3 ruling). Thresholds read off the scored run only; no
+regrades of any prior file.
+
+**Cost (pinned ceiling).** 8 clusters × (2 fork probes × 3 arms + 1
+displacement × 2 arms + 1 false-alarm × 2 arms) = 80 completions ≈
+$0.9–1.2 on the default model — within the authorized $2. If the
+harness or model changes push past $2, the run does not start.
