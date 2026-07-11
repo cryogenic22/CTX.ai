@@ -272,11 +272,15 @@ def fork_warn_block(ledger_dir: str) -> str:
                 fid_map[fid] = (sid, text, turn)
         except Exception:  # noqa: BLE001 — one bad session must not blind
             continue
+    # copy matches the detector: the fold flags multiple LIVE SUCCESSOR
+    # FACTS for one base — usually different sessions, but a
+    # same-session double-supersession counts too (review F3; keep this
+    # simulated block textually identical to the product renderer's)
     lines = [
         "## UNRESOLVED SUPERSESSION FORKS (possible_conflict)",
-        "Each fact below was superseded INDEPENDENTLY by two different",
-        "sessions; its current value is UNRECONCILED. Do not treat either",
-        "head as settled — reconcile (or ask) before acting on one.",
+        "Each fact below has INDEPENDENT SUCCESSOR FACTS; its current",
+        "value is UNRECONCILED. Do not treat any head as settled —",
+        "reconcile (or ask) before acting on one.",
     ]
     for conflict in graph.conflicts:
         for root in conflict.roots:
