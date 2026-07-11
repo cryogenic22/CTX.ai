@@ -30,9 +30,11 @@ load_dotenv()
 
 from ctxpack.benchmarks.agentic.resume_probe import (
     ProbeResult,
+    _norm,
     automem_context,
     ctx_context,
     drift_candidates,
+    fork_unlock,
     generate_probes,
     grade,
     grep_context,
@@ -66,21 +68,71 @@ def main() -> int:
     ap.add_argument("--smoke", action="store_true", help="3 probes, live")
     ap.add_argument("--dry-run", action="store_true",
                     help="Generate probes + contexts, no API calls")
-    ap.add_argument("--arms", default="ctx,grep,closed")
+    ap.add_argument("--arms", default=None,
+                    help="comma list; default ctx,grep,closed — or "
+                         "ctx-nowarn,ctx-warn,grep for drift-fork")
     ap.add_argument("--model", default="claude-sonnet-4-6")
     ap.add_argument("--probe-set", default="recall",
-                    choices=("recall", "drift"),
+                    choices=("recall", "drift", "drift-fork"),
                     help="recall: history questions; drift: conflicting "
-                         "proposals graded on surfacing the prior")
+                         "proposals graded on surfacing the prior; "
+                         "drift-fork: planted unresolved-supersession "
+                         "forks (pre-registered A3) — ignores --repo, "
+                         "runs on a synthetic fixture ledger")
+    ap.add_argument("--work-dir", default=None,
+                    help="drift-fork only: fixture dir (default: temp)")
     args = ap.parse_args()
 
     repo = os.path.abspath(args.repo)
     ledger = os.path.join(repo, ".claude", "ctx")
     n = 3 if args.smoke else args.n
-    arms = [a.strip() for a in args.arms.split(",") if a.strip()]
+    default_arms = ("ctx-nowarn,ctx-warn,grep"
+                    if args.probe_set == "drift-fork" else "ctx,grep,closed")
+    arms = [a.strip() for a in (args.arms or default_arms).split(",")
+            if a.strip()]
 
     gen_meta: dict = {}
-    if args.probe_set == "drift":
+    fixture = None
+    warn_blk = ""
+    nowarn_cache: dict = {}
+    if args.probe_set == "drift-fork":
+        import random
+        import tempfile
+
+        from ctxpack.benchmarks.agentic.fork_fixture import (
+            DRIFT_FORK_VERSION,
+            FORK_SOURCE,
+            build_fork_fixture,
+            fork_candidates,
+            fork_grep_context,
+            fork_warn_block,
+        )
+        work = args.work_dir or tempfile.mkdtemp(prefix="ctx-drift-fork-")
+        fixture = build_fork_fixture(work)
+        ledger = fixture.ledger_dir
+        warn_blk = fork_warn_block(fixture.ledger_dir)
+        cands = fork_candidates(fixture)
+        random.Random(args.seed).shuffle(cands)
+        probes = cands[:n]
+        print(f"  fixture: {len(fixture.forks)} forks planted through the "
+              f"real producer at {fixture.root} (fork_source={FORK_SOURCE})")
+        # Honesty gate: the nowarn arm measures NOTICING an unflagged
+        # fork, which is only meaningful if the other head's value is
+        # PRESENT in its context. Absent v2 = a structurally blind arm
+        # that would inflate the miss rate toward building the feature.
+        missing = []
+        for p in probes:
+            nowarn_cache[p.probe_id] = ctx_context(ledger, p)
+            if _norm(p.expected) not in _norm(nowarn_cache[p.probe_id]):
+                missing.append(p.probe_id)
+        if missing:
+            print("fixture presence check FAILED — the other head's value "
+                  "is absent from the ctx-nowarn context for: "
+                  + ", ".join(missing)
+                  + ". The arm would measure absence, not noticing; "
+                  "aborting.")
+            return 1
+    elif args.probe_set == "drift":
         probes = generate_probes(ledger, n=n, seed=args.seed,
                                  candidates=drift_candidates, meta=gen_meta)
     else:
@@ -114,14 +166,27 @@ def main() -> int:
 
     results: list[ProbeResult] = []
     for i, probe in enumerate(probes, 1):
-        ctx = ctx_context(ledger, probe)
-        budget = count_bpe_tokens(ctx, model="claude") if ctx else 0
-        contexts = {
-            "ctx": ctx,
-            "grep": grep_context(repo, probe, budget or 2000),
-            "closed": "",
-            "automem": automem,
-        }
+        if fixture is not None:
+            nowarn = nowarn_cache[probe.probe_id]
+            warn = nowarn + "\n\n" + warn_blk
+            # grep budget = max of the two ctx arms — over-powers the
+            # null arm, the conservative direction (standing grep rule)
+            budget = max(count_bpe_tokens(nowarn, model="claude"),
+                         count_bpe_tokens(warn, model="claude"))
+            contexts = {
+                "ctx-nowarn": nowarn,
+                "ctx-warn": warn,
+                "grep": fork_grep_context(fixture, probe, budget),
+            }
+        else:
+            ctx = ctx_context(ledger, probe)
+            budget = count_bpe_tokens(ctx, model="claude") if ctx else 0
+            contexts = {
+                "ctx": ctx,
+                "grep": grep_context(repo, probe, budget or 2000),
+                "closed": "",
+                "automem": automem,
+            }
         preamble = (_DRIFT_PREAMBLE if probe.kind.startswith("drift")
                     else _PREAMBLE)
         for arm in arms:
@@ -149,6 +214,23 @@ def main() -> int:
 
     report = to_report(repo, probes, results, seed=args.seed, model=model,
                        probe_set=args.probe_set, gen_meta=gen_meta)
+    if fixture is not None:
+        report["repo"] = "fork-fixture"
+        report["config"].update({
+            "fork_source": FORK_SOURCE,
+            "prereg": (f"{DRIFT_FORK_VERSION} — amendment A3, "
+                       f"PREREGISTRATION-resume-probe.md"),
+            "fork_grading": (
+                "pass = the OTHER head's value verbatim (normalized "
+                "containment), OR both head session ids plus an explicit "
+                "conflict token (conflict/unreconciled/fork/unresolved/"
+                "diverg) — the A3 flag disjunct operationalized "
+                "precision-first; paraphrased flags grade as misses. "
+                "grep budget = max(ctx-nowarn, ctx-warn) BPE per probe "
+                "(over-powers the null arm — conservative)."),
+        })
+        report["fork_unlock"] = (None if args.dry_run
+                                 else fork_unlock(results))
     if args.dry_run:
         for arm in report["arms"].values():
             arm["accuracy"] = None  # dry-run grades are meaningless
@@ -158,6 +240,13 @@ def main() -> int:
         for name, arm in report["arms"].items():
             print(f"  {name:<7} accuracy={arm['accuracy']} "
                   f"ci95={arm['ci95']}  mean_ctx={arm['mean_context_bpe']}bpe")
+        if report.get("fork_unlock"):
+            fu = report["fork_unlock"]
+            print(f"  fork_unlock: nowarn_miss={fu['nowarn_miss_rate']} "
+                  f"warn_miss={fu['warn_miss_rate']} "
+                  f"b={fu['mcnemar_b_warn_fixed']} "
+                  f"c={fu['mcnemar_c_warn_broke']} "
+                  f"p={fu['mcnemar_p_one_sided']} unlock={fu['unlock']}")
 
     os.makedirs(RESULTS_DIR, exist_ok=True)
     stamp = report["generated_at"].replace(":", "").replace("-", "")

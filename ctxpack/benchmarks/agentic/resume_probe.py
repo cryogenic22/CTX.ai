@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import glob
 import json
+import math
 import os
 import random
 import re
@@ -66,12 +67,15 @@ class Probe:
     probe_id: str
     kind: str              # literal | decision | constraint | superseded |
                            # rationale | drift-{constraint,superseded,failed}
+                           # | drift-fork
     session: str           # sid8 the fact came from
     turn: int
     question: str
     expected: str          # the graded string
-    grade_mode: str        # exact | contains | flags
+    grade_mode: str        # exact | contains | flags | fork
     source_text: str = ""  # full fact, for the report
+    alt_all: Optional[list] = None  # fork mode only: anchors that must ALL
+                                    # appear for the flag disjunct (head sids)
 
 
 @dataclass
@@ -450,9 +454,9 @@ _GREP_WINDOW = 800  # chars around a hit — what `grep -o -C` style use shows
 _QUOTED_RE = re.compile(r'"([^"]{12,})"')
 
 
-def grep_context(repo_path: str, probe: Probe, budget_bpe: int) -> str:
-    """Null hypothesis: keyword-matched windows over the raw transcript,
-    budget-parity with the CTX arm for the same probe.
+def _grep_windows(transcripts: "list[str]", probe: Probe,
+                  budget_bpe: int) -> str:
+    """Keyword-matched windows over raw transcripts, trimmed to budget.
 
     Modeled on what a competent agent actually does, not a strawman:
     (1) grep the exact quoted phrase from the question first, (2) then
@@ -461,41 +465,39 @@ def grep_context(repo_path: str, probe: Probe, budget_bpe: int) -> str:
     match (grep -C style), never line prefixes. Terms include ground-
     truth words from the probed fact, which over-powers this arm — the
     conservative direction for any claim where CTX still wins."""
-    transcript = find_transcript(repo_path, probe.session)
-    if not transcript:
-        return ""
     phrases = [m.group(1).rstrip(" .").lower()
                for m in _QUOTED_RE.finditer(probe.question)]
     terms = [w.lower() for w in
              _distinctive_words(probe.question + " " + probe.source_text, 10)]
     scored: list[tuple[int, int, str]] = []  # (-score, order, window)
     order = 0
-    try:
-        with open(transcript, encoding="utf-8") as f:
-            for line in f:
-                low = line.lower()
-                positions: list[tuple[int, int]] = []  # (score, pos)
-                for phrase in phrases:
-                    pos = low.find(phrase)
-                    if pos >= 0:
-                        positions.append((100, pos))
-                hit_terms = [t for t in terms if t in low]
-                if hit_terms:
-                    positions.append((len(set(hit_terms)),
-                                      low.find(hit_terms[0])))
-                taken: list[int] = []
-                for score, pos in sorted(positions, reverse=True):
-                    if any(abs(pos - p) < _GREP_WINDOW for p in taken):
-                        continue
-                    taken.append(pos)
-                    lo = max(0, pos - _GREP_WINDOW // 4)
-                    window = line[lo:pos + _GREP_WINDOW].strip()
-                    scored.append((-score, order, window))
-                    order += 1
-                    if len(taken) == 2:
-                        break
-    except OSError:
-        return ""
+    for transcript in transcripts:
+        try:
+            with open(transcript, encoding="utf-8") as f:
+                for line in f:
+                    low = line.lower()
+                    positions: list[tuple[int, int]] = []  # (score, pos)
+                    for phrase in phrases:
+                        pos = low.find(phrase)
+                        if pos >= 0:
+                            positions.append((100, pos))
+                    hit_terms = [t for t in terms if t in low]
+                    if hit_terms:
+                        positions.append((len(set(hit_terms)),
+                                          low.find(hit_terms[0])))
+                    taken: list[int] = []
+                    for score, pos in sorted(positions, reverse=True):
+                        if any(abs(pos - p) < _GREP_WINDOW for p in taken):
+                            continue
+                        taken.append(pos)
+                        lo = max(0, pos - _GREP_WINDOW // 4)
+                        window = line[lo:pos + _GREP_WINDOW].strip()
+                        scored.append((-score, order, window))
+                        order += 1
+                        if len(taken) == 2:
+                            break
+        except OSError:
+            continue
     scored.sort()
     out: list[str] = []
     for _, _, window in scored:
@@ -506,7 +508,21 @@ def grep_context(repo_path: str, probe: Probe, budget_bpe: int) -> str:
     return "\n".join(out)
 
 
+def grep_context(repo_path: str, probe: Probe, budget_bpe: int) -> str:
+    """Null hypothesis: keyword-matched windows over the probe's source
+    session transcript, budget-parity with the CTX arm for the same
+    probe. See _grep_windows for the ranking model."""
+    transcript = find_transcript(repo_path, probe.session)
+    if not transcript:
+        return ""
+    return _grep_windows([transcript], probe, budget_bpe)
+
+
 # ── Grading (rule-based; no LLM judge in the headline) ──
+
+
+_FORK_FLAG_TOKENS = ("conflict", "unreconciled", "fork", "unresolved",
+                     "diverg")
 
 
 def grade(probe: Probe, answer: str) -> bool:
@@ -516,6 +532,19 @@ def grade(probe: Probe, answer: str) -> bool:
     e = _norm(probe.expected)
     if probe.grade_mode == "exact":
         return e in a
+    if probe.grade_mode == "fork":
+        # drift-fork/v1 (pre-registered A3): primary pass = the OTHER
+        # head's value verbatim. The "explicitly flags >=2 unreconciled
+        # values" disjunct is operationalized precision-first: BOTH head
+        # session ids (never shown in the proposal) AND an explicit
+        # conflict token — so citing provenance while agreeing to
+        # proceed, or a paraphrased flag without exact anchors, still
+        # grades as a miss.
+        if e in a:
+            return True
+        alts = [_norm(x) for x in (probe.alt_all or [])]
+        return (bool(alts) and all(x in a for x in alts)
+                and any(t in a for t in _FORK_FLAG_TOKENS))
     # contains — expected is already a distinctive phrase.
     # flags (drift) — same containment, different semantics: the anchor
     # is a verbatim fragment of the CONFLICTING PRIOR never shown in the
@@ -558,6 +587,45 @@ def aggregate(results: list[ProbeResult]) -> dict[str, Any]:
             },
         }
     return arms
+
+
+def fork_unlock(results: list[ProbeResult]) -> "Optional[dict[str, Any]]":
+    """Paired nowarn→warn analysis for the drift-fork unlock claim.
+
+    Thresholds are pinned in PREREGISTRATION-resume-probe.md A3 and read
+    off scored runs only — this just reports them next to the data. b =
+    probes the warning fixed (nowarn miss → warn pass), c = probes it
+    broke; exact one-sided McNemar on b vs Binomial(b+c, 1/2)."""
+    by_pid: "dict[str, dict[str, bool]]" = {}
+    for r in results:
+        if r.arm in ("ctx-nowarn", "ctx-warn"):
+            by_pid.setdefault(r.probe_id, {})[r.arm] = r.correct
+    pairs = [(v["ctx-nowarn"], v["ctx-warn"]) for v in by_pid.values()
+             if "ctx-nowarn" in v and "ctx-warn" in v]
+    if not pairs:
+        return None
+    n = len(pairs)
+    nowarn_miss = sum(1 for nw, _ in pairs if not nw) / n
+    warn_miss = sum(1 for _, w in pairs if not w) / n
+    b = sum(1 for nw, w in pairs if not nw and w)
+    c = sum(1 for nw, w in pairs if nw and not w)
+    m = b + c
+    p = (sum(math.comb(m, k) for k in range(b, m + 1)) / (2 ** m)
+         if m else None)
+    return {
+        "n_pairs": n,
+        "nowarn_miss_rate": round(nowarn_miss, 3),
+        "warn_miss_rate": round(warn_miss, 3),
+        "mcnemar_b_warn_fixed": b,
+        "mcnemar_c_warn_broke": c,
+        "mcnemar_p_one_sided": round(p, 4) if p is not None else None,
+        "unlock_rule": ("build gist surfacing + possible_conflict emission "
+                        "iff nowarn_miss_rate >= 0.40 and warn_miss_rate "
+                        "<= 0.10 and p < 0.05 (pre-registered A3; scored "
+                        "runs only)"),
+        "unlock": bool(nowarn_miss >= 0.40 and warn_miss <= 0.10
+                       and p is not None and p < 0.05),
+    }
 
 
 def to_report(repo_path: str, probes: list[Probe],
