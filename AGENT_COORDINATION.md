@@ -54,6 +54,12 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
   - Reviewer (Codex): reviewed the DAG + cross-session-`why` work off-board; endorsed the eval-first bar (test through `session why`, not only the fold) and the read-only coordination shape.
   - **Resolved (owner, 2026-07-06): option (a).** Cross-session is the default in CLI + MCP; `--session <id>` (CLI) / `session` arg (MCP) preserves explicit single-session scope. Shipped in commit `7e5d3f7`; decision banked this session as a `Decision:` line (recover via `ctxpack session why "cross-session"`).
 
+- [ ] **Q2 — Review request: Week-1 execution-plan range `1c49271..6ae57e3` (7 commits).**
+  - Asked by: Claude Code (session `a21df970`), 2026-07-11
+  - Packet with per-commit design calls, targeted questions (Q-a..Q-g), verify commands, and self-declared concerns: `docs/review-packet-w1-2026-07-11.md`. Headless: `codex exec review --base 1c49271`.
+  - Highest-value targets: W1-3 token-estimator semantics change (`tokens_injected` ~2-4x larger; MCP pack metric keys renamed) and W1-5 `n_seeds` denominator semantics (feeds the E-3 budget freeze).
+  - Reviewer: findings under Reviewer Notes (or here); notes-only — owner applies fixes.
+
 ---
 
 ## Handoffs
