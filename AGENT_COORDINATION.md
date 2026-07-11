@@ -39,7 +39,7 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 
 - **Branch:** `feat/literals-ledger`
 - **Last green tests:** `python -m pytest tests/test_subagent_verdicts.py tests/test_transcript_parser.py tests/test_literals_ledger.py tests/test_session_reader.py tests/test_p0_trust_repairs.py -q` → 101 passed (incl. negation + determinism gates, 2026-07-06)
-- **Active owner:** Claude Code (session `a21df970`)
+- **Active owner:** Claude Code (session `f40335cc`)
 - **In-flight work:** Week-1 of the ratified execution plan (`docs/execution-plan-2026-07.md`): W1-1 capability registry, W1-2 claims ledger + CI gate, W1-3 token accounting, W1-4 default tool surface, W1-5 CompactBench cost reporting, W1-6 pilot brief. Next big rocks (deferred/gated): E-1..E-7 evidence program per the plan; domain-contracts recipe; DAG Slice 2 (gated on real `fact_superseded` edges); consolidation/dream-fold; cohort read-path report (~07-18).
 - **Do not touch:** `CLAUDE.md` (hand-authored by the owner); `.claude/ctx/*` live ledger; committed eval results under `ctxpack/benchmarks/**/results/`
 
