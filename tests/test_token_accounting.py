@@ -93,6 +93,35 @@ def test_mcp_hydrate_estimates_the_emitted_representation(tmp_path):
     assert raw["ctx_text"] != prose["ctx_text"]
 
 
+def test_section_listings_carry_estimator_label(tmp_path, capsys):
+    """Q2-1 residual: the no-section/query listing surfaces (MCP section
+    listing, CLI --list) expose per-section token estimates — they must
+    carry the ctx estimator label like every other token surface."""
+    from ctxpack.integrations.mcp_server import handle_hydrate, handle_pack
+
+    (tmp_path / "svc.yaml").write_text(
+        "service: billing\nowner: core-team\n", encoding="utf-8")
+    ctx_text = json.loads(handle_pack({"corpus_dir": str(tmp_path)}))[
+        "ctx_text"]
+    ctx_file = tmp_path / "packed.ctx"
+    ctx_file.write_text(ctx_text, encoding="utf-8")
+
+    listing = json.loads(handle_hydrate({"file_path": str(ctx_file)}))
+    assert listing["sections_matched"] == 0
+    assert listing["token_estimator"] == estimator_label("ctx")
+    assert "raw .ctx" in listing["token_note"]
+
+    import argparse
+
+    from ctxpack.cli.main import _cmd_hydrate
+    rc = _cmd_hydrate(argparse.Namespace(
+        file=str(ctx_file), list_sections=True, section=None, query=None,
+        max_sections=5, raw=False))
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert estimator_label("ctx") in out
+
+
 def _load_expected():
     spec = json.loads(EXPECTED.read_text(encoding="utf-8"))
     assert len(spec["files"]) >= 5, "calibration corpus went missing"

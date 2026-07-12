@@ -768,12 +768,18 @@ def handle_hydrate(arguments: dict[str, Any], telemetry: TelemetryLog | None = N
         result = hydrate_by_query(doc, query, max_sections=max_sections,
                                    include_header=include_header)
     else:
-        # No section or query — return section listing
+        # No section or query — return section listing. Q2-1 residual:
+        # per-section counts estimate the raw .ctx serialization, so the
+        # listing must carry the ctx estimator label like every other
+        # token surface.
         sections_list = list_sections(doc)
         return json.dumps({
             "sections_matched": 0,
             "sections_available": len(sections_list),
             "available_sections": sections_list,
+            "token_estimator": estimator_label("ctx"),
+            "token_note": ("per-section 'tokens' estimate the raw .ctx "
+                           "serialization, not the prose a hydrate emits"),
             "ctx_text": "",
         }, indent=2)
 

@@ -563,8 +563,12 @@ def _cmd_hydrate(args: argparse.Namespace) -> int:
     doc = parse(text, level=2, filename=args.file)
 
     if args.list_sections:
+        # Q2-1 residual: listing counts are ctx-kind estimates of the raw
+        # .ctx serialization — label them like every other token surface
+        from ..core.tokens import estimator_label
         sections = list_sections(doc)
-        print(f"Sections in {args.file}:")
+        print(f"Sections in {args.file} (token estimates: "
+              f"{estimator_label('ctx')}, raw .ctx serialization):")
         for s in sections:
             print(f"  {s['name']:40s} ~{s['tokens']:>4d} tokens")
         print(f"\nTotal: {len(sections)} sections")
