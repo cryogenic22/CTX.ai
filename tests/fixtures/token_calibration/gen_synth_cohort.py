@@ -6,6 +6,7 @@ session ledger so the ctx-kind chars/3 estimator calibration stays on
 representative content.
 """
 import hashlib
+import os
 import random
 
 import tiktoken
@@ -162,7 +163,10 @@ est = round(len(text) / 3)
 print(f"chars={len(text)} cl100k={tokens} chars/3={est} "
       f"err={100 * (est - tokens) / tokens:+.2f}%")
 
-out = r"C:\Users\kapil\Documents\CTX_mod\tests\fixtures\token_calibration\ctx_cohort_synth_frozen.ctx"
+# output lands next to this file — never an absolute machine path
+# (re-review finding 4)
+out = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                   "ctx_cohort_synth_frozen.ctx")
 with open(out, "w", encoding="utf-8", newline="\n") as fh:
     fh.write(text)
 raw = open(out, "rb").read()

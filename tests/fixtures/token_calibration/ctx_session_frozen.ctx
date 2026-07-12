@@ -1,250 +1,241 @@
-§CTX v1.0 L2 DOMAIN:session-eca3f61c
-COMPRESSED:2026-07-06 SOURCE_TOKENS:~678 CTX_TOKENS:~960 RATIO:~0.9x
+§CTX v1.0 L2 DOMAIN:session-3c9d41aa
+COMPRESSED:2026-07-12 SOURCE_TOKENS:~3300 CTX_TOKENS:~3400 RATIO:~1.0x
 
-±ENTITY-USER-REQUEST-EEE0BBBA
-REQUEST:continue
-TURN:1
-FACT-ID:093890bd932a5a2a
-BASIS:structural
+±ENTITY-USER-REQUEST-7DD16C8D
+REQUEST:frontmatter dates render in three different formats across the site, normalize them at parse time not in the templates — context: the docs team hit this during the release-notes push and worked around it by hand, so fix the pipeline before the next release train
+FACT-ID:ef38a2a02a6c4084
+BASIS:marker_stated
 STATUS:current
 EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn1
-±ENTITY-TASK-CC7C4656
-TASK:Re-materialize CTX_mod + KP_SDLC ledgers under rank/v1
+TURN:5
+SRC:session:3c9d41aa#turn5
+±ENTITY-TOOL-BASH-0042-652EB459
+RAN:snapshot snippets check
+COMMAND:cd /c/Users/dev/Projects/lattice-docs && grep -nE 'def (render|resolve|flip)|redirect|anchor' ops/deploy.yaml | head -20
+TURN:7
+SRC:session:3c9d41aa#turn7
+±ENTITY-TOOL-BASH-0068-D7694094
+RAN:lint linkcheck check
+COMMAND:R="/c/Users/dev/Projects/lattice-docs" git -C "$R" log --oneline -12 -- linkcheck/ && git -C "$R" diff --stat HEAD~3
+TURN:16
+SRC:session:3c9d41aa#turn16
+±ENTITY-TOOL-BASH-0072-2EFD1211
+RAN:snapshot toc check
+COMMAND:R="/c/Users/dev/Projects/lattice-docs" git -C "$R" log --oneline -12 -- toc/ && git -C "$R" diff --stat HEAD~3
+TURN:18
+SRC:session:3c9d41aa#turn18
+±ENTITY-TOOL-BASH-0023-8B6D8B0E
+RAN:pin search check
+COMMAND:cd /c/Users/dev/Projects/lattice-docs && grep -nE 'def (render|resolve|flip)|redirect|anchor' pipeline/render.py | head -20
+TURN:26
+SRC:session:3c9d41aa#turn26
+±ENTITY-LITERAL-CAE7555E
+VALUE:e1ecb06d0980
+KIND:git_sha
+FACT-ID:d8cccf8f8ab7cbaa
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
 TURN:35
-SRC:session:eca3f61c#turn35
-±ENTITY-TASK-EAF56EBE
-TASK:Run drift + recall probe re-runs (rank/v1 delta)
-TURN:37
-SRC:session:eca3f61c#turn37
-±ENTITY-TASK-393AD1D1
-TASK:Fix same-session temporal filtering in conflict_lint.py
-TURN:92
-SRC:session:eca3f61c#turn92
-±ENTITY-TASK-8FBE2BE2
-TASK:Update onboard CLAUDE.md template with turn-final + Supersedes conventions
-TURN:94
-SRC:session:eca3f61c#turn94
-±ENTITY-TASK-603FB616
-TASK:Journal lint_status so lint crashes are distinguishable from clean
-TURN:96
-SRC:session:eca3f61c#turn96
-±ENTITY-ERROR-B2E3313C
-MESSAGE:Exit code 1 warning: in the working copy of 'ctxpack/benchmarks/agentic/resume_probe.py', LF will be replaced by CRLF the next time Git touches it warning: in the working copy of 'tests/test_resume_probe.py', LF will be replaced by CRLF the
-TURN:205
-FACT-ID:6811b2dc7b12c63a
-BASIS:structural
-STATUS:current
-EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn205
-±ENTITY-ERROR-EC5A2EE2
-MESSAGE:Exit code 1 repo=KP_SDLC set=recall probes=20 (decision, literal, rationale) arms=['ctx', 'grep', 'closed', 'automem'] [ 1/20] decision ???? ctx=4051bpe [ 2/20] literal ???? ctx=4020bpe [ 3/20] rationale ???? ctx=4060bpe [ 4/20] decision ??
-TURN:221
-FACT-ID:3a70e56707063580
-BASIS:structural
-STATUS:current
-EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn221
-±ENTITY-USER-REQUEST-CE020F48
-REQUEST:done?
-TURN:238
-FACT-ID:9a4c4a8300137e97
-BASIS:structural
-STATUS:current
-EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn238
-±ENTITY-ERROR-03F002AB
-MESSAGE:Exit code 1 Traceback (most recent call last): File "<string>", line 1, in <module> import json,sys; d=json.load(sys.stdin); [print(r['turn'], r['kind'], r['value'][:70]) for r in d['literals'] if 480 <= r['turn'] <= 600] ~~~~~~~~~^^^^^^^^^
-TURN:254
-FACT-ID:7088c056ed1f1a0a
-BASIS:structural
-STATUS:current
-EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn254
-±ENTITY-ERROR-EE727E9B
-MESSAGE:Exit code 1 Exception calling "Substring" with "2" argument(s): "Index and length must refer to a location within the string. Parameter name: length" At line:1 char:138 + ... tFrom-Json; ($j.results | Where-Object { $_.arm -eq 'ctx' }).answ
-TURN:261
-FACT-ID:ee2227dbf59d3e9c
-BASIS:structural
-STATUS:current
-EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn261
-±ENTITY-ERROR-4AC4D127
-MESSAGE:<tool_use_error>File has not been read yet. Read it first before writing to it.</tool_use_error>
-TURN:273
-FACT-ID:3fd7b25518a725d1
-BASIS:structural
-STATUS:current
-EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn273
-±ENTITY-INCIDENT-D20686B5
-TYPE:saved
-PARSE-OK:true
-RAW:ctx-incident: saved | fact="rank/v1+lint ship state and next action after /clear" | expected="one-call resume restores working state" | got="ctxpack session resume returned all 13 decisions, commits f2e7dae/b29352f/db9f37a/2f27a0a, and the drift-re-run next step" | evidence="zero transcript greps needed this session"
-TURN:281
-FACT:rank/v1+lint ship state and next action after /clear
-EXPECTED:one-call resume restores working state
-GOT:ctxpack session resume returned all 13 decisions, commits f2e7dae/b29352f/db9f37a/2f27a0a, and the drift-re-run next step
-EVIDENCE:zero transcript greps needed this session
-FACT-ID:c607b3879d582d3d
-BASIS:marker_stated
-STATUS:current
-EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn281
-±ENTITY-INCIDENT-866ABE73
-TYPE:native-better
-PARSE-OK:true
-RAW:ctx-incident: native-better | fact="pre-registered ctx-arm fix wording (arm under-models session_literals/why read path)" | expected="ledger why/recall surfaces the registration text" | got="session why 'under-models' returned found=false (235 entities searched); wording recovered from auto-memory automem-drift-baseline-2026-07-05.md" | evidence="why output found:false; the registration existed on
-TURN:281
-FACT:pre-registered ctx-arm fix wording (arm under-models session_literals/why read path)
-EXPECTED:ledger why/recall surfaces the registration text
-GOT:session why 'under-models' returned found=false (235 entities searched); wording recovered from auto-memory automem-drift-baseline-2026-07-05.md
-EVIDENCE:why output found:false; the registration existed only as a curated-memory sentence, never a marker line
-FACT-ID:13d07f5631880a53
-BASIS:marker_stated
-STATUS:current
-EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn281
-±ENTITY-DECISION-0438F975
-DECISION:Decision: current-session lint comparisons gate on strictly-earlier constraint turns (integer turn carried per constraint; cross-session rows always apply), because the old same-turn-only skip let a decision be flagged against future text — a retroactive conflict the contract for
-TURN:281
-FACT-ID:3cee9644dbd8122f
-BASIS:marker_stated
-STATUS:current
-EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn281
-±ENTITY-DECISION-294863BC
-DECISION:Decision: the onboard conventions block is bumped to v4 with the turn-FINAL marker rule and the Supersedes: override convention, because the v3 template silently withheld both from cohort repos on refresh.
-TURN:281
-FACT-ID:1543e1111e43a032
-BASIS:marker_stated
-STATUS:current
-EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn281
-±ENTITY-DECISION-DEF31EF2
-DECISION:Decision: the checkpoint journal carries lint_status/lint_error/lint_ledgers_skipped, because a swallowed lint exception journaled the same zeros as a clean run and the governance signal could die silently.
-TURN:281
-FACT-ID:614c5e605284c79b
-BASIS:marker_stated
-STATUS:current
-EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn281
-±ENTITY-DECISION-1AC74D31
-DECISION:Decision: the resume-probe ctx arm (v2) appends the source session's session-literals block, because the baseline arm under-modeled the documented read path — this is the fix pre-registered on 2026-07-05, not post-hoc tuning, and the result files self-describe via the new ctx_arm
-TURN:281
-FACT-ID:32a4d6ba4529bcf2
-BASIS:marker_stated
-STATUS:current
-EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn281
-±ENTITY-DECISION-5EA4C1E6
-DECISION:Decision: the two remaining KP_SDLC literal misses stand as graded; before the next probe run, pre-register a same-turn disambiguation rule (skip or hint probes where more than one same-kind literal shares the source turn), because "the exact path near turn N" is degenerate when 
-TURN:281
-FACT-ID:ce6a63c00cb699d0
-BASIS:marker_stated
-STATUS:current
-EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn281
-±ENTITY-LITERAL-97CECF38
-VALUE:d2ed148
+SRC:session:3c9d41aa#turn35
+±ENTITY-LITERAL-18268048
+VALUE:ae7aee9
 KIND:git_sha
-TURN:281
-FACT-ID:e26624c6559c0ac3
+FACT-ID:0bc4632a487b41c8
 BASIS:literal_extractor
 STATUS:current
 EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn281
-±ENTITY-LITERAL-B78AD794
-VALUE:tests/test_conflict_lint.py
+TURN:38
+SRC:session:3c9d41aa#turn38
+±ENTITY-DECISION-0ABC2CC3
+DECISION:Decision: frontmatter dates normalize at parse time to a single ISO form because template-side formatting produced three variants and broke the sitemap lastmod ordering.
+FACT-ID:0df4322f88c72a4f
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:42
+SRC:session:3c9d41aa#turn42
+±ENTITY-DECISION-5F87FAD7
+DECISION:Decision: frontmatter dates normalize at parse time to a single ISO form because template-side formatting produced three variants and broke the sitemap lastmod ordering. The alternative we walked away from was rebuilding the linkcheck module first, which looked cheaper but left the staged tree unverified through the release train.
+FACT-ID:5b3899790ce65982
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:44
+SRC:session:3c9d41aa#turn44
+±ENTITY-ERROR-97349C19
+MESSAGE:FileNotFoundError: snippets/anchors.json missing — snippet pull ran before the index step in the parallel build
+FACT-ID:7c7af377fb9a770f
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:50
+SRC:session:3c9d41aa#turn50
+±ENTITY-CONSTRAINT-62D83862
+CONSTRAINT:Constraint: the production symlink flips only after linkcheck and search-index verification both pass on the staged tree.
+FACT-ID:30c83b29ffe7017c
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:51
+SRC:session:3c9d41aa#turn51
+±ENTITY-TASK-CAF922D6
+TASK:Render search per the release retro, then update the authoring guide section that describes the staged-preview flow so writers stop publishing from local trees
+TURN:56
+SRC:session:3c9d41aa#turn56
+±ENTITY-USER-REQUEST-E120C06D
+REQUEST:frontmatter dates render in three different formats across the site, normalize them at parse time not in the templates — context: the docs team hit this during the release-notes push and worked around it by hand, so fix the pipeline before the next release train
+FACT-ID:a5690670e16cd4ea
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:59
+SRC:session:3c9d41aa#turn59
+±ENTITY-TOOL-BASH-0006-9F37ADE2
+RAN:index snippets check
+COMMAND:cd /c/Users/dev/Projects/lattice-docs && python -m pytest tests/test_snippets.py -q 2>&1 | tail -8; echo exit: $?
+TURN:67
+SRC:session:3c9d41aa#turn67
+±ENTITY-TOOL-BASH-0015-5E836DBC
+RAN:invalidate search check
+COMMAND:R="/c/Users/dev/Projects/lattice-docs" git -C "$R" log --oneline -12 -- search/ && git -C "$R" diff --stat HEAD~3
+TURN:69
+SRC:session:3c9d41aa#turn69
+±ENTITY-TOOL-BASH-0037-96D9EC54
+RAN:verify theme check
+COMMAND:cd /c/Users/dev/Projects/lattice-docs && python -m pytest tests/test_theme.py -q 2>&1 | tail -8; echo exit: $?
+TURN:75
+SRC:session:3c9d41aa#turn75
+±ENTITY-TOOL-BASH-0084-D37E8D5F
+RAN:render frontmatter check
+COMMAND:cd /c/Users/dev/Projects/lattice-docs && python build.py --stage-only --module frontmatter 2>&1 | head -15
+TURN:77
+SRC:session:3c9d41aa#turn77
+±ENTITY-LITERAL-B0683687
+VALUE:https://docs.example.test/preview/763/
+KIND:url
+FACT-ID:a93a784ca0f952b0
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:80
+SRC:session:3c9d41aa#turn80
+±ENTITY-LITERAL-B0D9528A
+VALUE:C:\Users\dev\Projects\lattice-docs\themes\base\layout.html
 KIND:path
-TURN:281
-FACT-ID:c3d6fa6e5e85b19a
+FACT-ID:f6e44e3d312412b7
 BASIS:literal_extractor
 STATUS:current
 EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn281
-±ENTITY-LITERAL-8BE4DD5C
-VALUE:3b25fbf
-KIND:git_sha
-TURN:281
-FACT-ID:1981c3f2f1844d76
-BASIS:literal_extractor
-STATUS:current
-EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn281
-±ENTITY-LITERAL-F4BA2E77
-VALUE:e393408
-KIND:git_sha
-TURN:281
-FACT-ID:3460df090a5a3f4c
-BASIS:literal_extractor
-STATUS:current
-EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn281
-±ENTITY-LITERAL-33C9343B
-VALUE:619d5850a72200b7
-KIND:git_sha
-TURN:281
-FACT-ID:6fae9534c7f7fd8f
-BASIS:literal_extractor
-STATUS:current
-EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn281
-±ENTITY-USER-REQUEST-4686C52A
-REQUEST:I’m mostly aligned
-TURN:282
-FACT-ID:56b054f39b36e21c
+TURN:85
+SRC:session:3c9d41aa#turn85
+±ENTITY-DECISION-8A922E1A
+DECISION:Decision: redirects live in one committed table validated at build, not in server config, because the ops copy silently diverged and renamed pages 404ed for a week.
+FACT-ID:bbadaf93a1fc3c17
 BASIS:structural
 STATUS:current
 EXTRACTOR:tp/1.1
-SRC:session:eca3f61c#turn282
-±ENTITY-FILE-E-PROJECTS-C--USERS-KAPIL-DOCUMENTS-CTX-MOD-MEMORY-MEMORY-MD
-PATH:C:\Users\kapil\.claude\projects\C--Users-kapil-Documents-CTX-mod\memory\MEMORY.md
-EDITS:2
-LAST-TURN:276
-SRC:session:eca3f61c#turn276
-±ENTITY-FILE-IL-DOCUMENTS-CTX-MOD-MEMORY-RANK-V1-CONFLICT-LINT-SHIPPED-MD
-PATH:C:\Users\kapil\.claude\projects\C--Users-kapil-Documents-CTX-mod\memory\rank-v1-conflict-lint-shipped.md
-EDITS:2
-LAST-TURN:270
-SRC:session:eca3f61c#turn270
-±ENTITY-FILE-CA3F61C-A652-42B3-B60B-D427B24BBC5C-SCRATCHPAD-COMMITMSG-TXT
-PATH:C:\Users\kapil\AppData\Local\Temp\claude\C--Users-kapil-Documents-CTX-mod\eca3f61c-a652-42b3-b60b-d427b24bbc5c\scratchpad\commitmsg.txt
-EDITS:1
-LAST-TURN:208
-SRC:session:eca3f61c#turn208
-±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-AGENT-CHECKPOINT-PY
-PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\checkpoint.py
-EDITS:2
-LAST-TURN:182
-SRC:session:eca3f61c#turn182
-±ENTITY-FILE-USERS-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-AGENT-CONFLICT-LINT-PY
-PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\agent\conflict_lint.py
-EDITS:10
-LAST-TURN:177
-SRC:session:eca3f61c#turn177
-±ENTITY-FILE-DOCUMENTS-CTX-MOD-CTXPACK-BENCHMARKS-AGENTIC-RESUME-PROBE-PY
-PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\benchmarks\agentic\resume_probe.py
-EDITS:3
-LAST-TURN:80
-SRC:session:eca3f61c#turn80
-±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-CTXPACK-CLI-MAIN-PY
-PATH:C:\Users\kapil\Documents\CTX_mod\ctxpack\cli\main.py
-EDITS:2
-LAST-TURN:146
-SRC:session:eca3f61c#turn146
-±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-TESTS-TEST-CONFLICT-LINT-PY
-PATH:C:\Users\kapil\Documents\CTX_mod\tests\test_conflict_lint.py
-EDITS:2
-LAST-TURN:190
-SRC:session:eca3f61c#turn190
-±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-TESTS-TEST-ONBOARD-PY
-PATH:C:\Users\kapil\Documents\CTX_mod\tests\test_onboard.py
-EDITS:2
-LAST-TURN:154
-SRC:session:eca3f61c#turn154
-±ENTITY-FILE-C-USERS-KAPIL-DOCUMENTS-CTX-MOD-TESTS-TEST-RESUME-PROBE-PY
-PATH:C:\Users\kapil\Documents\CTX_mod\tests\test_resume_probe.py
-EDITS:3
-LAST-TURN:88
-SRC:session:eca3f61c#turn88
+TURN:93
+SRC:session:3c9d41aa#turn93
+±ENTITY-DECISION-8CA1613F
+DECISION:Decision: snippets are pulled at build time by line anchor instead of pasted, because every pasted block in the audit had drifted from its source — the anchor fails the build when the source moves. The alternative we walked away from was pining the theme module first, which looked cheaper but left the staged tree unverified through the release train.
+FACT-ID:f1a9510a9efbe0b9
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:94
+SRC:session:3c9d41aa#turn94
+±ENTITY-CONSTRAINT-8EEDE492
+CONSTRAINT:Constraint: the production symlink flips only after linkcheck and search-index verification both pass on the staged tree.
+FACT-ID:6a925dfa8ce804ee
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:100
+SRC:session:3c9d41aa#turn100
+±ENTITY-TASK-85A7ACA9
+TASK:Snapshot sitemap per the release retro, then update the authoring guide section that describes the staged-preview flow so writers stop publishing from local trees
+TURN:104
+SRC:session:3c9d41aa#turn104
+±ENTITY-USER-REQUEST-3704E8F0
+REQUEST:broken-link checks pass locally but fail in ci, make the base url handling identical in both — context: the docs team hit this during the release-notes push and worked around it by hand, so fix the pipeline before the next release train
+FACT-ID:9c332d7921e63760
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:109
+SRC:session:3c9d41aa#turn109
+±ENTITY-TOOL-BASH-0087-0728A37D
+RAN:redirect search check
+COMMAND:cd /c/Users/dev/Projects/lattice-docs && make linkcheck && echo OK || echo BROKEN
+TURN:115
+SRC:session:3c9d41aa#turn115
+±ENTITY-TOOL-BASH-0042-7DF3B6DB
+RAN:invalidate search check
+COMMAND:cd /c/Users/dev/Projects/lattice-docs && make linkcheck && echo OK || echo BROKEN
+TURN:118
+SRC:session:3c9d41aa#turn118
+±ENTITY-TOOL-BASH-0039-552C4170
+RAN:rebuild search check
+COMMAND:R="/c/Users/dev/Projects/lattice-docs" git -C "$R" log --oneline -12 -- search/ && git -C "$R" diff --stat HEAD~3
+TURN:120
+SRC:session:3c9d41aa#turn120
+±ENTITY-TOOL-BASH-0042-64EAE550
+RAN:rebuild publish check
+COMMAND:R="/c/Users/dev/Projects/lattice-docs" git -C "$R" log --oneline -12 -- publish/ && git -C "$R" diff --stat HEAD~3
+TURN:128
+SRC:session:3c9d41aa#turn128
+±ENTITY-LITERAL-0F3F3B16
+VALUE:7a0eaf2128f1
+KIND:git_sha
+FACT-ID:1afd497ada0a55dc
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:133
+SRC:session:3c9d41aa#turn133
+±ENTITY-LITERAL-4B27D261
+VALUE:4.11.13
+KIND:version
+FACT-ID:b773440828ce1e17
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:136
+SRC:session:3c9d41aa#turn136
+±ENTITY-DECISION-E1BC2936
+DECISION:Decision: the link checker resolves against the STAGED site root, not the production host, because ci and local disagreed only on the base url — same tree, same verdict, everywhere.
+FACT-ID:5a2f25c16913dc4b
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:139
+SRC:session:3c9d41aa#turn139
+±ENTITY-DECISION-FADE2783
+DECISION:Decision: frontmatter dates normalize at parse time to a single ISO form because template-side formatting produced three variants and broke the sitemap lastmod ordering. The alternative we walked away from was rendering the redirects module first, which looked cheaper but left the staged tree unverified through the release train.
+FACT-ID:cfacd1e307954d00
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:145
+SRC:session:3c9d41aa#turn145
+±ENTITY-ERROR-D569FA03
+MESSAGE:Exit code 1 FAILED tests/test_linkcheck.py::test_staged_root - AssertionError: 404 for /guides/quickstart/ under base /preview/
+FACT-ID:1d98e8e6488b6744
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:146
+SRC:session:3c9d41aa#turn146
+±ENTITY-CONSTRAINT-9A0E14D1
+CONSTRAINT:Constraint: the production symlink flips only after linkcheck and search-index verification both pass on the staged tree.
+FACT-ID:c7a1aca11bfb2102
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:152
+SRC:session:3c9d41aa#turn152
+±ENTITY-TASK-46FC6B7E
+TASK:Verify search per the release retro, then update the authoring guide section that describes the staged-preview flow so writers stop publishing from local trees
+TURN:159
+SRC:session:3c9d41aa#turn159
