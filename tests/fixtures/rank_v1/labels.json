@@ -1,18 +1,18 @@
 {
-  "_source": "KP_SDLC session ca35891c (real 1406-turn dogfood session), events regenerated 2026-07-05 from the raw transcript by run_checkpoint with the enriched emitter (marker + literal_kind details, full kinds). Rows carry fact ids and extraction metadata only — no ledger prose.",
-  "_labels_ratified": "eval-first drift plan, Kapil 2026-07-05: load-bearing turns 813/858/1173 rise; junk turns 57/74 (and the inferred table fragment at 858) sink; constraints floor.",
-  "project_root": "C:\\Users\\kapil\\Documents\\KP_SDLC",
+  "_source": "Real 1406-turn cohort dogfood session (SDLC repo), events regenerated 2026-07-05 from the raw transcript by run_checkpoint with the enriched emitter (marker + literal_kind details, full kinds). Rows carry fact ids and extraction metadata only — no ledger prose. PSEUDONYMIZED 2026-07-12 (E-6A, anonymize_fixture.py): cwd/session/checkpoint replaced by fixed synthetic values; extraction metadata, turns, and fact ids unchanged, so every fold score is identical to the ratified original. The pre-anonymization file remains in git history pending the owner call on a history rewrite.",
+  "_labels_ratified": "eval-first drift plan, owner 2026-07-05: load-bearing turns 813/858/1173 rise; junk turns 57/74 (and the inferred table fragment at 858) sink; constraints floor. Verbatim session prose withheld from label descriptions per E-6A.",
+  "project_root": "C:\\cohort\\sdlc-anon",
   "rise": {
-    "93ae4a635b484199": "turn 813 Decision: adopt ctxpack ledger as receipts layer",
-    "ba97997197860993": "turn 813 Decision: commit .claude/ctx + settings + CLAUDE.md",
+    "93ae4a635b484199": "turn 813 canonical Decision: adopt the ctx ledger as the receipts layer",
+    "ba97997197860993": "turn 813 Decision: commit the ledger + settings + conventions doc",
     "538ab6dda5f04d12": "turn 813 Decision: structural-floor protected surface",
     "d76543a4a4ef3ea8": "turn 858 Decision: conventions ship paired with deterministic gates",
-    "640c869a653a7939": "turn 858 Decision: diff-scoped economy checks (Clean-as-You-Code)",
-    "0665eac630e20721": "turn 1173 Decision: merge PRs #6/#7 on owner's explicit instruction"
+    "640c869a653a7939": "turn 858 Decision: diff-scoped economy checks",
+    "0665eac630e20721": "turn 1173 Decision: merge the two PRs on the owner's explicit instruction"
   },
   "sink": {
-    "7c48aa3fe980c0b5": "turn 57 inferred: 'I'll hold the full analysis until they return'",
-    "204a9205aaa6de52": "turn 74 marker alias: 'Verdict: the code is stronger than its own documentation'",
-    "f40022fd6baa6b8a": "turn 858 inferred: E13.0a work-item table fragment"
+    "7c48aa3fe980c0b5": "turn 57 inferred junk decision (verbatim prose withheld — E-6A)",
+    "204a9205aaa6de52": "turn 74 Verdict-alias marker decision (verbatim prose withheld — E-6A)",
+    "f40022fd6baa6b8a": "turn 858 inferred work-item table fragment"
   }
 }

@@ -1,12 +1,15 @@
 """rank/v1 — event-sourced salience fold (spec v1.1 §6).
 
-The labeled fixture is a REAL dogfood session (KP_SDLC ca35891c, 1406
-turns, events regenerated from the raw transcript): the ratified
-eval-first drift plan named which facts must rise and which must sink.
-Ranking is a deterministic fold over ctx-events/v1 rows only — same
-file, same scores, forever. Guards under test: constraints keep a rank
-floor, event boosts are capped (no rich-get-richer), eval-workspace
-rows are excluded by transcript-derived cwd, and rank/v0 stays the
+The labeled fixture is a REAL cohort dogfood session (1406 turns,
+events regenerated from the raw transcript), PSEUDONYMIZED per E-6A
+(anonymize_fixture.py: cwd/session/checkpoint replaced by synthetic
+values; extraction metadata, turns, and fact ids unchanged — fold
+scores identical to the ratified original). The ratified eval-first
+drift plan named which facts must rise and which must sink. Ranking is
+a deterministic fold over ctx-events/v1 rows only — same file, same
+scores, forever. Guards under test: constraints keep a rank floor,
+event boosts are capped (no rich-get-richer), eval-workspace rows are
+excluded by transcript-derived cwd, and rank/v0 stays the
 byte-identical A/B baseline.
 """
 
@@ -22,7 +25,7 @@ FIXDIR = Path(__file__).parent / "fixtures" / "rank_v1"
 
 def _fixture_rows():
     return [json.loads(line) for line in
-            (FIXDIR / "kp_sdlc_ca35891c_events.jsonl")
+            (FIXDIR / "kp_sdlc_events_anon.jsonl")
             .read_text(encoding="utf-8").splitlines()]
 
 
@@ -41,6 +44,17 @@ def _row(event="fact_asserted", fact_id="f" * 16, session="s1", turn=1,
 
 
 # ------------------------------------------------- ratified fixture labels
+
+
+def test_fixture_carries_no_personal_paths():
+    # E-6A standing gate: the fixture directory is pseudonymized — no
+    # usernames, no user-profile paths, no raw session UUIDs beyond
+    # the fixed synthetic ones. Guards against a regressed re-export.
+    for f in sorted(FIXDIR.iterdir()):
+        text = f.read_text(encoding="utf-8").lower()
+        assert "kapil" not in text, f.name
+        assert "\\users\\" not in text and "/users/" not in text, f.name
+        assert "documents" not in text, f.name
 
 
 def test_ratified_fixture_rise_beats_sink():
