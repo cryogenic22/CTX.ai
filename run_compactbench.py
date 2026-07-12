@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import sys
 import threading
 import time
@@ -140,11 +141,29 @@ def probe_cell(ctx: dict, k: int, recall: list, adherence: list, *,
                 "usage": res.usage, "cost_usd": res.cost_usd,
                 **(g or {})}
 
+    def _probe_call(prompt, **kw):
+        # Q2-2 residual: a failed or timed-out probe call must never be
+        # graded — its empty answer would become a completed-cell miss.
+        # DriverError routes it to the cell_error path, so the cell is
+        # partial/failed and the row set stays graded-calls-only. The
+        # invocation ledger already carries the call's spend/status.
+        try:
+            res = driver.run_claude(
+                ctx["workspace"], prompt, resume=ctx["sid"], fork=True,
+                model=model, extra_env=probe_env, **kw)
+        except subprocess.TimeoutExpired as exc:
+            raise driver.DriverError(
+                f"probe call timed out ({exc.timeout}s) — cell "
+                f"invalidated, not graded") from exc
+        if not res.ok:
+            raise driver.DriverError(
+                f"probe call failed — cell invalidated, not graded: "
+                f"{(res.stderr or '')[:300]}")
+        return res
+
     if probe_mode == "batched":
-        res = driver.run_claude(
-            ctx["workspace"], probes_mod.format_batch(recall, extra),
-            resume=ctx["sid"], fork=True, model=model, timeout=1800,
-            extra_env=probe_env, **tools)
+        res = _probe_call(probes_mod.format_batch(recall, extra),
+                          timeout=1800, **tools)
         answers = probes_mod.parse_batch(res.result, len(recall))
         for i, p in enumerate(recall, 1):
             row = base(p, res, answers.get(i, ""),
@@ -159,18 +178,13 @@ def probe_cell(ctx: dict, k: int, recall: list, adherence: list, *,
             rows.append(row)
     else:
         for p in recall:
-            res = driver.run_claude(
-                ctx["workspace"], p.question + extra, resume=ctx["sid"],
-                fork=True, model=model, timeout=900,
-                extra_env=probe_env, **tools)
+            res = _probe_call(p.question + extra, timeout=900, **tools)
             rows.append(base(p, res, res.result))
 
     if do_adherence:
         for p in adherence:
-            res = driver.run_claude(
-                ctx["workspace"], p.question, resume=ctx["sid"], fork=True,
-                model=model, max_turns=6, timeout=900,
-                extra_env=probe_env,
+            res = _probe_call(
+                p.question, max_turns=6, timeout=900,
                 allowed_tools="Grep,Read,Glob" if grep_arm else None)
             fork_t = (driver.transcript_path(ctx["workspace"],
                                              res.session_id)
@@ -414,8 +428,9 @@ def build_report(rows: list[dict], params: dict) -> dict:
     run_usage: dict = {}
     for e in report["arms"].values():
         _sum_usage(run_usage, e.get("usage_breakdown"))
-    report["run_cost_usd"] = round(
+    rows_cost = round(
         sum(e["attempt_cost_usd"] for e in report["arms"].values()), 4)
+    report["rows_cost_usd"] = rows_cost
     report["run_usage"] = {k: run_usage[k] for k in sorted(run_usage)}
 
     def _fresh_build(arm: str):
@@ -444,15 +459,25 @@ def build_report(rows: list[dict], params: dict) -> dict:
     for i in inv:
         by_status[i["status"]] = by_status.get(i["status"], 0) + 1
     unknown_cost = sum(1 for i in inv if i["cost_usd"] is None)
+    ledger_cost = round(sum(i["cost_usd"] or 0 for i in inv), 4)
+    # Q2-2 residual: spend that only the invocation ledger knows about
+    # (stalled nudges, errored/timed-out calls) must reach run_cost_usd,
+    # not just sit beside it. Every row cost originates from exactly one
+    # of this run's invocations, so ledger - rows >= 0 is the spend no
+    # row carries; a materially negative delta means double counting and
+    # is itself an accounting failure.
+    unattributed = round(ledger_cost - rows_cost, 4)
     report["invocations"] = {
         "total": len(inv),
         "by_status": by_status,
         "unknown_cost": unknown_cost,
-        "ledger_cost_usd": round(
-            sum(i["cost_usd"] or 0 for i in inv), 4),
+        "ledger_cost_usd": ledger_cost,
+        "unattributed_known_cost_usd": max(0.0, unattributed),
     }
+    report["run_cost_usd"] = round(rows_cost + max(0.0, unattributed), 4)
     report["accounting_complete"] = (
         unknown_cost == 0
+        and unattributed >= -0.001
         and all(e["accounting_complete"] for e in report["arms"].values()))
     return report
 

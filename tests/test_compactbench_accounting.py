@@ -192,3 +192,84 @@ def test_timeout_in_ledger_flips_run_accounting_off(tmp_path, monkeypatch):
     report = build_report([_probe(0, cost=0.1)], PARAMS)
     assert report["invocations"]["unknown_cost"] == 1
     assert report["accounting_complete"] is False
+
+
+# ------------------------------------------- Q2-2 re-check residuals
+
+
+class _ErrProc:
+    """A failed CLI call that still reported its spend."""
+    def __init__(self, stdout):
+        self.returncode = 1
+        self.stdout = stdout
+        self.stderr = "boom"
+
+
+def test_known_cost_ledger_only_call_reaches_run_cost_usd(tmp_path,
+                                                          monkeypatch):
+    """Residual: an errored call with KNOWN cost lives only in the
+    invocation ledger — run_cost_usd must include it, and the report
+    must say how much spend no row carries."""
+    monkeypatch.setattr(driver, "_claude_exe", lambda: "claude")
+    ok_payload = json.dumps({"result": "fine", "total_cost_usd": 0.1,
+                             "usage": {}})
+    monkeypatch.setattr(driver.subprocess, "run",
+                        lambda *a, **kw: _Proc(ok_payload))
+    driver.run_claude(str(tmp_path), "probe")   # spend reaches a row
+    err_payload = json.dumps({"result": "", "is_error": True,
+                              "total_cost_usd": 0.03, "usage": {}})
+    monkeypatch.setattr(driver.subprocess, "run",
+                        lambda *a, **kw: _ErrProc(err_payload))
+    res = driver.run_claude(str(tmp_path), "hello")
+    assert not res.ok
+    report = build_report([_probe(0, cost=0.1)], PARAMS)
+    assert report["invocations"]["by_status"] == {"ok": 1, "error": 1}
+    assert report["invocations"]["unattributed_known_cost_usd"] == 0.03
+    assert report["rows_cost_usd"] == 0.1
+    assert report["run_cost_usd"] == 0.13
+    # spend is KNOWN — the run total is honest, so accounting stays
+    # complete; unknown spend is what flips it off
+    assert report["accounting_complete"] is True
+
+
+def _fake_probe(question="Q?"):
+    import types
+    return types.SimpleNamespace(kind="decision_current", probe_id="p1",
+                                 question=question)
+
+
+def _fail_result():
+    return driver.ClaudeResult(ok=False, result="", session_id=None,
+                               usage={}, cost_usd=0.02, duration_ms=1,
+                               stderr="api error", raw={})
+
+
+def test_failed_probe_call_never_becomes_a_graded_miss(tmp_path,
+                                                       monkeypatch):
+    """Residual: probe_cell must invalidate the cell (DriverError ->
+    cell_error -> partial/failed) instead of grading a failed call's
+    empty answer as an abstain-miss in a 'completed' cell."""
+    from run_compactbench import probe_cell
+
+    monkeypatch.setattr(driver, "run_claude",
+                        lambda *a, **kw: _fail_result())
+    ctx = {"arm": "ctx", "seed": 0, "workspace": str(tmp_path),
+           "sid": "sid-1"}
+    with pytest.raises(driver.DriverError, match="not graded"):
+        probe_cell(ctx, 1, [_fake_probe()], [], model="haiku",
+                   probe_mode="single", do_adherence=False,
+                   log=lambda *_: None)
+
+
+def test_timed_out_probe_call_invalidates_the_cell(tmp_path, monkeypatch):
+    from run_compactbench import probe_cell
+
+    def _stall(*a, **kw):
+        raise subprocess.TimeoutExpired(cmd="claude", timeout=9)
+    monkeypatch.setattr(driver, "run_claude", _stall)
+    ctx = {"arm": "ctx", "seed": 0, "workspace": str(tmp_path),
+           "sid": "sid-1"}
+    with pytest.raises(driver.DriverError, match="timed out"):
+        probe_cell(ctx, 1, [_fake_probe()], [], model="haiku",
+                   probe_mode="single", do_adherence=False,
+                   log=lambda *_: None)
