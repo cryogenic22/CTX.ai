@@ -369,16 +369,16 @@ def _run_fork_v2(args) -> int:
     print(f"clusters={len(clusters)}  completions={len(plan)}  "
           f"(all receipts passed — any failure would have aborted)")
 
-    # ── $2 ceiling enforcement (blocker 5) ──
+    # ── $2 ceiling enforcement (blocker 5 + notes v4 finding 3): the
+    # bound prices the ENTIRE request (wrapper + system prompt) with
+    # tokenizer headroom, and the SAME bound backs preflight and every
+    # per-attempt guard ──
     def _worst_case(row) -> float:
         preamble = (_DRIFT_PREAMBLE
                     if row.ptype in ("fork", "false-alarm")
                     else _PREAMBLE)
-        in_bpe = row.context_bpe + count_bpe_tokens(
-            preamble + row.probe.question, model="claude")
-        return (in_bpe * fc.PRICE_IN_PER_MTOK
-                + fc.MAX_COMPLETION_TOKENS
-                * fc.PRICE_OUT_PER_MTOK) / 1_000_000
+        return fc.request_worst_case_usd(
+            preamble + row.probe.question, row.context)
 
     def _price_usage(usage: dict) -> "float | None":
         it = usage.get("input_tokens")
@@ -400,10 +400,12 @@ def _run_fork_v2(args) -> int:
     inv_path = os.path.join(work, "invocations.jsonl")
 
     def _record_invocation(rec: dict) -> None:
-        # durable: persisted IMMEDIATELY after every call (blocker 5)
+        # durable means durable (notes v4): flushed AND fsynced before
+        # the write is claimed
         with open(inv_path, "a", encoding="utf-8", newline="\n") as f:
             f.write(json.dumps(rec) + "\n")
             f.flush()
+            os.fsync(f.fileno())
 
     results: "list[dict]" = []
     invocations: "list[dict]" = []

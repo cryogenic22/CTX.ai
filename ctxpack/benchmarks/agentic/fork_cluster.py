@@ -88,6 +88,24 @@ PRICE_IN_PER_MTOK = 3.00
 PRICE_OUT_PER_MTOK = 15.00
 MAX_COMPLETION_TOKENS = 512
 
+# Worst-case request pricing (harness notes v4, finding 3): the bound
+# covers the ENTIRE request — _build_prompt's wrapper and the system
+# prompt, not just context+question — with pinned headroom because
+# cl100k only approximates Claude's billing tokenizer, plus a fixed
+# allowance for role/message framing invisible in the prompt text.
+# The SAME bound backs the preflight total and every per-attempt guard.
+TOKENIZER_HEADROOM = 1.25
+REQUEST_OVERHEAD_TOKENS = 64
+
+
+def request_worst_case_usd(question_block: str, context: str) -> float:
+    from ..metrics.fidelity import QA_SYSTEM_MSG, _build_prompt
+    full = _build_prompt(question_block, context or "(no context provided)")
+    in_bpe = count_bpe_tokens(QA_SYSTEM_MSG + "\n" + full, model="claude")
+    in_bpe = math.ceil(in_bpe * TOKENIZER_HEADROOM) + REQUEST_OVERHEAD_TOKENS
+    return (in_bpe * PRICE_IN_PER_MTOK
+            + MAX_COMPLETION_TOKENS * PRICE_OUT_PER_MTOK) / 1_000_000
+
 # Arms. Primary comparison is ctx-nowarn-padded vs ctx-warn (fixed
 # total budget); ctx-nowarn is the disclosed additive-overhead
 # secondary; grep is the standing over-powered null, fork probes only.

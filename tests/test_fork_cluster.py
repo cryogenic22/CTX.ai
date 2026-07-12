@@ -505,6 +505,39 @@ def test_pinned_manifest_gate_aborts_on_drifted_inputs(monkeypatch):
         fc.require_pinned_manifest()
 
 
+# --------------------------- full-request worst case (notes v4)
+
+
+def test_request_worst_case_prices_the_entire_request():
+    import math
+
+    from ctxpack.benchmarks.metrics.cost import count_bpe_tokens
+    from ctxpack.benchmarks.metrics.fidelity import (
+        QA_SYSTEM_MSG,
+        _build_prompt,
+    )
+
+    q, ctx = "which value is current?", "banked context line. " * 40
+    wc = fc.request_worst_case_usd(q, ctx)
+    naive = (count_bpe_tokens(ctx + q, model="claude")
+             * fc.PRICE_IN_PER_MTOK
+             + fc.MAX_COMPLETION_TOKENS
+             * fc.PRICE_OUT_PER_MTOK) / 1_000_000
+    assert wc > naive   # wrapper + system prompt + headroom + overhead
+    full_bpe = count_bpe_tokens(
+        QA_SYSTEM_MSG + "\n" + _build_prompt(q, ctx), model="claude")
+    bound = (math.ceil(full_bpe * fc.TOKENIZER_HEADROOM)
+             + fc.REQUEST_OVERHEAD_TOKENS)
+    expected = (bound * fc.PRICE_IN_PER_MTOK
+                + fc.MAX_COMPLETION_TOKENS
+                * fc.PRICE_OUT_PER_MTOK) / 1_000_000
+    assert wc == pytest.approx(expected)
+
+
+def test_request_worst_case_handles_empty_context():
+    assert fc.request_worst_case_usd("q", "") > 0
+
+
 # ------------------------------------ retry-level budget (notes v3)
 
 

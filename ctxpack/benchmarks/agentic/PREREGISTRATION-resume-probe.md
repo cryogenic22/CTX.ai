@@ -525,3 +525,14 @@ exists; every change is prospective — no regrades.
    the fork grade still requires an exact anchor to PASS, and the
    false-alarm direction needs a POSITIVE flag to fire, so this
    limitation cannot create false alarms.
+3. **Full-request worst case with tokenizer headroom (finding 3;
+   supersedes the context+question bound).** The per-call worst case
+   now prices the ENTIRE request — `_build_prompt`'s wrapper and the
+   system prompt included — then applies pinned headroom
+   (`TOKENIZER_HEADROOM = 1.25`, because cl100k only approximates
+   Claude's billing tokenizer) plus `REQUEST_OVERHEAD_TOKENS = 64`
+   for role/message framing. The SAME bound
+   (`fork_cluster.request_worst_case_usd`) backs the preflight total
+   and every per-attempt guard, so no attempt can be issued whose
+   true cost could cross the $2 cap. The invocation ledger is fsynced
+   after every append — "durable" is now literal.
