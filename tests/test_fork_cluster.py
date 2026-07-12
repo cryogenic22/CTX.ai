@@ -463,6 +463,25 @@ def test_false_alarm_gate_is_zero_tolerance():
     assert fc.false_alarm_gate(0, 0) is False
 
 
+# -------------------------------------- exact-manifest gate (notes v3)
+
+
+def test_pinned_manifest_gate_passes_on_reviewed_inputs():
+    assert fc.require_pinned_manifest() == \
+        fc.PINNED_CLUSTER_MANIFEST_SHA256
+    assert fc.cluster_manifest_sha256() == \
+        fc.PINNED_CLUSTER_MANIFEST_SHA256
+
+
+def test_pinned_manifest_gate_aborts_on_drifted_inputs(monkeypatch):
+    # any change to a pinned run input must fail the gate until the
+    # sha is consciously re-pinned in the same diff
+    monkeypatch.setattr(fc, "_DISTRACTOR_POOL",
+                        fc._DISTRACTOR_POOL + ("a drifted sentence.",))
+    with pytest.raises(RuntimeError, match="exact-manifest gate"):
+        fc.require_pinned_manifest()
+
+
 # ------------------------------------ retry-level budget (notes v3)
 
 

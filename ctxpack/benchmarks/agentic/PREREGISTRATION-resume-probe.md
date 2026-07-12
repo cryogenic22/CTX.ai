@@ -471,3 +471,13 @@ prospective — no regrades.
    NO silent retry — at temperature 0 a retry is a hidden regrade
    opportunity. The call's cost is charged (it was billed) and the
    attempt is ledgered with status `empty`.
+4. **Exact-manifest gate (supersedes v2 note 7's stamp-only
+   semantics).** `cluster_manifest_sha256` was stamped into artifacts
+   but never verified — drifted run inputs would execute and merely
+   record a different hash. v3 pins the reviewed manifest as
+   `PINNED_CLUSTER_MANIFEST_SHA256`; every run — dry or live — aborts
+   unless the computed manifest matches (`require_pinned_manifest`),
+   so a deliberate change to any pinned input (cluster table,
+   variations, revisions, templates, questions, distractors, filler,
+   arms) requires a conscious re-pin in the same reviewable diff.
+   Artifacts stamp the verified sha plus the gate marker.

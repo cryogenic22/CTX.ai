@@ -297,6 +297,31 @@ def cluster_manifest_sha256() -> str:
     return hashlib.sha256(blob).hexdigest()
 
 
+# Exact-manifest gate (recheck residual): the sha above was STAMPED
+# into artifacts but never VERIFIED — a drifted cluster table would
+# run and merely record a different hash. Any run (dry or live) now
+# aborts unless the computed manifest matches this pinned value, so
+# changing any pinned input requires a conscious re-pin in the same
+# reviewable diff.
+PINNED_CLUSTER_MANIFEST_SHA256 = (
+    "554f249271474f14491bb29bc793779212288c34a9248578490da9566b686c1b")
+
+
+def require_pinned_manifest() -> str:
+    """Abort unless the computed cluster manifest matches the pinned
+    sha256. Returns the (verified) sha for stamping."""
+    got = cluster_manifest_sha256()
+    if got != PINNED_CLUSTER_MANIFEST_SHA256:
+        raise RuntimeError(
+            "cluster manifest drifted from the pinned sha256 — the "
+            "run inputs are not the reviewed inputs (exact-manifest "
+            f"gate): pinned {PINNED_CLUSTER_MANIFEST_SHA256[:16]}…, "
+            f"got {got[:16]}…. A deliberate change to any pinned "
+            "input must re-pin PINNED_CLUSTER_MANIFEST_SHA256 in the "
+            "same commit.")
+    return got
+
+
 def require_exact_tokenizer() -> str:
     """Budget parity must not depend on the environment (blocker 6):
     count_bpe_tokens silently falls back to chars//4 without tiktoken,

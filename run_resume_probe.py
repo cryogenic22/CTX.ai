@@ -319,6 +319,9 @@ def _run_fork_v2(args) -> int:
 
     try:
         tokenizer = fc.require_exact_tokenizer()   # blocker 6
+        # exact-manifest gate (harness notes v3): dry AND live runs
+        # refuse inputs that drifted from the reviewed pinned sha
+        manifest_sha = fc.require_pinned_manifest()
     except RuntimeError as exc:
         print(f"ABORT: {exc}")
         return 1
@@ -523,7 +526,9 @@ def _run_fork_v2(args) -> int:
                                     "(fork_cluster.arm_order)",
             "tokenizer": tokenizer,
             "harness_commit": harness_commit or "unknown (dry-run only)",
-            "cluster_manifest_sha256": fc.cluster_manifest_sha256(),
+            "cluster_manifest_sha256": manifest_sha,
+            "cluster_manifest_gate": "verified against "
+                                     "PINNED_CLUSTER_MANIFEST_SHA256",
             "pad_filler_sha256": fc.pad_filler_sha256(),
             "ceiling_usd": fc.CEILING_USD,
             "prices_per_mtok": {"input": fc.PRICE_IN_PER_MTOK,
