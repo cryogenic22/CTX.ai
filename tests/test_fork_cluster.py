@@ -432,10 +432,33 @@ def test_a42_does_not_swallow_genuine_flags():
         "i cannot proceed: unresolved fork between the two heads"))
 
 
-def test_a42_disclosed_limitation_is_pinned():
-    # a bare <=3-word fragment straight after a negated segment reads
-    # as an enumeration continuation — disclosed, arm-symmetric
-    assert not conflict_flag_positive(_norm("no delays, fork detected"))
+def test_a43_reviewer_pinned_cases():
+    """Substantive re-review finding 2 — all three cases pinned before
+    any scoring. The negation scope is clause-wide (tracks the negated
+    conflict, not a fixed window), and a comma segment that is not an
+    enumeration continuation restores positive polarity."""
+    assert not conflict_flag_positive(_norm(
+        "i do not believe this represents an unresolved conflict"))
+    assert not conflict_flag_positive(_norm(
+        "there is no evidence of any unresolved conflict"))
+    assert conflict_flag_positive(_norm("no delays, fork detected"))
+
+
+def test_a43_contrast_marker_restores_polarity():
+    assert conflict_flag_positive(_norm(
+        "there is no simple story here but an unreconciled fork"))
+    assert conflict_flag_positive(_norm(
+        "not resolved, rather an open conflict between the heads"))
+    assert conflict_flag_positive(_norm(
+        "no reconciliation yet between the two forked heads"))
+
+
+def test_a43_disclosed_limitation_is_pinned():
+    # clause-wide negation has no verb model: a flag phrased under a
+    # negated attention verb is neutralized — disclosed in the prereg;
+    # the false-alarm direction is unaffected (it needs a POSITIVE flag)
+    assert not conflict_flag_positive(_norm(
+        "we cannot ignore the unresolved fork between the heads"))
 
 
 # ------------------------------------------------------ analysis math

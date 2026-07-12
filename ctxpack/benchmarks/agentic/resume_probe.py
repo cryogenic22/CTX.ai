@@ -521,30 +521,31 @@ def grep_context(repo_path: str, probe: Probe, budget_bpe: int) -> str:
 # ── Grading (rule-based; no LLM judge in the headline) ──
 
 
-DRIFT_FORK_GRADE = "drift-fork-grade/v2.2"
+DRIFT_FORK_GRADE = "drift-fork-grade/v2.3"
 _FORK_FLAG_TOKENS = ("conflict", "unreconciled", "unresolved", "fork",
                      "diverg", "competing", "contradict")
 
-# A4.1 (polarity amendment, pre-registered before any scored v2 run —
-# consolidated review blocker 3): a conflict token inside a NEGATION
-# SCOPE is the vocabulary of a dismissal, not a flag — "there is no
-# conflict; vB was superseded" must not count as flagging, and "not a
-# conflict; v2 is old" must not pass the fork grade. Scope = the
-# token's own clause (split on sentence/clause punctuation); negated
-# when a pinned negator appears within the 4 words before the token.
-# A4.2 (enumerated negation, pre-registered before any scored v2 run —
-# recheck residual): the negation scope additionally extends across
-# comma-separated ENUMERATION CONTINUATIONS of a negated segment —
-# "not a conflict, fork, or divergence" neutralizes all three tokens.
-# A continuation is a bare fragment (<=3 words) or a segment opening
-# with a coordinating connective (or/and/nor, <=4 words); anything
-# longer is a fresh clause and A4.1 applies unchanged ("no objection
-# at first glance, but this fork is real" still flags). Hard clause
-# boundaries (.;:!?— and newline) always reset the scope.
-# Deterministic, arm-symmetric. Disclosed limitation: a GENUINE flag
-# phrased as a bare <=3-word fragment straight after a negated comma
-# segment ("no delays, fork detected") reads as an enumeration and is
-# neutralized — symmetric across arms.
+# A4.3 (polarity, pre-registered before any scored v2 run — supersedes
+# the A4.1 four-word window and the A4.2 bare-fragment rule, per the
+# substantive re-review finding 2): the grade tracks a NEGATED
+# CONFLICT, not any preceding negator. Once a pinned negator appears,
+# the negation scope extends through the REST of the hard clause
+# (split on .;:!?— and newline) unless a pinned CONTRAST MARKER
+# intervenes, which restores positive polarity ("there is no simple
+# story here BUT an unreconciled fork" flags). Comma segments break
+# the scope — "no delays, fork detected" FLAGS — except enumeration
+# continuations, which inherit it: a segment opening with or/and/nor,
+# or a bare fragment (<=3 words) followed by such a segment ("not a
+# conflict, fork, or divergence" stays negated throughout).
+# Deterministic, applied to every arm. Pinned reviewer cases: "I do
+# not believe this represents an unresolved conflict" and "there is
+# no evidence of any unresolved conflict" grade NEGATIVE; "no delays,
+# fork detected" grades POSITIVE. Disclosed limitation (pinned as a
+# test): a flag phrased under a negated attention verb ("we cannot
+# ignore the unresolved fork") is neutralized — the clause-wide scope
+# has no verb model; the full fork grade still requires an exact
+# anchor, and the false-alarm direction is unaffected (it needs a
+# POSITIVE flag to fire).
 _NEGATORS = frozenset((
     "no", "not", "never", "none", "neither", "nor", "without", "cannot",
     "can't", "isn't", "wasn't", "aren't", "weren't", "doesn't", "don't",
@@ -552,33 +553,45 @@ _NEGATORS = frozenset((
     "haven't", "hadn't", "lacks", "lacking", "absent"))
 _HARD_CLAUSE_SPLIT = re.compile(r"[.;:!?\n]|—")
 _ENUM_CONNECTIVES = frozenset(("or", "and", "nor"))
+_CONTRAST_MARKERS = frozenset((
+    "but", "however", "yet", "though", "although", "nevertheless",
+    "nonetheless", "still", "instead", "rather", "except"))
 
 
-def _enum_continuation(words: "list[str]") -> bool:
-    """A4.2 (pinned): does this comma segment continue an enumeration?"""
-    if len(words) <= 3:
-        return True
-    return words[0] in _ENUM_CONNECTIVES and len(words) <= 4
+def _enum_continuations(seg_words: "list[list[str]]") -> "list[bool]":
+    """A4.3 (pinned): segment i continues an enumeration when it opens
+    with or/and/nor, or is a bare fragment (<=3 words) whose FOLLOWING
+    segment continues one (right-to-left lookahead). Segment 0 never
+    inherits."""
+    n = len(seg_words)
+    cont = [False] * n
+    for i in range(n - 1, 0, -1):
+        words = seg_words[i]
+        if words and words[0] in _ENUM_CONNECTIVES:
+            cont[i] = True
+        elif len(words) <= 3 and i + 1 < n and cont[i + 1]:
+            cont[i] = True
+    return cont
 
 
 def conflict_flag_positive(answer_norm: str) -> bool:
     """True when at least one pinned conflict token appears OUTSIDE a
-    negation scope (A4.1 window + A4.2 enumeration inheritance). Input
-    must already be ``_norm``-alized."""
+    negation scope (A4.3). Input must already be ``_norm``-alized."""
     for clause in _HARD_CLAUSE_SPLIT.split(answer_norm):
-        negated_scope = False
-        for segment in clause.split(","):
-            words = segment.split()
-            inherited = negated_scope and _enum_continuation(words)
-            if not inherited:
-                for i, w in enumerate(words):
-                    if not any(t in w for t in _FORK_FLAG_TOKENS):
-                        continue
-                    window = words[max(0, i - 4):i]
-                    if not any(x in _NEGATORS for x in window):
-                        return True
-            negated_scope = inherited or any(
-                w in _NEGATORS for w in words)
+        seg_words = [seg.split() for seg in clause.split(",")]
+        cont = _enum_continuations(seg_words)
+        carry = False
+        for i, words in enumerate(seg_words):
+            negated = carry and cont[i]
+            for w in words:
+                if w in _CONTRAST_MARKERS:
+                    negated = False
+                elif w in _NEGATORS:
+                    negated = True
+                elif not negated and any(
+                        t in w for t in _FORK_FLAG_TOKENS):
+                    return True
+            carry = negated
     return False
 
 

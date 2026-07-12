@@ -503,3 +503,25 @@ exists; every change is prospective — no regrades.
    requires a complete observed pair in every pinned cluster.
    Deletion, duplication, and unexpected-arm cases are pinned as
    tests.
+2. **Grade amendment A4.3 — polarity tracks the negated conflict
+   (finding 2; supersedes A4.1's four-word window and A4.2's
+   bare-fragment rule; grade id `drift-fork-grade/v2.3`).** Once a
+   pinned negator appears, the negation scope extends through the
+   REST of the hard clause unless a pinned CONTRAST MARKER (but/
+   however/yet/though/although/nevertheless/nonetheless/still/
+   instead/rather/except) intervenes and restores positive polarity.
+   Comma segments break the scope — "no delays, fork detected" now
+   FLAGS — except enumeration continuations (a segment opening with
+   or/and/nor, or a bare ≤3-word fragment followed by one), which
+   inherit it, so "not a conflict, fork, or divergence" stays
+   negated. All three reviewer cases are pinned as tests before any
+   scoring: "I do not believe this represents an unresolved
+   conflict" → negative; "there is no evidence of any unresolved
+   conflict" → negative; "no delays, fork detected" → positive.
+   Deterministic blinded adjudication remains unused. Disclosed
+   limitation (pinned as a test): a flag phrased under a negated
+   attention verb ("we cannot ignore the unresolved fork") is
+   neutralized — the clause-wide scope has no verb model; mitigation:
+   the fork grade still requires an exact anchor to PASS, and the
+   false-alarm direction needs a POSITIVE flag to fire, so this
+   limitation cannot create false alarms.
