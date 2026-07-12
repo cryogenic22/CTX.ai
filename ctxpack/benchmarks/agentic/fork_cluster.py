@@ -50,8 +50,9 @@ import hashlib
 import json
 import math
 import os
+import time
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from ...agent.checkpoint import run_checkpoint
 from ...agent.session_reader import load_supersession
@@ -324,6 +325,75 @@ def arm_order(cluster_index: int) -> "tuple[str, ...]":
 def displacement_arm_order(cluster_index: int) -> "tuple[str, ...]":
     k = cluster_index % len(DISPLACEMENT_ARMS)
     return DISPLACEMENT_ARMS[k:] + DISPLACEMENT_ARMS[:k]
+
+
+# ── Budget-enforced execution (retry-level; recheck residual) ──
+#
+# The v2 ceiling guard was per PLAN ROW while the API helper retried up
+# to 5x internally: retries were neither individually ceiling-guarded
+# nor ledgered, and the ledger row was written only after a call
+# returned (a crash mid-call left unrecorded spend). call_with_budget
+# moves the attempt loop to the harness: EVERY attempt (initial or
+# retry) is ceiling-guarded BEFORE issue and ledgered immediately
+# before ("issued") and after ("result") the call.
+
+ATTEMPT_MAX_RETRIES = 5      # pinned (harness notes v2 item 5, unchanged)
+ATTEMPT_BASE_DELAY_S = 2.0   # exponential 2s..32s
+
+
+def call_with_budget(attempt_fn: "Callable[[], tuple[str, dict, str]]",
+                     *, worst_case_usd: float, spent_usd: float,
+                     ceiling_usd: float,
+                     record: "Callable[[dict], None]",
+                     price_usage: "Callable[[dict], Optional[float]]",
+                     max_retries: int = ATTEMPT_MAX_RETRIES,
+                     base_delay: float = ATTEMPT_BASE_DELAY_S,
+                     sleep: "Callable[[float], None]" = time.sleep,
+                     ) -> "tuple[Optional[str], float, str]":
+    """(answer, new_spent_usd, outcome) — outcome is "ok", "ceiling",
+    or "api-error".
+
+    Cost accounting (pinned): an "ok" attempt adds its actual priced
+    usage (worst case when usage is missing); a "transient" HTTP
+    rejection was not billed by the API (no usage block) and adds 0; a
+    "fatal" outcome (timeout, reset, non-retriable HTTP) has UNKNOWN
+    billing and reserves the full worst case. The guard runs before
+    every attempt, so spend can never cross the ceiling by more than
+    zero — the run aborts first.
+    """
+    for attempt in range(max_retries + 1):
+        if spent_usd + worst_case_usd > ceiling_usd:
+            record({"phase": "guard-abort", "attempt": attempt,
+                    "worst_case_usd": worst_case_usd,
+                    "spent_usd": round(spent_usd, 6)})
+            return None, spent_usd, "ceiling"
+        record({"phase": "issued", "attempt": attempt,
+                "worst_case_usd": worst_case_usd})
+        text, usage, status = attempt_fn()
+        cost = price_usage(usage)
+        if status == "ok":
+            spent_usd += cost if cost is not None else worst_case_usd
+            record({"phase": "result", "attempt": attempt,
+                    "status": "ok", "cost_usd": cost,
+                    "usage": usage or None})
+            return text, spent_usd, "ok"
+        if status == "transient":
+            record({"phase": "result", "attempt": attempt,
+                    "status": "transient", "cost_usd": cost or 0.0,
+                    "error": (text or "")[:200]})
+            spent_usd += cost or 0.0
+            if attempt < max_retries:
+                sleep(base_delay * (2 ** attempt))
+                continue
+            return text, spent_usd, "api-error"
+        # fatal: billing unknown — reserve the worst case
+        spent_usd += cost if cost is not None else worst_case_usd
+        record({"phase": "result", "attempt": attempt,
+                "status": "fatal",
+                "cost_usd": cost if cost is not None else worst_case_usd,
+                "error": (text or "")[:200]})
+        return text, spent_usd, "api-error"
+    return None, spent_usd, "api-error"  # retries exhausted (unreached)
 
 
 # ── Product warning (the treatment is the product, never a simulation) ──

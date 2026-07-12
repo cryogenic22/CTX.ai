@@ -463,6 +463,76 @@ def test_false_alarm_gate_is_zero_tolerance():
     assert fc.false_alarm_gate(0, 0) is False
 
 
+# ------------------------------------ retry-level budget (notes v3)
+
+
+def test_call_with_budget_guards_and_ledgers_every_attempt():
+    calls = iter([
+        ("(error: HTTP 529 overloaded)", {}, "transient"),
+        ("(error: HTTP 429 rate limited)", {}, "transient"),
+        ("the answer", {"cost": 0.01}, "ok"),
+    ])
+    led, slept = [], []
+    text, spent, outcome = fc.call_with_budget(
+        lambda: next(calls), worst_case_usd=0.05, spent_usd=0.10,
+        ceiling_usd=2.0, record=led.append,
+        price_usage=lambda u: u.get("cost") if u else None,
+        sleep=slept.append)
+    assert outcome == "ok" and text == "the answer"
+    assert spent == pytest.approx(0.11)      # transients ledger at $0
+    phases = [(r["phase"], r.get("status")) for r in led]
+    assert phases == [("issued", None), ("result", "transient"),
+                      ("issued", None), ("result", "transient"),
+                      ("issued", None), ("result", "ok")]
+    assert slept == [2.0, 4.0]               # exponential backoff
+
+
+def test_call_with_budget_ceiling_aborts_before_issue():
+    def boom():
+        raise AssertionError("the attempt must never be issued")
+    led = []
+    text, spent, outcome = fc.call_with_budget(
+        boom, worst_case_usd=0.3, spent_usd=1.8, ceiling_usd=2.0,
+        record=led.append, price_usage=lambda u: None)
+    assert (text, outcome) == (None, "ceiling") and spent == 1.8
+    assert led == [{"phase": "guard-abort", "attempt": 0,
+                    "worst_case_usd": 0.3, "spent_usd": 1.8}]
+
+
+def test_call_with_budget_fatal_reserves_worst_case():
+    # timeout/reset: billing is UNKNOWN — the worst case is reserved
+    led = []
+    text, spent, outcome = fc.call_with_budget(
+        lambda: ("(error: timed out)", {}, "fatal"),
+        worst_case_usd=0.05, spent_usd=0.0, ceiling_usd=2.0,
+        record=led.append, price_usage=lambda u: None)
+    assert outcome == "api-error"
+    assert spent == pytest.approx(0.05)
+    assert led[-1]["status"] == "fatal"
+
+
+def test_call_with_budget_exhausted_retries_invalidate():
+    led, slept = [], []
+    text, spent, outcome = fc.call_with_budget(
+        lambda: ("(error: HTTP 529 overloaded)", {}, "transient"),
+        worst_case_usd=0.05, spent_usd=0.0, ceiling_usd=2.0,
+        record=led.append, price_usage=lambda u: None,
+        sleep=slept.append)
+    assert outcome == "api-error"
+    assert spent == 0.0                      # rejections were not billed
+    assert len([r for r in led if r["phase"] == "issued"]) == 6  # 1 + 5
+    assert slept == [2.0, 4.0, 8.0, 16.0, 32.0]
+
+
+def test_call_with_budget_missing_usage_charges_worst_case():
+    text, spent, outcome = fc.call_with_budget(
+        lambda: ("answer text", {}, "ok"),
+        worst_case_usd=0.07, spent_usd=0.0, ceiling_usd=2.0,
+        record=lambda r: None, price_usage=lambda u: None)
+    assert outcome == "ok"
+    assert spent == pytest.approx(0.07)
+
+
 def _result(cid, ptype, arm, correct, pid=None, flagged=None, bpe=100):
     return {"probe_id": pid or f"{cid}-{ptype}-{arm}", "cluster": cid,
             "ptype": ptype, "arm": arm, "correct": correct,

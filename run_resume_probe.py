@@ -282,11 +282,17 @@ def main() -> int:
     return 0
 
 
-_RETRY_POLICY = ("per-call transient-HTTP retry inside "
-                 "ask_anthropic_usage (max 5, exponential 2s..32s); a "
-                 "call that still fails INVALIDATES the scored run — "
-                 "abort, no cluster analysis, no unlock (A5 harness "
-                 "notes v2, blocker 4)")
+_RETRY_POLICY = ("retry-level enforcement (harness notes v3): every "
+                 "attempt — initial or retry — is ceiling-guarded "
+                 "BEFORE issue and ledgered immediately before "
+                 "('issued') and after ('result') the call "
+                 "(fork_cluster.call_with_budget; max 5 retries, "
+                 "exponential 2s..32s). Transient HTTP rejections "
+                 "ledger at $0 (no usage block — not billed); "
+                 "unknown-usage outcomes (timeout, reset) reserve the "
+                 "pinned worst case. A call that still fails "
+                 "INVALIDATES the scored run — abort, no cluster "
+                 "analysis, no unlock (v2 blocker 4 unchanged)")
 
 
 def _harness_commit() -> str:
@@ -309,7 +315,7 @@ def _run_fork_v2(args) -> int:
     import tempfile
 
     from ctxpack.benchmarks.agentic import fork_cluster as fc
-    from ctxpack.benchmarks.metrics.fidelity import ask_anthropic_usage
+    from ctxpack.benchmarks.metrics.fidelity import anthropic_attempt
 
     try:
         tokenizer = fc.require_exact_tokenizer()   # blocker 6
@@ -371,6 +377,13 @@ def _run_fork_v2(args) -> int:
                 + fc.MAX_COMPLETION_TOKENS
                 * fc.PRICE_OUT_PER_MTOK) / 1_000_000
 
+    def _price_usage(usage: dict) -> "float | None":
+        it = usage.get("input_tokens")
+        ot = usage.get("output_tokens")
+        return (None if it is None or ot is None else round(
+            (it * fc.PRICE_IN_PER_MTOK
+             + ot * fc.PRICE_OUT_PER_MTOK) / 1_000_000, 6))
+
     worst_total = round(sum(_worst_case(r) for r in plan), 4)
     print(f"preflight worst-case cost: ${worst_total} "
           f"(ceiling ${fc.CEILING_USD}, model pinned {fc.FORK_V2_MODEL})")
@@ -406,51 +419,55 @@ def _run_fork_v2(args) -> int:
                "filler_len": row.filler_len,
                "answer": None, "correct": None, "flagged": None}
         if not args.dry_run:
-            if spent + _worst_case(row) > fc.CEILING_USD:
-                aborted = {"reason": "ceiling", "at": i,
-                           "probe_id": row.probe.probe_id,
-                           "arm": row.arm,
-                           "spent_usd": round(spent, 4)}
-                print(f"ABORT before call {i}: next worst-case call "
-                      f"would exceed the ${fc.CEILING_USD} ceiling "
-                      f"(spent ${spent:.4f}).")
-                break
             preamble = (_DRIFT_PREAMBLE
                         if row.ptype in ("fork", "false-alarm")
                         else _PREAMBLE)
-            answer, usage = ask_anthropic_usage(
-                preamble + row.probe.question,
-                row.context or "(no context provided)",
-                model=model, api_key=api_key,
-                max_tokens=fc.MAX_COMPLETION_TOKENS)
-            in_tok = usage.get("input_tokens")
-            out_tok = usage.get("output_tokens")
-            cost = (None if in_tok is None or out_tok is None else round(
-                (in_tok * fc.PRICE_IN_PER_MTOK
-                 + out_tok * fc.PRICE_OUT_PER_MTOK) / 1_000_000, 6))
-            inv = {"i": i, "probe_id": row.probe.probe_id,
-                   "arm": row.arm, "model": model,
-                   "context_sha256": row.context_sha256,
-                   "input_tokens": in_tok, "output_tokens": out_tok,
-                   "cost_usd": cost,
-                   "status": ("error" if answer.startswith("(error:")
-                              else "ok")}
-            _record_invocation(inv)
-            invocations.append(inv)
-            if answer.startswith("(error:"):
+            wc = _worst_case(row)
+
+            def _attempt(row=row, preamble=preamble):
+                return anthropic_attempt(
+                    preamble + row.probe.question,
+                    row.context or "(no context provided)",
+                    model=model, api_key=api_key,
+                    max_tokens=fc.MAX_COMPLETION_TOKENS)
+
+            def _ledger(payload, row=row, i=i):
+                # every attempt is ledgered durably, before AND after
+                # the call (retry-level enforcement, harness notes v3)
+                inv = {"i": i, "probe_id": row.probe.probe_id,
+                       "arm": row.arm, "model": model,
+                       "context_sha256": row.context_sha256}
+                inv.update(payload)
+                _record_invocation(inv)
+                invocations.append(inv)
+
+            answer, spent, outcome = fc.call_with_budget(
+                _attempt, worst_case_usd=wc, spent_usd=spent,
+                ceiling_usd=fc.CEILING_USD, record=_ledger,
+                price_usage=_price_usage)
+            if outcome == "ceiling":
+                aborted = {"reason": "ceiling", "at": i,
+                           "probe_id": row.probe.probe_id,
+                           "arm": row.arm, "level": "attempt",
+                           "spent_usd": round(spent, 4)}
+                print(f"ABORT before call {i}: the next attempt's "
+                      f"worst case would exceed the ${fc.CEILING_USD} "
+                      f"ceiling (spent ${spent:.4f}).")
+                break
+            if outcome == "api-error":
                 # blocker 4: an error row must never be graded as a
                 # miss — the scored run is invalid, full stop
                 aborted = {"reason": "api-error", "at": i,
                            "probe_id": row.probe.probe_id,
-                           "arm": row.arm, "error": answer[:200],
+                           "arm": row.arm,
+                           "error": (answer or "")[:200],
                            "retry_policy": _RETRY_POLICY}
-                rec.update(answer=answer[:500], error=True)
+                rec.update(answer=(answer or "")[:500], error=True)
                 results.append(rec)
-                print(f"ABORT at call {i}: {answer[:120]} — a failed "
-                      f"call invalidates the scored run "
-                      f"(preregistered retry policy already exhausted).")
+                print(f"ABORT at call {i}: {(answer or '')[:120]} — a "
+                      f"failed call invalidates the scored run "
+                      f"(preregistered retry policy exhausted).")
                 break
-            spent += cost or _worst_case(row)   # unknown usage: assume worst
             correct, flagged = fc.grade_row(row, answer)
             rec.update(answer=answer[:500], correct=correct,
                        flagged=flagged, error=False)

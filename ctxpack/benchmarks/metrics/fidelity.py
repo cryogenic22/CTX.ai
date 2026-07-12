@@ -499,6 +499,57 @@ def ask_anthropic_usage(question: str, context: str, *, model: str,
     return text, dict(usage_cell)
 
 
+def anthropic_attempt(question: str, context: str, *, model: str,
+                      api_key: str, max_tokens: int = 512
+                      ) -> "tuple[str, dict, str]":
+    """SINGLE Messages attempt, no retry: (text, usage, status).
+
+    status: "ok" — response received (usage populated); "transient" —
+    a retriable HTTP rejection (``_TRANSIENT_CODES``; the API rejected
+    the request, so nothing was billed and usage is {}); "fatal" — a
+    non-retriable HTTP error or a non-HTTP failure (timeout,
+    connection reset), where billing is UNKNOWN and usage may be {}.
+
+    Retry/budget policy deliberately lives in the CALLER: cost-enforced
+    harnesses (drift-fork/v2) must ceiling-guard and ledger every
+    attempt individually (retry-level enforcement), which a helper-
+    internal retry loop cannot provide.
+    """
+    import json
+    import urllib.request
+
+    prompt = _build_prompt(question, context)
+    payload = json.dumps({
+        "model": model,
+        "max_tokens": max_tokens,
+        "temperature": 0,
+        "system": QA_SYSTEM_MSG,
+        "messages": [{"role": "user", "content": prompt}],
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages",
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            usage = dict(data.get("usage") or {})
+            text = ""
+            if "content" in data and data["content"]:
+                text = data["content"][0].get("text", "")
+            return text, usage, "ok"
+    except HTTPError as e:
+        status = "transient" if e.code in _TRANSIENT_CODES else "fatal"
+        return f"(error: HTTP {e.code} {e.msg})", {}, status
+    except Exception as e:  # noqa: BLE001 — timeout/reset: billing unknown
+        return f"(error: {e})", {}, "fatal"
+
+
 def _ask_anthropic(question: str, context: str, *, model: str, api_key: str) -> str:
     """Call Anthropic Messages API with retry on transient errors."""
     text, _ = ask_anthropic_usage(question, context, model=model,

@@ -445,3 +445,21 @@ prospective — no regrades.
    segment ("no delays, fork detected") reads as an enumeration and is
    neutralized — symmetric across arms. Adversarial cases in both
    directions are pinned as tests.
+2. **Retry-level budget enforcement (supersedes v2 note 6's row-level
+   guard).** The v2 running guard was per PLAN ROW while the API
+   helper retried up to 5× internally — retries were neither
+   individually ceiling-guarded nor ledgered, and the invocation row
+   was written only after a call returned. v3 moves the attempt loop
+   into the harness (`fork_cluster.call_with_budget`, single-attempt
+   API helper `fidelity.anthropic_attempt`): EVERY attempt — initial
+   or retry — is ceiling-guarded BEFORE issue and appended to the
+   durable `invocations.jsonl` immediately before (`issued`) and after
+   (`result`) the call, so a crash mid-call still leaves the issued
+   record. Cost accounting pinned: an ok attempt adds its actual
+   priced usage (worst case when usage is missing); a transient HTTP
+   rejection was not billed (no usage block) and adds $0; an
+   unknown-billing outcome (timeout, reset, non-retriable HTTP)
+   reserves the full worst case. Retry counts and backoff are
+   unchanged from v2 (max 5, exponential 2s–32s); a call that still
+   fails invalidates the scored run (v2 blocker-4 semantics
+   unchanged).
