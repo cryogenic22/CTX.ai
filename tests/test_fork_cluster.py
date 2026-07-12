@@ -664,3 +664,64 @@ def test_cluster_analysis_incomplete_run_never_unlocks():
     assert a["completeness"]["complete"] is False
     assert a["primary"]["sign_test"]["p_one_sided"] < 0.05
     assert a["unlock"] is False
+
+
+# ------------------------------- result-set manifest gate (notes v4)
+
+
+def _full_result_rows():
+    rows = []
+    for i in range(8):
+        rows += _cluster_rows(f"c{i:02d}", padded_ok=False, warn_ok=True)
+    return rows
+
+
+def test_result_manifest_accepts_the_exact_enumeration():
+    rows = _full_result_rows()
+    fc.validate_result_manifest(rows)   # structural only
+    fc.validate_result_manifest(        # and against explicit keys
+        rows, expected_keys=[fc.result_key(r) for r in rows])
+
+
+def test_result_manifest_rejects_deleted_control_rows():
+    # finding 1: absent false-alarm/displacement rows must never pass
+    # a gate by vacuity
+    no_fa = [r for r in _full_result_rows()
+             if r["ptype"] != "false-alarm"]
+    with pytest.raises(RuntimeError, match="false-alarm"):
+        fc.validate_result_manifest(no_fa)
+    a = fc.cluster_analysis(no_fa)
+    assert a["false_alarm_gate"]["passed"] is False
+    assert a["unlock"] is False
+
+    no_disp = [r for r in _full_result_rows()
+               if r["ptype"] != "displacement"]
+    with pytest.raises(RuntimeError, match="displacement"):
+        fc.validate_result_manifest(no_disp)
+    a = fc.cluster_analysis(no_disp)
+    assert a["displacement_gate"]["passed"] is False
+    assert a["unlock"] is False
+
+
+def test_result_manifest_rejects_duplicates():
+    rows = _full_result_rows()
+    with pytest.raises(RuntimeError, match="duplicate"):
+        fc.validate_result_manifest(rows + [rows[0]])
+
+
+def test_result_manifest_rejects_unexpected_arm():
+    rows = _full_result_rows()
+    extra = dict(rows[-1], arm="ctx-warn")   # false-alarm on a fork arm
+    with pytest.raises(RuntimeError, match="false-alarm"):
+        fc.validate_result_manifest(rows + [extra])
+    stray = dict(rows[0], ptype="calibration",
+                 probe_id="c00-stray")       # unknown ptype
+    with pytest.raises(RuntimeError, match="unexpected ptype"):
+        fc.validate_result_manifest(rows + [stray])
+
+
+def test_result_manifest_rejects_plan_mismatch():
+    rows = _full_result_rows()
+    expected = [fc.result_key(r) for r in rows]
+    with pytest.raises(RuntimeError, match="missing"):
+        fc.validate_result_manifest(rows[:-1], expected_keys=expected)

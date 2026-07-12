@@ -495,8 +495,21 @@ def _run_fork_v2(args) -> int:
                   f"{row.ptype:<12} {row.arm:<17} {mark}  "
                   f"ctx={row.context_bpe}bpe  spent=${spent:.4f}")
 
-    analysis = (None if (args.dry_run or aborted)
-                else fc.cluster_analysis(results))
+    analysis = None
+    if not (args.dry_run or aborted):
+        try:
+            # result-set manifest gate (harness notes v4): the graded
+            # rows must be EXACTLY the enumerated plan — deletion,
+            # duplication, or unexpected rows invalidate the run
+            fc.validate_result_manifest(
+                results,
+                expected_keys=[(r.cluster, r.ptype, r.probe.probe_id,
+                                r.arm) for r in plan])
+            analysis = fc.cluster_analysis(results)
+        except RuntimeError as exc:
+            aborted = {"reason": "result-manifest",
+                       "error": str(exc)[:400]}
+            print(f"ABORT: {exc}")
     import datetime
     report = {
         "schema": "ctxpack-drift-fork-v2/v2",

@@ -1092,6 +1092,77 @@ def false_alarm_gate(fa_clusters: int, n_clusters: int) -> bool:
 MAX_HARMFUL_DISCORDANT = 1  # displacement non-inferiority bound (pinned)
 
 
+def result_key(r: "dict") -> "tuple[str, str, str, str]":
+    return (r["cluster"], r["ptype"], r["probe_id"], r["arm"])
+
+
+def validate_result_manifest(rows: "list[dict]",
+                             expected_keys=None) -> None:
+    """Result-set manifest gate (substantive re-review finding 1): the
+    COMPLETED result set must be the exact unique
+    (cluster, ptype, probe_id, arm) enumeration before any analysis —
+    absent control rows must never pass a gate by vacuity (no
+    false-alarm rows → zero flags; no displacement rows → zero harmful
+    clusters). Raises RuntimeError on any deviation."""
+    keys = [result_key(r) for r in rows]
+    keyset = set(keys)
+    if len(keys) != len(keyset):
+        seen: set = set()
+        dups = sorted({k for k in keys if k in seen or seen.add(k)})
+        raise RuntimeError(
+            f"result-manifest gate: duplicate result rows {dups[:4]}")
+    if expected_keys is not None:
+        expected = set(expected_keys)
+        missing = sorted(expected - keyset)
+        unexpected = sorted(keyset - expected)
+        if missing or unexpected:
+            raise RuntimeError(
+                "result-manifest gate: result set differs from the "
+                f"enumerated plan (missing {missing[:4]}, unexpected "
+                f"{unexpected[:4]})")
+    cids = sorted({k[0] for k in keyset})
+    if len(cids) != N_CLUSTERS_PINNED:
+        raise RuntimeError(
+            f"result-manifest gate: {len(cids)} clusters in results, "
+            f"pinned {N_CLUSTERS_PINNED}")
+    for cid in cids:
+        ck = [k for k in keyset if k[0] == cid]
+        fa = [k for k in ck if k[1] == "false-alarm"]
+        if [k[3] for k in fa] != [FALSE_ALARM_ARM]:
+            raise RuntimeError(
+                f"result-manifest gate: {cid} must have exactly one "
+                f"false-alarm observation on {FALSE_ALARM_ARM!r} "
+                f"(got {sorted(k[3] for k in fa)})")
+        disp = sorted(k[3] for k in ck if k[1] == "displacement")
+        if disp != sorted(DISPLACEMENT_ARMS):
+            raise RuntimeError(
+                f"result-manifest gate: {cid} displacement pair "
+                f"incomplete (got {disp}, need "
+                f"{sorted(DISPLACEMENT_ARMS)})")
+        fork = [k for k in ck if k[1] == "fork"]
+        pids = sorted({k[2] for k in fork})
+        if len(pids) != 2:
+            raise RuntimeError(
+                f"result-manifest gate: {cid} must have exactly 2 fork "
+                f"probes (got {len(pids)})")
+        for pid in pids:
+            arms = sorted(k[3] for k in fork if k[2] == pid)
+            if arms != sorted(FORK_ARMS):
+                raise RuntimeError(
+                    f"result-manifest gate: {cid}/{pid} fork arms "
+                    f"incomplete (got {arms})")
+        stray = [k for k in ck
+                 if k[1] not in ("fork", "displacement", "false-alarm")]
+        if stray:
+            raise RuntimeError(
+                f"result-manifest gate: unexpected ptype rows {stray[:4]}")
+    expected_total = EXPECTED_COMPLETIONS_PER_CLUSTER * N_CLUSTERS_PINNED
+    if len(keyset) != expected_total:
+        raise RuntimeError(
+            f"result-manifest gate: {len(keyset)} unique rows, "
+            f"expected {expected_total}")
+
+
 def cluster_analysis(rows: "list[dict]") -> "dict[str, Any]":
     """Every inferential statistic at cluster level (A5). ``rows`` are
     answered result dicts with cluster/ptype/arm/correct/flagged/
@@ -1135,9 +1206,15 @@ def cluster_analysis(rows: "list[dict]") -> "dict[str, Any]":
             ties += 1
     n = len(padded_miss)
     p = sign_test_one_sided(pos, neg)
+    # a gate must never pass by vacuity (re-review finding 1): the
+    # false-alarm gate additionally requires one OBSERVED control per
+    # pinned cluster — absent rows fail it, they don't satisfy it
+    fa_observed = sorted({r["cluster"] for r in live
+                          if r["ptype"] == "false-alarm"})
     fa_cids = sorted({r["cluster"] for r in live
                       if r["ptype"] == "false-alarm" and r.get("flagged")})
-    gate_pass = false_alarm_gate(len(fa_cids), n)
+    gate_pass = (len(fa_observed) == N_CLUSTERS_PINNED
+                 and false_alarm_gate(len(fa_cids), n))
     mean_pm = round(sum(padded_miss) / n, 3) if n else None
     mean_wm = round(sum(warn_miss) / n, 3) if n else None
 
@@ -1168,7 +1245,14 @@ def cluster_analysis(rows: "list[dict]") -> "dict[str, Any]":
         1 for cid in cids
         if disp_cluster_ok(cid, "ctx-warn") is False
         and disp_cluster_ok(cid, "ctx-nowarn-padded") is True)
-    disp_gate_pass = harmful <= MAX_HARMFUL_DISCORDANT
+    # same vacuity guard: the gate requires a COMPLETE displacement
+    # pair (both arms observed) in every pinned cluster
+    disp_pairs = sum(
+        1 for cid in cids
+        if disp_cluster_ok(cid, "ctx-warn") is not None
+        and disp_cluster_ok(cid, "ctx-nowarn-padded") is not None)
+    disp_gate_pass = (disp_pairs == N_CLUSTERS_PINNED
+                      and harmful <= MAX_HARMFUL_DISCORDANT)
 
     by_pid: "dict[str, dict[str, dict]]" = {}
     for r in live:
@@ -1215,12 +1299,17 @@ def cluster_analysis(rows: "list[dict]") -> "dict[str, Any]":
         },
         "false_alarm_gate": {
             "flagged_clusters": fa_cids,
-            "rate_limit": "0 flagged clusters (hard gate, v2)",
+            "observed_clusters": len(fa_observed),
+            "required_observed": N_CLUSTERS_PINNED,
+            "rate_limit": "0 flagged clusters (hard gate, v2); all "
+                          "pinned clusters must be OBSERVED (v4)",
             "passed": gate_pass,
         },
         "displacement_gate": {
             "harmful_discordant_clusters": harmful,
             "max_allowed": MAX_HARMFUL_DISCORDANT,
+            "complete_pairs": disp_pairs,
+            "required_pairs": N_CLUSTERS_PINNED,
             "passed": disp_gate_pass,
             "by_arm": {arm: disp_acc(arm) for arm in DISPLACEMENT_ARMS},
         },

@@ -481,3 +481,25 @@ prospective — no regrades.
    variations, revisions, templates, questions, distractors, filler,
    arms) requires a conscious re-pin in the same reviewable diff.
    Artifacts stamp the verified sha plus the gate marker.
+
+### A5 harness notes v4 (2026-07-12 — substantive re-review remediation, pre-approval, before any paid call)
+
+Written in response to the reviewer's substantive re-review of main
+`f43978a` + parked `caa45b8` (four blocking findings, full text on the
+coordination board), BEFORE approval and before any paid call. Where
+these conflict with earlier notes, **v4 supersedes**. No scored run
+exists; every change is prospective — no regrades.
+
+1. **Result-set manifest gate (finding 1; the v3 input-table pin
+   addressed the wrong manifest and REMAINS in force alongside
+   this).** Before any analysis, the completed result set must be
+   EXACTLY the enumerated plan: unique (cluster, ptype, probe_id,
+   arm) keys, 88 rows, no duplicates, no unexpected rows
+   (`validate_result_manifest`; the runner passes the plan's key set
+   and any deviation aborts with `aborted.reason =
+   "result-manifest"`). Additionally the gates themselves are
+   vacuity-proof: the false-alarm gate requires one OBSERVED control
+   per pinned cluster (absent rows fail it) and the displacement gate
+   requires a complete observed pair in every pinned cluster.
+   Deletion, duplication, and unexpected-arm cases are pinned as
+   tests.
