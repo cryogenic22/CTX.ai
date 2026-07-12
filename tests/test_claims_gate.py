@@ -76,10 +76,22 @@ def test_unledgered_number_fails(tmp_path):
 # ------------------------------------------------------- Q2-3 additions
 
 
-def test_inline_claim_id_covers_a_numeric_line(tmp_path):
-    _repo(tmp_path, readme="We measured a 42.5% lift. [CL:C1]\n")
+def test_inline_claim_id_covers_a_matching_numeric_line(tmp_path):
+    """Q2-3 re-check: the ID covers only when the CITED row's cover
+    strings actually match the line."""
+    _repo(tmp_path, readme="Hydrated fidelity hit 86.7% on Opus. [CL:C1]\n")
     errors, _ = check(tmp_path)
     assert not errors, errors
+
+
+def test_unrelated_known_claim_id_does_not_cover(tmp_path):
+    """Q2-3 re-check residual: a known-but-unrelated claim ID was a
+    universal pass — it must fail both ways (bad citation + uncovered
+    numeric claim)."""
+    _repo(tmp_path, readme="We measured a 42.5% lift. [CL:C1]\n")
+    errors, _ = check(tmp_path)
+    assert any("cites [CL:C1]" in e and "unrelated" in e for e in errors)
+    assert any("numerical claim" in e for e in errors)
 
 
 def test_unknown_claim_id_fails(tmp_path):
@@ -96,7 +108,24 @@ def test_measured_artifact_outside_results_tree_fails(tmp_path):
     (tmp_path / "paper" / "status-and-value-v0.5.md").write_text(
         "prose\n", encoding="utf-8")
     errors, _ = check(tmp_path)
-    assert any("not in the immutable results tree" in e for e in errors)
+    assert any("does not resolve into the immutable results tree" in e
+               for e in errors)
+
+
+def test_artifact_containment_is_resolved_not_lexical(tmp_path):
+    """Q2-3 re-check residual: a traversal path can satisfy the lexical
+    startswith/substring check while resolving outside the results tree."""
+    evil = "ctxpack/benchmarks/../../paper/results/evil.json"
+    ledger = (
+        f"| C1 | Fidelity 86.7% | measured | 86.7% | "
+        f"`{evil}` | n=30 | 2026-06 |\n")
+    _repo(tmp_path, ledger=ledger)
+    target = tmp_path / "paper" / "results" / "evil.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("{}", encoding="utf-8")
+    errors, _ = check(tmp_path)
+    assert any("does not resolve into the immutable results tree" in e
+               for e in errors)
 
 
 def test_artifact_sha_mismatch_fails(tmp_path):

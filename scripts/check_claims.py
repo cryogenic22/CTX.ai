@@ -71,14 +71,24 @@ _CLAIM_ID = re.compile(r"\[CL:([A-Za-z0-9_-]+)\]")
 # Measured evidence must live in the immutable results tree — versioned
 # files that are never overwritten (ground rule). Prose is mutable and
 # therefore never evidence (Q2-3: C3/C7 pointed at a paper).
-def _allowlisted(path: str) -> bool:
-    p = path.replace("\\", "/")
-    return p.startswith("ctxpack/benchmarks/") and "/results/" in p
+def _allowlisted(path: str, root: Path) -> bool:
+    """Resolved — not lexical — containment (Q2-3 re-check): a path with
+    traversal segments can satisfy a startswith/substring check while
+    resolving outside the results tree, so containment is decided on the
+    RESOLVED path relative to the repo root."""
+    try:
+        rel = (root / path).resolve().relative_to(root.resolve())
+    except (OSError, ValueError):
+        return False
+    parts = rel.parts
+    return (len(parts) >= 4 and parts[0] == "ctxpack"
+            and parts[1] == "benchmarks" and "results" in parts[2:-1])
 
 
 def parse_ledger(text: str) -> dict:
     ids: set[str] = set()
     covers: list[str] = []
+    covers_by_id: dict[str, list[str]] = {}
     artifacts: list[tuple[str, str, str]] = []  # (row id, path, sha-prefix)
     signatures: list[str] = []
     for line in text.splitlines():
@@ -86,8 +96,10 @@ def parse_ledger(text: str) -> dict:
         if m:
             rid, status, cover_field = m.group(1), m.group(3), m.group(4)
             ids.add(rid)
-            covers.extend(c.strip() for c in cover_field.split(",")
-                          if c.strip() and c.strip() not in {"—", "-"})
+            row_covers = [c.strip() for c in cover_field.split(",")
+                          if c.strip() and c.strip() not in {"—", "-"}]
+            covers.extend(row_covers)
+            covers_by_id[rid] = row_covers
             if status in {"measured", "directional"}:
                 rest = line.split("|")[5] if line.count("|") >= 6 else ""
                 am = _ARTIFACT.search(rest)
@@ -99,22 +111,33 @@ def parse_ledger(text: str) -> dict:
         if m:
             signatures.extend(s.strip() for s in m.group(1).split(",")
                               if s.strip())
-    return {"ids": ids, "covers": covers, "artifacts": artifacts,
-            "signatures": signatures}
+    return {"ids": ids, "covers": covers, "covers_by_id": covers_by_id,
+            "artifacts": artifacts, "signatures": signatures}
 
 
 def _covered(line: str, ledger: dict, errors: list[str],
              where: str) -> bool:
     """Inline claim IDs first (explicit beats regex), cover-string
-    containment as the backstop. An unknown ID is itself a failure."""
+    containment as the backstop. An unknown ID is itself a failure, and
+    so is a known-but-unrelated one (Q2-3 re-check): the CITED row's own
+    cover strings must appear in the line — any known ID must not act as
+    a universal pass."""
     line_ids = _CLAIM_ID.findall(line)
-    if line_ids:
-        unknown = [i for i in line_ids if i not in ledger["ids"]]
-        for i in unknown:
+    covered_by_id = False
+    for i in line_ids:
+        if i not in ledger["ids"]:
             errors.append(f"{where} carries unknown claim ID [CL:{i}] — "
                           f"no such row in docs/claims-ledger.md")
-        if any(i in ledger["ids"] for i in line_ids):
-            return True
+            continue
+        if any(c in line for c in ledger["covers_by_id"].get(i, [])):
+            covered_by_id = True
+        else:
+            errors.append(
+                f"{where} cites [CL:{i}] but that row's cover strings do "
+                f"not match this line — an unrelated claim ID is not "
+                f"evidence")
+    if covered_by_id:
+        return True
     return any(c in line for c in ledger["covers"])
 
 
@@ -133,11 +156,11 @@ def check(root: Path = ROOT):
             errors.append(f"{rid}: measured/directional row has no "
                           f"`artifact` path")
             continue
-        if not _allowlisted(artifact):
+        if not _allowlisted(artifact, root):
             errors.append(
-                f"{rid}: artifact is not in the immutable results tree "
-                f"(ctxpack/benchmarks/**/results/**): {artifact} — prose "
-                f"is mutable and is not evidence")
+                f"{rid}: artifact does not resolve into the immutable "
+                f"results tree (ctxpack/benchmarks/**/results/**): "
+                f"{artifact} — prose is mutable and is not evidence")
         if not (root / artifact).exists():
             errors.append(f"{rid}: artifact does not exist: {artifact}")
         elif sha:
