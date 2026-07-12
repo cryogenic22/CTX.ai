@@ -1,0 +1,661 @@
+§CTX v1.0 L2 DOMAIN:session-7f3a2b9e
+COMPRESSED:2026-07-12 SOURCE_TOKENS:~3400 CTX_TOKENS:~4600 RATIO:~0.9x
+
+±ENTITY-USER-REQUEST-8350E9DF
+REQUEST:the watermark file got corrupted after the spot instance died, make recovery not depend on it — context: this bit us during the last weekly close and the finance team noticed before we did, so treat the fix as the priority over the refactor work
+FACT-ID:a92a5c01e78f64b6
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:5
+SRC:session:7f3a2b9e#turn5
+±ENTITY-TOOL-BASH-0043-2A5EDB0A
+RAN:de-dupe manifest check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && python -m pytest tests/test_manifest.py -q 2>&1 | tail -8; echo exit: $?
+TURN:7
+SRC:session:7f3a2b9e#turn7
+±ENTITY-TOOL-BASH-0056-74436834
+RAN:backfill manifest check
+COMMAND:R="/c/Users/dev/Projects/meridian-etl" git -C "$R" log --oneline -12 -- manifest/ && git -C "$R" diff --stat HEAD~3
+TURN:10
+SRC:session:7f3a2b9e#turn10
+±ENTITY-TOOL-BASH-0034-0C9F8CF8
+RAN:re-partition quarantine check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && grep -nE 'def (load|replay|commit)|watermark|manifest' Makefile | head -20
+TURN:17
+SRC:session:7f3a2b9e#turn17
+±ENTITY-TOOL-BASH-0034-AB3385FD
+RAN:backfill watermark check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && grep -nE 'def (load|replay|commit)|watermark|manifest' schemas/orders_v3.json | head -20
+TURN:19
+SRC:session:7f3a2b9e#turn19
+±ENTITY-LITERAL-D2430E6C
+VALUE:s3://meridian-lake/curated/orders/v3/dt=2026-04-17
+KIND:path
+FACT-ID:478a4bd408e14097
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:23
+SRC:session:7f3a2b9e#turn23
+±ENTITY-LITERAL-54F0D678
+VALUE:s3://meridian-lake/curated/orders/v3/dt=2026-05-15
+KIND:path
+FACT-ID:b3d71d03c5977032
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:26
+SRC:session:7f3a2b9e#turn26
+±ENTITY-DECISION-3301534F
+DECISION:Decision: the loader writes an idempotency ledger row before the insert because retry-after-timeout was the only source of duplicates in the incident review.
+FACT-ID:56981d9002c055d4
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:35
+SRC:session:7f3a2b9e#turn35
+±ENTITY-DECISION-66BD740E
+DECISION:Decision: the watermark moves to a two-phase commit (tmp + atomic rename) because a torn write during spot reclaim corrupted it — recovery now replays from the manifest, never trusts a partial file. The alternative we walked away from was de-dupeing the loader module first, which looked cheaper but would have left the on-call runbook out of date through the weekly cycle.
+FACT-ID:1bec3d8a649f6966
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:42
+SRC:session:7f3a2b9e#turn42
+±ENTITY-ERROR-08A4592E
+MESSAGE:psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint orders_pkey DETAIL: Key (order_id)=(ORD-88213-EU) already exists.
+FACT-ID:2789ba81fa87031a
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:46
+SRC:session:7f3a2b9e#turn46
+±ENTITY-CONSTRAINT-D6959C93
+CONSTRAINT:Constraint: never mutate a quarantined batch in place — replay copies into a fresh staging table, the original is evidence.
+FACT-ID:520e9cb4f582d586
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:52
+SRC:session:7f3a2b9e#turn52
+±ENTITY-TASK-4529080B
+TASK:Backfill quarantine per incident review, then update the runbook section that describes the manual replay steps so on-call does not have to read the source to recover
+TURN:56
+SRC:session:7f3a2b9e#turn56
+±ENTITY-USER-REQUEST-8EEB4933
+REQUEST:the watermark file got corrupted after the spot instance died, make recovery not depend on it — context: this bit us during the last weekly close and the finance team noticed before we did, so treat the fix as the priority over the refactor work
+FACT-ID:b2d7348ff0d6d3a1
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:65
+SRC:session:7f3a2b9e#turn65
+±ENTITY-TOOL-BASH-0069-DFEE9BB6
+RAN:re-partition dedupe check
+COMMAND:R="/c/Users/dev/Projects/meridian-etl" git -C "$R" log --oneline -12 -- dedupe/ && git -C "$R" diff --stat HEAD~3
+TURN:74
+SRC:session:7f3a2b9e#turn74
+±ENTITY-TOOL-BASH-0052-8C9F1801
+RAN:re-partition partitioner check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && python -m pytest tests/test_partitioner.py -q 2>&1 | tail -8; echo exit: $?
+TURN:78
+SRC:session:7f3a2b9e#turn78
+±ENTITY-TOOL-BASH-0048-F6205432
+RAN:rotate watermark check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && make schema-check && echo OK || echo DRIFT
+TURN:82
+SRC:session:7f3a2b9e#turn82
+±ENTITY-TOOL-BASH-0057-49621C3F
+RAN:de-dupe schema_guard check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && make schema-check && echo OK || echo DRIFT
+TURN:85
+SRC:session:7f3a2b9e#turn85
+±ENTITY-LITERAL-5BC05E07
+VALUE:orders-eu-5
+KIND:git_sha
+FACT-ID:f798529ea3f403d5
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:86
+SRC:session:7f3a2b9e#turn86
+±ENTITY-LITERAL-1EA1F8AF
+VALUE:s3://meridian-lake/curated/orders/v3/dt=2026-05-14
+KIND:path
+FACT-ID:2dfef351c283630c
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:92
+SRC:session:7f3a2b9e#turn92
+±ENTITY-DECISION-93B34F35
+DECISION:Decision: the loader writes an idempotency ledger row before the insert because retry-after-timeout was the only source of duplicates in the incident review.
+FACT-ID:e1ec2ff968853241
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:94
+SRC:session:7f3a2b9e#turn94
+±ENTITY-DECISION-494D14EC
+DECISION:Decision: the loader writes an idempotency ledger row before the insert because retry-after-timeout was the only source of duplicates in the incident review. The alternative we walked away from was gateing the quarantine module first, which looked cheaper but would have left the on-call runbook out of date through the weekly cycle.
+FACT-ID:00837525d16c17ef
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:96
+SRC:session:7f3a2b9e#turn96
+±ENTITY-TASK-01D4E96C
+TASK:Backfill quarantine per incident review, then update the runbook section that describes the manual replay steps so on-call does not have to read the source to recover
+TURN:104
+SRC:session:7f3a2b9e#turn104
+±ENTITY-USER-REQUEST-B4E02248
+REQUEST:the watermark file got corrupted after the spot instance died, make recovery not depend on it — context: this bit us during the last weekly close and the finance team noticed before we did, so treat the fix as the priority over the refactor work
+FACT-ID:c5249aeae454d92e
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:113
+SRC:session:7f3a2b9e#turn113
+±ENTITY-TOOL-BASH-0044-AB67F18B
+RAN:backfill vacuum check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && python ops/manifest_repair.py --dry-run --partition orders-eu-7 2>&1 | head -15
+TURN:117
+SRC:session:7f3a2b9e#turn117
+±ENTITY-TOOL-BASH-0033-AC1C54E8
+RAN:de-dupe ingest check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && python ops/manifest_repair.py --dry-run --partition orders-eu-4 2>&1 | head -15
+TURN:120
+SRC:session:7f3a2b9e#turn120
+±ENTITY-TOOL-BASH-0058-4497932E
+RAN:re-partition partitioner check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && make schema-check && echo OK || echo DRIFT
+TURN:127
+SRC:session:7f3a2b9e#turn127
+±ENTITY-TOOL-BASH-0076-D0D25525
+RAN:vacuum manifest check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && make schema-check && echo OK || echo DRIFT
+TURN:130
+SRC:session:7f3a2b9e#turn130
+±ENTITY-LITERAL-8D48C7A6
+VALUE:orders-eu-1
+KIND:git_sha
+FACT-ID:f29e3e9678b19955
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:136
+SRC:session:7f3a2b9e#turn136
+±ENTITY-LITERAL-2EBF077D
+VALUE:orders-eu-8
+KIND:git_sha
+FACT-ID:8376dc6ac76e4fe1
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:137
+SRC:session:7f3a2b9e#turn137
+±ENTITY-DECISION-43CE18AD
+DECISION:Decision: schema drift fails the batch at ingest, not at load, because a nulled column that reaches the warehouse is unrecoverable without a backfill — loud beats late.
+FACT-ID:37cfd9f17422df9a
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:138
+SRC:session:7f3a2b9e#turn138
+±ENTITY-DECISION-3FA797C2
+DECISION:Decision: partitions are sized by row count not by day because monday batches are 6x weekend batches and the stream runner starves on the skew. The alternative we walked away from was backfilling the schema_guard module first, which looked cheaper but would have left the on-call runbook out of date through the weekly cycle.
+FACT-ID:e809a597679151b0
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:146
+SRC:session:7f3a2b9e#turn146
+±ENTITY-ERROR-0ACCA209
+MESSAGE:TimeoutError: stream runner heartbeat missed 3 intervals; last offset 1842273 partition orders-eu-7
+FACT-ID:79572765c63e82d6
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:155
+SRC:session:7f3a2b9e#turn155
+±ENTITY-TASK-4E3550E7
+TASK:Quarantine loader per incident review, then update the runbook section that describes the manual replay steps so on-call does not have to read the source to recover
+TURN:160
+SRC:session:7f3a2b9e#turn160
+±ENTITY-USER-REQUEST-1FFDFD67
+REQUEST:migrate the orders schema to v3 without breaking the two downstream consumers that still read v2 — context: this bit us during the last weekly close and the finance team noticed before we did, so treat the fix as the priority over the refactor work
+FACT-ID:8a847a742fed58f3
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:163
+SRC:session:7f3a2b9e#turn163
+±ENTITY-TOOL-BASH-0013-87794F0B
+RAN:rotate schema_guard check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && grep -nE 'def (load|replay|commit)|watermark|manifest' runners/batch.py | head -20
+TURN:168
+SRC:session:7f3a2b9e#turn168
+±ENTITY-TOOL-BASH-0073-86BDF34A
+RAN:gate dedupe check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && python -m pytest tests/test_dedupe.py -q 2>&1 | tail -8; echo exit: $?
+TURN:171
+SRC:session:7f3a2b9e#turn171
+±ENTITY-TOOL-BASH-0040-14ECD68D
+RAN:wire dedupe check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && python ops/manifest_repair.py --dry-run --partition orders-eu-5 2>&1 | head -15
+TURN:176
+SRC:session:7f3a2b9e#turn176
+±ENTITY-TOOL-BASH-0003-641858FE
+RAN:de-dupe watermark check
+COMMAND:R="/c/Users/dev/Projects/meridian-etl" git -C "$R" log --oneline -12 -- watermark/ && git -C "$R" diff --stat HEAD~3
+TURN:184
+SRC:session:7f3a2b9e#turn184
+±ENTITY-LITERAL-F103DCDD
+VALUE:orders-eu-8
+KIND:git_sha
+FACT-ID:7cfbbe48fbee25b8
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:193
+SRC:session:7f3a2b9e#turn193
+±ENTITY-LITERAL-D8C80E06
+VALUE:C:\Users\dev\Projects\meridian-etl\tests\test_watermark.py
+KIND:path
+FACT-ID:44149c111e29cbba
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:195
+SRC:session:7f3a2b9e#turn195
+±ENTITY-DECISION-D04A6FE6
+DECISION:Decision: quarantine replay is manual-only with a --confirm flag because an automated replay loop re-quarantined the same poison batch 40 times overnight.
+FACT-ID:ae31275b710adc65
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:202
+SRC:session:7f3a2b9e#turn202
+±ENTITY-DECISION-42D1E1D2
+DECISION:Decision: the watermark moves to a two-phase commit (tmp + atomic rename) because a torn write during spot reclaim corrupted it — recovery now replays from the manifest, never trusts a partial file. The alternative we walked away from was vacuuming the backfill module first, which looked cheaper but would have left the on-call runbook out of date through the weekly cycle.
+FACT-ID:e270a19f114e357c
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:208
+SRC:session:7f3a2b9e#turn208
+±ENTITY-CONSTRAINT-78764B6C
+CONSTRAINT:Constraint: never mutate a quarantined batch in place — replay copies into a fresh staging table, the original is evidence.
+FACT-ID:ad510eab7bc60bce
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:215
+SRC:session:7f3a2b9e#turn215
+±ENTITY-TASK-D1A237DD
+TASK:Backfill loader per incident review, then update the runbook section that describes the manual replay steps so on-call does not have to read the source to recover
+TURN:222
+SRC:session:7f3a2b9e#turn222
+±ENTITY-USER-REQUEST-416137F6
+REQUEST:write a runbook section for on-call covering quarantine replay and the manifest repair script — context: this bit us during the last weekly close and the finance team noticed before we did, so treat the fix as the priority over the refactor work
+FACT-ID:377ee301649f8e10
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:230
+SRC:session:7f3a2b9e#turn230
+±ENTITY-TOOL-BASH-0064-FD42FFE4
+RAN:re-partition manifest check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && grep -nE 'def (load|replay|commit)|watermark|manifest' schemas/orders_v3.json | head -20
+TURN:236
+SRC:session:7f3a2b9e#turn236
+±ENTITY-TOOL-BASH-0042-DAF60E22
+RAN:vacuum schema_guard check
+COMMAND:R="/c/Users/dev/Projects/meridian-etl" git -C "$R" log --oneline -12 -- schema_guard/ && git -C "$R" diff --stat HEAD~3
+TURN:245
+SRC:session:7f3a2b9e#turn245
+±ENTITY-TOOL-BASH-0053-480A360D
+RAN:vacuum partitioner check
+COMMAND:R="/c/Users/dev/Projects/meridian-etl" git -C "$R" log --oneline -12 -- partitioner/ && git -C "$R" diff --stat HEAD~3
+TURN:253
+SRC:session:7f3a2b9e#turn253
+±ENTITY-TOOL-BASH-0096-44126182
+RAN:rotate loader check
+COMMAND:R="/c/Users/dev/Projects/meridian-etl" git -C "$R" log --oneline -12 -- loader/ && git -C "$R" diff --stat HEAD~3
+TURN:257
+SRC:session:7f3a2b9e#turn257
+±ENTITY-LITERAL-FD0FEF17
+VALUE:C:\Users\dev\Projects\meridian-etl\pipeline.py
+KIND:path
+FACT-ID:abbcf01f9b459742
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:265
+SRC:session:7f3a2b9e#turn265
+±ENTITY-LITERAL-48B5F9A4
+VALUE:3bfa802
+KIND:git_sha
+FACT-ID:8d8a2ca59af5e720
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:273
+SRC:session:7f3a2b9e#turn273
+±ENTITY-DECISION-143AD811
+DECISION:Decision: schema drift fails the batch at ingest, not at load, because a nulled column that reaches the warehouse is unrecoverable without a backfill — loud beats late.
+FACT-ID:e824b8f095986903
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:275
+SRC:session:7f3a2b9e#turn275
+±ENTITY-DECISION-916E1A0F
+DECISION:Decision: the loader writes an idempotency ledger row before the insert because retry-after-timeout was the only source of duplicates in the incident review. The alternative we walked away from was de-dupeing the loader module first, which looked cheaper but would have left the on-call runbook out of date through the weekly cycle.
+FACT-ID:852ac7fd727fb303
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:277
+SRC:session:7f3a2b9e#turn277
+±ENTITY-ERROR-101B4DAC
+MESSAGE:Exit code 1 FAILED tests/test_watermark.py::test_recovery_replays_manifest - AssertionError: watermark 2026-03-14T02:00:00 != manifest head 2026-03-14T02:15:00
+FACT-ID:db11ea754040ec4b
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:281
+SRC:session:7f3a2b9e#turn281
+±ENTITY-TASK-3557D790
+TASK:Checkpoint partitioner per incident review, then update the runbook section that describes the manual replay steps so on-call does not have to read the source to recover
+TURN:290
+SRC:session:7f3a2b9e#turn290
+±ENTITY-USER-REQUEST-AB77E03A
+REQUEST:the watermark file got corrupted after the spot instance died, make recovery not depend on it — context: this bit us during the last weekly close and the finance team noticed before we did, so treat the fix as the priority over the refactor work
+FACT-ID:8fdb66733fb2138a
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:295
+SRC:session:7f3a2b9e#turn295
+±ENTITY-TOOL-BASH-0079-587DE50E
+RAN:wire vacuum check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && grep -nE 'def (load|replay|commit)|watermark|manifest' tests/test_watermark.py | head -20
+TURN:296
+SRC:session:7f3a2b9e#turn296
+±ENTITY-TOOL-BASH-0016-BFC703D7
+RAN:de-dupe quarantine check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && python ops/manifest_repair.py --dry-run --partition orders-eu-9 2>&1 | head -15
+TURN:301
+SRC:session:7f3a2b9e#turn301
+±ENTITY-TOOL-BASH-0096-DDB763ED
+RAN:vacuum vacuum check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && make schema-check && echo OK || echo DRIFT
+TURN:308
+SRC:session:7f3a2b9e#turn308
+±ENTITY-TOOL-BASH-0076-E6A25FFE
+RAN:pin schema_guard check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && python -m pytest tests/test_schema_guard.py -q 2>&1 | tail -8; echo exit: $?
+TURN:309
+SRC:session:7f3a2b9e#turn309
+±ENTITY-LITERAL-ED5380FD
+VALUE:s3://meridian-lake/curated/orders/v3/dt=2026-03-12
+KIND:path
+FACT-ID:2470e0747694ae46
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:310
+SRC:session:7f3a2b9e#turn310
+±ENTITY-LITERAL-0EBAEFA3
+VALUE:3.2.4
+KIND:version
+FACT-ID:955c77f5b32e3753
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:312
+SRC:session:7f3a2b9e#turn312
+±ENTITY-DECISION-4FB0EC4C
+DECISION:Decision: the loader writes an idempotency ledger row before the insert because retry-after-timeout was the only source of duplicates in the incident review.
+FACT-ID:2c2e7c5f17464528
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:321
+SRC:session:7f3a2b9e#turn321
+±ENTITY-DECISION-167A33B1
+DECISION:Decision: quarantine replay is manual-only with a --confirm flag because an automated replay loop re-quarantined the same poison batch 40 times overnight. The alternative we walked away from was pining the quarantine module first, which looked cheaper but would have left the on-call runbook out of date through the weekly cycle.
+FACT-ID:8ae596b1e4a0bc44
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:325
+SRC:session:7f3a2b9e#turn325
+±ENTITY-TASK-0E24E83F
+TASK:De-dupe manifest per incident review, then update the runbook section that describes the manual replay steps so on-call does not have to read the source to recover
+TURN:326
+SRC:session:7f3a2b9e#turn326
+±ENTITY-USER-REQUEST-8FF70B82
+REQUEST:tighten the alerts so we page on lag over twenty minutes not on every transient spike — context: this bit us during the last weekly close and the finance team noticed before we did, so treat the fix as the priority over the refactor work
+FACT-ID:ada4696a5b97b479
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:334
+SRC:session:7f3a2b9e#turn334
+±ENTITY-TOOL-BASH-0091-BE9A02C4
+RAN:rotate backfill check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && python -m pytest tests/test_backfill.py -q 2>&1 | tail -8; echo exit: $?
+TURN:340
+SRC:session:7f3a2b9e#turn340
+±ENTITY-TOOL-BASH-0095-685ED29F
+RAN:wire quarantine check
+COMMAND:R="/c/Users/dev/Projects/meridian-etl" git -C "$R" log --oneline -12 -- quarantine/ && git -C "$R" diff --stat HEAD~3
+TURN:349
+SRC:session:7f3a2b9e#turn349
+±ENTITY-TOOL-BASH-0007-85DD52F2
+RAN:gate backfill check
+COMMAND:R="/c/Users/dev/Projects/meridian-etl" git -C "$R" log --oneline -12 -- backfill/ && git -C "$R" diff --stat HEAD~3
+TURN:357
+SRC:session:7f3a2b9e#turn357
+±ENTITY-TOOL-BASH-0020-835F7C67
+RAN:rotate quarantine check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && make schema-check && echo OK || echo DRIFT
+TURN:358
+SRC:session:7f3a2b9e#turn358
+±ENTITY-LITERAL-21C31E04
+VALUE:C:\Users\dev\Projects\meridian-etl\pipeline.py
+KIND:path
+FACT-ID:b1546650b53afc70
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:360
+SRC:session:7f3a2b9e#turn360
+±ENTITY-LITERAL-EF91C24D
+VALUE:orders-eu-0
+KIND:git_sha
+FACT-ID:e4d9d9a966683856
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:367
+SRC:session:7f3a2b9e#turn367
+±ENTITY-DECISION-F9DBDF76
+DECISION:Decision: partitions are sized by row count not by day because monday batches are 6x weekend batches and the stream runner starves on the skew.
+FACT-ID:e1e594ab45173e94
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:372
+SRC:session:7f3a2b9e#turn372
+±ENTITY-DECISION-4F14D1AD
+DECISION:Decision: partitions are sized by row count not by day because monday batches are 6x weekend batches and the stream runner starves on the skew. The alternative we walked away from was re-partitioning the loader module first, which looked cheaper but would have left the on-call runbook out of date through the weekly cycle.
+FACT-ID:25befae4195c22c1
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:373
+SRC:session:7f3a2b9e#turn373
+±ENTITY-ERROR-7E673CAA
+MESSAGE:TimeoutError: stream runner heartbeat missed 3 intervals; last offset 1842273 partition orders-eu-7
+FACT-ID:c35c25c9e5f163f2
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:381
+SRC:session:7f3a2b9e#turn381
+±ENTITY-CONSTRAINT-A55FCBA6
+CONSTRAINT:Constraint: the idempotency ledger is append-only; a delete there needs a signed-off incident ticket.
+FACT-ID:da81a8557d04da27
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:385
+SRC:session:7f3a2b9e#turn385
+±ENTITY-TASK-4F4B801D
+TASK:Quarantine loader per incident review, then update the runbook section that describes the manual replay steps so on-call does not have to read the source to recover
+TURN:390
+SRC:session:7f3a2b9e#turn390
+±ENTITY-USER-REQUEST-100067B8
+REQUEST:the watermark file got corrupted after the spot instance died, make recovery not depend on it — context: this bit us during the last weekly close and the finance team noticed before we did, so treat the fix as the priority over the refactor work
+FACT-ID:ec5e2490420fd6cc
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:395
+SRC:session:7f3a2b9e#turn395
+±ENTITY-TOOL-BASH-0078-49F3B01A
+RAN:gate partitioner check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && grep -nE 'def (load|replay|commit)|watermark|manifest' config.py | head -20
+TURN:402
+SRC:session:7f3a2b9e#turn402
+±ENTITY-TOOL-BASH-0027-69EB4CC5
+RAN:vacuum vacuum check
+COMMAND:R="/c/Users/dev/Projects/meridian-etl" git -C "$R" log --oneline -12 -- vacuum/ && git -C "$R" diff --stat HEAD~3
+TURN:405
+SRC:session:7f3a2b9e#turn405
+±ENTITY-TOOL-BASH-0086-1C39E685
+RAN:rotate watermark check
+COMMAND:R="/c/Users/dev/Projects/meridian-etl" git -C "$R" log --oneline -12 -- watermark/ && git -C "$R" diff --stat HEAD~3
+TURN:406
+SRC:session:7f3a2b9e#turn406
+±ENTITY-TOOL-BASH-0072-30D1CE52
+RAN:pin partitioner check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && make schema-check && echo OK || echo DRIFT
+TURN:413
+SRC:session:7f3a2b9e#turn413
+±ENTITY-LITERAL-47990C2C
+VALUE:2.11.26
+KIND:version
+FACT-ID:6f5cabdf989ad144
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:417
+SRC:session:7f3a2b9e#turn417
+±ENTITY-LITERAL-A3066D72
+VALUE:s3://meridian-lake/curated/orders/v3/dt=2026-03-16
+KIND:path
+FACT-ID:efd5d487f938f35d
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:418
+SRC:session:7f3a2b9e#turn418
+±ENTITY-DECISION-CE394E19
+DECISION:Decision: partitions are sized by row count not by day because monday batches are 6x weekend batches and the stream runner starves on the skew.
+FACT-ID:a2eacdbab1467812
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:419
+SRC:session:7f3a2b9e#turn419
+±ENTITY-DECISION-3A1DF2C6
+DECISION:Decision: quarantine replay is manual-only with a --confirm flag because an automated replay loop re-quarantined the same poison batch 40 times overnight. The alternative we walked away from was quarantineing the schema_guard module first, which looked cheaper but would have left the on-call runbook out of date through the weekly cycle.
+FACT-ID:8f07c3efbbae7452
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:426
+SRC:session:7f3a2b9e#turn426
+±ENTITY-TASK-A3B151F3
+TASK:Vacuum quarantine per incident review, then update the runbook section that describes the manual replay steps so on-call does not have to read the source to recover
+TURN:432
+SRC:session:7f3a2b9e#turn432
+±ENTITY-USER-REQUEST-1C97CB92
+REQUEST:write a runbook section for on-call covering quarantine replay and the manifest repair script — context: this bit us during the last weekly close and the finance team noticed before we did, so treat the fix as the priority over the refactor work
+FACT-ID:51782f3150341707
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:433
+SRC:session:7f3a2b9e#turn433
+±ENTITY-TOOL-BASH-0004-CDE36FB3
+RAN:quarantine manifest check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && python -m pytest tests/test_manifest.py -q 2>&1 | tail -8; echo exit: $?
+TURN:441
+SRC:session:7f3a2b9e#turn441
+±ENTITY-TOOL-BASH-0076-DA106D53
+RAN:wire schema_guard check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && python ops/manifest_repair.py --dry-run --partition orders-eu-5 2>&1 | head -15
+TURN:449
+SRC:session:7f3a2b9e#turn449
+±ENTITY-TOOL-BASH-0035-C72597DB
+RAN:gate ingest check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && grep -nE 'def (load|replay|commit)|watermark|manifest' pipeline.py | head -20
+TURN:456
+SRC:session:7f3a2b9e#turn456
+±ENTITY-TOOL-BASH-0003-3AFF22C0
+RAN:backfill dedupe check
+COMMAND:cd /c/Users/dev/Projects/meridian-etl && grep -nE 'def (load|replay|commit)|watermark|manifest' schemas/orders_v3.json | head -20
+TURN:458
+SRC:session:7f3a2b9e#turn458
+±ENTITY-LITERAL-B1F9EA56
+VALUE:2.3.21
+KIND:version
+FACT-ID:6fd0873f5a9e6628
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:462
+SRC:session:7f3a2b9e#turn462
+±ENTITY-LITERAL-97AC1D8F
+VALUE:s3://meridian-lake/curated/orders/v2/dt=2026-04-19
+KIND:path
+FACT-ID:43bb24ac82d22c81
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:467
+SRC:session:7f3a2b9e#turn467
+±ENTITY-DECISION-B1970F4A
+DECISION:Decision: the loader writes an idempotency ledger row before the insert because retry-after-timeout was the only source of duplicates in the incident review.
+FACT-ID:7aa49b519da10459
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:469
+SRC:session:7f3a2b9e#turn469
+±ENTITY-DECISION-3FBBB80B
+DECISION:Decision: the loader writes an idempotency ledger row before the insert because retry-after-timeout was the only source of duplicates in the incident review. The alternative we walked away from was gateing the schema_guard module first, which looked cheaper but would have left the on-call runbook out of date through the weekly cycle.
+FACT-ID:55c76e3b86e23547
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:473
+SRC:session:7f3a2b9e#turn473
+±ENTITY-ERROR-BAED3C9E
+MESSAGE:Exit code 1 FAILED tests/test_watermark.py::test_recovery_replays_manifest - AssertionError: watermark 2026-03-14T02:00:00 != manifest head 2026-03-14T02:15:00
+FACT-ID:adfeac5403855ee1
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:474
+SRC:session:7f3a2b9e#turn474
+±ENTITY-TASK-6341FB16
+TASK:Quarantine partitioner per incident review, then update the runbook section that describes the manual replay steps so on-call does not have to read the source to recover
+TURN:476
+SRC:session:7f3a2b9e#turn476

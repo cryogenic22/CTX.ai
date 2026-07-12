@@ -17,9 +17,14 @@ Provenance:
 |---|---|---|
 | `ctx_spec_frozen.ctx` | ctx | `spec/CTXPACK-SPEC.L2.ctx` at commit `af542a2` |
 | `ctx_session_frozen.ctx` | ctx | `.claude/ctx/session-eca3f61c.ctx` at commit `af542a2` (committed state, not the live file) |
-| `ctx_cohort_kp_sdlc_frozen.ctx` | ctx | KP_SDLC cohort repo, `session-ca35891c.ctx` (2026-07-04) — the unrelated-repo sample; scanned for secret patterns before freezing |
+| `ctx_cohort_synth_frozen.ctx` | ctx | authored 2026-07-12 — SYNTHETIC unrelated-repo session ledger (fictional `meridian-etl` repo, fictional user, deterministic generator). Replaces the withdrawn KP_SDLC cohort fixture, which carried raw user/session history and personal paths (reviewer privacy finding, Q2-4 re-check). Calibration on the replacement: chars/3 lands −4.3% vs cl100k |
 | `prose_readme_frozen.md` | prose | `README.md` at commit `af542a2` |
 | `prose_unicode_frozen.md` | prose | authored 2026-07-11 — English-dominant prose salted with CJK/Cyrillic/emoji/typographic characters |
+
+Privacy note (2026-07-12): fixtures must never carry raw cohort/user
+session content — the unrelated-repo sample is synthetic by policy.
+The withdrawn KP_SDLC fixture remains in git history; purging it needs
+a history rewrite, which is the owner's call.
 
 Disclosed limitation: the divisors are calibrated for
 English-dominant repository content. Pure non-Latin text (e.g. a
