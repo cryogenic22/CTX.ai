@@ -351,7 +351,14 @@ def call_with_budget(attempt_fn: "Callable[[], tuple[str, dict, str]]",
                      sleep: "Callable[[float], None]" = time.sleep,
                      ) -> "tuple[Optional[str], float, str]":
     """(answer, new_spent_usd, outcome) — outcome is "ok", "ceiling",
-    or "api-error".
+    "empty-response", or "api-error".
+
+    An HTTP-200 completion with EMPTY (or whitespace-only) text is not
+    a valid measurement — it cannot be told apart from API degeneracy,
+    and grading it would bank a false miss. It aborts the scored run
+    (recheck residual; no silent retry either — at temperature 0 a
+    retry is a hidden regrade opportunity). Its cost IS charged: the
+    call was billed.
 
     Cost accounting (pinned): an "ok" attempt adds its actual priced
     usage (worst case when usage is missing); a "transient" HTTP
@@ -373,6 +380,11 @@ def call_with_budget(attempt_fn: "Callable[[], tuple[str, dict, str]]",
         cost = price_usage(usage)
         if status == "ok":
             spent_usd += cost if cost is not None else worst_case_usd
+            if not (text or "").strip():
+                record({"phase": "result", "attempt": attempt,
+                        "status": "empty", "cost_usd": cost,
+                        "usage": usage or None})
+                return text, spent_usd, "empty-response"
             record({"phase": "result", "attempt": attempt,
                     "status": "ok", "cost_usd": cost,
                     "usage": usage or None})

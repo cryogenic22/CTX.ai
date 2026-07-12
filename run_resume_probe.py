@@ -454,6 +454,19 @@ def _run_fork_v2(args) -> int:
                       f"worst case would exceed the ${fc.CEILING_USD} "
                       f"ceiling (spent ${spent:.4f}).")
                 break
+            if outcome == "empty-response":
+                # an empty HTTP-200 completion is not a valid
+                # measurement — grading it would bank a false miss
+                aborted = {"reason": "empty-response", "at": i,
+                           "probe_id": row.probe.probe_id,
+                           "arm": row.arm,
+                           "retry_policy": _RETRY_POLICY}
+                rec.update(answer="", error=True)
+                results.append(rec)
+                print(f"ABORT at call {i}: the completion came back "
+                      f"empty — an empty response invalidates the "
+                      f"scored run (harness notes v3).")
+                break
             if outcome == "api-error":
                 # blocker 4: an error row must never be graded as a
                 # miss — the scored run is invalid, full stop

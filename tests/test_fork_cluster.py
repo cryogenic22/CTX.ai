@@ -524,6 +524,22 @@ def test_call_with_budget_exhausted_retries_invalidate():
     assert slept == [2.0, 4.0, 8.0, 16.0, 32.0]
 
 
+def test_call_with_budget_empty_response_aborts_not_grades():
+    # an empty HTTP-200 completion invalidates the run; its cost is
+    # still charged (the call was billed) and the attempt is ledgered
+    led = []
+    for empty in ("", "   \n\t"):
+        led.clear()
+        text, spent, outcome = fc.call_with_budget(
+            lambda e=empty: (e, {"cost": 0.02}, "ok"),
+            worst_case_usd=0.05, spent_usd=0.10, ceiling_usd=2.0,
+            record=led.append,
+            price_usage=lambda u: u.get("cost") if u else None)
+        assert outcome == "empty-response"
+        assert spent == pytest.approx(0.12)
+        assert led[-1]["status"] == "empty"
+
+
 def test_call_with_budget_missing_usage_charges_worst_case():
     text, spent, outcome = fc.call_with_budget(
         lambda: ("answer text", {}, "ok"),

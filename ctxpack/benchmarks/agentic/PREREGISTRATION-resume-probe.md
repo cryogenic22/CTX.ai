@@ -463,3 +463,11 @@ prospective — no regrades.
    unchanged from v2 (max 5, exponential 2s–32s); a call that still
    fails invalidates the scored run (v2 blocker-4 semantics
    unchanged).
+3. **Empty-response abort.** An HTTP-200 completion with empty (or
+   whitespace-only) text is not a valid measurement: it cannot be
+   told apart from API degeneracy, and grading it banks a false miss
+   (the v2 loop graded it — `grade()` returns False on empty). v3
+   aborts the scored run (`aborted.reason = "empty-response"`), with
+   NO silent retry — at temperature 0 a retry is a hidden regrade
+   opportunity. The call's cost is charged (it was billed) and the
+   attempt is ledgered with status `empty`.
