@@ -419,3 +419,29 @@ following is implemented in `fork_cluster.py` /
     displacement-arm call order rotate by cluster index
     (`arm_order` / `displacement_arm_order`), pre-committed; the plan
     enumerates rows in execution order.
+
+### A5 harness notes v3 (2026-07-12 — recheck-residual remediation, pre-approval, before any paid call)
+
+Written in response to the reviewer's 2026-07-12 recheck (relayed as
+headlines: exact-manifest gate, retry-level budget enforcement, A4.2
+grading, empty-response abort, E-6A privacy cleanup), BEFORE approval
+and before any paid call. Where these conflict with v1/v2 notes, **v3
+supersedes**. No scored run exists; every grade/gate change below is
+prospective — no regrades.
+
+1. **Grade amendment A4.2 — enumerated negation (supersedes the A4.1
+   disclosed limitation; grade id `drift-fork-grade/v2.2`).** The
+   negation scope extends across comma-separated ENUMERATION
+   CONTINUATIONS of a negated segment: a bare fragment (≤3 words) or a
+   segment opening with a coordinating connective (or/and/nor, ≤4
+   words) inherits the preceding segment's negation — "not a conflict,
+   fork, or divergence" neutralizes all three tokens. Longer segments
+   are fresh clauses and A4.1 applies unchanged ("no objection at
+   first glance, but this fork is real" still flags); hard clause
+   punctuation (.;:!?— and newline) always resets the scope. Applied
+   arm-symmetrically to the fork grade and the inverted false-alarm
+   grade. Disclosed limitation (pinned as a test): a genuine flag
+   phrased as a bare ≤3-word fragment straight after a negated comma
+   segment ("no delays, fork detected") reads as an enumeration and is
+   neutralized — symmetric across arms. Adversarial cases in both
+   directions are pinned as tests.

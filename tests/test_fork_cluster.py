@@ -407,6 +407,37 @@ def test_polarity_scope_is_the_clause():
         "the values proceed without divergence"))
 
 
+def test_a42_enumerated_negation_is_neutralized():
+    """A4.2: one negator scopes over a comma enumeration — the exact
+    phrase A4.1 disclosed as its limitation must not false-alarm."""
+    assert not conflict_flag_positive(_norm(
+        "this is not a conflict, fork, or divergence"))
+    assert not conflict_flag_positive(_norm(
+        "there is no conflict, no fork, and no divergence here"))
+    assert not conflict_flag_positive(_norm(
+        "we found neither a conflict, a fork, nor a divergence"))
+
+
+def test_a42_does_not_swallow_genuine_flags():
+    """A4.2 both directions: a fresh clause after a negated comma
+    segment still flags; hard punctuation always resets the scope."""
+    assert conflict_flag_positive(_norm(
+        "no objection at first glance, but this fork is real"))
+    assert conflict_flag_positive(_norm(
+        "there is no easy answer, the fork remains unresolved and "
+        "blocks the merge"))
+    assert conflict_flag_positive(_norm(
+        "not a typo. an unreconciled fork between the two heads"))
+    assert conflict_flag_positive(_norm(
+        "i cannot proceed: unresolved fork between the two heads"))
+
+
+def test_a42_disclosed_limitation_is_pinned():
+    # a bare <=3-word fragment straight after a negated segment reads
+    # as an enumeration continuation — disclosed, arm-symmetric
+    assert not conflict_flag_positive(_norm("no delays, fork detected"))
+
+
 # ------------------------------------------------------ analysis math
 
 
