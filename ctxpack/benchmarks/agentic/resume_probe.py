@@ -521,9 +521,41 @@ def grep_context(repo_path: str, probe: Probe, budget_bpe: int) -> str:
 # ── Grading (rule-based; no LLM judge in the headline) ──
 
 
-DRIFT_FORK_GRADE = "drift-fork-grade/v2"
+DRIFT_FORK_GRADE = "drift-fork-grade/v2.1"
 _FORK_FLAG_TOKENS = ("conflict", "unreconciled", "unresolved", "fork",
                      "diverg", "competing", "contradict")
+
+# A4.1 (polarity amendment, pre-registered before any scored v2 run —
+# consolidated review blocker 3): a conflict token inside a NEGATION
+# SCOPE is the vocabulary of a dismissal, not a flag — "there is no
+# conflict; vB was superseded" must not count as flagging, and "not a
+# conflict; v2 is old" must not pass the fork grade. Scope = the
+# token's own clause (split on sentence/clause punctuation); negated
+# when a pinned negator appears within the 4 words before the token.
+# Deterministic, arm-symmetric. Disclosed limitation: an enumerated
+# negation spanning clause punctuation ("not a conflict, fork, or
+# divergence") is outside the window and grades positive — symmetric
+# across arms.
+_NEGATORS = frozenset((
+    "no", "not", "never", "none", "neither", "nor", "without", "cannot",
+    "can't", "isn't", "wasn't", "aren't", "weren't", "doesn't", "don't",
+    "didn't", "won't", "wouldn't", "shouldn't", "couldn't", "hasn't",
+    "haven't", "hadn't", "lacks", "lacking", "absent"))
+_CLAUSE_SPLIT = re.compile(r"[.;:!?,\n]|—")
+
+
+def conflict_flag_positive(answer_norm: str) -> bool:
+    """True when at least one pinned conflict token appears OUTSIDE a
+    negation scope (A4.1). Input must already be ``_norm``-alized."""
+    for clause in _CLAUSE_SPLIT.split(answer_norm):
+        words = clause.split()
+        for i, w in enumerate(words):
+            if not any(t in w for t in _FORK_FLAG_TOKENS):
+                continue
+            window = words[max(0, i - 4):i]
+            if not any(x in _NEGATORS for x in window):
+                return True
+    return False
 
 
 def grade(probe: Probe, answer: str) -> bool:
@@ -541,8 +573,10 @@ def grade(probe: Probe, answer: str) -> bool:
         # which is the vocabulary of the MISS. Pass = a pinned conflict
         # token plus an exact anchor never shown in the proposal:
         # v2 verbatim, or both head session ids. Paraphrased flags and
-        # anchor-free token mentions still grade as misses.
-        if not any(t in a for t in _FORK_FLAG_TOKENS):
+        # anchor-free token mentions still grade as misses. A4.1: the
+        # token must additionally sit OUTSIDE a negation scope — a
+        # negated token is a dismissal, not a flag.
+        if not conflict_flag_positive(a):
             return False
         if e in a:
             return True

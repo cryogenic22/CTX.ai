@@ -454,17 +454,25 @@ def _build_prompt(question: str, context: str) -> str:
     )
 
 
-def _ask_anthropic(question: str, context: str, *, model: str, api_key: str) -> str:
-    """Call Anthropic Messages API with retry on transient errors."""
+def ask_anthropic_usage(question: str, context: str, *, model: str,
+                        api_key: str,
+                        max_tokens: int = 512) -> "tuple[str, dict]":
+    """(answer, usage) — Anthropic Messages call that KEEPS the API
+    usage block. Cost-enforced harnesses (drift-fork/v2's $2 ceiling)
+    need per-call actual token counts; the plain helper discards them.
+    Same retry semantics as ``_ask_anthropic``; usage is {} when the
+    call permanently failed."""
     import json
     import urllib.request
 
     prompt = _build_prompt(question, context)
+    usage_cell: dict = {}
 
     def _call() -> str:
+        usage_cell.clear()
         payload = json.dumps({
             "model": model,
-            "max_tokens": 512,
+            "max_tokens": max_tokens,
             "temperature": 0,
             "system": QA_SYSTEM_MSG,
             "messages": [{"role": "user", "content": prompt}],
@@ -482,11 +490,20 @@ def _ask_anthropic(question: str, context: str, *, model: str, api_key: str) -> 
 
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = json.loads(resp.read().decode("utf-8"))
+            usage_cell.update(data.get("usage") or {})
             if "content" in data and data["content"]:
                 return data["content"][0].get("text", "")
         return ""
 
-    return _retry_api_call(_call)
+    text = _retry_api_call(_call)
+    return text, dict(usage_cell)
+
+
+def _ask_anthropic(question: str, context: str, *, model: str, api_key: str) -> str:
+    """Call Anthropic Messages API with retry on transient errors."""
+    text, _ = ask_anthropic_usage(question, context, model=model,
+                                  api_key=api_key)
+    return text
 
 
 def _ask_openai(question: str, context: str, *, model: str, api_key: str) -> str:

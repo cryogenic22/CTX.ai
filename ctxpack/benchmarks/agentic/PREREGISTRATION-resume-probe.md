@@ -333,3 +333,89 @@ text; the reviewer approves text + harness + these notes together.
    text names both gates (reviewer approval of A5 text + harness; the
    owner's explicit ≤$2 authorization). `--clusters` overrides are
    dry-run only; live runs require the pinned 8.
+
+### A5 harness notes v2 (2026-07-12 — consolidated-review remediation, pre-approval, before any paid call)
+
+Written in response to the reviewer's consolidated re-check (nine
+blockers + direct answers a/b/c, recorded on the coordination board
+2026-07-12), BEFORE approval and before any paid call. Where these
+conflict with harness notes v1, **v2 supersedes v1**. All of the
+following is implemented in `fork_cluster.py` /
+`run_resume_probe.py --probe-set drift-fork-v2` and pinned here:
+
+1. **The treatment is the product warning (supersedes v1 note 4's
+   tail-append).** The warn arm's context is built through the real
+   read path on the updated parked branch: the product renderer places
+   the fork block at the top of the gist, and the context is used AS
+   BUILT. The padded-nowarn arm removes exactly that span
+   (`split_product_warning`, keyed on the product `FORK_GIST_HEADER`)
+   and grows the pinned neutral filler IN ITS PLACE to exact BPE
+   parity (`placebo_context`). The unpadded `ctx-nowarn` secondary is
+   the clean removal. On a branch without the product renderer the
+   harness ABORTS — it never simulates the treatment (the F2
+   no-simulated-fallback semantics). Scored runs therefore execute
+   from `feat/fork-surfacing-parked` only.
+2. **Completions: 88 (supersedes v1 note 1's 96 and the A5 cost
+   table's 80).** 8 clusters × (2 fork probes × 4 arms + 1
+   displacement × 2 arms + 1 false-alarm × **1** arm) = 88. The
+   duplicate identical false-alarm call is removed (answers a/b): the
+   clean no-fork context is called ONCE (`ctx-clean`), and the
+   detector's own output is captured as a separate receipt
+   (`nofork_detector_receipt`: product warning absent, fold conflicts
+   zero, no candidates file). An EMPTY product warning is itself a
+   valid detector receipt. The plan aborts unless the enumeration is
+   exactly 11 × n_clusters.
+3. **Cluster variation is pre-committed (blocker 2).** The pinned
+   `_VARIATIONS` table varies, per cluster: head checkpoint order
+   (b→c vs c→b), fork revision depth (depth 2 = the heads supersede a
+   pinned linear revision, `_REVISION_VALUES`; the fold roots the
+   conflict at the chain origin), unrelated-history load (0–8 pinned
+   value-free distractor decisions banked in the base session),
+   transcript timestamp bases, decision phrasing templates, and probe
+   question phrasing variants. All pinned inputs are hashed into
+   `cluster_manifest_sha256`, stamped in every artifact.
+4. **Grade amendment A4.1 — polarity (blocker 3, answer c).** A pinned
+   conflict token counts only OUTSIDE a negation scope (the token's
+   own clause; negator within the 4 preceding words). "There is no
+   conflict; vB was superseded" is a dismissal, not a false alarm;
+   "not a conflict; v2 is old" is a miss, not a pass. Applied
+   arm-symmetrically to the fork grade and the inverted false-alarm
+   grade (`resume_probe.conflict_flag_positive`; grade id
+   `drift-fork-grade/v2.1`). Disclosed limitation: an enumerated
+   negation spanning clause punctuation ("not a conflict, fork, or
+   divergence") is outside the window and grades positive —
+   symmetric across arms. Adversarial cases are pinned as tests.
+5. **Errors invalidate the run (blocker 4).** Retry policy
+   (pre-registered): per-call transient-HTTP retry (max 5,
+   exponential 2s–32s) inside the API helper; a call that still fails
+   ABORTS the scored run — no grading of error rows, no cluster
+   analysis, no unlock, artifact tagged `aborted`.
+6. **The $2 ceiling is enforced, not procedural (blocker 5).** The
+   model is pinned (`claude-sonnet-4-6`; live runs refuse any other),
+   worst-case preflight cost is computed from the pinned prices
+   ($3/$15 per MTok in/out, 512 max output tokens) and aborts if over
+   ceiling; every call's actual usage is read from the API response
+   (`ask_anthropic_usage`), priced, and appended IMMEDIATELY to a
+   durable `invocations.jsonl`; a running guard aborts BEFORE any
+   call whose worst case would cross the ceiling.
+7. **Exact tokenizer required and stamped (blocker 6).** v2 refuses
+   to run (including dry runs) unless tiktoken is importable
+   (`require_exact_tokenizer`); the chars//4 fallback is forbidden.
+   Artifacts stamp: tokenizer + version, harness commit, cluster
+   manifest sha256, pad-filler sha256, per-row final-context sha256,
+   and (padded rows) the actually-inserted filler's sha256 + length.
+8. **Any failed receipt aborts (blocker 7, supersedes the one-probe
+   exclusion).** Preflight is deterministic, so `build_plan` raises on
+   the FIRST failed receipt of any kind (fork presence receipts on
+   both primary arms, displacement expected-present, false-alarm
+   detector receipts). Unlock additionally requires completeness:
+   exactly 8 clusters, each contributing exactly 2 paired fork probes
+   in both primary arms.
+9. **Negative controls are hard gates (blocker 8).** False-alarm
+   gate: **0/8** flagged clusters (was ≤1/8). Displacement
+   non-inferiority gate: at most **1** harmful-discordant cluster
+   (warn wrong AND padded right); both gates block the unlock.
+10. **Deterministic counterbalancing (blocker 9).** Fork-arm and
+    displacement-arm call order rotate by cluster index
+    (`arm_order` / `displacement_arm_order`), pre-committed; the plan
+    enumerates rows in execution order.

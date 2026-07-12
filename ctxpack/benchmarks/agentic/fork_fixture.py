@@ -117,10 +117,13 @@ def _entry(text: str, sid: str, ts: str) -> dict:
                         "content": [{"type": "text", "text": text}]}}
 
 
-def _write_transcript(path: str, texts: "list[str]", sid: str) -> str:
+def _write_transcript(path: str, texts: "list[str]", sid: str,
+                      ts_base: str = "2026-07-11T09") -> str:
     # one Decision (+ optional Supersedes) per entry: the producer emits
-    # at most one supersession per decision, so pairs never share a turn
-    entries = [_entry(t, sid, f"2026-07-11T09:{i:02d}:00Z")
+    # at most one supersession per decision, so pairs never share a turn.
+    # ts_base (date + hour) is pinned per caller — v2 clusters vary it
+    # (consolidated review blocker 2)
+    entries = [_entry(t, sid, f"{ts_base}:{i:02d}:00Z")
                for i, t in enumerate(texts)]
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(json.dumps(e) for e in entries))

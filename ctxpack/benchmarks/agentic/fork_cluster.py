@@ -2,24 +2,52 @@
 negative controls, presence receipts, cluster-level analysis (Layer 2).
 
 Pre-registered as amendment A5 in PREREGISTRATION-resume-probe.md
-(committed 2026-07-11, before this code existed). A5 supersedes the A3
+(committed 2026-07-11, before this code existed) plus harness notes v2
+(2026-07-12, the consolidated-review remediation). A5 supersedes the A3
 run design; the A3 fixture mechanics (planted through the REAL
-producer) and the A4 grade carry over unchanged — this module changes
-the sampling unit (>= 8 independent clusters), the primary comparison
-(fixed total context budget: ctx-warn vs ctx-nowarn-padded), and adds
-the pinned negative controls (no-fork false alarms + attention
-displacement) and per-probe presence receipts.
+producer) carry over; the A4 grade carries over with the A4.1 polarity
+amendment (resume_probe.conflict_flag_positive).
 
-The scored run this harness drives is gated on (i) reviewer approval
-of the A5 text AND this harness, then (ii) owner authorization up to
-$2 (Q3 ruling, 2026-07-11). The runner enforces the interlock: live
-drift-fork-v2 runs refuse to start without --authorized-run.
+Harness notes v2 (all pre-committed before any scored run):
+
+- The TREATMENT is the parked product's own fork warning, rendered by
+  the real checkpoint producer at the top of the gist — never a
+  harness simulation. The padded-nowarn arm removes that exact span
+  and grows the pinned neutral filler IN ITS PLACE to exact BPE
+  parity. On a branch without the product renderer the harness ABORTS
+  (run drift-fork/v2 on the updated feat/fork-surfacing-parked).
+- The eight clusters are NOT structural clones: head checkpoint order,
+  fork revision depth, unrelated-history load, transcript timestamps,
+  decision phrasing, and probe phrasing all vary per the pinned
+  _VARIATIONS table.
+- Grading is polarity-aware (A4.1): a negated conflict token is a
+  dismissal, arm-symmetrically.
+- ANY failed presence receipt aborts the run (preflight is
+  deterministic — there is nothing to exclude around). Unlock requires
+  exactly N_CLUSTERS_PINNED complete clusters with exactly 2 paired
+  fork probes each.
+- Negative controls are hard gates: 0/8 false-alarm clusters and a
+  displacement non-inferiority bound (at most 1 harmful-discordant
+  cluster) both block the unlock.
+- Arm call order is deterministically counterbalanced across clusters
+  (arm_order).
+- Budget parity requires the exact tokenizer (require_exact_tokenizer;
+  the chars//4 fallback is forbidden), and every scored artifact
+  stamps context sha256s, the filler sha/length actually inserted, the
+  cluster-manifest sha256, and the harness commit.
+
+The scored run stays gated on (i) reviewer approval of the A5 text AND
+this harness, then (ii) owner authorization up to $2 (Q3 ruling,
+2026-07-11). The runner enforces the interlock (--authorized-run), the
+pinned model, and the $2 ceiling (preflight worst-case + running
+guard + durable invocation ledger).
 """
 
 from __future__ import annotations
 
 import glob
 import hashlib
+import json
 import math
 import os
 from dataclasses import dataclass, field
@@ -33,31 +61,47 @@ from .fork_fixture import (
     _decision_rows,
     _fid_for_value,
     _write_transcript,
-    fork_warn_block,
 )
 from .resume_probe import (
     _FORK_FLAG_TOKENS,
     Probe,
     _grep_windows,
     _norm,
-    grade,
+    conflict_flag_positive,
     ctx_context,
+    grade,
 )
 
 A5_AS_OF = "2026-07-12"
 DRIFT_FORK_V2_VERSION = "drift-fork/v2"
 FORK_SOURCE = "synthetic-fixture"
 N_CLUSTERS_PINNED = 8
-MAX_RECEIPTS_FAILED = 1     # A5: a run with >1 excluded fork probe aborts
 PAD_DELTA_ABORT = 3         # |BPE(padded) - BPE(warn)| beyond this aborts
 
-# Arms (pinned in A5 + harness notes). Primary comparison is
-# ctx-nowarn-padded vs ctx-warn (fixed total budget); ctx-nowarn is the
-# disclosed additive-overhead secondary; grep is the standing
-# over-powered null, fork probes only.
+# Cost enforcement (harness notes v2; Q3 ruling ceiling). Prices are
+# the pinned model's worst-case USD per MTok; the runner refuses any
+# other model on a live run.
+FORK_V2_MODEL = "claude-sonnet-4-6"
+CEILING_USD = 2.00
+PRICE_IN_PER_MTOK = 3.00
+PRICE_OUT_PER_MTOK = 15.00
+MAX_COMPLETION_TOKENS = 512
+
+# Arms. Primary comparison is ctx-nowarn-padded vs ctx-warn (fixed
+# total budget); ctx-nowarn is the disclosed additive-overhead
+# secondary; grep is the standing over-powered null, fork probes only.
+# The false-alarm control is ONE completion per cluster on the clean
+# no-fork context ("ctx-clean") — the two ctx arms coincide there by
+# construction, so a second identical call is not an arm comparison
+# (consolidated review, answer (a)/(b)); the detector's own output is
+# captured as a separate receipt instead.
 FORK_ARMS = ("ctx-nowarn", "ctx-nowarn-padded", "ctx-warn", "grep")
-CONTROL_ARMS = ("ctx-nowarn-padded", "ctx-warn")
 PRIMARY_ARMS = ("ctx-nowarn-padded", "ctx-warn")
+DISPLACEMENT_ARMS = ("ctx-nowarn-padded", "ctx-warn")
+FALSE_ALARM_ARM = "ctx-clean"
+
+# 2 fork probes x 4 arms + 1 displacement x 2 arms + 1 false-alarm x 1
+EXPECTED_COMPLETIONS_PER_CLUSTER = 11
 
 # One tuple per cluster: (cid, ((key, v0, vB, vC) x 3)). Rows 0-1 are
 # the fork keys (both heads supersede), row 2 is the displacement key
@@ -132,14 +176,93 @@ _CLUSTER_TABLE = (
     )),
 )
 
+# Pre-committed per-cluster variation (consolidated review blocker 2 —
+# the clusters must not be structural clones). head_order: which head
+# session checkpoints first; depth: 1 = the heads supersede the base
+# fact directly, 2 = a pinned linear revision lands first and the heads
+# supersede IT (the fork sits deeper in the chain); distractors: how
+# many pinned unrelated decisions the base session banks alongside
+# (attention/history load); ts: transcript timestamp base (date+hour);
+# template: decision phrasing; q_variant: probe question phrasing.
+_VARIATIONS = {
+    "c01": {"head_order": ("b", "c"), "depth": 1, "distractors": 0,
+            "ts": "2026-07-12T08", "template": 0, "q_variant": 0},
+    "c02": {"head_order": ("c", "b"), "depth": 1, "distractors": 4,
+            "ts": "2026-07-12T11", "template": 1, "q_variant": 1},
+    "c03": {"head_order": ("b", "c"), "depth": 2, "distractors": 2,
+            "ts": "2026-07-12T14", "template": 2, "q_variant": 2},
+    "c04": {"head_order": ("c", "b"), "depth": 1, "distractors": 6,
+            "ts": "2026-07-12T17", "template": 3, "q_variant": 0},
+    "c05": {"head_order": ("b", "c"), "depth": 2, "distractors": 0,
+            "ts": "2026-07-13T08", "template": 1, "q_variant": 1},
+    "c06": {"head_order": ("c", "b"), "depth": 1, "distractors": 8,
+            "ts": "2026-07-13T11", "template": 0, "q_variant": 2},
+    "c07": {"head_order": ("b", "c"), "depth": 2, "distractors": 4,
+            "ts": "2026-07-13T14", "template": 3, "q_variant": 0},
+    "c08": {"head_order": ("c", "b"), "depth": 1, "distractors": 2,
+            "ts": "2026-07-13T17", "template": 2, "q_variant": 1},
+}
+
+# Depth-2 clusters: the pinned intermediate value the linear revision
+# banks for each FORK key before the heads fork off it. Joined into the
+# run-wide uniqueness/non-substring validation.
+_REVISION_VALUES = {
+    "c03": {"REPLICA-PLACEMENT-MODE": "place-hex-cell-grid",
+            "BACKUP-CIPHER-SUITE": "cipher-kyber-hybrid"},
+    "c05": {"BILLING-PRORATION-METHOD": "prorate-usage-weighted",
+            "INVOICE-NUMBER-FORMAT": "inv-seq-checksum-b32"},
+    "c07": {"FLAG-ROLLOUT-CURVE": "roll-shadow-mirror-only",
+            "EXPERIMENT-BUCKET-SALT": "salt-site-scoped-daily"},
+}
+
+_DECISION_TEMPLATES = (
+    "Decision: set {key} to {value} for the pipeline because {reason}.",
+    "Decision: adopt {value} as the {key} setting because {reason}.",
+    "Decision: standardize {key} on {value} because {reason}.",
+    "Decision: switch {key} over to {value} because {reason}.",
+)
+_QUESTION_VARIANTS = (
+    "Proceeding with {key} = {value} as the current value — drafting "
+    "the next step on that basis. OK?",
+    "Quick check before I implement: {key} is {value}, right? I'll "
+    "build the rollout plan on that.",
+    "Planning the next milestone assuming {key} stays at {value} — "
+    "anything I should know first?",
+)
+
+_REASON_BASE = "the initial rollout needed a safe default"
+_REASON_REV = "the mid-quarter tuning pass adjusted it"
 _REASON_B = "the follow-up load test favored it"
 _REASON_C = "the incident review demanded it"
 _REASON_TIP = "the quarterly capacity review settled it"
 
+# Pinned unrelated-history decisions (value-free, key-free): banked in
+# the base session per the cluster's distractor count. Validated to
+# contain no conflict-token vocabulary and no cluster term.
+_DISTRACTOR_POOL = (
+    "Decision: adopt the documented staging checklist for the release "
+    "train because the ops calendar review approved it.",
+    "Decision: keep the weekly dependency-update cadence because the "
+    "audit trail stayed clean last quarter.",
+    "Decision: archive standup notes to the shared drive monthly "
+    "because retrieval requests were rare.",
+    "Decision: leave the documentation style guide unchanged because "
+    "the writers voted to defer the revision.",
+    "Decision: publish the support rotation calendar quarterly because "
+    "monthly churn confused the schedule.",
+    "Decision: run the onboarding checklist review each cycle because "
+    "tooling drift kept invalidating it.",
+    "Decision: keep build dashboards on the team wall display because "
+    "visibility shortened response times.",
+    "Decision: batch routine chore tickets into one weekly sweep "
+    "because scattered fixes fragmented focus.",
+)
+
 # Padding filler (pinned; A5): deterministic, value-free, neutral. It
 # contains no fork content, no cluster key or value, and no A4
-# conflict-token vocabulary — validated at build time. Appended as a
-# tail block, the same position the warn block occupies.
+# conflict-token vocabulary — validated at build time. In v2 it grows
+# IN PLACE of the removed product warning span (blocker 1), never as a
+# tail block.
 _PAD_HEADER = "## Routine operations notes"
 _PAD_SENTENCES = (
     "The weekly maintenance window closed without any open action items.",
@@ -158,13 +281,99 @@ def pad_filler_sha256() -> str:
     return hashlib.sha256(blob).hexdigest()
 
 
+def cluster_manifest_sha256() -> str:
+    """sha256 over every pinned run input (blocker 6): the cluster
+    table, variation table, revision values, phrasing templates,
+    distractor pool, and filler."""
+    blob = json.dumps({
+        "table": _CLUSTER_TABLE, "variations": _VARIATIONS,
+        "revisions": _REVISION_VALUES, "templates": _DECISION_TEMPLATES,
+        "questions": _QUESTION_VARIANTS, "distractors": _DISTRACTOR_POOL,
+        "pad": (_PAD_HEADER,) + _PAD_SENTENCES,
+        "arms": {"fork": FORK_ARMS, "displacement": DISPLACEMENT_ARMS,
+                 "false_alarm": FALSE_ALARM_ARM},
+    }, sort_keys=True, default=list).encode("utf-8")
+    return hashlib.sha256(blob).hexdigest()
+
+
+def require_exact_tokenizer() -> str:
+    """Budget parity must not depend on the environment (blocker 6):
+    count_bpe_tokens silently falls back to chars//4 without tiktoken,
+    which is forbidden for v2. Returns the stamp for the artifact."""
+    try:
+        import tiktoken
+        tiktoken.get_encoding("cl100k_base")
+        return f"tiktoken {tiktoken.__version__} cl100k_base"
+    except Exception as exc:  # noqa: BLE001 — any failure means no parity
+        raise RuntimeError(
+            "drift-fork/v2 requires tiktoken for exact budget parity "
+            f"(the chars//4 fallback is forbidden): {exc}")
+
+
+def sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def arm_order(cluster_index: int) -> "tuple[str, ...]":
+    """Deterministic counterbalancing (blocker 9): the fork-arm call
+    order rotates by cluster index, pre-committed."""
+    k = cluster_index % len(FORK_ARMS)
+    return FORK_ARMS[k:] + FORK_ARMS[:k]
+
+
+def displacement_arm_order(cluster_index: int) -> "tuple[str, ...]":
+    k = cluster_index % len(DISPLACEMENT_ARMS)
+    return DISPLACEMENT_ARMS[k:] + DISPLACEMENT_ARMS[:k]
+
+
+# ── Product warning (the treatment is the product, never a simulation) ──
+
+
+def _product_header() -> "Optional[str]":
+    try:
+        from ...agent.checkpoint import FORK_GIST_HEADER
+        return FORK_GIST_HEADER
+    except ImportError:
+        return None
+
+
+def split_product_warning(context: str) -> "tuple[str, str, str]":
+    """(before, warn_block, after) around the PRODUCT fork warning in a
+    context built from the real gist. Raises when the product renderer
+    is absent (pre-feature branch) or the warning is missing — the v2
+    treatment is the product output; the harness never simulates it
+    (blocker 1; the F2 no-simulated-fallback semantics)."""
+    header = _product_header()
+    if header is None:
+        raise RuntimeError(
+            "product fork-warning renderer unavailable on this branch — "
+            "run drift-fork/v2 on the updated parked branch "
+            "(feat/fork-surfacing-parked); the harness never simulates "
+            "the treatment")
+    idx = context.find(header)
+    if idx < 0:
+        raise RuntimeError(
+            "product fork warning absent from the built context — the "
+            "warn arm cannot be constructed (no simulated fallback)")
+    end = context.find("\n## ", idx + 1)
+    if end < 0:
+        end = len(context)
+    return context[:idx], context[idx:end], context[end:]
+
+
 # ── Run-wide validation ──
+
+
+def _all_pinned_values() -> "list[str]":
+    vals = [v for _, rows in _CLUSTER_TABLE for row in rows
+            for v in row[1:]]
+    vals += [v for m in _REVISION_VALUES.values() for v in m.values()]
+    return vals
 
 
 def _validate_run() -> None:
     keys = [row[0] for _, rows in _CLUSTER_TABLE for row in rows]
-    values = [v for _, rows in _CLUSTER_TABLE for row in rows
-              for v in row[1:]]
+    values = _all_pinned_values()
     for name, items in (("key", keys), ("value", values)):
         low = [x.lower() for x in items]
         if len(set(low)) != len(low):
@@ -181,14 +390,26 @@ def _validate_run() -> None:
                         f"cluster table {name} {a!r} contains conflict-"
                         f"token vocabulary {tok!r} — it would collide "
                         f"with the A4 grade")
-    filler = _norm(" ".join((_PAD_HEADER,) + _PAD_SENTENCES))
-    for tok in _FORK_FLAG_TOKENS:
-        if tok in filler:
-            raise RuntimeError(
-                f"pad filler contains conflict-token vocabulary {tok!r}")
-    for item in keys + values:
-        if _norm(item) in filler:
-            raise RuntimeError(f"pad filler contains cluster term {item!r}")
+    neutral_texts = ((_PAD_HEADER,) + _PAD_SENTENCES + _DISTRACTOR_POOL
+                     + _DECISION_TEMPLATES + _QUESTION_VARIANTS
+                     + (_REASON_BASE, _REASON_REV, _REASON_B, _REASON_C,
+                        _REASON_TIP))
+    for text in neutral_texts:
+        n = _norm(text)
+        for tok in _FORK_FLAG_TOKENS:
+            if tok in n:
+                raise RuntimeError(
+                    f"pinned neutral text contains conflict-token "
+                    f"vocabulary {tok!r}: {text[:60]!r}")
+        for item in keys + values:
+            if _norm(item) in n:
+                raise RuntimeError(
+                    f"pinned neutral text contains cluster term "
+                    f"{item!r}: {text[:60]!r}")
+    for cid, var in _VARIATIONS.items():
+        if var["depth"] == 2 and cid not in _REVISION_VALUES:
+            raise RuntimeError(f"{cid}: depth 2 but no pinned revision "
+                               f"values")
 
 
 # ── Cluster fixture (built through the real producer) ──
@@ -217,6 +438,7 @@ class FalseAlarm:
 @dataclass
 class Cluster:
     cid: str
+    index: int          # position in the pinned table (counterbalancing)
     root: str
     fork_ledger: str
     fork_transcripts: str
@@ -226,44 +448,82 @@ class Cluster:
     fa: FalseAlarm
 
 
-def _checkpoint(tdir: str, ledger: str, sid: str,
-                texts: "list[str]") -> None:
+def _checkpoint(tdir: str, ledger: str, sid: str, texts: "list[str]",
+                ts_base: str) -> None:
     run_checkpoint(
-        _write_transcript(os.path.join(tdir, f"{sid}.jsonl"), texts, sid),
+        _write_transcript(os.path.join(tdir, f"{sid}.jsonl"), texts, sid,
+                          ts_base=ts_base),
         ledger, as_of=A5_AS_OF)
 
 
+def _decision_text(cid: str, key: str, value: str, reason: str) -> str:
+    tpl = _DECISION_TEMPLATES[_VARIATIONS[cid]["template"]]
+    return tpl.format(key=key, value=value, reason=reason)
+
+
 def _build_fork_side(root: str, cid: str, rows) -> tuple:
+    var = _VARIATIONS[cid]
     tdir = os.path.join(root, "fork", "transcripts")
     ledger = os.path.join(root, "fork", "ctx")
     os.makedirs(tdir, exist_ok=True)
     base_sid = f"{cid}aaaaa-fork-base"
-    head_b_sid = f"{cid}bbbbb-fork-head"
-    head_c_sid = f"{cid}ccccc-fork-head"
+    rev_sid = f"{cid}rrrrr-fork-rev"
+    head_sids = {"b": f"{cid}bbbbb-fork-head",
+                 "c": f"{cid}ccccc-fork-head"}
+    ts = var["ts"]
 
-    _checkpoint(tdir, ledger, base_sid, [
-        (f"Decision: set {key} to {v0} for the pipeline because the "
-         f"initial rollout needed a safe default.")
-        for key, v0, _, _ in rows])
+    base_texts = [_decision_text(cid, key, v0, _REASON_BASE)
+                  for key, v0, _, _ in rows]
+    base_texts += list(_DISTRACTOR_POOL[:var["distractors"]])
+    _checkpoint(tdir, ledger, base_sid, base_texts, ts)
     base_rows = _decision_rows(ledger, base_sid[:8])
     base_fids = {key: _fid_for_value(base_rows, v0, "base")[0]
                  for key, v0, _, _ in rows}
 
-    # head B supersedes ALL THREE keys; head C only the two fork keys —
-    # row 2 stays a linear chain (the displacement control's target)
-    _checkpoint(tdir, ledger, head_b_sid, [
-        (f"Decision: set {row[0]} to {row[2]} for the pipeline because "
-         f"{_REASON_B}.\n"
-         f"Supersedes: {base_fids[row[0]]} — revisited, {_REASON_B}.")
-        for row in rows])
-    _checkpoint(tdir, ledger, head_c_sid, [
-        (f"Decision: set {row[0]} to {row[3]} for the pipeline because "
-         f"{_REASON_C}.\n"
-         f"Supersedes: {base_fids[row[0]]} — revisited, {_REASON_C}.")
-        for row in rows[:2]])
+    # depth 2: a pinned linear revision supersedes the base for the two
+    # FORK keys; the heads then fork off the REVISION fact, so the fork
+    # sits deeper in the chain (blocker 2's revision-depth variation).
+    # The DAG fold still roots the conflict at the CHAIN ORIGIN (the
+    # base fact) — supersedes_targets only changes which fact the heads
+    # declare against.
+    supersede_targets = dict(base_fids)
+    if var["depth"] == 2:
+        rev_vals = _REVISION_VALUES[cid]
+        _checkpoint(tdir, ledger, rev_sid, [
+            (_decision_text(cid, row[0], rev_vals[row[0]], _REASON_REV)
+             + f"\nSupersedes: {base_fids[row[0]]} — revisited, "
+               f"{_REASON_REV}.")
+            for row in rows[:2]], ts)
+        rev_rows = _decision_rows(ledger, rev_sid[:8])
+        for row in rows[:2]:
+            fid, _ = _fid_for_value(rev_rows, rev_vals[row[0]], "revision")
+            supersede_targets[row[0]] = fid
+
+    # head B supersedes the fork roots for the 2 fork keys PLUS the
+    # displacement key's base; head C only the two fork keys. The
+    # checkpoint ORDER of the heads is the pinned head_order variation.
+    def _head_texts(col: int, reason: str, with_disp: bool) -> "list[str]":
+        texts = [
+            (_decision_text(cid, row[0], row[col], reason)
+             + f"\nSupersedes: {supersede_targets[row[0]]} — revisited, "
+               f"{reason}.")
+            for row in rows[:2]]
+        if with_disp:
+            drow = rows[2]
+            texts.append(
+                _decision_text(cid, drow[0], drow[2], reason)
+                + f"\nSupersedes: {base_fids[drow[0]]} — revisited, "
+                  f"{reason}.")
+        return texts
+
+    head_spec = {"b": (2, _REASON_B, True), "c": (3, _REASON_C, False)}
+    for tag in var["head_order"]:
+        col, reason, with_disp = head_spec[tag]
+        _checkpoint(tdir, ledger, head_sids[tag],
+                    _head_texts(col, reason, with_disp), ts)
 
     head_rows = {sid[:8]: _decision_rows(ledger, sid[:8])
-                 for sid in (head_b_sid, head_c_sid)}
+                 for sid in head_sids.values()}
     _, graph = load_supersession(ledger)
     if len(graph.conflicts) != 2:
         raise RuntimeError(
@@ -277,13 +537,13 @@ def _build_fork_side(root: str, cid: str, rows) -> tuple:
             f"it must stay a linear chain")
 
     forks: list[PlantedFork] = []
-    sid_b, sid_c = head_b_sid[:8], head_c_sid[:8]
+    sid_b, sid_c = head_sids["b"][:8], head_sids["c"][:8]
     for key, v0, vb, vc in rows[:2]:
         conflict = by_base.get(base_fids[key])
         if conflict is None or len(conflict.heads) != 2:
             raise RuntimeError(
                 f"{cid}: no 2-head conflict for {key} "
-                f"(base {base_fids[key]})")
+                f"(chain root {base_fids[key]})")
         fid_b, turn_b = _fid_for_value(head_rows[sid_b], vb, key)
         fid_c, turn_c = _fid_for_value(head_rows[sid_c], vc, key)
         if sorted((fid_b, fid_c)) != list(conflict.heads):
@@ -316,45 +576,42 @@ def _build_nofork_side(root: str, cid: str, rows) -> tuple:
     """Same keys, linear supersession only: base -> vB -> vC per key.
     The tip supersedes the MID facts, so the fold sees chains, never a
     fork — the false-alarm control's clean ledger."""
+    var = _VARIATIONS[cid]
     tdir = os.path.join(root, "nofork", "transcripts")
     ledger = os.path.join(root, "nofork", "ctx")
     os.makedirs(tdir, exist_ok=True)
     base_sid = f"{cid}ddddd-lin-base"
     mid_sid = f"{cid}eeeee-lin-mid"
     tip_sid = f"{cid}fffff-lin-tip"
+    ts = var["ts"]
 
-    _checkpoint(tdir, ledger, base_sid, [
-        (f"Decision: set {key} to {v0} for the pipeline because the "
-         f"initial rollout needed a safe default.")
-        for key, v0, _, _ in rows])
+    base_texts = [_decision_text(cid, key, v0, _REASON_BASE)
+                  for key, v0, _, _ in rows]
+    base_texts += list(_DISTRACTOR_POOL[:var["distractors"]])
+    _checkpoint(tdir, ledger, base_sid, base_texts, ts)
     base_rows = _decision_rows(ledger, base_sid[:8])
     base_fids = {key: _fid_for_value(base_rows, v0, "nofork base")[0]
                  for key, v0, _, _ in rows}
 
     _checkpoint(tdir, ledger, mid_sid, [
-        (f"Decision: set {row[0]} to {row[2]} for the pipeline because "
-         f"{_REASON_B}.\n"
-         f"Supersedes: {base_fids[row[0]]} — revisited, {_REASON_B}.")
-        for row in rows])
+        (_decision_text(cid, row[0], row[2], _REASON_B)
+         + f"\nSupersedes: {base_fids[row[0]]} — revisited, {_REASON_B}.")
+        for row in rows], ts)
     mid_rows = _decision_rows(ledger, mid_sid[:8])
     mid_fids = {key: _fid_for_value(mid_rows, vb, "nofork mid")[0]
                 for key, _, vb, _ in rows}
 
     _checkpoint(tdir, ledger, tip_sid, [
-        (f"Decision: set {row[0]} to {row[3]} for the pipeline because "
-         f"{_REASON_TIP}.\n"
-         f"Supersedes: {mid_fids[row[0]]} — revisited, {_REASON_TIP}.")
-        for row in rows])
+        (_decision_text(cid, row[0], row[3], _REASON_TIP)
+         + f"\nSupersedes: {mid_fids[row[0]]} — revisited, "
+           f"{_REASON_TIP}.")
+        for row in rows], ts)
 
     _, graph = load_supersession(ledger)
     if graph.conflicts:
         raise RuntimeError(
             f"{cid}: no-fork variant shows {len(graph.conflicts)} "
             f"conflicts — the linear chain did not link")
-    if fork_warn_block(ledger):
-        raise RuntimeError(
-            f"{cid}: no-fork variant yields a non-empty warn block — "
-            f"the false-alarm control requires a clean ledger")
 
     key, v0, vb, vc = rows[0]
     tip_rows = _decision_rows(ledger, tip_sid[:8])
@@ -365,12 +622,12 @@ def _build_nofork_side(root: str, cid: str, rows) -> tuple:
     return ledger, fa
 
 
-def build_cluster(root: str, cid: str, rows) -> Cluster:
+def build_cluster(root: str, cid: str, index: int, rows) -> Cluster:
     root = os.path.abspath(root)
     fork_ledger, fork_tdir, forks, disp = _build_fork_side(root, cid, rows)
     nofork_ledger, fa = _build_nofork_side(root, cid, rows)
-    return Cluster(cid=cid, root=root, fork_ledger=fork_ledger,
-                   fork_transcripts=fork_tdir,
+    return Cluster(cid=cid, index=index, root=root,
+                   fork_ledger=fork_ledger, fork_transcripts=fork_tdir,
                    nofork_ledger=nofork_ledger,
                    forks=forks, disp=disp, fa=fa)
 
@@ -380,8 +637,8 @@ def build_clusters(work_dir: str,
     if not 1 <= n <= len(_CLUSTER_TABLE):
         raise ValueError(f"n must be 1..{len(_CLUSTER_TABLE)}")
     _validate_run()
-    return [build_cluster(os.path.join(work_dir, cid), cid, rows)
-            for cid, rows in _CLUSTER_TABLE[:n]]
+    return [build_cluster(os.path.join(work_dir, cid), cid, i, rows)
+            for i, (cid, rows) in enumerate(_CLUSTER_TABLE[:n])]
 
 
 # ── Probes ──
@@ -389,14 +646,13 @@ def build_clusters(work_dir: str,
 
 def cluster_probes(cluster: Cluster) -> "list[tuple[str, Probe]]":
     """(ptype, probe) per cluster: 2 fork + 1 displacement + 1
-    false-alarm. Fork wording is pinned in A3 and carried over; the
-    displacement probe reuses the superseded-probe wording; the
-    false-alarm probe is the fork proposal with the TRUE current
-    value."""
+    false-alarm. Fork/false-alarm wording comes from the cluster's
+    pinned question variant (blocker 2); the displacement probe reuses
+    the superseded-probe wording."""
+    q_tpl = _QUESTION_VARIANTS[_VARIATIONS[cluster.cid]["q_variant"]]
     out: list[tuple[str, Probe]] = []
     for f in cluster.forks:
-        question = (f"Proceeding with {f.key} = {f.v1} as the current "
-                    f"value — drafting the next step on that basis. OK?")
+        question = q_tpl.format(key=f.key, value=f.v1)
         if _norm(f.v2) in _norm(question):
             raise RuntimeError(f"{cluster.cid}: v2 for {f.key} leaks "
                                f"into the proposal")
@@ -422,9 +678,7 @@ def cluster_probes(cluster: Cluster) -> "list[tuple[str, Probe]]":
     out.append(("false-alarm", Probe(
         probe_id=f"{cluster.cid}-fa-{fa.key.lower()}",
         kind="fork-false-alarm", session=fa.tip_session, turn=fa.turn,
-        question=(f"Proceeding with {fa.key} = {fa.current} as the "
-                  f"current value — drafting the next step on that "
-                  f"basis. OK?"),
+        question=q_tpl.format(key=fa.key, value=fa.current),
         expected=fa.prior, grade_mode="fork-inverted",
         source_text=(f"{fa.key}: {fa.v0} -> {fa.prior} -> current "
                      f"{fa.current} (linear, no fork)"),
@@ -432,22 +686,22 @@ def cluster_probes(cluster: Cluster) -> "list[tuple[str, Probe]]":
     return out
 
 
-# ── Padding (fixed total context budget) ──
+# ── Padding (fixed total context budget, filler IN PLACE) ──
 
 
-def pad_to_bpe(base_text: str, target_bpe: int, *,
-               model: str = "claude") -> "tuple[str, int, int]":
-    """Append the pinned neutral filler until the text reaches
-    target_bpe. Returns (padded_text, achieved_bpe, delta) where delta
-    = target - achieved. Never trims base_text; if base already meets
-    or exceeds target it is returned unchanged (delta <= 0)."""
-    cur = count_bpe_tokens(base_text, model=model)
-    if cur >= target_bpe:
-        return base_text, cur, target_bpe - cur
+def _fit_filler(prefix: str, suffix: str, target_bpe: int, *,
+                model: str = "claude") -> "tuple[str, int, int]":
+    """Grow the pinned neutral filler BETWEEN prefix and suffix until
+    prefix+filler+suffix reaches target_bpe. Returns (filler_text,
+    achieved_bpe, delta) with delta = target - achieved."""
+    def bpe(f: str) -> int:
+        return count_bpe_tokens(prefix + f + suffix, model=model)
+
+    if bpe("") >= target_bpe:
+        return "", bpe(""), target_bpe - bpe("")
     filler = _PAD_HEADER
     i = 0
-    while count_bpe_tokens(base_text + "\n\n" + filler,
-                           model=model) < target_bpe:
+    while bpe(filler) < target_bpe:
         filler += "\n" + _PAD_SENTENCES[i % len(_PAD_SENTENCES)]
         i += 1
     # largest filler prefix that stays at or below target, then a local
@@ -455,24 +709,44 @@ def pad_to_bpe(base_text: str, target_bpe: int, *,
     lo, hi = 0, len(filler)
     while lo < hi:
         mid = (lo + hi + 1) // 2
-        bpe = count_bpe_tokens(base_text + "\n\n" + filler[:mid],
-                               model=model)
-        if bpe <= target_bpe:
+        if bpe(filler[:mid]) <= target_bpe:
             lo = mid
         else:
             hi = mid - 1
-    best_len, best_bpe = lo, count_bpe_tokens(
-        base_text + "\n\n" + filler[:lo], model=model)
+    best_len, best_bpe = lo, bpe(filler[:lo])
     for length in range(lo, min(lo + 8, len(filler)) + 1):
-        bpe = count_bpe_tokens(base_text + "\n\n" + filler[:length],
-                               model=model)
-        if bpe == target_bpe:
-            best_len, best_bpe = length, bpe
+        b = bpe(filler[:length])
+        if b == target_bpe:
+            best_len, best_bpe = length, b
             break
-        if best_bpe < bpe <= target_bpe:
-            best_len, best_bpe = length, bpe
-    padded = base_text + "\n\n" + filler[:best_len]
-    return padded, best_bpe, target_bpe - best_bpe
+        if best_bpe < b <= target_bpe:
+            best_len, best_bpe = length, b
+    return filler[:best_len], best_bpe, target_bpe - best_bpe
+
+
+def placebo_context(warn_context: str, *, model: str = "claude"
+                    ) -> "tuple[str, int, int, str]":
+    """The padded-nowarn arm (blocker 1): the PRODUCT warning span is
+    removed and the pinned neutral filler grows IN ITS PLACE — the
+    same location, exact BPE parity with the intact context. Returns
+    (padded_text, achieved_bpe, delta, filler_used)."""
+    before, _warn, after = split_product_warning(warn_context)
+    target = count_bpe_tokens(warn_context, model=model)
+    filler, achieved, delta = _fit_filler(before, after, target,
+                                          model=model)
+    return before + filler + after, achieved, delta, filler
+
+
+def pad_to_bpe(base_text: str, target_bpe: int, *,
+               model: str = "claude") -> "tuple[str, int, int]":
+    """Tail-append variant kept for parity mechanics tests. The v2 plan
+    itself only pads IN PLACE via placebo_context."""
+    cur = count_bpe_tokens(base_text, model=model)
+    if cur >= target_bpe:
+        return base_text, cur, target_bpe - cur
+    filler, achieved, delta = _fit_filler(base_text + "\n\n", "",
+                                          target_bpe, model=model)
+    return base_text + "\n\n" + filler, achieved, delta
 
 
 # ── Receipts ──
@@ -480,7 +754,7 @@ def pad_to_bpe(base_text: str, target_bpe: int, *,
 
 def _edges_ok(ledger_dir: str, fork: PlantedFork) -> bool:
     """Both fact_superseded edges visible to the fold: a conflict rooted
-    at the fork's base whose heads are exactly the two planted heads."""
+    at the fork's root whose heads are exactly the two planted heads."""
     try:
         _, graph = load_supersession(ledger_dir)
     except Exception:  # noqa: BLE001 — a broken fold is a failed receipt
@@ -503,14 +777,25 @@ def fork_receipts(context: str, fork: PlantedFork,
     }
 
 
-def fork_probe_excluded(receipts_by_arm: "dict[str, dict]") -> bool:
-    """A5: a fork probe missing ANY receipt in an arm under test
-    (ctx-warn or ctx-nowarn-padded) is excluded."""
-    for arm in PRIMARY_ARMS:
-        r = receipts_by_arm.get(arm)
-        if not r or not all(r.values()):
-            return True
-    return False
+def nofork_detector_receipt(ledger_dir: str,
+                            context: str) -> "dict[str, bool]":
+    """The detector's OWN output on the clean ledger, captured as a
+    receipt (blocker 8): the product warning must be absent from the
+    context, the fold must see zero conflicts, and no candidates file
+    may exist. An empty product warning is itself a valid detector
+    receipt (consolidated review, answer (b))."""
+    header = _product_header()
+    try:
+        _, graph = load_supersession(ledger_dir)
+        conflicts = len(graph.conflicts)
+    except Exception:  # noqa: BLE001
+        conflicts = -1
+    return {
+        "product_warning_absent": bool(header) and header not in context,
+        "fold_conflicts_zero": conflicts == 0,
+        "candidates_file_absent": not os.path.exists(
+            os.path.join(ledger_dir, "candidates.jsonl")),
+    }
 
 
 # ── Run plan ──
@@ -520,47 +805,71 @@ def fork_probe_excluded(receipts_by_arm: "dict[str, dict]") -> bool:
 class PlanRow:
     probe: Probe
     cluster: str
+    cluster_index: int
     ptype: str              # fork | displacement | false-alarm
     arm: str
     context: str
     context_bpe: int
+    context_sha256: str
     receipts: dict = field(default_factory=dict)
     pad_delta: Optional[int] = None
-    excluded: bool = False
+    filler_sha256: Optional[str] = None
+    filler_len: Optional[int] = None
     fa_anchors: Optional[list] = None
 
 
 def build_plan(clusters: "list[Cluster]", *, model: str = "claude"
-               ) -> "tuple[list[PlanRow], list[str]]":
+               ) -> "list[PlanRow]":
     """Deterministic full enumeration (no sampling): every probe under
-    its pinned arms, contexts and receipts computed pre-flight. Returns
-    (rows, excluded_fork_probe_ids)."""
+    its pinned arms, contexts and receipts computed pre-flight, arm
+    order counterbalanced per cluster (blocker 9). ANY failed receipt
+    raises — preflight is deterministic, so there is nothing to exclude
+    around (blocker 7)."""
     rows: list[PlanRow] = []
-    excluded: list[str] = []
     for cluster in clusters:
-        warn_blk = fork_warn_block(cluster.fork_ledger)
-        if not warn_blk:
-            raise RuntimeError(f"{cluster.cid}: empty warn block on the "
-                               f"fork ledger — nothing to test")
         forks_by_key = {f.key: f for f in cluster.forks}
         for ptype, probe in cluster_probes(cluster):
-            ledger = (cluster.nofork_ledger if ptype == "false-alarm"
-                      else cluster.fork_ledger)
-            blk = "" if ptype == "false-alarm" else warn_blk
-            nowarn = ctx_context(ledger, probe)
-            warn = nowarn + ("\n\n" + blk if blk else "")
-            target = count_bpe_tokens(warn, model=model)
-            padded, achieved, delta = pad_to_bpe(nowarn, target,
-                                                 model=model)
+            if ptype == "false-alarm":
+                context = ctx_context(cluster.nofork_ledger, probe)
+                receipts = {"expected_present":
+                            _norm(probe.expected) in _norm(context)}
+                receipts.update(nofork_detector_receipt(
+                    cluster.nofork_ledger, context))
+                if not all(receipts.values()):
+                    raise RuntimeError(
+                        f"{probe.probe_id}: false-alarm receipts failed "
+                        f"({receipts}) — the control requires a clean "
+                        f"ledger and a present expected value")
+                rows.append(PlanRow(
+                    probe=probe, cluster=cluster.cid,
+                    cluster_index=cluster.index, ptype=ptype,
+                    arm=FALSE_ALARM_ARM, context=context,
+                    context_bpe=count_bpe_tokens(context, model=model),
+                    context_sha256=sha256_text(context),
+                    receipts=receipts,
+                    fa_anchors=[cluster.fa.prior, cluster.fa.v0]))
+                continue
+
+            # fork + displacement probes live on the fork ledger; the
+            # warn context is the PRODUCT context as built (the gist
+            # carries the product warning at the top); padded-nowarn
+            # replaces the warning span in place; unpadded nowarn is
+            # the clean removal (additive-overhead secondary)
+            warn = ctx_context(cluster.fork_ledger, probe)
+            before, _blk, after = split_product_warning(warn)
+            padded, achieved, delta, filler = placebo_context(
+                warn, model=model)
             if abs(delta) > PAD_DELTA_ABORT:
                 raise RuntimeError(
                     f"{probe.probe_id}: pad delta {delta} exceeds "
                     f"±{PAD_DELTA_ABORT} BPE — budget parity failed")
-            contexts = {"ctx-nowarn": nowarn,
+            contexts = {"ctx-nowarn": before + after,
                         "ctx-nowarn-padded": padded,
                         "ctx-warn": warn}
+            target = count_bpe_tokens(warn, model=model)
+
             if ptype == "fork":
-                arms = FORK_ARMS
+                arms = arm_order(cluster.index)
                 contexts["grep"] = _grep_windows(
                     sorted(glob.glob(os.path.join(
                         cluster.fork_transcripts, "*.jsonl"))),
@@ -571,43 +880,60 @@ def build_plan(clusters: "list[Cluster]", *, model: str = "claude"
                 receipts_by_arm = {
                     arm: fork_receipts(contexts[arm], fork, edges)
                     for arm in arms}
-                is_excluded = fork_probe_excluded(receipts_by_arm)
-                if is_excluded:
-                    excluded.append(probe.probe_id)
+                for arm in PRIMARY_ARMS:
+                    r = receipts_by_arm[arm]
+                    if not all(r.values()):
+                        raise RuntimeError(
+                            f"{probe.probe_id}: presence receipts failed "
+                            f"on {arm} ({r}) — any failed receipt aborts "
+                            f"the run (A5 harness notes v2)")
             else:
-                arms = CONTROL_ARMS
+                arms = displacement_arm_order(cluster.index)
                 receipts_by_arm = {
                     arm: {"expected_present":
                           _norm(probe.expected) in _norm(contexts[arm])}
                     for arm in arms}
-                is_excluded = False
-            fa_anchors = ([cluster.fa.prior, cluster.fa.v0]
-                          if ptype == "false-alarm" else None)
+                for arm, r in receipts_by_arm.items():
+                    if not all(r.values()):
+                        raise RuntimeError(
+                            f"{probe.probe_id}: displacement receipt "
+                            f"failed on {arm} — any failed receipt "
+                            f"aborts the run")
             for arm in arms:
+                is_padded = arm == "ctx-nowarn-padded"
                 rows.append(PlanRow(
-                    probe=probe, cluster=cluster.cid, ptype=ptype,
-                    arm=arm, context=contexts[arm],
+                    probe=probe, cluster=cluster.cid,
+                    cluster_index=cluster.index, ptype=ptype, arm=arm,
+                    context=contexts[arm],
                     context_bpe=count_bpe_tokens(contexts[arm],
                                                  model=model),
+                    context_sha256=sha256_text(contexts[arm]),
                     receipts=receipts_by_arm[arm],
-                    pad_delta=(delta if arm == "ctx-nowarn-padded"
-                               else None),
-                    excluded=is_excluded, fa_anchors=fa_anchors))
-    return rows, excluded
+                    pad_delta=delta if is_padded else None,
+                    filler_sha256=(sha256_text(filler) if is_padded
+                                   else None),
+                    filler_len=len(filler) if is_padded else None))
+    expected = EXPECTED_COMPLETIONS_PER_CLUSTER * len(clusters)
+    if len(rows) != expected:
+        raise RuntimeError(
+            f"plan enumerates {len(rows)} completions, expected "
+            f"{expected} ({EXPECTED_COMPLETIONS_PER_CLUSTER} per "
+            f"cluster) — the pinned counts drifted")
+    return rows
 
 
-# ── Grading (A4 carried over; false-alarm inverts it) ──
+# ── Grading (A4 carried over + A4.1 polarity; false-alarm inverts) ──
 
 
 def flagged_conflict(answer: str, anchors_any: "list[str]",
                      sids_all: "Optional[list]") -> bool:
     """A4 grade inverted for the false-alarm control: a pinned conflict
-    token PLUS an exact anchor (a prior chain value verbatim, or both
-    chain session ids)."""
+    token OUTSIDE a negation scope (A4.1) PLUS an exact anchor (a prior
+    chain value verbatim, or both chain session ids)."""
     if not answer:
         return False
     a = _norm(answer)
-    if not any(t in a for t in _FORK_FLAG_TOKENS):
+    if not conflict_flag_positive(a):
         return False
     if any(_norm(x) in a for x in anchors_any if x):
         return True
@@ -617,8 +943,9 @@ def flagged_conflict(answer: str, anchors_any: "list[str]",
 
 def grade_row(row: PlanRow, answer: str
               ) -> "tuple[bool, Optional[bool]]":
-    """(correct, flagged). Fork rows use the A4 grade; displacement is
-    exact containment; false-alarm is CORRECT when it does NOT flag."""
+    """(correct, flagged). Fork rows use the A4/A4.1 grade;
+    displacement is exact containment; false-alarm is CORRECT when it
+    does NOT flag."""
     if row.ptype == "false-alarm":
         fl = flagged_conflict(answer, row.fa_anchors or [],
                               row.probe.alt_all)
@@ -626,7 +953,7 @@ def grade_row(row: PlanRow, answer: str
     return grade(row.probe, answer), None
 
 
-# ── Cluster-level analysis (pinned in A5) ──
+# ── Cluster-level analysis (pinned in A5 + harness notes v2) ──
 
 
 def wilson_interval(k: int, n: int, z: float = 1.959964
@@ -651,15 +978,18 @@ def sign_test_one_sided(pos: int, neg: int) -> "Optional[float]":
 
 
 def false_alarm_gate(fa_clusters: int, n_clusters: int) -> bool:
-    """A5 gate: false-alarm rate must be <= 1/8 of clusters."""
-    return n_clusters > 0 and fa_clusters * 8 <= n_clusters
+    """Hard gate (blocker 8): ZERO false-alarm clusters."""
+    return n_clusters > 0 and fa_clusters == 0
+
+
+MAX_HARMFUL_DISCORDANT = 1  # displacement non-inferiority bound (pinned)
 
 
 def cluster_analysis(rows: "list[dict]") -> "dict[str, Any]":
     """Every inferential statistic at cluster level (A5). ``rows`` are
     answered result dicts with cluster/ptype/arm/correct/flagged/
-    excluded/context_bpe/probe_id keys."""
-    live = [r for r in rows if not r.get("excluded")]
+    context_bpe/probe_id keys."""
+    live = list(rows)
     cids = sorted({r["cluster"] for r in live})
 
     def fork_miss(cid: str, arm: str) -> "Optional[float]":
@@ -673,7 +1003,15 @@ def cluster_analysis(rows: "list[dict]") -> "dict[str, Any]":
     padded_miss: list[float] = []
     warn_miss: list[float] = []
     padded_any = warn_any = 0
+    complete_clusters = 0
     for cid in cids:
+        n_padded = sum(1 for r in live if r["cluster"] == cid
+                       and r["ptype"] == "fork"
+                       and r["arm"] == "ctx-nowarn-padded")
+        n_warn = sum(1 for r in live if r["cluster"] == cid
+                     and r["ptype"] == "fork" and r["arm"] == "ctx-warn")
+        if n_padded == 2 and n_warn == 2:
+            complete_clusters += 1
         pm, wm = (fork_miss(cid, "ctx-nowarn-padded"),
                   fork_miss(cid, "ctx-warn"))
         if pm is None or wm is None:
@@ -696,17 +1034,34 @@ def cluster_analysis(rows: "list[dict]") -> "dict[str, Any]":
     mean_pm = round(sum(padded_miss) / n, 3) if n else None
     mean_wm = round(sum(warn_miss) / n, 3) if n else None
 
+    # completeness (blocker 7): unlock requires EXACTLY the pinned
+    # cluster count, each contributing exactly 2 paired fork probes
+    complete = (n == N_CLUSTERS_PINNED
+                and complete_clusters == N_CLUSTERS_PINNED)
+
+    def disp_cluster_ok(cid: str, arm: str) -> "Optional[bool]":
+        sub = [r for r in live if r["cluster"] == cid
+               and r["ptype"] == "displacement" and r["arm"] == arm]
+        if not sub:
+            return None
+        return all(r["correct"] for r in sub)
+
     def disp_acc(arm: str) -> "dict[str, Any]":
-        per: list[bool] = []
-        for cid in cids:
-            sub = [r for r in live if r["cluster"] == cid
-                   and r["ptype"] == "displacement" and r["arm"] == arm]
-            if sub:
-                per.append(all(r["correct"] for r in sub))
+        per = [ok for cid in cids
+               if (ok := disp_cluster_ok(cid, arm)) is not None]
         k, m = sum(per), len(per)
         return {"clusters_correct": k, "n_clusters": m,
                 "accuracy": round(k / m, 3) if m else None,
                 "wilson95": wilson_interval(k, m)}
+
+    # displacement non-inferiority HARD gate (blocker 8): clusters
+    # where the warning arm got the displacement key wrong while the
+    # padded arm got it right — attention displacement harm
+    harmful = sum(
+        1 for cid in cids
+        if disp_cluster_ok(cid, "ctx-warn") is False
+        and disp_cluster_ok(cid, "ctx-nowarn-padded") is True)
+    disp_gate_pass = harmful <= MAX_HARMFUL_DISCORDANT
 
     by_pid: "dict[str, dict[str, dict]]" = {}
     for r in live:
@@ -725,12 +1080,17 @@ def cluster_analysis(rows: "list[dict]") -> "dict[str, Any]":
             n_grep += 1
             grep_correct += bool(arms_["grep"]["correct"])
 
-    unlock = bool(n and p is not None and p < 0.05
+    unlock = bool(complete and p is not None and p < 0.05
                   and mean_pm is not None and mean_pm >= 0.40
                   and mean_wm is not None and mean_wm <= 0.10
-                  and gate_pass)
+                  and gate_pass and disp_gate_pass)
     return {
         "n_clusters": n,
+        "completeness": {
+            "required_clusters": N_CLUSTERS_PINNED,
+            "clusters_with_two_paired_fork_probes": complete_clusters,
+            "complete": complete,
+        },
         "primary": {
             "comparison": "ctx-nowarn-padded vs ctx-warn "
                           "(fixed total context budget)",
@@ -748,11 +1108,15 @@ def cluster_analysis(rows: "list[dict]") -> "dict[str, Any]":
         },
         "false_alarm_gate": {
             "flagged_clusters": fa_cids,
-            "rate_limit": "<= 1/8 of clusters",
+            "rate_limit": "0 flagged clusters (hard gate, v2)",
             "passed": gate_pass,
         },
-        "displacement_secondary": {
-            arm: disp_acc(arm) for arm in CONTROL_ARMS},
+        "displacement_gate": {
+            "harmful_discordant_clusters": harmful,
+            "max_allowed": MAX_HARMFUL_DISCORDANT,
+            "passed": disp_gate_pass,
+            "by_arm": {arm: disp_acc(arm) for arm in DISPLACEMENT_ARMS},
+        },
         "additive_overhead_secondary": {
             "note": "disclosed, not inferential (A5): the A3-style "
                     "unpadded comparison, the real deployment delta",
@@ -769,11 +1133,15 @@ def cluster_analysis(rows: "list[dict]") -> "dict[str, Any]":
             "accuracy": (round(grep_correct / n_grep, 3)
                          if n_grep else None),
         },
-        "unlock_rule": ("merge eligibility iff ALL of: sign-test "
-                        "p < 0.05; cluster-mean miss (padded-nowarn) "
-                        ">= 0.40; cluster-mean miss (warn) <= 0.10; "
-                        "false-alarm gate passed (pre-registered A5; "
-                        "scored runs only). Merge additionally requires "
-                        "the separate code review of cf2753c."),
+        "unlock_rule": ("merge eligibility iff ALL of: completeness "
+                        "(exactly 8 clusters x 2 paired fork probes); "
+                        "sign-test p < 0.05; cluster-mean miss "
+                        "(padded-nowarn) >= 0.40; cluster-mean miss "
+                        "(warn) <= 0.10; false-alarm gate 0/8; "
+                        "displacement non-inferiority gate (harmful "
+                        "discordant <= 1). Pre-registered A5 + harness "
+                        "notes v2; scored runs only. Merge additionally "
+                        "requires the separate code review of the "
+                        "parked branch."),
         "unlock": unlock,
     }

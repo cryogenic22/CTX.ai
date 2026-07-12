@@ -282,22 +282,53 @@ def main() -> int:
     return 0
 
 
+_RETRY_POLICY = ("per-call transient-HTTP retry inside "
+                 "ask_anthropic_usage (max 5, exponential 2s..32s); a "
+                 "call that still fails INVALIDATES the scored run — "
+                 "abort, no cluster analysis, no unlock (A5 harness "
+                 "notes v2, blocker 4)")
+
+
+def _harness_commit() -> str:
+    import subprocess
+    try:
+        out = subprocess.run(["git", "rev-parse", "HEAD"],
+                             capture_output=True, text=True, timeout=10)
+        return out.stdout.strip() if out.returncode == 0 else ""
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 def _run_fork_v2(args) -> int:
-    """drift-fork/v2 (pre-registered A5): deterministic full enumeration
-    over >= 8 independent clusters; every inferential statistic at
-    cluster level. Live runs are interlocked on --authorized-run (the
-    reviewer-approval + <=$2 gates are procedural; the flag makes an
-    accidental paid run impossible)."""
+    """drift-fork/v2 (pre-registered A5 + harness notes v2):
+    deterministic full enumeration over the pinned 8 independent
+    clusters; every inferential statistic at cluster level. Live runs
+    are interlocked on --authorized-run, the pinned model, and the $2
+    ceiling (preflight worst-case + running guard + durable invocation
+    ledger). Any API failure or ceiling breach aborts the scored run."""
     import tempfile
 
     from ctxpack.benchmarks.agentic import fork_cluster as fc
+    from ctxpack.benchmarks.metrics.fidelity import ask_anthropic_usage
 
+    try:
+        tokenizer = fc.require_exact_tokenizer()   # blocker 6
+    except RuntimeError as exc:
+        print(f"ABORT: {exc}")
+        return 1
     n_clusters = args.clusters or fc.N_CLUSTERS_PINNED
+    model = args.model
+    harness_commit = _harness_commit()
     if not args.dry_run:
         if n_clusters != fc.N_CLUSTERS_PINNED:
             print(f"live drift-fork-v2 runs require the pinned "
                   f"{fc.N_CLUSTERS_PINNED} clusters (got {n_clusters}); "
                   f"--clusters is dry-run only.")
+            return 1
+        if model != fc.FORK_V2_MODEL:
+            print(f"live drift-fork-v2 runs pin the model to "
+                  f"{fc.FORK_V2_MODEL} (got {model}); the $2 ceiling is "
+                  f"priced against the pinned model only.")
             return 1
         if not args.authorized_run:
             print("drift-fork-v2 live runs are gated (A5 + Q3 ruling "
@@ -310,57 +341,132 @@ def _run_fork_v2(args) -> int:
             print("ANTHROPIC_API_KEY missing (set it in .env) — use "
                   "--dry-run to inspect the plan without API calls.")
             return 1
+        if not harness_commit:
+            print("cannot resolve the harness commit (git rev-parse "
+                  "HEAD failed) — scored artifacts must stamp it.")
+            return 1
 
     work = args.work_dir or tempfile.mkdtemp(prefix="ctx-drift-forkv2-")
     print(f"building {n_clusters} independent clusters through the real "
           f"producer at {work} (fork_source={fc.FORK_SOURCE}) ...")
-    clusters = fc.build_clusters(work, n_clusters)
-    plan, excluded = fc.build_plan(clusters)
-    completions = sum(1 for row in plan if not row.excluded)
-    print(f"clusters={len(clusters)}  plan_rows={len(plan)}  "
-          f"completions={completions}  receipts_failed={excluded or 'none'}")
-    if len(excluded) > fc.MAX_RECEIPTS_FAILED:
-        print(f"ABORT (A5): {len(excluded)} fork probes failed presence "
-              f"receipts (max {fc.MAX_RECEIPTS_FAILED}) — the eval "
-              f"measures noticing, never absence.")
+    try:
+        clusters = fc.build_clusters(work, n_clusters)
+        plan = fc.build_plan(clusters)
+    except RuntimeError as exc:
+        # any failed receipt / absent product warning / pad-parity
+        # failure aborts pre-flight (blockers 1 + 7); never partial
+        print(f"ABORT (A5 harness notes v2): {exc}")
+        return 1
+    print(f"clusters={len(clusters)}  completions={len(plan)}  "
+          f"(all receipts passed — any failure would have aborted)")
+
+    # ── $2 ceiling enforcement (blocker 5) ──
+    def _worst_case(row) -> float:
+        preamble = (_DRIFT_PREAMBLE
+                    if row.ptype in ("fork", "false-alarm")
+                    else _PREAMBLE)
+        in_bpe = row.context_bpe + count_bpe_tokens(
+            preamble + row.probe.question, model="claude")
+        return (in_bpe * fc.PRICE_IN_PER_MTOK
+                + fc.MAX_COMPLETION_TOKENS
+                * fc.PRICE_OUT_PER_MTOK) / 1_000_000
+
+    worst_total = round(sum(_worst_case(r) for r in plan), 4)
+    print(f"preflight worst-case cost: ${worst_total} "
+          f"(ceiling ${fc.CEILING_USD}, model pinned {fc.FORK_V2_MODEL})")
+    if not args.dry_run and worst_total > fc.CEILING_USD:
+        print("ABORT: preflight worst-case exceeds the ceiling.")
         return 1
 
     from dataclasses import asdict
 
-    model = args.model
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    inv_path = os.path.join(work, "invocations.jsonl")
+
+    def _record_invocation(rec: dict) -> None:
+        # durable: persisted IMMEDIATELY after every call (blocker 5)
+        with open(inv_path, "a", encoding="utf-8", newline="\n") as f:
+            f.write(json.dumps(rec) + "\n")
+            f.flush()
+
     results: "list[dict]" = []
+    invocations: "list[dict]" = []
     probes_seen: "dict[str, dict]" = {}
+    spent = 0.0
+    aborted: "dict | None" = None
     for i, row in enumerate(plan, 1):
         probes_seen.setdefault(row.probe.probe_id, asdict(row.probe))
         rec = {"probe_id": row.probe.probe_id, "cluster": row.cluster,
                "ptype": row.ptype, "arm": row.arm,
-               "context_bpe": row.context_bpe, "receipts": row.receipts,
-               "pad_delta": row.pad_delta, "excluded": row.excluded,
+               "context_bpe": row.context_bpe,
+               "context_sha256": row.context_sha256,
+               "receipts": row.receipts,
+               "pad_delta": row.pad_delta,
+               "filler_sha256": row.filler_sha256,
+               "filler_len": row.filler_len,
                "answer": None, "correct": None, "flagged": None}
-        if not row.excluded and not args.dry_run:
-            answer = _ask_llm(
-                (_DRIFT_PREAMBLE if row.ptype in ("fork", "false-alarm")
-                 else _PREAMBLE) + row.probe.question,
+        if not args.dry_run:
+            if spent + _worst_case(row) > fc.CEILING_USD:
+                aborted = {"reason": "ceiling", "at": i,
+                           "probe_id": row.probe.probe_id,
+                           "arm": row.arm,
+                           "spent_usd": round(spent, 4)}
+                print(f"ABORT before call {i}: next worst-case call "
+                      f"would exceed the ${fc.CEILING_USD} ceiling "
+                      f"(spent ${spent:.4f}).")
+                break
+            preamble = (_DRIFT_PREAMBLE
+                        if row.ptype in ("fork", "false-alarm")
+                        else _PREAMBLE)
+            answer, usage = ask_anthropic_usage(
+                preamble + row.probe.question,
                 row.context or "(no context provided)",
-                model=model, api_key=api_key, provider="anthropic")
+                model=model, api_key=api_key,
+                max_tokens=fc.MAX_COMPLETION_TOKENS)
+            in_tok = usage.get("input_tokens")
+            out_tok = usage.get("output_tokens")
+            cost = (None if in_tok is None or out_tok is None else round(
+                (in_tok * fc.PRICE_IN_PER_MTOK
+                 + out_tok * fc.PRICE_OUT_PER_MTOK) / 1_000_000, 6))
+            inv = {"i": i, "probe_id": row.probe.probe_id,
+                   "arm": row.arm, "model": model,
+                   "context_sha256": row.context_sha256,
+                   "input_tokens": in_tok, "output_tokens": out_tok,
+                   "cost_usd": cost,
+                   "status": ("error" if answer.startswith("(error:")
+                              else "ok")}
+            _record_invocation(inv)
+            invocations.append(inv)
+            if answer.startswith("(error:"):
+                # blocker 4: an error row must never be graded as a
+                # miss — the scored run is invalid, full stop
+                aborted = {"reason": "api-error", "at": i,
+                           "probe_id": row.probe.probe_id,
+                           "arm": row.arm, "error": answer[:200],
+                           "retry_policy": _RETRY_POLICY}
+                rec.update(answer=answer[:500], error=True)
+                results.append(rec)
+                print(f"ABORT at call {i}: {answer[:120]} — a failed "
+                      f"call invalidates the scored run "
+                      f"(preregistered retry policy already exhausted).")
+                break
+            spent += cost or _worst_case(row)   # unknown usage: assume worst
             correct, flagged = fc.grade_row(row, answer)
             rec.update(answer=answer[:500], correct=correct,
-                       flagged=flagged,
-                       error=answer.startswith("(error:"))
+                       flagged=flagged, error=False)
             time.sleep(_INTER_CALL_DELAY)
         results.append(rec)
         if not args.dry_run:
-            mark = ("X" if rec["excluded"]
-                    else ("Y" if rec["correct"] else "n"))
+            mark = "Y" if rec["correct"] else "n"
             print(f"  [{i:>3}/{len(plan)}] {row.cluster} "
                   f"{row.ptype:<12} {row.arm:<17} {mark}  "
-                  f"ctx={row.context_bpe}bpe")
+                  f"ctx={row.context_bpe}bpe  spent=${spent:.4f}")
 
-    analysis = None if args.dry_run else fc.cluster_analysis(results)
+    analysis = (None if (args.dry_run or aborted)
+                else fc.cluster_analysis(results))
     import datetime
     report = {
-        "schema": "ctxpack-drift-fork-v2/v1",
+        "schema": "ctxpack-drift-fork-v2/v2",
         "measurement_class": (
             "quasi-experimental — planted-fork surfacing under "
             "fixed-budget arms on synthetic cluster fixtures; the claim "
@@ -370,41 +476,60 @@ def _run_fork_v2(args) -> int:
             datetime.timezone.utc).isoformat(timespec="seconds"),
         "repo": "fork-fixture-v2",
         "config": {
-            "model": model, "n_clusters": n_clusters,
+            "model": model, "model_pinned": fc.FORK_V2_MODEL,
+            "n_clusters": n_clusters,
             "sampling": "none — deterministic full enumeration of the "
                         "pinned cluster table",
             "fork_source": fc.FORK_SOURCE,
-            "prereg": (f"{fc.DRIFT_FORK_V2_VERSION} — amendment A5 (+ "
-                       f"harness notes), "
+            "prereg": (f"{fc.DRIFT_FORK_V2_VERSION} — amendment A5 + "
+                       f"harness notes v2, "
                        f"PREREGISTRATION-resume-probe.md"),
             "fork_grade": DRIFT_FORK_GRADE,
             "arms": {"fork": list(fc.FORK_ARMS),
-                     "displacement": list(fc.CONTROL_ARMS),
-                     "false-alarm": list(fc.CONTROL_ARMS)},
+                     "displacement": list(fc.DISPLACEMENT_ARMS),
+                     "false-alarm": [fc.FALSE_ALARM_ARM]},
+            "arm_counterbalancing": "fork/displacement arm call order "
+                                    "rotates by cluster index "
+                                    "(fork_cluster.arm_order)",
+            "tokenizer": tokenizer,
+            "harness_commit": harness_commit or "unknown (dry-run only)",
+            "cluster_manifest_sha256": fc.cluster_manifest_sha256(),
             "pad_filler_sha256": fc.pad_filler_sha256(),
+            "ceiling_usd": fc.CEILING_USD,
+            "prices_per_mtok": {"input": fc.PRICE_IN_PER_MTOK,
+                                "output": fc.PRICE_OUT_PER_MTOK},
+            "preflight_worst_case_usd": worst_total,
+            "retry_policy": _RETRY_POLICY,
             "authorized_run": bool(args.authorized_run),
         },
-        "receipts_failed": excluded,
+        "spent_usd": round(spent, 4),
+        "invocation_ledger": inv_path,
+        "invocations": invocations,
+        "aborted": aborted,
         "cluster_analysis": analysis,
         "probes": list(probes_seen.values()),
         "results": results,
     }
-    if not args.dry_run and analysis:
+    if analysis:
         pr = analysis["primary"]
         print(f"\n  padded-nowarn cluster-mean miss="
               f"{pr['cluster_mean_miss_padded_nowarn']}  warn="
               f"{pr['cluster_mean_miss_warn']}  sign-test "
               f"p={pr['sign_test']['p_one_sided']}")
-        print(f"  false-alarm gate passed="
+        print(f"  false-alarm 0/8 passed="
               f"{analysis['false_alarm_gate']['passed']}  "
+              f"displacement gate passed="
+              f"{analysis['displacement_gate']['passed']}  "
               f"unlock={analysis['unlock']}")
-    else:
+    elif args.dry_run:
         print("\nDRY RUN — clusters built, contexts + receipts computed, "
               "no answers requested.")
 
     os.makedirs(RESULTS_DIR, exist_ok=True)
     stamp = report["generated_at"].replace(":", "").replace("-", "")
-    tag = "dryrun" if args.dry_run else ("smoke" if args.smoke else "full")
+    tag = ("dryrun" if args.dry_run
+           else ("aborted" if aborted
+                 else ("smoke" if args.smoke else "full")))
     out = os.path.join(
         RESULTS_DIR,
         f"resume-probe-fork-fixture-v2-drift-fork-v2-{tag}-{stamp}.json")
@@ -412,7 +537,7 @@ def _run_fork_v2(args) -> int:
         json.dump(report, f, indent=2)
         f.write("\n")
     print(f"\nResults: {out}")
-    return 0
+    return 1 if aborted else 0
 
 
 if __name__ == "__main__":
