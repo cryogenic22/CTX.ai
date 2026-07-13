@@ -922,23 +922,34 @@ def test_report_evidence_skips_dryrun_and_error_rows():
 
 
 def test_report_evidence_rejects_machine_local_paths():
+    # strict (re-review residual P2): ANY absolute path is a leak —
+    # the original home/AppData class AND drive roots, UNC, POSIX
     for leak in (
         r"C:\Users\kapil\Documents\CTX_mod\run.py",
         r"C:\Users\anyone\AppData\Local\Temp\ctx-drift-forkv2-abc",
         "/c/users/somebody/project/x",
+        r"C:\tmp\work",                     # reviewer's exact cases
+        r"D:\scratch\run7",
+        r"\\fileserver\share\evals",
+        "logged to /tmp/ctx-run",
+        "see /var/tmp/x",
+        r"literal C:\Users\dev\proj",       # no fictional allowance
+        "e:/evals/out",
     ):
         rep = _evidence_report()
-        rep["config"]["invocation_ledger"] = leak
+        rep["config"]["note"] = leak
         with pytest.raises(RuntimeError, match="report-evidence gate"):
             fc.validate_report_evidence(rep)
 
 
-def test_report_evidence_allows_fictional_users_and_relative_names():
+def test_report_evidence_allows_relative_names_and_urls():
     rep = _evidence_report()
-    rep["config"]["invocation_ledger"] = (
+    rep["config"]["note"] = (
         "resume-probe-fork-fixture-v2-drift-fork-v2-full-X.invocations"
         ".jsonl")
-    rep["results"][0]["answer"] += r" literal C:\Users\dev\proj kept"
+    extra = (" cites https://docs.example.test/tmp-page/123/ and "
+             "/guides/section-1/ plus ratio 1:2 and A5 harness notes")
+    rep["results"][0]["answer"] += extra
     rep["results"][0]["answer_sha256"] = fc.answer_sha256(
         rep["results"][0]["answer"])
     rep["invocations"][0]["answer"] = rep["results"][0]["answer"]

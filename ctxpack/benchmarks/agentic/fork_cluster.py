@@ -1198,16 +1198,34 @@ def answer_sha256(text: str) -> str:
 # ── report self-audit (artifact-review blockers 1 + 2, 2026-07-13) ──
 # The scored artifact is a RELEASE surface: it must carry complete,
 # independently reproducible grade evidence and must never embed
-# machine-local paths or the owner's identity. The forbidden set below
-# deliberately mirrors tests/test_fixture_privacy.py (E-6A gate).
+# machine-local paths or the owner's identity. Unlike the fixture gate
+# (tests/test_fixture_privacy.py, which allowlists fictional users),
+# the artifact rule is STRICT: the synthetic fork fixtures emit no
+# absolute paths at all (verified against both committed artifacts),
+# so ANY absolute filesystem path in a report is a leak — drive-letter
+# paths, UNC paths, and POSIX system roots alike (re-review residual
+# P2: C:\tmp, D:\scratch, \\host\share, /tmp).
 
 FORBIDDEN_ARTIFACT_SUBSTRINGS = (
     "kapil", "c--users-kapil",
     "appdata\\local\\temp", "appdata/local/temp",
 )
-ALLOWED_FICTIONAL_USERS = frozenset(("dev", "müller", "zoë"))
-_HOME_SEG_RE = re.compile(
-    r"[\\/](?:users|home)[\\/]+([^\\/\s\"'`|>]+)", re.IGNORECASE)
+_ABS_PATH_RES = (
+    # C:\..., d:/... — any drive letter, either slash
+    ("drive-letter path", re.compile(r"\b[a-z]:[\\/]", re.IGNORECASE)),
+    # /c/... — msys/git-bash munged drive root at a token boundary
+    ("drive-letter path", re.compile(
+        r"(?:^|[\s\"'`=(<\[])/[a-z][\\/]", re.IGNORECASE)),
+    # \\host\share UNC
+    ("UNC path", re.compile(r"\\\\[a-z0-9._$-]+\\", re.IGNORECASE)),
+    # POSIX system roots at a token boundary (won't fire inside URLs)
+    ("POSIX system path", re.compile(
+        r"(?:^|[\s\"'`=(<\[])/(?:tmp|var|scratch|opt|srv|private|home|"
+        r"users|mnt|media|root)(?:[\\/]|\b)", re.IGNORECASE)),
+    # a home-directory segment ANYWHERE in a path is a leak
+    ("home-directory segment", re.compile(
+        r"[\\/](?:users|home)[\\/]", re.IGNORECASE)),
+)
 
 
 def _iter_strings(obj: "Any"):
@@ -1241,9 +1259,11 @@ def validate_report_evidence(report: "dict",
       `invocation_ledger_sha256` and their parsed JSONL rows must
       equal `report["invocations"]` row-for-row.
 
-    Blocker 2 (privacy/release): no string anywhere in the report may
-    contain a machine-local path or the owner's identity; home-dir
-    segments must name a pinned fictional user."""
+    Blocker 2 (privacy/release), strict form (re-review residual P2):
+    no string anywhere in the report may contain the owner's identity
+    or ANY absolute filesystem path — drive-letter, UNC, or POSIX
+    system root; there is no fictional-path allowance on the artifact
+    surface."""
     for s in _iter_strings(report):
         low = s.lower()
         for pat in FORBIDDEN_ARTIFACT_SUBSTRINGS:
@@ -1251,11 +1271,12 @@ def validate_report_evidence(report: "dict",
                 raise RuntimeError(
                     f"report-evidence gate: forbidden machine-local "
                     f"pattern {pat!r} in the artifact")
-        for m in _HOME_SEG_RE.finditer(low):
-            if m.group(1) not in ALLOWED_FICTIONAL_USERS:
+        for kind, rx in _ABS_PATH_RES:
+            m = rx.search(s)
+            if m:
                 raise RuntimeError(
-                    f"report-evidence gate: home-directory path for "
-                    f"non-fictional user {m.group(1)!r} in the artifact")
+                    f"report-evidence gate: {kind} in the artifact "
+                    f"({s[max(0, m.start() - 20):m.end() + 30]!r})")
 
     # ── ledger row self-consistency: answer BYTES, not declared shas ──
     invocations = list(report.get("invocations", ()))
