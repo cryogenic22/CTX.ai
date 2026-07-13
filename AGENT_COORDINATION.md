@@ -40,7 +40,7 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 - **Branch:** `feat/literals-ledger`
 - **Last green tests:** main — 184 passed / 6 product-gated skips across fork/resume/rank/DAG/session-reader/negation/determinism/token/claims/compactbench/fixture-privacy suites, capability-registry + claims gates green; parked (`feat/fork-surfacing-parked` @ `57321b9`) — 162 passed / 1 skipped incl. negation + determinism gates (2026-07-12, post-re-review remediation)
 - **Active owner:** Claude Code (session `fb94cd9f`)
-- **In-flight work:** substantive re-review 2026-07-12 (full finding text on the board) = NOT approved, 4 blocking findings → ALL FOUR REMEDIATED same-day (see the second `fb94cd9f` handoff): result-set manifest gate `21ef27d`, A4.3 grading `ad1434d`, full-request worst case + fsync `e613139`, E-6A widened `aed94a5`; parked updated by merge `0a4a37a` + fresh dry-run receipt **`57321b9`** (88 completions, $1.0667 worst case under the new conservative bound, grade v2.3, zero API calls) — awaiting the reviewer's next re-review. Parked branch STAYS PARKED (no merge, no paid run before approval + Kapil's ≤$2 go; runner enforces interlock/model-pin/ceiling/input-manifest/result-manifest gates). Next owner thread per reviewer instruction: **E-6, not E-1**.
+- **In-flight work:** 2026-07-13 — reviewer APPROVED main `37bdb99` + parked `57321b9` for the A5 scored run; Kapil authorized ≤$2; **scored run EXECUTED from `57321b9`: unlock=True, all gates pass, $0.5056 spent** (see the 2026-07-13 handoff). Immutable artifact committed on the parked branch → new parked head **`3e1aaee`**. Parked branch STAYS PARKED — merge waits on the reviewer's artifact review + the separate parked-code review. Next owner thread per reviewer instruction: **E-6, not E-1**.
 - **Do not touch:** `CLAUDE.md` (hand-authored by the owner); `.claude/ctx/*` live ledger; committed eval results under `ctxpack/benchmarks/**/results/`
 
 ---
@@ -188,12 +188,33 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 - **Risks / concerns:** (a) A4.3's clause-wide scope neutralizes flags phrased under negated attention verbs (pinned + disclosed in prereg notes v4; the anchor requirement and positive-flag false-alarm direction bound the damage); (b) the $1.0667 preflight uses the deliberately conservative bound — actual spend will land well below it; (c) the withdrawn real-session and KP_SDLC fixtures remain in git history — the history-rewrite decision stays with the owner.
 - **Next recommended action:** reviewer re-reviews against the SHAs above; on approval, Kapil's explicit ≤$2 go. Owner thread meanwhile: **E-6 (threat model + secret redaction), not E-1**.
 
+### 2026-07-13 — Claude Code (session `fb94cd9f`) — A5 SCORED RUN EXECUTED (authorized): unlock=True, all gates pass, $0.5056
+- **Authorization chain:** reviewer approval of main `37bdb99` + parked `57321b9` (note above) AND Kapil's explicit ≤$2 go, both received 2026-07-13 before any paid call.
+- **Execution:** from the parked head `57321b9` exactly, via an isolated git worktree (live repo untouched); `python run_resume_probe.py --probe-set drift-fork-v2 --authorized-run`; harness stamped its own commit into the artifact (`harness_commit: 57321b9…`); input-manifest gate verified (`554f2492…`); result-set manifest gate passed (88/88 graded rows = the enumerated plan); zero aborts.
+- **Results (cluster-level, pre-registered A5 + harness notes v2–v4, grade `drift-fork-grade/v2.3`):**
+  - **Primary:** cluster-mean fork-miss **padded-nowarn 1.0 vs warn 0.0**; sign test 8/8 clusters warn-better, ties 0, **p_one_sided = 0.0039**.
+  - **False-alarm gate:** 0/8 flagged, 8/8 observed — **passed**.
+  - **Displacement non-inferiority:** 0 harmful discordant (max 1), 8/8 complete pairs, both arms 8/8 correct (Wilson95 [0.676, 1.0]) — **passed**.
+  - **Secondary (disclosed, non-inferential):** unpadded nowarn 0.0 vs warn 1.0 over 16 fork probes; mean warn block 377 BPE; **grep null 0.875** (14/16 — the honest null remains strong and is disclosed, not gated).
+  - **Unlock rule: ALL terms satisfied → `unlock: true`.**
+- **Spend:** **$0.5056** actual vs $1.0667 preflight worst case vs $2.00 ceiling; model pinned `claude-sonnet-4-6`; 88 calls / 176 fsync'd invocation-ledger rows.
+- **Immutable artifact (new versioned files, parked branch commit `3e1aaee`):** `ctxpack/benchmarks/agentic/results/resume-probe-fork-fixture-v2-drift-fork-v2-full-20260713T124646+0000.json` (+ sibling `.invocations.jsonl`, the durable per-attempt ledger). Artifact sha256 prefix `304da6c795e26e51`.
+- **New parked head for artifact review: `3e1aaee`** (parent `57321b9`, the approved head — the only delta is the two result files; no code changed).
+- **Branch state: STAYS PARKED.** Per the reviewer's verdict and the unlock rule, merge additionally requires (1) the reviewer's review of this scored artifact and (2) the separate code review of the parked implementation. No merge performed; no further paid runs planned.
+- **Risks / concerns:** (a) primary effect is at ceiling (miss 1.0 vs 0.0) — consistent with the sentinel-run pattern that unwarned decisions die after compaction, but the fixtures are synthetic and the claim stays scoped to SURFACING on this fixture family; (b) grep at 0.875 is within 1 cluster-probe of warn — the differentiation claim remains literal-exactness/reliability, not raw recall (pre-committed grep rule stays in force); (c) worktree ran under the session temp dir — results carry no workspace paths (verified: artifact stamps repo `fork-fixture-v2`).
+- **Next recommended action:** Kapil relays parked `3e1aaee` (artifact commit) to Codex for the artifact review + parked-code review. Owner thread meanwhile: **E-6 (threat model + secret redaction), not E-1**.
+
 ---
 
 ## Reviewer Notes
 
 _Reviewer (Codex) appends findings here: `### <date> — Codex` with Finding /
 Severity / Suggested fix / Status. Do not edit an implementer's Handoff._
+
+### 2026-07-13 — Codex (approval relayed by owner verbatim-in-substance per the read-only relay convention) — A5 scored run APPROVED for main `37bdb99` + parked `57321b9`
+- **Verdict (verbatim-in-substance):** "The re-review is complete for main `37bdb99` / parked `57321b9`. Approved for the A5 scored run. The result-manifest, polarity grading, cost controls, and privacy blockers are resolved; the 88-completion dry-run receipt is coherent. No paid run was made. The next gate is the owner's explicit authorization of up to $2. The active owner must then run from the parked branch only: `python run_resume_probe.py --probe-set drift-fork-v2 --authorized-run`. The branch remains do-not-merge until I review the resulting immutable scored artifact."
+- **Owner gate cleared:** Kapil gave the explicit ≤$2 authorization alongside the relay (2026-07-13). Both A5 gates — reviewer approval of text+harness AND the owner's ≤$2 go — are now cleared for the scored run only. **Merge authorization remains withheld** pending the reviewer's review of the scored artifact.
+- **Owner action:** scored run executed from the parked branch head `57321b9` (isolated worktree; harness commit stamped by the runner). Artifact path, spend, and gate outcomes recorded in the handoff below.
 
 ### 2026-07-12 — Codex (substantive re-review of main `f43978a` + parked `caa45b8`; relayed by owner verbatim-in-substance per the read-only relay convention) — NOT approved; 4 blocking findings
 - **Verdict:** genuine new review heads; several fixes pass; four residuals remain. **Do not run `--authorized-run` yet and do not merge the parked branch.**
