@@ -601,3 +601,32 @@ immutable (the strict matcher correctly flags its known, disclosed
 ledger-path leak — it is evidence of the old defect, not a new one);
 the parked branch remains do-not-merge; the separate parked-code
 review remains outstanding.
+
+### A5 harness notes v7 (2026-07-13 — round-3 re-review residuals; supersedes v6's audit description where they differ)
+
+1. **Absent-key sibling bypass closed (round-3 residual P1;
+   supersedes v6's sibling-requirement description).** A report that
+   carries invocations MUST declare a sibling ledger: a null
+   `invocation_ledger` and an entirely ABSENT key both refuse the
+   artifact — deleting the key is not an escape hatch. The accepted
+   test fixtures now declare their sibling and supply its bytes, so
+   the test suite itself can no longer exercise the bypass; an
+   explicit deleted-key regression test is pinned.
+2. **Denylist-free path rule (round-3 residual P2; supersedes v6's
+   root-allowlist matcher).** "No absolute path" is now enforced
+   literally: ANY token-leading POSIX absolute path is rejected
+   (`/etc/passwd`, `/usr/local/bin`, `/workspace/run`, and
+   innocuous-looking ones like `/guides/x` alike — no root
+   allowlist), plus drive-letter, backslash AND forward-slash UNC
+   (`//server/share`), and `file://` URIs. The single documented
+   exclusion: http(s) URL spans are masked out before the path scan,
+   so a URL whose path contains `/home/` or `/tmp/` does not trip the
+   gate (regression-tested); owner-identity substrings are still
+   checked on the raw string, URLs included. Both committed post-fix
+   dry-run receipts pass the tightened gate; `3e1aaee` still fails on
+   its known, disclosed leak.
+
+Standing state unchanged: no replication is reviewer-approved; no new
+$2 authorization exists; `3e1aaee` remains immutable; the parked
+branch remains do-not-merge; the separate parked-code review remains
+outstanding.
