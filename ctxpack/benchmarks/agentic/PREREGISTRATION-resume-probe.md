@@ -572,3 +572,32 @@ approval AND fresh budget authorization first.
    fixture-privacy gate, fictional-user allowlist honored). Historical
    dry-run receipts that stamped absolute temp paths remain immutable
    in git history; the gate prevents recurrence.
+
+### A5 harness notes v6 (2026-07-13 — fix-re-review residuals; supersedes v5's audit description where they differ)
+
+1. **Byte-level evidence verification (residual P1; supersedes the
+   declared-sha comparison in notes v5).** The pre-write audit no
+   longer trusts any DECLARED hash: every ledgered ok/empty row's
+   answer must recompute to its own sha256; every graded artifact row
+   must be byte-identical to its ledgered ok-row answer; and the
+   sibling ledger file's actual bytes must hash to the stamped
+   `invocation_ledger_sha256` AND parse to exactly the report's
+   embedded invocation rows. Corrupted or diverging ledger content —
+   even with self-consistent stamps — refuses the artifact.
+2. **Strict absolute-path rule (residual P2; supersedes v5's
+   home/AppData-only matcher).** The artifact surface allows NO
+   absolute filesystem path of any form: drive-letter (`C:\tmp`,
+   `D:\scratch`, `e:/x`), msys-munged (`/c/...`), UNC
+   (`\host\share`), POSIX system roots (`/tmp`, `/var`, `/scratch`,
+   `/opt`, `/srv`, `/private`, `/home`, `/users`, `/mnt`, `/media`,
+   `/root`), or any home-directory segment inside a longer path.
+   There is no fictional-path allowance on artifacts (that allowance
+   is fixture-gate-only): the synthetic fork fixtures emit no
+   absolute paths, verified against both committed artifacts.
+
+Standing state unchanged: no replication is reviewer-approved; no new
+$2 authorization exists; the `3e1aaee` scored artifact remains
+immutable (the strict matcher correctly flags its known, disclosed
+ledger-path leak — it is evidence of the old defect, not a new one);
+the parked branch remains do-not-merge; the separate parked-code
+review remains outstanding.
