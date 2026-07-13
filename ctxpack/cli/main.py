@@ -329,6 +329,18 @@ def _run(argv: list[str]) -> int:
     p_onboard.add_argument("--project-dir", default=".",
                            help="Repo root (default: current directory)")
 
+    # lessons — curated cross-repo lessons registry (distributed to
+    # cohort repos via the onboard CLAUDE.md block)
+    p_lessons = sub.add_parser(
+        "lessons",
+        help="List the curated cross-repo lessons registry (distributed "
+             "to onboarded repos via `ctxpack onboard`)")
+    p_lessons.add_argument("--check", action="store_true",
+                           help="Validate the registry (exit 1 on any "
+                                "problem)")
+    p_lessons.add_argument("--json", action="store_true",
+                           help="Emit the registry as JSON")
+
     # scorecard — Layer-1 cross-repo telemetry aggregation
     p_score = sub.add_parser(
         "scorecard",
@@ -416,6 +428,8 @@ def _run(argv: list[str]) -> int:
             return _cmd_install_hooks(args)
         elif args.command == "onboard":
             return _cmd_onboard(args)
+        elif args.command == "lessons":
+            return _cmd_lessons(args)
         elif args.command == "scorecard":
             return _cmd_scorecard(args)
         elif args.command == "session":
@@ -1375,9 +1389,14 @@ _MCP_SERVER_ENTRY = {
 # Version the conventions block so a re-onboard after upgrading ctxpack
 # REFRESHES a stale block in place (v1 repos taught agents a read path
 # missing resume/literals/checkpoint) instead of skipping with "already
-# present". Bump the version whenever the block content changes.
+# present". Bump the version whenever the block content changes; the
+# lessons-registry version is embedded so a lessons bump alone also
+# refreshes every cohort repo on its next re-onboard.
+from ..agent.lessons import LESSONS_VERSION, render_claude_md_section
+
 _CLAUDE_MD_MARKER_PREFIX = "<!-- ctxpack:session-memory:"
-_CLAUDE_MD_MARKER = f"{_CLAUDE_MD_MARKER_PREFIX}v4 -->"
+_CLAUDE_MD_MARKER = (f"{_CLAUDE_MD_MARKER_PREFIX}"
+                     f"v5.L{LESSONS_VERSION} -->")
 _CLAUDE_MD_END = "<!-- /ctxpack:session-memory -->"
 
 _CLAUDE_MD_BLOCK = f"""
@@ -1439,8 +1458,40 @@ required; include the concrete value so the row is auditable. Examples:
 | got="50"` or `ctx-incident: saved | fact="commit 66cdded scope" |
 evidence="session why returned turn 408"`. Report failures as readily as
 saves — a missed/stale row is worth more than a flattering one.
+
+{render_claude_md_section()}
 {_CLAUDE_MD_END}
 """
+
+
+def _cmd_lessons(args: argparse.Namespace) -> int:
+    """Curated cross-repo lessons registry: list, validate, or dump.
+    Distribution happens through `ctxpack onboard` (the CLAUDE.md block
+    embeds the active lessons; a lessons bump changes the block marker,
+    so re-onboarding refreshes cohort repos in place)."""
+    from ..agent.lessons import (LESSONS, render_cli_listing,
+                                 validate_lessons)
+
+    problems = validate_lessons()
+    if args.check:
+        if problems:
+            for p in problems:
+                print(f"LESSON-LINT: {p}", file=sys.stderr)
+            return 1
+        print(f"lessons registry valid ({len(LESSONS)} lessons, "
+              f"marker {_CLAUDE_MD_MARKER.strip()})")
+        return 0
+    if args.json:
+        print(json.dumps({"version": LESSONS_VERSION,
+                          "lessons": list(LESSONS)}, indent=2))
+        return 0
+    print(render_cli_listing())
+    if problems:
+        print(f"\nWARNING: registry has {len(problems)} lint problems "
+              f"(run `ctxpack lessons --check`)", file=sys.stderr)
+    print(f"\nDistribute to a repo: run `ctxpack onboard` there "
+          f"(refreshes the CLAUDE.md block to v5.L{LESSONS_VERSION}).")
+    return 0
 
 
 def _cmd_onboard(args: argparse.Namespace) -> int:
