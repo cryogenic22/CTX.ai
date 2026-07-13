@@ -1072,11 +1072,19 @@ def handle_checkpoint(arguments: dict[str, Any]) -> str:
     if not os.path.isfile(transcript):
         return json.dumps({"error": {"code": "transcript_not_found",
                                      "message": f"Not a file: {transcript}"}})
-    result = run_checkpoint(
-        transcript,
-        arguments.get("ledger_dir") or ".claude/ctx",
-        as_of=arguments.get("as_of"),
-    )
+    from ..agent.checkpoint import HollowTranscriptError
+    from ..agent.transcript_adapters import TranscriptFormatError
+    try:
+        result = run_checkpoint(
+            transcript,
+            arguments.get("ledger_dir") or ".claude/ctx",
+            as_of=arguments.get("as_of"),
+        )
+    except (TranscriptFormatError, HollowTranscriptError) as e:
+        # fail-loud, nothing written: a hollow/foreign parse must
+        # surface as an error object, never as a "banked" success
+        return json.dumps({"error": {"code": "transcript_rejected",
+                                     "message": str(e)}})
     return json.dumps({
         "session": result.session_id,
         "transcript": transcript,

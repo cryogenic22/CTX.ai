@@ -38,6 +38,37 @@ from .transcript_parser import ParsedTranscript, decision_marker, parse_transcri
 
 GIST_BPE_BUDGET = 2000
 
+# Hollow-transcript guard: below this many parseable JSONL objects a
+# transcript is plausibly a genuinely empty session (historical
+# behavior: an empty parse writes an empty ledger); at or above it, a
+# parse that normalized to nothing is a format/extraction failure and
+# the checkpoint must refuse rather than shadow a good gist.
+HOLLOW_MIN_RAW_LINES = 20
+
+
+class HollowTranscriptError(RuntimeError):
+    """A non-trivial transcript normalized to nothing — refusing to
+    write. A hollow ledger is worse than no ledger: it LOOKS like
+    memory (the bracket blast-radius incident: gist looked fine,
+    177/193 entities silently swallowed). CLI callers surface this as
+    a hard error; the hook path's fail-open guard turns it into a
+    loud skip that leaves the previous good gist untouched."""
+
+
+def _hollow_reason(parsed: ParsedTranscript) -> str:
+    """Empty string when the parse is trustworthy; else why it isn't."""
+    if parsed.raw_lines < HOLLOW_MIN_RAW_LINES:
+        return ""
+    if parsed.last_turn == 0:
+        return (f"transcript has {parsed.raw_lines} JSONL objects but "
+                f"the {parsed.adapter or 'detected'} adapter normalized "
+                f"ZERO conversation entries")
+    if not parsed.corpus.entities and parsed.stats.user_turns == 0:
+        return (f"transcript has {parsed.raw_lines} JSONL objects and "
+                f"{parsed.last_turn} entries but extraction produced "
+                f"zero entities and zero user turns")
+    return ""
+
 # Gist section order: highest-stakes first, so budget trimming (which cuts
 # from the end) drops tool runs before it ever touches constraints.
 _GIST_KINDS = (
@@ -388,17 +419,32 @@ def run_checkpoint(
     out_dir: str = ".claude/ctx",
     *,
     as_of: Optional[str] = None,
+    format_spec: Optional[str] = None,
 ) -> CheckpointResult:
     """Pack a session transcript into the ledger + gist artifacts.
 
     Idempotent: re-parses the full transcript every time (the transcript is
     L0 and never deleted; a full deterministic re-pack is cheaper than
     incremental-merge correctness risk at session scale).
+
+    Raises TranscriptFormatError (unrecognized format) or
+    HollowTranscriptError (non-trivial transcript normalized to
+    nothing) BEFORE any artifact is written — a failing parse never
+    overwrites a good ledger. The hook path's fail-open guard converts
+    both into a loud no-op.
     """
     import time
     t0 = time.perf_counter()
 
-    parsed = parse_transcript(transcript_path)
+    parsed = parse_transcript(transcript_path, format_spec=format_spec)
+    hollow = _hollow_reason(parsed)
+    if hollow:
+        raise HollowTranscriptError(
+            f"refusing to checkpoint {transcript_path}: {hollow}. "
+            f"Nothing was written; any previous ledger is untouched. "
+            f"If this transcript is from another agent, pass a "
+            f"--format-spec field map (adapter detected: "
+            f"{parsed.adapter or 'none'}).")
     corpus = parsed.corpus
 
     resolve_entities(corpus, supersede_by_recency=True)

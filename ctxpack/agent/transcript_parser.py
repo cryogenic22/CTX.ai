@@ -1,8 +1,11 @@
-"""Claude Code session transcript → IRCorpus.
+"""Agent session transcript → IRCorpus.
 
-Parses the session JSONL that Claude Code writes (the ``transcript_path``
-every hook receives) into the packer IR, extracting ONLY structurally
-identifiable, load-bearing facts — the deterministic-extraction contract:
+Parses an agent session transcript into the packer IR. Claude Code
+JSONL and Codex rollouts are auto-detected; other agents map through
+the generic spec adapter (``transcript_adapters`` owns all format
+handling — this module consumes ONE canonical entry shape). Extracts
+ONLY structurally identifiable, load-bearing facts — the
+deterministic-extraction contract:
 
 - USER-REQUEST     what the user asked for (first line of each user turn)
 - CONSTRAINT       imperative/negation sentences from USER turns, verbatim
@@ -32,6 +35,7 @@ from typing import Any, Optional
 
 from ..core import factid
 from ..core.packer.ir import IRCorpus, IREntity, IRField, IRSource
+from .transcript_adapters import load_transcript
 
 # ── Extraction patterns ──
 
@@ -258,6 +262,11 @@ class ParsedTranscript:
     stats: TranscriptStats = field(default_factory=TranscriptStats)
     session_id: str = ""
     last_turn: int = 0
+    # Hollow-transcript guard inputs (never serialized): how many
+    # parseable JSONL objects the file held vs what survived
+    # normalization, and which adapter normalized them.
+    raw_lines: int = 0
+    adapter: str = ""
 
 
 def _clean(text: str, limit: int = 300) -> str:
@@ -493,42 +502,29 @@ def parse_transcript(
     *,
     domain: Optional[str] = None,
     since_turn: int = 0,
+    format_spec: Optional[str] = None,
 ) -> ParsedTranscript:
-    """Parse a Claude Code session JSONL into IR.
+    """Parse an agent session transcript into IR.
+
+    Format handling lives in ``transcript_adapters``: Claude Code and
+    Codex rollouts are auto-detected; any other agent's JSONL parses
+    through the generic field-map adapter via ``format_spec``. An
+    unrecognized format raises TranscriptFormatError (fail-loud) —
+    it never silently parses to an empty corpus.
 
     Args:
-        path: transcript_path as provided by Claude Code hooks.
+        path: transcript path (Claude Code hook payload, a Codex
+            rollout file, or any spec-mapped JSONL).
         domain: .ctx header domain; defaults to session-<id[:8]>.
         since_turn: skip turns below this index (incremental checkpoints —
             pass the previous checkpoint's ``last_turn``).
+        format_spec: path to a generic-adapter JSON field map; forces
+            the generic adapter instead of detection.
     """
-    session_id = ""
-    entries: list[dict] = []
-    sidechain_entries: list[dict] = []
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                d = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if d.get("type") not in ("user", "assistant"):
-                continue
-            if d.get("isMeta"):
-                continue  # harness chatter (task-notifications) — never banked
-            if d.get("isSidechain"):
-                # Subagent/workflow turns are dropped from the main parse,
-                # but a marker-led verdict in one is a load-bearing finding
-                # the main thread never sees (feedback #5). Keep assistant
-                # sidechains for the narrow verdict-only pass after the loop.
-                if d.get("type") == "assistant":
-                    sidechain_entries.append(d)
-                continue
-            entries.append(d)
-            if not session_id:
-                session_id = str(d.get("sessionId", ""))
+    normalized = load_transcript(path, format_spec=format_spec)
+    session_id = normalized.session_id
+    entries = normalized.entries
+    sidechain_entries = normalized.sidechain_entries
 
     sid = session_id[:8] if session_id else "unknown"
     corpus = IRCorpus(domain=domain or f"session-{sid}")
@@ -907,4 +903,6 @@ def parse_transcript(
         stats=stats,
         session_id=session_id,
         last_turn=len(entries),
+        raw_lines=normalized.raw_lines,
+        adapter=normalized.adapter,
     )

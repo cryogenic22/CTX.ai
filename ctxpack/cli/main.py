@@ -299,6 +299,10 @@ def _run(argv: list[str]) -> int:
                         help="Output directory (default: .claude/ctx)")
     p_ckpt.add_argument("--as-of", dest="as_of", default=None,
                         help="Pin header date for byte-deterministic packs")
+    p_ckpt.add_argument("--format-spec", dest="format_spec", default=None,
+                        help="JSON field-map for a non-built-in transcript "
+                             "format (built-ins auto-detected: claude-code, "
+                             "codex)")
     p_ckpt.add_argument("--session", default=None,
                         help="Session id prefix to select among this "
                              "project's transcripts (default: newest)")
@@ -1028,7 +1032,9 @@ def _count_sections(elements) -> int:
 
 
 def _cmd_checkpoint(args: argparse.Namespace) -> int:
-    from ..agent.checkpoint import find_live_transcript, run_checkpoint
+    from ..agent.checkpoint import (HollowTranscriptError,
+                                    find_live_transcript, run_checkpoint)
+    from ..agent.transcript_adapters import TranscriptFormatError
 
     transcript = args.transcript
     if not transcript:
@@ -1039,7 +1045,13 @@ def _cmd_checkpoint(args: argparse.Namespace) -> int:
             return 1
         print(f"Transcript: {transcript}")
 
-    result = run_checkpoint(transcript, args.out, as_of=args.as_of)
+    try:
+        result = run_checkpoint(transcript, args.out, as_of=args.as_of,
+                                format_spec=getattr(args, "format_spec", None))
+    except (TranscriptFormatError, HollowTranscriptError) as e:
+        # fail-LOUD in manual mode: no artifact was written
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
     print(f"Checkpoint: session {result.session_id[:8]} "
           f"({result.turns} turns) -> {result.ctx_path}")
     print(f"  entities: {result.entities}  conflicts: {result.conflicts}  "
