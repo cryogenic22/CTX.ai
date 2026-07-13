@@ -781,3 +781,116 @@ def test_result_manifest_rejects_plan_mismatch():
     expected = [fc.result_key(r) for r in rows]
     with pytest.raises(RuntimeError, match="missing"):
         fc.validate_result_manifest(rows[:-1], expected_keys=expected)
+
+
+# --------------- report evidence self-audit (artifact-review 2026-07-13)
+
+
+def _graded_row(pid, arm, answer, **over):
+    row = {"probe_id": pid, "cluster": "c01", "ptype": "fork",
+           "arm": arm, "answer": answer,
+           "answer_sha256": fc.answer_sha256(answer),
+           "correct": True, "flagged": True, "error": False}
+    row.update(over)
+    return row
+
+
+def _ok_ledger_row(pid, arm, answer):
+    return {"probe_id": pid, "arm": arm, "phase": "result",
+            "status": "ok", "answer": answer,
+            "answer_sha256": fc.answer_sha256(answer)}
+
+
+def _evidence_report(answer="the fork is unresolved. " * 60):
+    # a long answer: the old answer[:500] truncation MUST now fail
+    return {
+        "config": {"model": "claude-sonnet-4-6"},
+        "results": [_graded_row("p1", "ctx-warn", answer)],
+        "invocations": [_ok_ledger_row("p1", "ctx-warn", answer)],
+    }
+
+
+def test_call_with_budget_ledgers_verbatim_answer():
+    long_answer = "x" * 2000   # far beyond any display truncation
+    led = []
+    text, spent, outcome = fc.call_with_budget(
+        lambda: (long_answer, {"cost": 0.01}, "ok"),
+        worst_case_usd=0.05, spent_usd=0.0, ceiling_usd=2.0,
+        record=led.append,
+        price_usage=lambda u: u.get("cost") if u else None)
+    assert outcome == "ok"
+    row = led[-1]
+    assert row["answer"] == long_answer          # complete, never a prefix
+    assert row["answer_sha256"] == fc.answer_sha256(long_answer)
+
+
+def test_report_evidence_accepts_complete_ledger_matched_answers():
+    fc.validate_report_evidence(_evidence_report())   # must not raise
+
+
+def test_report_evidence_rejects_truncated_answer():
+    rep = _evidence_report()
+    # the exact defect the artifact review found: grade on full text,
+    # store a 500-char prefix — the sha no longer matches the answer
+    rep["results"][0]["answer"] = rep["results"][0]["answer"][:500]
+    with pytest.raises(RuntimeError, match="truncated or altered"):
+        fc.validate_report_evidence(rep)
+
+
+def test_report_evidence_rejects_missing_sha_or_answer():
+    rep = _evidence_report()
+    del rep["results"][0]["answer_sha256"]
+    with pytest.raises(RuntimeError, match="lacks a"):
+        fc.validate_report_evidence(rep)
+    rep = _evidence_report()
+    rep["results"][0]["answer"] = None
+    with pytest.raises(RuntimeError, match="lacks a"):
+        fc.validate_report_evidence(rep)
+
+
+def test_report_evidence_requires_ledger_agreement():
+    rep = _evidence_report()
+    rep["invocations"] = []                       # no ledgered ok row
+    with pytest.raises(RuntimeError, match="ledgered"):
+        fc.validate_report_evidence(rep)
+    rep = _evidence_report()
+    rep["invocations"][0]["answer_sha256"] = fc.answer_sha256("other")
+    with pytest.raises(RuntimeError, match="ledgered"):
+        fc.validate_report_evidence(rep)
+
+
+def test_report_evidence_skips_dryrun_and_error_rows():
+    rep = _evidence_report()
+    rep["results"].append({"probe_id": "p2", "cluster": "c01",
+                           "ptype": "fork", "arm": "grep",
+                           "answer": None, "correct": None,
+                           "flagged": None})           # dry-run row
+    rep["results"].append(_graded_row("p3", "grep", "boom",
+                                      error=True, correct=None))
+    fc.validate_report_evidence(rep)                   # must not raise
+
+
+def test_report_evidence_rejects_machine_local_paths():
+    for leak in (
+        r"C:\Users\kapil\Documents\CTX_mod\run.py",
+        r"C:\Users\anyone\AppData\Local\Temp\ctx-drift-forkv2-abc",
+        "/c/users/somebody/project/x",
+    ):
+        rep = _evidence_report()
+        rep["config"]["invocation_ledger"] = leak
+        with pytest.raises(RuntimeError, match="report-evidence gate"):
+            fc.validate_report_evidence(rep)
+
+
+def test_report_evidence_allows_fictional_users_and_relative_names():
+    rep = _evidence_report()
+    rep["config"]["invocation_ledger"] = (
+        "resume-probe-fork-fixture-v2-drift-fork-v2-full-X.invocations"
+        ".jsonl")
+    rep["results"][0]["answer"] += r" literal C:\Users\dev\proj kept"
+    rep["results"][0]["answer_sha256"] = fc.answer_sha256(
+        rep["results"][0]["answer"])
+    rep["invocations"][0]["answer"] = rep["results"][0]["answer"]
+    rep["invocations"][0]["answer_sha256"] = (
+        rep["results"][0]["answer_sha256"])
+    fc.validate_report_evidence(rep)                   # must not raise

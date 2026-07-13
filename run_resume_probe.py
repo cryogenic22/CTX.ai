@@ -13,6 +13,7 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -480,15 +481,19 @@ def _run_fork_v2(args) -> int:
                            "arm": row.arm,
                            "error": (answer or "")[:200],
                            "retry_policy": _RETRY_POLICY}
-                rec.update(answer=(answer or "")[:500], error=True)
+                rec.update(answer=(answer or ""), error=True)
                 results.append(rec)
                 print(f"ABORT at call {i}: {(answer or '')[:120]} — a "
                       f"failed call invalidates the scored run "
                       f"(preregistered retry policy exhausted).")
                 break
             correct, flagged = fc.grade_row(row, answer)
-            rec.update(answer=answer[:500], correct=correct,
-                       flagged=flagged, error=False)
+            # artifact-review blocker 1: the grade's evidence is the
+            # COMPLETE verbatim answer — a truncated answer made the
+            # hard false-alarm gate unauditable. Never store a prefix.
+            rec.update(answer=answer,
+                       answer_sha256=fc.answer_sha256(answer),
+                       correct=correct, flagged=flagged, error=False)
             time.sleep(_INTER_CALL_DELAY)
         results.append(rec)
         if not args.dry_run:
@@ -553,7 +558,6 @@ def _run_fork_v2(args) -> int:
             "authorized_run": bool(args.authorized_run),
         },
         "spent_usd": round(spent, 4),
-        "invocation_ledger": inv_path,
         "invocations": invocations,
         "aborted": aborted,
         "cluster_analysis": analysis,
@@ -580,9 +584,37 @@ def _run_fork_v2(args) -> int:
     tag = ("dryrun" if args.dry_run
            else ("aborted" if aborted
                  else ("smoke" if args.smoke else "full")))
-    out = os.path.join(
-        RESULTS_DIR,
-        f"resume-probe-fork-fixture-v2-drift-fork-v2-{tag}-{stamp}.json")
+    base = f"resume-probe-fork-fixture-v2-drift-fork-v2-{tag}-{stamp}"
+    out = os.path.join(RESULTS_DIR, base + ".json")
+
+    # artifact-review blocker 2: the artifact references its ledger as
+    # a committed SIBLING (relative filename + sha256), never a
+    # machine-local absolute path pointing at a temp dir
+    ledger_bytes = None
+    if invocations:
+        with open(inv_path, "rb") as fsrc:
+            ledger_bytes = fsrc.read()
+        report["invocation_ledger"] = base + ".invocations.jsonl"
+        report["invocation_ledger_sha256"] = hashlib.sha256(
+            ledger_bytes).hexdigest()
+    else:
+        report["invocation_ledger"] = None
+        report["invocation_ledger_sha256"] = None
+
+    # self-audit: a report that is not independently auditable or that
+    # leaks machine-local strings is never written, on any path
+    try:
+        fc.validate_report_evidence(report)
+    except RuntimeError as exc:
+        print(f"ABORT: {exc} — no artifact written (the run's console "
+              f"output and the work-dir ledger at {inv_path} remain "
+              f"for local diagnosis).")
+        return 1
+
+    if ledger_bytes is not None:
+        with open(os.path.join(RESULTS_DIR, report["invocation_ledger"]),
+                  "wb") as fdst:
+            fdst.write(ledger_bytes)
     with open(out, "w", encoding="utf-8", newline="\n") as f:
         json.dump(report, f, indent=2)
         f.write("\n")

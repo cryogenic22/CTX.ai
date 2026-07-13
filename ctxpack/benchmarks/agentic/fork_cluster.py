@@ -50,6 +50,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
@@ -426,11 +427,19 @@ def call_with_budget(attempt_fn: "Callable[[], tuple[str, dict, str]]",
             if not (text or "").strip():
                 record({"phase": "result", "attempt": attempt,
                         "status": "empty", "cost_usd": cost,
-                        "usage": usage or None})
+                        "usage": usage or None,
+                        "answer": text if text is not None else "",
+                        "answer_sha256": answer_sha256(text or "")})
                 return text, spent_usd, "empty-response"
+            # the fsync'd ledger is the immutable retained log of grade
+            # evidence: the COMPLETE verbatim answer, never a prefix
+            # (artifact-review blocker 1 — answer[:500] made the hard
+            # false-alarm gate unauditable)
             record({"phase": "result", "attempt": attempt,
                     "status": "ok", "cost_usd": cost,
-                    "usage": usage or None})
+                    "usage": usage or None,
+                    "answer": text,
+                    "answer_sha256": answer_sha256(text)})
             return text, spent_usd, "ok"
         if status == "transient":
             record({"phase": "result", "attempt": attempt,
@@ -1179,6 +1188,89 @@ def validate_result_manifest(rows: "list[dict]",
         raise RuntimeError(
             f"result-manifest gate: {len(keyset)} unique rows, "
             f"expected {expected_total}")
+
+
+def answer_sha256(text: str) -> str:
+    """Canonical hash of a verbatim answer (grade evidence)."""
+    return hashlib.sha256((text or "").encode("utf-8")).hexdigest()
+
+
+# ── report self-audit (artifact-review blockers 1 + 2, 2026-07-13) ──
+# The scored artifact is a RELEASE surface: it must carry complete,
+# independently reproducible grade evidence and must never embed
+# machine-local paths or the owner's identity. The forbidden set below
+# deliberately mirrors tests/test_fixture_privacy.py (E-6A gate).
+
+FORBIDDEN_ARTIFACT_SUBSTRINGS = (
+    "kapil", "c--users-kapil",
+    "appdata\\local\\temp", "appdata/local/temp",
+)
+ALLOWED_FICTIONAL_USERS = frozenset(("dev", "müller", "zoë"))
+_HOME_SEG_RE = re.compile(
+    r"[\\/](?:users|home)[\\/]+([^\\/\s\"'`|>]+)", re.IGNORECASE)
+
+
+def _iter_strings(obj: "Any"):
+    if isinstance(obj, str):
+        yield obj
+    elif isinstance(obj, dict):
+        for k, v in obj.items():
+            yield from _iter_strings(k)
+            yield from _iter_strings(v)
+    elif isinstance(obj, (list, tuple)):
+        for v in obj:
+            yield from _iter_strings(v)
+
+
+def validate_report_evidence(report: "dict") -> None:
+    """Refuse to produce a non-auditable or leaking artifact. Runs
+    BEFORE any artifact write, on every path (scored, aborted, dry).
+
+    Blocker 1 (evidence): every graded (non-error) result row must
+    carry the COMPLETE verbatim answer plus its sha256, and that sha
+    must match the fsync'd ledger's ok-result row for the same
+    (probe_id, arm) — the artifact and the durable ledger must agree
+    byte-for-byte, so every grade (including flagged=false on the hard
+    false-alarm gate) is independently reproducible.
+
+    Blocker 2 (privacy/release): no string anywhere in the report may
+    contain a machine-local path or the owner's identity; home-dir
+    segments must name a pinned fictional user."""
+    for s in _iter_strings(report):
+        low = s.lower()
+        for pat in FORBIDDEN_ARTIFACT_SUBSTRINGS:
+            if pat in low:
+                raise RuntimeError(
+                    f"report-evidence gate: forbidden machine-local "
+                    f"pattern {pat!r} in the artifact")
+        for m in _HOME_SEG_RE.finditer(low):
+            if m.group(1) not in ALLOWED_FICTIONAL_USERS:
+                raise RuntimeError(
+                    f"report-evidence gate: home-directory path for "
+                    f"non-fictional user {m.group(1)!r} in the artifact")
+    ok_ledger: "dict[tuple, dict]" = {}
+    for inv in report.get("invocations", ()):
+        if inv.get("phase") == "result" and inv.get("status") == "ok":
+            ok_ledger[(inv.get("probe_id"), inv.get("arm"))] = inv
+    for r in report.get("results", ()):
+        if r.get("error") is not False:
+            continue  # dry-run rows / error rows carry no grade
+        key = (r.get("probe_id"), r.get("arm"))
+        ans, sha = r.get("answer"), r.get("answer_sha256")
+        if not isinstance(ans, str) or not sha:
+            raise RuntimeError(
+                f"report-evidence gate: graded row {key} lacks a "
+                f"complete verbatim answer + sha256")
+        if answer_sha256(ans) != sha:
+            raise RuntimeError(
+                f"report-evidence gate: {key} answer does not match its "
+                f"own sha256 — evidence truncated or altered")
+        inv = ok_ledger.get(key)
+        if inv is None or inv.get("answer_sha256") != sha:
+            raise RuntimeError(
+                f"report-evidence gate: {key} has no matching ledgered "
+                f"ok-result row — artifact and durable ledger must "
+                f"agree byte-for-byte")
 
 
 def cluster_analysis(rows: "list[dict]") -> "dict[str, Any]":
