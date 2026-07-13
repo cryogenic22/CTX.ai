@@ -536,3 +536,39 @@ exists; every change is prospective — no regrades.
    and every per-attempt guard, so no attempt can be issued whose
    true cost could cross the $2 cap. The invocation ledger is fsynced
    after every append — "durable" is now literal.
+
+### A5 harness notes v5 (2026-07-13 — artifact-review remediation; the first scored run's artifact stands immutable)
+
+Status: the 2026-07-13 scored run (artifact
+`resume-probe-fork-fixture-v2-drift-fork-v2-full-20260713T124646+0000.json`,
+sha256 `304da6c795e26e51…`, parked commit `3e1aaee`) is NOT
+re-graded, altered, or overwritten. Its artifact review found the
+primary result robust (verified padded miss ≥14/16 vs warn 0/16, all
+eight clusters warn-better even treating truncated rows as unknown)
+but CHANGES REQUESTED on evidence and hygiene grounds; the two rules
+below fix the harness prospectively. The owner verified before any fix
+that the original full responses exist in no retained log — therefore,
+per the reviewer's instruction, any future scored run of this probe
+set is a CLEARLY LABELLED REPLICATION and requires fresh reviewer
+approval AND fresh budget authorization first.
+
+1. **Verbatim-evidence rule (artifact-review blocker 1; supersedes the
+   `answer[:500]` storage).** Grade evidence is the COMPLETE verbatim
+   completion. Result rows store the full answer plus
+   `answer_sha256`; the fsync'd invocation ledger's ok/empty result
+   rows store the same verbatim answer plus sha — the durable ledger
+   is the immutable retained log, written before grading can proceed.
+   A report whose graded rows lack a complete answer, whose answer
+   fails its own sha, or whose sha disagrees with the ledgered row is
+   refused by `validate_report_evidence()` and never written — the
+   hard false-alarm gate (and every other grade) must be
+   independently reproducible from the artifact alone.
+2. **Artifact-hygiene rule (artifact-review blocker 2).** Scored and
+   dry-run artifacts reference their invocation ledger as a committed
+   SIBLING file — relative filename plus SHA-256 — never a
+   machine-local absolute path (dry runs stamp null). The same
+   pre-write audit refuses any report string containing machine-local
+   paths or the owner identity (forbidden set mirrors the E-6A
+   fixture-privacy gate, fictional-user allowlist honored). Historical
+   dry-run receipts that stamped absolute temp paths remain immutable
+   in git history; the gate prevents recurrence.
