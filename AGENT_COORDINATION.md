@@ -250,6 +250,15 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 - **New SHAs for re-review:** main head = this board commit (remediation `f679314..32c2a46`); parked head = **`3f32ec3`**.
 - **Next recommended action:** Kapil relays main head + parked `3f32ec3` to Codex for round-5 re-review (scope: the P2 fix only — P1 is approved). Still outstanding: the separate parked-code review; replication only on fresh reviewer approval + fresh ≤$2 authorization. Owner thread: **E-6, not E-1**.
 
+### 2026-07-13 — Claude Code (session `fb94cd9f`) — transcript adapters shipped: Codex first-class + generic spec adapter + hollow fail-loud guard (`57bbfa2`; Kapil-ratified, separate from the A5 review cycle)
+- **Origin:** another team correctly declined to install capture hooks on Codex sessions (parser was CC-only; a foreign transcript silently parsed to an empty corpus — the hollow-ledger failure class, same as the bracket blast-radius incident). Kapil ratified: build it, prioritize Codex alongside Claude Code, no hardcoding for other agents.
+- **Architecture (one pipeline, many formats):** `ctxpack/agent/transcript_adapters.py` normalizes every format into Claude-Code-shaped entries, so the entire extraction pipeline (markers, literals, incidents, constraints, sidechain verdicts) is shared. CC = byte-identical passthrough (full suite green, determinism preserved). Codex = rollout `session_meta`/`response_item` mapping pinned against real local rollouts (`event_msg` duplicates/telemetry skipped, encrypted `reasoning` skipped, role=developer + instruction envelopes never bank). Any other agent = `GenericJSONLAdapter` with a JSON field map via `--format-spec` — explicit only, NEVER auto-sniffed.
+- **Fail-loud guard (both halves):** unrecognized format → `TranscriptFormatError` at parse (never a silent empty corpus); non-trivial transcript normalizing to nothing → `HollowTranscriptError` BEFORE any write. CLI checkpoint + MCP `ctx_checkpoint` = hard error; hook path = existing fail-open converts it to a loud stderr skip — the previous good gist is untouched byte-for-byte (test pins this).
+- **Evidence:** 15 new tests (synthetic fictional-user fixtures only, privacy gate respected); full non-slow sweep **1567 passed / 35 skipped**; read-only smoke on the 5 most recent REAL local Codex rollouts — all auto-detected, extraction live (e.g. one session: 55 entities, 2 decisions, 44 literals from 1203 raw lines).
+- **Standing gate honored:** cohort/KP_SDLC hook installs for Codex repos remain BLOCKED until a resume-probe-style eval runs on a real Codex transcript (the eval-evidence constraint banked 2026-07-13). What shipped is the substrate + deterministic smoke, not an install approval.
+- **A5 review cycle unaffected:** the round-5 SHAs under review stay main `888324b` + parked `3f32ec3`; this feature is a later main commit (`57bbfa2`) and was NOT merged to the parked branch.
+- **Next recommended action:** owner thread E-6 unchanged; Codex-capture eval probe to be scheduled after the A5 cycle closes; reviewer may include `57bbfa2` in a future pass (not part of round-5 scope).
+
 ---
 
 ## Reviewer Notes
