@@ -1200,29 +1200,40 @@ def answer_sha256(text: str) -> str:
 # independently reproducible grade evidence and must never embed
 # machine-local paths or the owner's identity. Unlike the fixture gate
 # (tests/test_fixture_privacy.py, which allowlists fictional users),
-# the artifact rule is STRICT: the synthetic fork fixtures emit no
-# absolute paths at all (verified against both committed artifacts),
-# so ANY absolute filesystem path in a report is a leak — drive-letter
-# paths, UNC paths, and POSIX system roots alike (re-review residual
-# P2: C:\tmp, D:\scratch, \\host\share, /tmp).
+# the artifact rule is STRICT and denylist-free (round-3 residual P2):
+# ANY absolute filesystem path of ANY form is a leak — drive-letter,
+# msys drive-root, UNC (both slash styles), file:// URIs, and every
+# POSIX absolute path including innocuous-looking ones (/guides/x is
+# rejected, not just /tmp or /etc). The synthetic fork fixtures emit
+# no absolute paths at all, so nothing legitimate is lost. The single
+# allowance: http(s) URL spans are masked out BEFORE the path scan
+# (a URL's /home/ or /tmp/ segment is not a filesystem path); the
+# owner-identity substrings are still checked on the RAW string, URLs
+# included.
 
 FORBIDDEN_ARTIFACT_SUBSTRINGS = (
     "kapil", "c--users-kapil",
     "appdata\\local\\temp", "appdata/local/temp",
 )
+# http(s) spans are excluded from the PATH scan only (never from the
+# forbidden-substring scan). Everything else with a scheme, e.g.
+# file:///tmp/run, is treated as a path.
+_HTTP_URL_SPAN_RE = re.compile(r"https?://[^\s\"'`<>)\]]+", re.IGNORECASE)
+_TOKEN_START = r"(?:^|[\s\"'`=(<\[])"
 _ABS_PATH_RES = (
     # C:\..., d:/... — any drive letter, either slash
     ("drive-letter path", re.compile(r"\b[a-z]:[\\/]", re.IGNORECASE)),
-    # /c/... — msys/git-bash munged drive root at a token boundary
-    ("drive-letter path", re.compile(
-        r"(?:^|[\s\"'`=(<\[])/[a-z][\\/]", re.IGNORECASE)),
-    # \\host\share UNC
+    # \\host\share and //host/share UNC
     ("UNC path", re.compile(r"\\\\[a-z0-9._$-]+\\", re.IGNORECASE)),
-    # POSIX system roots at a token boundary (won't fire inside URLs)
-    ("POSIX system path", re.compile(
-        r"(?:^|[\s\"'`=(<\[])/(?:tmp|var|scratch|opt|srv|private|home|"
-        r"users|mnt|media|root)(?:[\\/]|\b)", re.IGNORECASE)),
-    # a home-directory segment ANYWHERE in a path is a leak
+    ("UNC path", re.compile(
+        _TOKEN_START + r"//[a-z0-9._$-]+[\\/]", re.IGNORECASE)),
+    # file:///tmp/run — a filesystem path wearing a scheme
+    ("file:// URI path", re.compile(r"\bfile://", re.IGNORECASE)),
+    # ANY token-leading POSIX absolute path: /etc/passwd,
+    # /usr/local/bin, /workspace/run, /guides/x, /c/users/x alike
+    ("POSIX absolute path", re.compile(
+        _TOKEN_START + r"/[a-z0-9._~-]", re.IGNORECASE)),
+    # backstop: a home-directory segment ANYWHERE in a path is a leak
     ("home-directory segment", re.compile(
         r"[\\/](?:users|home)[\\/]", re.IGNORECASE)),
 )
@@ -1259,11 +1270,16 @@ def validate_report_evidence(report: "dict",
       `invocation_ledger_sha256` and their parsed JSONL rows must
       equal `report["invocations"]` row-for-row.
 
-    Blocker 2 (privacy/release), strict form (re-review residual P2):
+    Blocker 2 (privacy/release), strict form (round-3 residual P2):
     no string anywhere in the report may contain the owner's identity
-    or ANY absolute filesystem path — drive-letter, UNC, or POSIX
-    system root; there is no fictional-path allowance on the artifact
-    surface."""
+    or ANY absolute filesystem path of ANY form — drive-letter, UNC
+    (either slash style), file:// URIs, or any POSIX absolute path
+    (/etc/passwd, /workspace/run, and /guides/x are all rejected);
+    there is no fictional-path allowance and no root allowlist on the
+    artifact surface. The one exclusion: http(s) URL spans are masked
+    before the path scan, so a URL's /home/ segment does not trip the
+    gate — but owner-identity substrings are checked on the raw
+    string, URLs included."""
     for s in _iter_strings(report):
         low = s.lower()
         for pat in FORBIDDEN_ARTIFACT_SUBSTRINGS:
@@ -1271,12 +1287,13 @@ def validate_report_evidence(report: "dict",
                 raise RuntimeError(
                     f"report-evidence gate: forbidden machine-local "
                     f"pattern {pat!r} in the artifact")
+        scan = _HTTP_URL_SPAN_RE.sub(" ", s)
         for kind, rx in _ABS_PATH_RES:
-            m = rx.search(s)
+            m = rx.search(scan)
             if m:
                 raise RuntimeError(
                     f"report-evidence gate: {kind} in the artifact "
-                    f"({s[max(0, m.start() - 20):m.end() + 30]!r})")
+                    f"({scan[max(0, m.start() - 20):m.end() + 30]!r})")
 
     # ── ledger row self-consistency: answer BYTES, not declared shas ──
     invocations = list(report.get("invocations", ()))
@@ -1347,7 +1364,10 @@ def validate_report_evidence(report: "dict",
                 "report-evidence gate: sibling ledger rows differ from "
                 "the report's embedded invocations — the durable file "
                 "and the artifact must agree row-for-row")
-    elif "invocation_ledger" in report and invocations:
+    elif invocations:
+        # round-3 residual P1: a report that carries invocations MUST
+        # declare a sibling ledger — a null value AND an absent key
+        # both fail; deleting the key is not an escape hatch
         raise RuntimeError(
             "report-evidence gate: the report carries invocations but "
             "declares no sibling ledger file")

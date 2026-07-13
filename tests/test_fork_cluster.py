@@ -825,7 +825,22 @@ def test_call_with_budget_ledgers_verbatim_answer():
 
 
 def test_report_evidence_accepts_complete_ledger_matched_answers():
-    fc.validate_report_evidence(_evidence_report())   # must not raise
+    # round-3 P1: an accepted report must DECLARE its sibling and
+    # supply the bytes — the old fixture omitted the key entirely,
+    # which silently exercised the absent-key bypass
+    rep, ledger_bytes = _with_sibling(_evidence_report())
+    fc.validate_report_evidence(rep, ledger_bytes)     # must not raise
+
+
+def test_report_evidence_rejects_absent_ledger_key():
+    # round-3 residual P1: deleting the invocation_ledger key must not
+    # bypass the sibling requirement — invocations exist, so a sibling
+    # must be declared regardless of key membership
+    rep, _ = _with_sibling(_evidence_report())
+    del rep["invocation_ledger"]
+    del rep["invocation_ledger_sha256"]
+    with pytest.raises(RuntimeError, match="declares no sibling"):
+        fc.validate_report_evidence(rep)
 
 
 def test_report_evidence_rejects_truncated_answer():
@@ -918,23 +933,30 @@ def test_report_evidence_skips_dryrun_and_error_rows():
                            "flagged": None})           # dry-run row
     rep["results"].append(_graded_row("p3", "grep", "boom",
                                       error=True, correct=None))
-    fc.validate_report_evidence(rep)                   # must not raise
+    rep, ledger_bytes = _with_sibling(rep)
+    fc.validate_report_evidence(rep, ledger_bytes)     # must not raise
 
 
 def test_report_evidence_rejects_machine_local_paths():
-    # strict (re-review residual P2): ANY absolute path is a leak —
-    # the original home/AppData class AND drive roots, UNC, POSIX
+    # strict (re-review residual P2, round 3): ANY absolute path of
+    # ANY form is a leak — no root allowlist, no fictional allowance
     for leak in (
         r"C:\Users\kapil\Documents\CTX_mod\run.py",
         r"C:\Users\anyone\AppData\Local\Temp\ctx-drift-forkv2-abc",
         "/c/users/somebody/project/x",
-        r"C:\tmp\work",                     # reviewer's exact cases
+        r"C:\tmp\work",                     # round-2 reviewer cases
         r"D:\scratch\run7",
         r"\\fileserver\share\evals",
         "logged to /tmp/ctx-run",
         "see /var/tmp/x",
         r"literal C:\Users\dev\proj",       # no fictional allowance
         "e:/evals/out",
+        "cat /etc/passwd",                  # round-3 reviewer cases:
+        "in /usr/local/bin",                # non-allowlisted roots
+        "ran at /workspace/run",
+        "//server/share/evals",             # forward-slash UNC
+        "file:///tmp/run",                  # path wearing a scheme
+        "/guides/section-1/",               # innocuous-looking POSIX
     ):
         rep = _evidence_report()
         rep["config"]["note"] = leak
@@ -947,12 +969,18 @@ def test_report_evidence_allows_relative_names_and_urls():
     rep["config"]["note"] = (
         "resume-probe-fork-fixture-v2-drift-fork-v2-full-X.invocations"
         ".jsonl")
+    # http(s) URL spans are excluded from the path scan — including
+    # ones whose URL path contains /home/ or /tmp/ (round-3 P2
+    # regression: the old home-segment backstop rejected these)
     extra = (" cites https://docs.example.test/tmp-page/123/ and "
-             "/guides/section-1/ plus ratio 1:2 and A5 harness notes")
+             "https://example.test/home/page plus "
+             "http://a.example.test/users/42 plus ratio 1:2 and "
+             "A5 harness notes")
     rep["results"][0]["answer"] += extra
     rep["results"][0]["answer_sha256"] = fc.answer_sha256(
         rep["results"][0]["answer"])
     rep["invocations"][0]["answer"] = rep["results"][0]["answer"]
     rep["invocations"][0]["answer_sha256"] = (
         rep["results"][0]["answer_sha256"])
-    fc.validate_report_evidence(rep)                   # must not raise
+    rep, ledger_bytes = _with_sibling(rep)
+    fc.validate_report_evidence(rep, ledger_bytes)     # must not raise
