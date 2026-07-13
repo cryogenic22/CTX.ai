@@ -602,9 +602,10 @@ def _run_fork_v2(args) -> int:
         report["invocation_ledger_sha256"] = None
 
     # self-audit: a report that is not independently auditable or that
-    # leaks machine-local strings is never written, on any path
+    # leaks machine-local strings is never written, on any path; the
+    # sibling ledger's ACTUAL bytes are verified, not just its stamp
     try:
-        fc.validate_report_evidence(report)
+        fc.validate_report_evidence(report, ledger_bytes=ledger_bytes)
     except RuntimeError as exc:
         print(f"ABORT: {exc} — no artifact written (the run's console "
               f"output and the work-dir ledger at {inv_path} remain "

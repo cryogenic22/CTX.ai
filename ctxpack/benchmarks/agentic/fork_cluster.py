@@ -1222,16 +1222,24 @@ def _iter_strings(obj: "Any"):
             yield from _iter_strings(v)
 
 
-def validate_report_evidence(report: "dict") -> None:
+def validate_report_evidence(report: "dict",
+                             ledger_bytes: "Optional[bytes]" = None,
+                             ) -> None:
     """Refuse to produce a non-auditable or leaking artifact. Runs
     BEFORE any artifact write, on every path (scored, aborted, dry).
 
-    Blocker 1 (evidence): every graded (non-error) result row must
-    carry the COMPLETE verbatim answer plus its sha256, and that sha
-    must match the fsync'd ledger's ok-result row for the same
-    (probe_id, arm) — the artifact and the durable ledger must agree
-    byte-for-byte, so every grade (including flagged=false on the hard
-    false-alarm gate) is independently reproducible.
+    Blocker 1 (evidence) — verified at the BYTE level, never against
+    declared hashes alone (re-review residual P1):
+    - every ledgered ok/empty result row's answer must RECOMPUTE to
+      its own declared sha256 (a corrupted ledger answer with a stale
+      declared sha fails);
+    - every graded (non-error) result row must carry the COMPLETE
+      verbatim answer, recompute to its own sha, and be byte-equal to
+      the ledgered ok-row answer for the same (probe_id, arm);
+    - when the report declares a sibling ledger file, the ACTUAL file
+      bytes must be supplied: their sha256 must equal the stamped
+      `invocation_ledger_sha256` and their parsed JSONL rows must
+      equal `report["invocations"]` row-for-row.
 
     Blocker 2 (privacy/release): no string anywhere in the report may
     contain a machine-local path or the owner's identity; home-dir
@@ -1248,10 +1256,30 @@ def validate_report_evidence(report: "dict") -> None:
                 raise RuntimeError(
                     f"report-evidence gate: home-directory path for "
                     f"non-fictional user {m.group(1)!r} in the artifact")
+
+    # ── ledger row self-consistency: answer BYTES, not declared shas ──
+    invocations = list(report.get("invocations", ()))
     ok_ledger: "dict[tuple, dict]" = {}
-    for inv in report.get("invocations", ()):
-        if inv.get("phase") == "result" and inv.get("status") == "ok":
-            ok_ledger[(inv.get("probe_id"), inv.get("arm"))] = inv
+    for inv in invocations:
+        if inv.get("phase") != "result":
+            continue
+        if inv.get("status") in ("ok", "empty"):
+            ans = inv.get("answer")
+            if not isinstance(ans, str):
+                raise RuntimeError(
+                    "report-evidence gate: ledgered "
+                    f"{inv.get('status')} row "
+                    f"({inv.get('probe_id')}, {inv.get('arm')}) lacks "
+                    f"a verbatim answer")
+            if answer_sha256(ans) != inv.get("answer_sha256"):
+                raise RuntimeError(
+                    "report-evidence gate: ledger row "
+                    f"({inv.get('probe_id')}, {inv.get('arm')}) answer "
+                    f"bytes do not recompute to the declared sha256 — "
+                    f"ledger content corrupted or altered")
+            if inv.get("status") == "ok":
+                ok_ledger[(inv.get("probe_id"), inv.get("arm"))] = inv
+
     for r in report.get("results", ()):
         if r.get("error") is not False:
             continue  # dry-run rows / error rows carry no grade
@@ -1266,11 +1294,42 @@ def validate_report_evidence(report: "dict") -> None:
                 f"report-evidence gate: {key} answer does not match its "
                 f"own sha256 — evidence truncated or altered")
         inv = ok_ledger.get(key)
-        if inv is None or inv.get("answer_sha256") != sha:
+        if inv is None or inv.get("answer") != ans:
             raise RuntimeError(
-                f"report-evidence gate: {key} has no matching ledgered "
-                f"ok-result row — artifact and durable ledger must "
-                f"agree byte-for-byte")
+                f"report-evidence gate: {key} has no byte-identical "
+                f"ledgered ok-result row — artifact and durable ledger "
+                f"must agree byte-for-byte")
+
+    # ── sibling ledger file: verify the ACTUAL bytes, not the stamp ──
+    declared = report.get("invocation_ledger")
+    if declared is not None:
+        if ledger_bytes is None:
+            raise RuntimeError(
+                "report-evidence gate: the report declares a sibling "
+                "ledger but its bytes were not supplied for "
+                "verification")
+        got_sha = hashlib.sha256(ledger_bytes).hexdigest()
+        if got_sha != report.get("invocation_ledger_sha256"):
+            raise RuntimeError(
+                "report-evidence gate: sibling ledger bytes do not "
+                "hash to the stamped invocation_ledger_sha256")
+        try:
+            file_rows = [json.loads(line) for line in
+                         ledger_bytes.decode("utf-8").splitlines()
+                         if line.strip()]
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise RuntimeError(
+                f"report-evidence gate: sibling ledger is not valid "
+                f"JSONL ({exc})") from exc
+        if file_rows != invocations:
+            raise RuntimeError(
+                "report-evidence gate: sibling ledger rows differ from "
+                "the report's embedded invocations — the durable file "
+                "and the artifact must agree row-for-row")
+    elif "invocation_ledger" in report and invocations:
+        raise RuntimeError(
+            "report-evidence gate: the report carries invocations but "
+            "declares no sibling ledger file")
 
 
 def cluster_analysis(rows: "list[dict]") -> "dict[str, Any]":

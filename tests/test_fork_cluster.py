@@ -855,8 +855,59 @@ def test_report_evidence_requires_ledger_agreement():
         fc.validate_report_evidence(rep)
     rep = _evidence_report()
     rep["invocations"][0]["answer_sha256"] = fc.answer_sha256("other")
-    with pytest.raises(RuntimeError, match="ledgered"):
+    with pytest.raises(RuntimeError, match="recompute"):
         fc.validate_report_evidence(rep)
+
+
+def test_report_evidence_rejects_corrupted_ledger_answer_bytes():
+    # re-review residual P1: corrupted ledger content whose DECLARED
+    # sha still matches the artifact's must fail on the BYTES
+    rep = _evidence_report()
+    rep["invocations"][0]["answer"] = "corrupted content"  # stale sha
+    with pytest.raises(RuntimeError, match="recompute"):
+        fc.validate_report_evidence(rep)
+    # self-consistent ledger row that DIVERGES from the artifact row
+    rep = _evidence_report()
+    rep["invocations"][0]["answer"] = "other text"
+    rep["invocations"][0]["answer_sha256"] = fc.answer_sha256(
+        "other text")
+    with pytest.raises(RuntimeError, match="byte-identical"):
+        fc.validate_report_evidence(rep)
+
+
+def _with_sibling(rep):
+    import hashlib as _h
+    import json as _j
+    ledger_bytes = ("\n".join(_j.dumps(r) for r in rep["invocations"])
+                    + "\n").encode("utf-8")
+    rep["invocation_ledger"] = "x.invocations.jsonl"
+    rep["invocation_ledger_sha256"] = _h.sha256(ledger_bytes).hexdigest()
+    return rep, ledger_bytes
+
+
+def test_report_evidence_verifies_sibling_ledger_bytes():
+    rep, ledger_bytes = _with_sibling(_evidence_report())
+    fc.validate_report_evidence(rep, ledger_bytes)     # must not raise
+    # declared sibling but bytes not supplied
+    with pytest.raises(RuntimeError, match="not supplied"):
+        fc.validate_report_evidence(rep)
+    # tampered file bytes: stamp no longer matches
+    with pytest.raises(RuntimeError, match="hash to the stamped"):
+        fc.validate_report_evidence(rep, ledger_bytes + b" ")
+    # re-stamped tampered file: rows no longer match the report
+    import hashlib as _h
+    import json as _j
+    dropped = ledger_bytes.decode().splitlines()[:-1]
+    tampered = ("\n".join(dropped) + "\n").encode() if dropped else b""
+    rep["invocation_ledger_sha256"] = _h.sha256(tampered).hexdigest()
+    with pytest.raises(RuntimeError, match="row-for-row"):
+        fc.validate_report_evidence(rep, tampered)
+    # invocations present but no sibling declared
+    rep2 = _evidence_report()
+    rep2["invocation_ledger"] = None
+    rep2["invocation_ledger_sha256"] = None
+    with pytest.raises(RuntimeError, match="declares no sibling"):
+        fc.validate_report_evidence(rep2)
 
 
 def test_report_evidence_skips_dryrun_and_error_rows():
