@@ -957,6 +957,17 @@ def test_report_evidence_rejects_machine_local_paths():
         "//server/share/evals",             # forward-slash UNC
         "file:///tmp/run",                  # path wearing a scheme
         "/guides/section-1/",               # innocuous-looking POSIX
+        # round-4 reviewer cases: raw-string checks (URL masking must
+        # not swallow drive-letter / backslash-UNC / file:// forms)
+        r"https://host.example.test/upload?path=C:\tmp\work",
+        "https://host.example.test/x,file:///tmp/run",
+        r"see https://h.example.test/?q=\\fileserver\share\x",
+        # round-4 reviewer cases: generic negative token boundary +
+        # non-whitespace path start (no delimiter/ASCII allowlist)
+        "path:/etc/passwd",
+        "see,/workspace/run",
+        "{/guides/x",
+        "/数据/private",                    # Unicode path
     ):
         rep = _evidence_report()
         rep["config"]["note"] = leak
