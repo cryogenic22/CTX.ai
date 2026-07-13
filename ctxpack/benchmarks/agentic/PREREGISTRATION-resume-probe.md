@@ -630,3 +630,33 @@ Standing state unchanged: no replication is reviewer-approved; no new
 $2 authorization exists; `3e1aaee` remains immutable; the parked
 branch remains do-not-merge; the separate parked-code review remains
 outstanding.
+
+### A5 harness notes v8 (2026-07-13 — round-4 P2 residual; supersedes v7's masking description)
+
+**Two-tier path scan (round-4; P1 approved as of v7).** URL masking
+no longer runs before every detector — it applies ONLY where the
+allowance is meaningful:
+
+1. **Raw-string tier:** drive-letter, backslash-UNC, and `file://`
+   patterns are checked on the UNMASKED string — these forms are
+   never legitimate inside an http(s) URL on this artifact surface,
+   so a URL can no longer smuggle them
+   (`https://host/upload?path=C:\tmp\work` and
+   `https://host/x,file:///tmp/run` are rejected; both pinned).
+2. **Masked tier:** POSIX-absolute and forward-slash-UNC detection
+   runs after http(s) URL spans are masked (the one documented
+   allowance — a URL's own `/home/` segment stays accepted,
+   regression retained). The token boundary is a generic NEGATIVE
+   class (any non-word, non-slash character delimits — `:`, `,`,
+   `{`, `-` included) instead of a delimiter allowlist, and the path
+   start is any non-whitespace, non-slash character instead of an
+   ASCII allowlist, so `path:/etc/passwd`, `see,/workspace/run`,
+   `{/guides/x`, and Unicode paths like `/数据/private` are all
+   rejected (all pinned).
+
+Verified: all three committed dry-run receipts (v5/v6/v7) pass the
+round-4 matcher; `3e1aaee` still fails on its known, disclosed leak.
+Standing state unchanged: no replication is reviewer-approved; no new
+$2 authorization exists; `3e1aaee` remains immutable; the parked
+branch remains do-not-merge; the separate parked-code review remains
+outstanding.
