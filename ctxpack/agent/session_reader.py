@@ -93,7 +93,11 @@ def resolve_session(ledger_dir: str = DEFAULT_LEDGER_DIR,
     if session:
         sid = session[:8]
     else:
+        # Last LIVE journal row wins; backfilled (archive) rows land at
+        # the tail out of chronological order and must never hijack the
+        # default session. All-archive journals fall back to the tail.
         sid = ""
+        sid_any = ""
         journal = os.path.join(ledger_dir, "checkpoints.jsonl")
         try:
             with open(journal, encoding="utf-8") as f:
@@ -102,11 +106,15 @@ def resolve_session(ledger_dir: str = DEFAULT_LEDGER_DIR,
                     if not line:
                         continue
                     try:
-                        sid = str(json.loads(line).get("session", ""))[:8]
+                        row = json.loads(line)
                     except json.JSONDecodeError:
                         continue
+                    sid_any = str(row.get("session", ""))[:8]
+                    if not row.get("archive"):
+                        sid = sid_any
         except OSError:
             pass
+        sid = sid or sid_any
         if not sid:
             known = _known_sessions(ledger_dir)
             if len(known) == 1:

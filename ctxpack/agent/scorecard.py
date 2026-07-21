@@ -35,6 +35,25 @@ def repo_scorecard(repo_path: str) -> dict[str, Any]:
         return entry
     entry["status"] = "active"
     entry.update({k: v for k, v in stats.items() if k != "ledger_dir"})
+    # Capture coverage (setu field gap): how much of what the agent
+    # actually did ever reached this ledger. Fail-open — a machine
+    # without the transcript dir (fresh clone) reports nothing rather
+    # than an error; observational like everything else here.
+    try:
+        from .backfill import capture_coverage
+        cov = capture_coverage(repo_path, ledger)
+        counts = cov.counts()
+        denom = counts["packed"] + counts["stale"] + counts["unpacked"]
+        entry["capture"] = {
+            **counts,
+            "coverage": (round(counts["packed"] / denom, 3)
+                         if denom else None),
+            "unpacked_sessions": [s.session[:8]
+                                  for s in cov.by_status("unpacked")],
+            "worktree_local_ledger": cov.worktree_local_ledger,
+        }
+    except Exception:  # noqa: BLE001 — telemetry must not fail the scorecard
+        pass
     return entry
 
 
@@ -73,6 +92,10 @@ def build_scorecard(repo_paths: list[str]) -> dict[str, Any]:
         # ctx-incident: telemetry — agent-reported; user-corrected rows
         # are the only externally-anchored type, weigh them accordingly
         "incident_types": incident_types,
+        # capture gaps across the cohort (sessions the hooks never
+        # packed — each one is recall silently missing somewhere)
+        "capture_unpacked": _sum(
+            lambda r: r.get("capture", {}).get("unpacked")),
     }
     return {
         "schema": "ctxpack-scorecard/v1",

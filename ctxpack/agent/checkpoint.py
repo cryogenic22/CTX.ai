@@ -420,12 +420,20 @@ def run_checkpoint(
     *,
     as_of: Optional[str] = None,
     format_spec: Optional[str] = None,
+    archive: bool = False,
 ) -> CheckpointResult:
     """Pack a session transcript into the ledger + gist artifacts.
 
     Idempotent: re-parses the full transcript every time (the transcript is
     L0 and never deleted; a full deterministic re-pack is cheaper than
     incremental-merge correctness risk at session scale).
+
+    ``archive=True`` (backfill of a PAST session): the session's own
+    artifacts (.ctx, gist, events block, journal row) are written as
+    usual, but the session must not masquerade as the live one —
+    latest-gist.md is left untouched, the journal row is flagged
+    ``archive``, and the project rollup keeps excluding the CURRENT
+    latest live session rather than the backfilled one.
 
     Raises TranscriptFormatError (unrecognized format) or
     HollowTranscriptError (non-trivial transcript normalized to
@@ -494,9 +502,10 @@ def run_checkpoint(
     gist_path = os.path.join(out_dir, f"session-{sid}-gist.md")
     with open(gist_path, "w", encoding="utf-8", newline="\n") as f:
         f.write(gist_text)
-    with open(os.path.join(out_dir, "latest-gist.md"), "w",
-              encoding="utf-8", newline="\n") as f:
-        f.write(gist_text)
+    if not archive:
+        with open(os.path.join(out_dir, "latest-gist.md"), "w",
+                  encoding="utf-8", newline="\n") as f:
+            f.write(gist_text)
 
     gist_bpe = _count_bpe(gist_text)
     lit_fidelity, lit_extracted, lit_recovered = _literal_fidelity(
@@ -525,15 +534,18 @@ def run_checkpoint(
         **({"lint_error": lint_error} if lint_error else {}),
         **({"lint_ledgers_skipped": lint_meta["ledgers_skipped"]}
            if lint_meta.get("ledgers_skipped") else {}),
+        **({"archive": True} if archive else {}),
         "stats": parsed.stats.to_dict(),
     }
     with open(os.path.join(out_dir, "checkpoints.jsonl"), "a",
               encoding="utf-8") as f:
         f.write(json.dumps(journal_entry) + "\n")
 
-    # Regenerate the cross-session rollup (excludes this session — its own
-    # gist is latest-gist.md, injected alongside)
-    project_text = build_project_gist(out_dir, exclude_session=sid,
+    # Regenerate the cross-session rollup (excludes the session whose
+    # gist is latest-gist.md, injected alongside — in archive mode that
+    # is the current latest LIVE session, never the backfilled one)
+    rollup_exclude = _latest_live_sid(out_dir) if archive else sid
+    project_text = build_project_gist(out_dir, exclude_session=rollup_exclude,
                                       ranks=ranks)
     project_path = os.path.join(out_dir, "project-gist.md")
     if project_text:
@@ -570,6 +582,29 @@ def _claude_project_dir_name(project_dir: str) -> str:
     """Munge an absolute path the way Claude Code names per-project
     transcript directories (every non-alphanumeric char → '-')."""
     return re.sub(r"[^A-Za-z0-9]", "-", os.path.abspath(project_dir))
+
+
+def _latest_live_sid(out_dir: str) -> str:
+    """sid[:8] of the last NON-archive journal row — the session whose
+    gist latest-gist.md actually holds. Backfill (archive) rows never
+    shift what counts as latest."""
+    sid = ""
+    try:
+        with open(os.path.join(out_dir, "checkpoints.jsonl"),
+                  encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if not row.get("archive"):
+                    sid = str(row.get("session", ""))[:8]
+    except OSError:
+        pass
+    return sid
 
 
 def find_live_transcript(project_dir: str = ".",

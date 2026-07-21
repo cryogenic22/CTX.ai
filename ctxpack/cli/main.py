@@ -345,6 +345,26 @@ def _run(argv: list[str]) -> int:
     p_lessons.add_argument("--json", action="store_true",
                            help="Emit the registry as JSON")
 
+    # backfill — capture-coverage reconciliation (setu field gap:
+    # crash/kill//clear can skip the hooks; the raw transcript survives)
+    p_backfill = sub.add_parser(
+        "backfill",
+        help="Pack any session transcripts the hooks missed (crash/kill/"
+             "clear) into the ledger; archive mode — never touches "
+             "latest-gist")
+    p_backfill.add_argument("--project-dir", default=".",
+                            help="Repo root (default: current directory)")
+    p_backfill.add_argument("--out", default=".claude/ctx",
+                            help="Ledger dir (default: .claude/ctx)")
+    p_backfill.add_argument("--as-of", dest="as_of", default=None,
+                            help="Pin header date for byte-deterministic "
+                                 "packs")
+    p_backfill.add_argument("--dry-run", action="store_true",
+                            help="List what would be packed, write nothing")
+    p_backfill.add_argument("--include-active", action="store_true",
+                            help="Also re-pack sessions modified in the "
+                                 "last 15 min (normally left to the hooks)")
+
     # scorecard — Layer-1 cross-repo telemetry aggregation
     p_score = sub.add_parser(
         "scorecard",
@@ -434,6 +454,8 @@ def _run(argv: list[str]) -> int:
             return _cmd_onboard(args)
         elif args.command == "lessons":
             return _cmd_lessons(args)
+        elif args.command == "backfill":
+            return _cmd_backfill(args)
         elif args.command == "scorecard":
             return _cmd_scorecard(args)
         elif args.command == "session":
@@ -1059,6 +1081,37 @@ def _cmd_checkpoint(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_backfill(args: argparse.Namespace) -> int:
+    from ..agent.backfill import capture_coverage, run_backfill
+
+    report = capture_coverage(args.project_dir, args.out)
+    counts = report.counts()
+    print(f"Coverage ({report.transcript_dir}):")
+    print(f"  packed: {counts['packed']}  stale: {counts['stale']}  "
+          f"unpacked: {counts['unpacked']}  active: {counts['active']}")
+    if report.worktree_local_ledger:
+        print("  WARNING: this is a git WORKTREE with its own ledger — "
+              "sessions packed here die with the worktree")
+    rows = run_backfill(args.project_dir, args.out, as_of=args.as_of,
+                        dry_run=args.dry_run,
+                        include_active=args.include_active)
+    if not rows:
+        print("Nothing to backfill — every transcript is packed.")
+        return 0
+    for r in rows:
+        print(f"  {r.outcome:15s} {r.session[:8]} "
+              f"(was {r.status_before}) {r.detail}")
+    failed = [r for r in rows if r.outcome == "failed"]
+    verb = "planned" if args.dry_run else "packed"
+    done = sum(1 for r in rows
+               if r.outcome in ("packed", "planned"))
+    print(f"Backfill: {done}/{len(rows)} {verb}"
+          + (f", {len(failed)} FAILED" if failed else "")
+          + ("" if args.dry_run else
+             " (archive mode: latest-gist untouched)"))
+    return 1 if failed else 0
+
+
 def _cmd_hook(args: argparse.Namespace) -> int:
     """Claude Code hook entry point. Reads the hook event JSON on stdin.
 
@@ -1124,6 +1177,19 @@ def _cmd_hook(args: argparse.Namespace) -> int:
     # A true blank slate = temporarily disable the hooks.
     from ..agent.checkpoint import read_startup_context
     gist = read_startup_context(out_dir)
+    # Capture-coverage self-report (setu field gap 2026-07-21): a session
+    # the hooks never packed must announce itself at the next start, not
+    # hide until someone inspects file mtimes. Fail-open — the check must
+    # never break session start; the just-started session is excluded.
+    try:
+        from ..agent.backfill import capture_coverage, format_gap_warning
+        warning = format_gap_warning(capture_coverage(
+            str(payload.get("cwd") or "."), out_dir,
+            exclude_session=str(payload.get("session_id", ""))))
+    except Exception:  # noqa: BLE001
+        warning = ""
+    if warning:
+        gist = f"{warning}\n\n{gist}" if gist else warning
     if gist:
         print(_json.dumps({
             "hookSpecificOutput": {
