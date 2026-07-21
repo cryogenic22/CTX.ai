@@ -259,6 +259,14 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 - **A5 review cycle unaffected:** the round-5 SHAs under review stay main `888324b` + parked `3f32ec3`; this feature is a later main commit (`57bbfa2`) and was NOT merged to the parked branch.
 - **Next recommended action:** owner thread E-6 unchanged; Codex-capture eval probe to be scheduled after the A5 cycle closes; reviewer may include `57bbfa2` in a future pass (not part of round-5 scope).
 
+### 2026-07-21 — Claude Code (session `fb94cd9f`) — capture-coverage reconciliation shipped (`04e5bde`; Kapil-ratified, from the setu field report)
+- **Origin (field evidence, banked in owner memory):** setu's agent self-diagnosed that a whole session (their live task) was never packed — crash/kill//clear skipped the hooks — and the gap was invisible until file-mtime archaeology. Validated in the same report: identifier_fidelity 1.0/61 checkpoints, "orientation not truth" role, contradiction-detection value. The hollow guard (`57bbfa2`) protects write integrity; this package protects the other half, COVERAGE.
+- **Shipped:** `ctxpack/agent/backfill.py` — `capture_coverage` (packed/stale/unpacked/active per transcript + worktree-local-ledger flag), `ctxpack backfill [--dry-run]` (idempotent, per-session fail-open with reported skips), **archive mode** in `run_checkpoint` (a backfilled past session never touches `latest-gist.md`, never hijacks `resolve_session`'s default — archive-flagged journal rows; `session_reader` prefers the last LIVE row), SessionStart hook now prepends a loud `[ctx capture gap]` line when unpacked transcripts exist (fail-open), scorecard gains per-repo `capture` block + cohort `capture_unpacked`.
+- **Evidence:** 10 new tests; full non-slow sweep **1577 / 35-skip**; dogfooded live on THIS repo — coverage found 1 stale session (`a4f3cf5f`), backfilled in archive mode (28 entities, 55 turns), default session resolution verified unaffected.
+- **Open design question (Kapil):** worktree ledger anchoring — coverage/doctor now FLAGS a worktree-local ledger, but anchoring worktree sessions to the main repo's ledger (`git rev-parse --git-common-dir`) is an undecided write-location change.
+- **Cohort:** setu's Jul-20 session is recoverable with one `ctxpack backfill` run in their repo (after their ctxpack update); root cause of the drop still unconfirmed (restart-caveat suspected). Prime cohort-report material.
+- **A5 review cycle unaffected:** round-5 SHAs stay main `888324b` + parked `3f32ec3`; not merged to parked.
+
 ---
 
 ## Reviewer Notes
