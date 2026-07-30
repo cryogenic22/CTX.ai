@@ -12,10 +12,19 @@ This log closes that hole. One append-only row per SessionStart, giving
 attempted / injected / empty / failed, plus the size and hash of the
 bytes actually handed to the agent.
 
-**Delivery is not use.** Every value here describes what the hook
-emitted. None of them is evidence that the model read the bytes, relied
-on them, or benefited from them — see ``ctxpack.core.states.Delivery``,
-where that non-inference rule is executable rather than commented.
+**What this measures, exactly: bytes successfully written to the
+SessionStart hook's stdout.** Not that the harness forwarded them, not
+that they entered the model's context, not that the model read them,
+and certainly not that they helped. Those are three further steps, all
+unmeasured. The name for the quantity is ``emitted_to_hook_stdout``,
+and every caller should use it rather than "delivered" — see
+``ctxpack.core.states.Delivery``, where the non-inference rule is
+executable rather than commented.
+
+The receipt is therefore written AFTER the emission it attests to. An
+earlier version recorded first, so a failed stdout flush would have been
+banked as a successful emission: a receipt that can be true while the
+thing it certifies did not happen is worse than no receipt.
 
 Deliberately a separate file from ``events.jsonl``: that one is derived
 at checkpoint from a transcript fold ONLY, so it stays byte-replayable
@@ -97,11 +106,11 @@ def read_injections(ledger_dir: str) -> "list[dict]":
     return rows
 
 
-def delivered_sessions(ledger_dir: str):
-    """8-char session prefixes that received a non-empty injection.
+def emitted_sessions(ledger_dir: str):
+    """8-char session prefixes for which a non-empty gist was emitted.
 
     ``None`` when the log is absent — the caller must report the join as
-    unmeasured rather than as "nothing was delivered". Same absent-vs-zero
+    unmeasured rather than as "nothing was emitted". Same absent-vs-zero
     distinction the pull side gets wrong without it.
     """
     rows = read_injections(ledger_dir)
@@ -127,12 +136,15 @@ def injection_stats(ledger_dir: str) -> dict[str, Any]:
              if str(r.get("outcome")) == INJECTED]
     latest = rows[-1]
     return {
+        # names the quantity so no reader has to infer it from a label
+        "measures": "emitted_to_hook_stdout",
         "attempted": len(rows),
         "injected": by_outcome.get(INJECTED, 0),
         "empty": by_outcome.get(EMPTY, 0),
         "failed": by_outcome.get(FAILED, 0),
         "gap_warnings": sum(1 for r in rows if r.get("gap_warning")),
-        "delivery_rate": round(by_outcome.get(INJECTED, 0) / len(rows), 3),
+        "emit_success_rate": round(
+            by_outcome.get(INJECTED, 0) / len(rows), 3),
         "injected_bytes": ({"min": min(sizes), "max": max(sizes),
                             "mean": round(sum(sizes) / len(sizes), 1)}
                            if sizes else {}),

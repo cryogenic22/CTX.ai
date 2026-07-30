@@ -631,7 +631,7 @@ def session_resume(ledger_dir: str = DEFAULT_LEDGER_DIR,
     }
 
 
-def classify_read_path(rows, delivered_sessions=None) -> dict[str, Any]:
+def classify_read_path(rows, emitted_sessions=None) -> dict[str, Any]:
     """Session-level read-path adoption from checkpoint journal rows.
 
     The event counters alone cannot answer the question two field
@@ -646,7 +646,7 @@ def classify_read_path(rows, delivered_sessions=None) -> dict[str, Any]:
     two would make the pull path look adopted in every session that
     merely started.
 
-    ``delivered_sessions`` — 8-char session prefixes with at least one
+    ``emitted_sessions`` — 8-char session prefixes with at least one
     successful injection receipt — splits the zero-recall bucket, which
     is otherwise two very different sessions wearing one label: one that
     was handed a gist and never queried, and one that got no ledger
@@ -672,9 +672,9 @@ def classify_read_path(rows, delivered_sessions=None) -> dict[str, Any]:
             explicit += 1
         else:
             zero += 1
-            if delivered_sessions is None:
+            if emitted_sessions is None:
                 delivery_unmeasured += 1
-            elif str(row.get("session", ""))[:8] in delivered_sessions:
+            elif str(row.get("session", ""))[:8] in emitted_sessions:
                 with_delivery += 1
             else:
                 no_delivery += 1
@@ -686,9 +686,9 @@ def classify_read_path(rows, delivered_sessions=None) -> dict[str, Any]:
         "sessions_zero_recall": zero,
         "sessions_no_telemetry": untracked,
         "sessions_transcript_fallback": fallback,
-        "sessions_zero_recall_with_delivery": with_delivery,
-        "sessions_zero_recall_no_delivery": no_delivery,
-        "sessions_zero_recall_delivery_unmeasured": delivery_unmeasured,
+        "sessions_zero_recall_with_emission": with_delivery,
+        "sessions_zero_recall_no_emission": no_delivery,
+        "sessions_zero_recall_emission_unmeasured": delivery_unmeasured,
         "explicit_recall_rate": (round(explicit / measured, 3)
                                  if measured else None),
     }
@@ -741,10 +741,10 @@ def session_stats(ledger_dir: str = DEFAULT_LEDGER_DIR) -> dict[str, Any]:
     # the injection log), never "never injected". The session set joins
     # zero-recall sessions to their delivery receipt, so "never queried"
     # can be told apart from "never given anything".
-    from .injection_log import delivered_sessions, injection_stats
+    from .injection_log import emitted_sessions, injection_stats
     startup_injection = injection_stats(ledger_dir)
     sessions_read_path = classify_read_path(
-        last_per_session.values(), delivered_sessions(ledger_dir))
+        last_per_session.values(), emitted_sessions(ledger_dir))
 
     latencies = [row["latency_ms"] for row in rows
                  if isinstance(row.get("latency_ms"), (int, float))]

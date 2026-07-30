@@ -69,9 +69,9 @@ def test_zero_recall_splits_by_delivery_receipt():
     ]
     out = classify_read_path(rows, {"aaaaaaaa"})
     assert out["sessions_zero_recall"] == 2
-    assert out["sessions_zero_recall_with_delivery"] == 1
-    assert out["sessions_zero_recall_no_delivery"] == 1
-    assert out["sessions_zero_recall_delivery_unmeasured"] == 0
+    assert out["sessions_zero_recall_with_emission"] == 1
+    assert out["sessions_zero_recall_no_emission"] == 1
+    assert out["sessions_zero_recall_emission_unmeasured"] == 0
 
 
 def test_absent_injection_log_reports_unmeasured_not_no_delivery():
@@ -79,25 +79,25 @@ def test_absent_injection_log_reports_unmeasured_not_no_delivery():
     rows = [{"session": "aaaaaaaa11", "stats": {"ledger_reads": 0,
                                                 "transcript_greps": 0}}]
     out = classify_read_path(rows, None)
-    assert out["sessions_zero_recall_delivery_unmeasured"] == 1
-    assert out["sessions_zero_recall_no_delivery"] == 0
-    assert out["sessions_zero_recall_with_delivery"] == 0
+    assert out["sessions_zero_recall_emission_unmeasured"] == 1
+    assert out["sessions_zero_recall_no_emission"] == 0
+    assert out["sessions_zero_recall_with_emission"] == 0
 
 
-def test_delivered_sessions_absent_log_is_none_not_empty_set():
-    from ctxpack.agent.injection_log import delivered_sessions
-    assert delivered_sessions("no/such/dir") is None
+def test_emitted_sessions_absent_log_is_none_not_empty_set():
+    from ctxpack.agent.injection_log import emitted_sessions
+    assert emitted_sessions("no/such/dir") is None
 
 
-def test_dashboard_reports_delivery_and_never_claims_use():
-    """Delivery receipts prove bytes were emitted. The page may not
-    upgrade that into consumption, use or value anywhere."""
+def test_dashboard_reports_emission_and_never_claims_use():
+    """Receipts prove bytes reached the hook's stdout. The page may not
+    upgrade that into delivery, consumption, use or value anywhere."""
     from ctxpack.agent.dashboard import render_markdown
 
     md = render_markdown({
         "cohort": {"read_path": {"sessions_explicit_recall": 0,
                                  "sessions_zero_recall": 3,
-                                 "sessions_zero_recall_with_delivery": 3,
+                                 "sessions_zero_recall_with_emission": 3,
                                  "sessions_no_telemetry": 0,
                                  "sessions_transcript_fallback": 0,
                                  "explicit_recall_rate": 0.0},
@@ -106,9 +106,11 @@ def test_dashboard_reports_delivery_and_never_claims_use():
                                          "gap_warnings": 0}},
         "repos": [],
     })
-    assert "Delivery is not use." in md
+    assert "Emission is not use." in md
     assert "being consumed" not in md
-    assert "of which a gist was delivered" in md
+    assert "of which a gist was emitted" in md
+    # the page must not upgrade stdout emission into agent delivery
+    assert "delivered" not in md.lower()
 
 
 def test_classify_read_path_empty_ledger_rate_is_none():
@@ -345,7 +347,7 @@ def test_injection_outcomes_and_hash(tmp_path):
     stats = injection_stats(str(out))
     assert stats == {**stats, "attempted": 3, "injected": 1, "empty": 1,
                      "failed": 1}
-    assert stats["delivery_rate"] == 0.333
+    assert stats["emit_success_rate"] == 0.333
     rows = [json.loads(x) for x in
             (out / INJECTION_LOG).read_text(encoding="utf-8").splitlines()]
     assert len(rows[0]["sha256"]) == 64
@@ -380,6 +382,48 @@ def test_session_start_hook_logs_what_it_injected(tmp_path, monkeypatch,
     assert row["sha256"] == hashlib.sha256(
         emitted.encode("utf-8")).hexdigest()
     assert row["bytes"] == len(emitted.encode("utf-8"))
+    assert stats["measures"] == "emitted_to_hook_stdout"
+
+
+def test_a_failed_emit_is_never_recorded_as_a_successful_one(
+        tmp_path, monkeypatch, capsys):
+    """The receipt is written AFTER the write it attests to.
+
+    Recording first would let a broken pipe or closed stdout be banked
+    as `injected` — a receipt that can be true while the thing it
+    certifies did not happen is worse than no receipt.
+    """
+    repo = tmp_path / "repo"
+    home = tmp_path / "home"
+    (home / "projects" / _claude_project_dir_name(str(repo))).mkdir(
+        parents=True)
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(home))
+    out = repo / ".claude" / "ctx"
+    run_checkpoint(_transcript(tmp_path, "prior222-0000"), str(out),
+                   as_of="2026-07-25")
+
+    import builtins
+    real_print = builtins.print
+
+    def exploding_print(*a, **k):
+        raise BrokenPipeError("stdout closed")
+
+    monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(
+        {"cwd": str(repo), "session_id": "brokpipe-0000"})))
+    monkeypatch.setattr(builtins, "print", exploding_print)
+    try:
+        assert main(["hook", "session-start", "--out", str(out)]) == 0
+    finally:
+        monkeypatch.setattr(builtins, "print", real_print)
+    capsys.readouterr()
+
+    stats = injection_stats(str(out))
+    assert stats["attempted"] == 1
+    assert stats["injected"] == 0      # NOT banked as a success
+    assert stats["failed"] == 1
+    row = json.loads((out / INJECTION_LOG).read_text(
+        encoding="utf-8").splitlines()[0])
+    assert "emit failed" in row["error"]
 
 
 def test_session_start_records_failure_without_breaking_the_session(

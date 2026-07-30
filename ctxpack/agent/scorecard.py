@@ -71,16 +71,16 @@ def build_scorecard(repo_paths: list[str]) -> dict[str, Any]:
     # 07-21, OntoWiz 07-25) report never querying the ledger; until these
     # counters exist the claim is neither confirmable nor refutable from
     # our own telemetry, because a zero-query session and an untracked
-    # session look identical in the rate. The delivery split says whether
-    # a zero-recall session was even handed a gist — it does NOT say the
-    # gist was read or used.
+    # session look identical in the rate. The emission split says whether
+    # a gist was written to the hook's stdout for that session — NOT that
+    # it reached the agent, was read, or was used.
     rp_sessions = {
         k: _sum(lambda r, _k=k: r.get("read_path", {}).get(_k))
         for k in ("sessions_explicit_recall", "sessions_zero_recall",
                   "sessions_no_telemetry", "sessions_transcript_fallback",
-                  "sessions_zero_recall_with_delivery",
-                  "sessions_zero_recall_no_delivery",
-                  "sessions_zero_recall_delivery_unmeasured")
+                  "sessions_zero_recall_with_emission",
+                  "sessions_zero_recall_no_emission",
+                  "sessions_zero_recall_emission_unmeasured")
     }
     rp_measured = (rp_sessions["sessions_explicit_recall"]
                    + rp_sessions["sessions_zero_recall"])
@@ -117,9 +117,9 @@ def build_scorecard(repo_paths: list[str]) -> dict[str, Any]:
         # packed — each one is recall silently missing somewhere)
         "capture_unpacked": _sum(
             lambda r: r.get("capture", {}).get("unpacked")),
-        # push-path delivery: what the SessionStart hook actually handed
-        # to agents. Repos whose ledgers predate the injection log
-        # contribute nothing rather than zeros.
+        # push-path emission: what the SessionStart hook wrote to stdout.
+        # Repos whose ledgers predate the injection log contribute
+        # nothing rather than zeros.
         "startup_injection": {
             k: _sum(lambda r, _k=k: r.get("startup_injection", {}).get(_k))
             for k in ("attempted", "injected", "empty", "failed",

@@ -1219,21 +1219,30 @@ def _cmd_hook(args: argparse.Namespace) -> int:
     if warning:
         gist = f"{warning}\n\n{gist}" if gist else warning
 
-    # Push-path receipt (OntoWiz field gap 2026-07-25): record what was
-    # actually handed to the agent. Until now the ledger could prove what
-    # it WROTE and nothing proved what was READ BACK IN — a hook quietly
-    # injecting nothing was indistinguishable from a healthy one.
+    # Emit FIRST, then record. Writing the receipt before the write it
+    # attests to would let a failed stdout flush be banked as a
+    # successful emission — a receipt that can be true while the thing
+    # it certifies did not happen is worse than no receipt.
+    if gist and not outcome:
+        try:
+            print(_json.dumps({
+                "hookSpecificOutput": {
+                    "hookEventName": "SessionStart",
+                    "additionalContext": gist,
+                }
+            }))
+            sys.stdout.flush()
+        except Exception as e:  # noqa: BLE001 — broken pipe, closed stdout
+            outcome, error = FAILED, f"emit failed: {type(e).__name__}: {e}"
+
+    # Push-path receipt (OntoWiz field gap 2026-07-25). Measures exactly
+    # one thing: bytes successfully written to this hook's stdout.
+    # Whether the harness forwarded them, whether the model read them,
+    # and whether they helped are all UNMEASURED — see
+    # ctxpack.core.states.Delivery.
     record_injection(out_dir, session_id=str(payload.get("session_id", "")),
                      context=gist, outcome=outcome, error=error,
                      gap_warning=bool(warning))
-
-    if gist:
-        print(_json.dumps({
-            "hookSpecificOutput": {
-                "hookEventName": "SessionStart",
-                "additionalContext": gist,
-            }
-        }))
     return 0
 
 

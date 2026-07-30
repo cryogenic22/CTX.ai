@@ -103,10 +103,12 @@ edges, no cross-repo learning, no dashboard before the CLI and agent
 behaviour prove useful.
 
 **Added (query-surface freeze, ratified 2026-07-25):** no new MCP tools.
-Freshness reaches agents through the surfaces they already consume — the
-SessionStart injection, `resume`, `why` — plus a CLI verb. Two field
-reports show the pull path going uncalled; adding a tool nobody calls is
-how this design fails silently.
+Freshness rides the surfaces that already exist — the SessionStart
+injection, `resume`, `why` — plus a CLI verb. Two field reports measured
+the pull path going uncalled; adding a tool nobody calls is how this
+design fails silently. (Whether agents read what the push path emits is
+unmeasured, so "the surfaces they consume" is not a claim this spec is
+entitled to make.)
 
 ---
 

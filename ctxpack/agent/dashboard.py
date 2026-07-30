@@ -247,17 +247,18 @@ def render_markdown(scorecard: dict[str, Any]) -> str:
         f"{rp.get('sessions_explicit_recall', 0)} |",
         f"| Sessions with zero explicit recall | "
         f"{rp.get('sessions_zero_recall', 0)} |",
-        f"| ...of which a gist was delivered | "
-        f"{rp.get('sessions_zero_recall_with_delivery', 0)} |",
-        f"| ...of which no gist was delivered | "
-        f"{rp.get('sessions_zero_recall_no_delivery', 0)} |",
-        f"| ...delivery unmeasured | "
-        f"{rp.get('sessions_zero_recall_delivery_unmeasured', 0)} |",
+        f"| ...of which a gist was emitted | "
+        f"{rp.get('sessions_zero_recall_with_emission', 0)} |",
+        f"| ...of which no gist was emitted | "
+        f"{rp.get('sessions_zero_recall_no_emission', 0)} |",
+        f"| ...emission unmeasured | "
+        f"{rp.get('sessions_zero_recall_emission_unmeasured', 0)} |",
         f"| Sessions using transcript fallback | "
         f"{rp.get('sessions_transcript_fallback', 0)} |",
         f"| Sessions with no read telemetry | "
         f"{rp.get('sessions_no_telemetry', 0)} |",
-        f"| Startup injections (delivered / attempted) | {_injection_md(inj)} |",
+        f"| Startup gists emitted to hook stdout / attempted | "
+        f"{_injection_md(inj)} |",
         "",
         "Raw-fallback rate = raw-transcript greps ÷ (ledger reads + greps); "
         "lower is better — the earliest honest signal of whether the ledger "
@@ -265,21 +266,23 @@ def render_markdown(scorecard: dict[str, Any]) -> str:
         "",
         "**Pull vs push.** Explicit recall counts deliberate queries "
         "(`ctx/session_*`, `ctxpack session`) only; the SessionStart "
-        "injection is the push path and is not counted. Zero-recall "
-        "sessions are split by delivery receipt because the bucket "
-        "otherwise hides two different sessions: one handed a gist it "
-        "never queried, and one given no ledger context at all.",
+        "hook is the push path and is not counted. Zero-recall sessions "
+        "are split by emission receipt because the bucket otherwise "
+        "hides two different sessions: one for which a gist was written, "
+        "and one for which nothing was.",
         "",
-        "**Delivery is not use.** A delivered gist proves bytes were "
-        "emitted at session start. It is not evidence that the model "
-        "read them, relied on them, or benefited from them, and no "
-        "figure on this page may be described as consumption, use or "
-        "value. What the read path is measured to be is *uncalled*; "
-        "what the push path is measured to be is *delivered*. Any claim "
-        "beyond those two needs the flat-file arm, not this table. "
-        "Sessions with no telemetry were packed before these counters "
-        "existed and are excluded from the denominator: unmeasured is "
-        "not the same as unused.",
+        "**Emission is not use.** The push-path figures measure exactly "
+        "one thing: bytes successfully written to the SessionStart "
+        "hook's stdout. Whether the harness forwarded them, whether they "
+        "entered the model's context, whether the model read them and "
+        "whether they helped are four further steps, all unmeasured. No "
+        "figure on this page may be described as delivery to an agent, "
+        "consumption, use or value. What the read path is measured to be "
+        "is *uncalled*; what the push path is measured to be is "
+        "*emitted*. Any claim beyond those two needs the flat-file arm, "
+        "not this table. Sessions with no telemetry were packed before "
+        "these counters existed and are excluded from the denominator: "
+        "unmeasured is not the same as unused.",
         "",
         "### Incidents (agent-reported)",
         "",
