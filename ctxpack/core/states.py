@@ -167,10 +167,23 @@ def worst(states) -> Freshness:
     results is :attr:`Freshness.UNANCHORED` or
     :attr:`Freshness.NOT_APPLICABLE`, and which one it is depends on the
     fact's kind — not something this function may guess.
+
+    Also raises on a MIXED fold containing
+    :attr:`Freshness.NOT_APPLICABLE`. That state says the fact carries no
+    verifiable support at all, so it cannot coexist with a recipe result
+    for the same fact — such a fold is a caller bug, not a state to
+    resolve. Ranking it lowest instead (an earlier version did) let
+    ``worst([NOT_APPLICABLE, CURRENT])`` return ``CURRENT``, which
+    renders unsupported evidence as VERIFIED: the precise failure this
+    module exists to prevent.
     """
     ranked = sorted(states, key=lambda s: (-_SEVERITY[s], s.value))
     if not ranked:
         raise ValueError("worst() needs at least one state; see docstring")
+    if Freshness.NOT_APPLICABLE in ranked and len(set(ranked)) > 1:
+        raise ValueError(
+            "NOT_APPLICABLE cannot be folded with recipe results: a fact "
+            "either carries verifiable support or it does not")
     return Freshness(ranked[0])
 
 
@@ -189,10 +202,17 @@ def render_claim(claim: str, freshness: Freshness,
     assertion. The historical observation survives even after a newer
     contradicting result — the ledger annotates, it never rewrites.
 
+    ``NOT_APPLICABLE`` is handled separately: a constraint or literal has
+    no repository evidence to revalidate, so framing it as a historical
+    observation awaiting a re-run would be false in the other direction.
+    It renders unqualified but is never marked VERIFIED.
+
     Nothing calls this yet, by design: Track C rendering is gated. It is
     defined and tested here so the gate opens onto a settled rule.
     """
     if freshness is Freshness.CURRENT:
+        return claim
+    if freshness is Freshness.NOT_APPLICABLE:
         return claim
     where = f" at {observed_at}" if observed_at else ""
     return (f"Historical observation: {claim}{where}. "

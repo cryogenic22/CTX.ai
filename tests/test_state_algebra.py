@@ -102,13 +102,34 @@ def test_freshness_is_re_entrant_because_head_moves():
 
 # --- worst(): deterministic, worst-first ------------------------------
 
+_FOLDABLE = [s for s in Freshness if s is not Freshness.NOT_APPLICABLE]
+
+
 @pytest.mark.parametrize("size", [1, 2, 3])
 def test_worst_is_order_independent(size):
     """Packing is byte-deterministic, so the fold must not depend on
     recipe evaluation order."""
-    for combo in itertools.combinations(list(Freshness), size):
+    for combo in itertools.combinations(_FOLDABLE, size):
         results = {worst(p) for p in itertools.permutations(combo)}
         assert len(results) == 1, combo
+
+
+@pytest.mark.parametrize("other", _FOLDABLE)
+def test_not_applicable_cannot_be_folded_with_recipe_results(other):
+    """Ranking it lowest let worst([NOT_APPLICABLE, CURRENT]) return
+    CURRENT, rendering unsupported evidence as VERIFIED — the exact
+    failure this module exists to prevent. A mixed fold is a caller bug,
+    not a state to resolve."""
+    with pytest.raises(ValueError, match="NOT_APPLICABLE"):
+        worst([Freshness.NOT_APPLICABLE, other])
+    with pytest.raises(ValueError, match="NOT_APPLICABLE"):
+        worst([other, Freshness.NOT_APPLICABLE])
+
+
+def test_not_applicable_alone_still_folds():
+    assert worst([Freshness.NOT_APPLICABLE]) is Freshness.NOT_APPLICABLE
+    assert worst([Freshness.NOT_APPLICABLE,
+                  Freshness.NOT_APPLICABLE]) is Freshness.NOT_APPLICABLE
 
 
 def test_worst_is_idempotent_and_absorbing():
@@ -154,13 +175,22 @@ def test_not_applicable_never_renders_as_verified():
 def test_only_current_gets_a_bare_present_tense_claim():
     claim = "test_reseal fails"
     assert render_claim(claim, Freshness.CURRENT) == claim
-    for state in Freshness:
+    for state in _FOLDABLE:
         if state is Freshness.CURRENT:
             continue
         rendered = render_claim(claim, state)
         assert rendered != claim
         assert "Historical observation" in rendered
         assert "requires revalidation" in rendered
+
+
+def test_not_applicable_claims_are_not_framed_as_awaiting_revalidation():
+    """A durable constraint has no repository evidence to re-run, so
+    "requires revalidation" would be false in the other direction. It
+    renders plainly — and still never renders VERIFIED."""
+    claim = "Never edit CLAUDE.md"
+    assert render_claim(claim, Freshness.NOT_APPLICABLE) == claim
+    assert render(Freshness.NOT_APPLICABLE) != RENDERED_VERIFIED
 
 
 def test_stale_claim_keeps_the_historical_observation():
