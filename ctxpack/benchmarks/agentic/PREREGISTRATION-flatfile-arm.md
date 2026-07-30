@@ -129,33 +129,65 @@ default:
 | `current_state` | the contradicting fact at HEAD, with the command that establishes it |
 | `expected_verdict` | `stale` (claim no longer holds) or `control_current` (claim still holds) |
 
-**Grading rule.** Per item, the arm's answer is scored into exactly one
-of three classes, by deterministic string rules over the arm's output —
-no LLM judge:
+**Grading rule — structured verdicts, never prose.** Every H-4 answer
+must carry a line-anchored `VERDICT: holds|stale|unknown`, and the
+grader reads that token alone:
 
-- `confident_stale` — asserts the banked claim in the present tense with
-  no revalidation qualifier. **The failure being measured.**
-- `qualified` — reports the claim as a historical observation, or flags
-  it as needing revalidation, or abstains. Counts as a pass.
-- `wrong` — contradicts both the banked claim and the current state.
-  Scored separately; it is not a stale-assertion success.
+- `holds` — the banked claim is true of the repository now.
+- `stale` — it was true at `observed_at`, and is not now.
+- `unknown` — cannot be determined from the context available.
 
-`stale_assertion_rate` = `confident_stale` ÷ graded items. Ungraded
-items are disclosed, never dropped silently.
+An answer with no parseable verdict line is `unparseable`: a **protocol
+failure**, disclosed and gate-failing, never silently graded.
+
+This replaces a prose grader (v1) that scanned for qualifier phrases and
+claim substrings. Review found it untrustworthy in two ways before any
+run, and both are unfixable by adding phrases:
+
+- A qualifier *anywhere* passed the whole answer, so *"Historical
+  observation … but X is true now"* scored as careful while asserting
+  the stale claim.
+- Substring matching ignored polarity, so *"it is false that X"* scored
+  as asserting X.
+
+Both survive as frozen adversarial cases in `tests/test_h4_oracle.py`;
+any future grader must pass them.
+
+**Grader freeze.** The answer vocabulary, the verdict pattern, the
+required manifest fields and the expected-verdict values are hashed into
+`grader_id` (`h4-grader/v2`), stamped in every result file. Changing any
+of them changes the id, and results either side of that change are not
+comparable. Requiring a verdict token is a protocol obligation on **all**
+arms equally, stated in each arm's prompt; it is not a CTX affordance.
+
+**Metric.** `stale_assertion_rate` = `holds` answers ÷ **stale-positive
+items only**. Negative controls are never pooled into this denominator:
+a claim that is still true cannot be "confidently asserted stale", and
+pooling would let a larger control set flatter the headline. (An earlier
+draft of this file defined the rate over all graded items while the
+implementation divided by positives; the implementation was right and
+this sentence is the correction.) Unparseable items are disclosed and
+excluded from rates, never dropped silently.
 
 **Controls (both mandatory).** A manifest of only-stale items cannot
 distinguish an arm that tracks freshness from one that hedges
 everything. So:
 
-- **Positive controls** — `expected_verdict: stale`. An arm that never
-  qualifies fails them.
+- **Positive controls** — `expected_verdict: stale`. An arm that answers
+  `holds` fails them.
 - **Negative controls** — `expected_verdict: control_current`, claims
-  that are still true at HEAD. An arm that hedges everything fails
-  these, and its apparent H-4 win is exposed as blanket hedging.
+  that are still true at HEAD. The correct answer is `holds`; `stale` is
+  a false-stale and `unknown` is a hedge. Both are control errors.
 
-A run reports both rates. A `stale_assertion_rate` improvement with a
-degraded negative-control rate is **not** an improvement, and may not be
-reported as one.
+**Permitted errors are exact counts, not rates.** On a manifest this
+small a rate threshold is a guess dressed as a criterion — an earlier
+draft used 0.8, derived from nothing. Defaults: **zero** control errors
+and **zero** unparseable answers. A deterministic oracle has no noise to
+absorb; any nonzero allowance must be amended into this file with its
+justification before the run that uses it.
+
+A run reports both rates. A `stale_assertion_rate` improvement with any
+control error is **not** an improvement and may not be reported as one.
 
 **Manifest completeness checks (hard failures, not warnings).** Before
 any arm runs: every field present and non-empty; `item_id` unique;
@@ -167,11 +199,21 @@ duplicated, or unexpected) fails the run rather than scoring the
 intersection. Silently scoring an intersection is how a truncated run
 reports as a complete one.
 
+**Ledger binding is not optional.** `grade_run` requires the ledger
+facts and refuses to run without them. In v1 the parameter defaulted to
+`None` and the grading entry point never passed it, so the advertised
+resolution and byte-equality checks never executed — an optional
+integrity check is not an integrity check.
+
 **Mutation test (gate falsifiability).** The gate must be shown capable
-of turning red before it is trusted to turn green: a fixture that
-mutates one manifest item's `expected_verdict` must flip the run from
-pass to fail. Implemented in `h4_oracle.py` with tests; a gate never
-observed failing is not evidence.
+of turning red before it is trusted to turn green. The fixture changes
+**exactly one** item's `expected_verdict`, on a manifest of **at least
+three** items so the mutation is a single change rather than a swap,
+keeps the manifest valid and the answers byte-identical, and asserts the
+run flips pass → fail. (The v1 fixture swapped two expectations on a
+two-item manifest, which is not a single-expectation mutation.)
+Implemented in `h4_oracle.py` with tests; a gate never observed failing
+is not evidence.
 
 ## Metrics
 
@@ -180,11 +222,20 @@ comparator, never pooled):
 
 - `accuracy` per handoff kind, rule-graded against the ledger.
 - `literal_exactness` — verbatim identifier match (H-3 headline).
-- `stale_assertion_rate` — claims stated flatly whose repository state
-  has changed (H-4 headline). **Lower is better; this is the only
-  metric where a confident answer can score worse than an abstention.**
-- `abstention_rate` — "not found in context", scored separately from
-  wrong answers. An honest miss is not a hallucination.
+- `stale_assertion_rate` — `holds` verdicts on stale-positive items,
+  over stale-positive items (H-4 headline; denominator defined in the
+  oracle section above). **Lower is better; this is the only metric
+  where a confident answer can score worse than an abstention** — which
+  is exactly why it is never read without the negative controls beside
+  it.
+- `negative_control_rate` and `control_errors` — reported with every
+  `stale_assertion_rate`, never after it and never separately. A
+  headline improvement bought by hedging is disqualified by
+  construction.
+- `abstention_rate` — `unknown` verdicts, scored separately from wrong
+  answers. An honest miss is not a hallucination.
+- `unparseable` — answers carrying no verdict line. A protocol failure,
+  disclosed per item; the default permitted count is zero.
 
 **Maintenance cost** (the axis the outcome metrics hide):
 
@@ -227,6 +278,8 @@ rests on gates 1–4.
 - Every result file stamps: `arms`, `probe_set_sha256`, `seed`,
   `maintenance_prompt_sha256`, `flatfile_budget_tokens`, the repo commit
   the ledger was read at, and `measurement_class: "calibration"`.
+  H-4 additionally stamps `manifest_sha256` and `grader_id`; a result
+  file lacking either cannot be compared with one that has them.
 - Any published summary states the arm labels in full (`ctx-push`, not
   `ctx`) and the n (four handoffs).
 - A file lacking a field predates the rule that introduced it.

@@ -8,19 +8,33 @@ module is that missing oracle.
 
 Protocol: ``PREREGISTRATION-flatfile-arm.md``, section "H-4 oracle
 manifest — h4-oracle/v1". Everything here is deterministic and offline —
-no LLM judge, no network, stdlib only. Nothing in this module executes
-a scored run; it validates a manifest and grades answers already
+no LLM judge, no network, stdlib only. Nothing in this module executes a
+scored run; it validates a manifest and grades answers already
 collected.
 
-Two design rules carry the weight:
+**Grading reads a structured verdict, never prose.** v1 scanned the
+answer text for qualifier phrases and claim substrings, which was not
+trustworthy in two ways a review caught before any run: a qualifier
+*anywhere* passed the whole answer, so "Historical observation ... but X
+is true now" scored as careful; and substring matching ignored polarity,
+so "it is false that X" scored as asserting X. Both are unfixable by
+adding phrases — the grader was doing shallow NLP on adversarial text.
+v2 requires each answer to carry a ``VERDICT:`` line and grades that
+token alone. An answer without one is a protocol failure, disclosed and
+gate-failing, never silently graded.
+
+Three design rules carry the weight:
 
 1. **Exact row sets.** Grading an intersection of what was asked and
    what came back lets a truncated run report as a complete one. Any
    difference in either direction is a hard failure.
-2. **Both control classes.** A manifest of only-stale items cannot tell
+2. **Ledger-backed validation is mandatory.** Grading is only meaningful
+   against text that was actually banked, so the entry point requires
+   the ledger facts rather than accepting a default.
+3. **Both control classes.** A manifest of only-stale items cannot tell
    an arm that tracks freshness from one that hedges everything, so
-   negative controls are mandatory and a stale-rate improvement bought
-   with blanket hedging is not an improvement.
+   negative controls are mandatory and permitted control errors are an
+   exact count (zero by default), not a guessed rate.
 """
 
 from __future__ import annotations
@@ -31,29 +45,46 @@ import re
 from typing import Any
 
 SCHEMA = "h4-oracle/v1"
+GRADER_VERSION = "h4-grader/v2"
 
 REQUIRED_FIELDS = ("item_id", "banked_claim", "fact_id", "observed_at",
                    "current_state", "expected_verdict")
 
-VERDICT_STALE = "stale"                    # positive control
+VERDICT_STALE = "stale"                      # positive control
 VERDICT_CONTROL_CURRENT = "control_current"  # negative control
 VERDICTS = (VERDICT_STALE, VERDICT_CONTROL_CURRENT)
 
-# Grading classes
-CONFIDENT_STALE = "confident_stale"  # the failure being measured
-QUALIFIED = "qualified"              # historical framing, hedge, or abstention
-WRONG = "wrong"                      # contradicts banked claim AND HEAD
+# The answer vocabulary an arm must use. Frozen: adding a token changes
+# what is measured, so it changes GRADER_ID and requires an amendment.
+ANSWER_HOLDS = "holds"        # the banked claim is true of the repo now
+ANSWER_STALE = "stale"        # it was true then, not now
+ANSWER_UNKNOWN = "unknown"    # cannot tell from context
+ANSWER_TOKENS = (ANSWER_HOLDS, ANSWER_STALE, ANSWER_UNKNOWN)
+UNPARSEABLE = "unparseable"   # no verdict line — a protocol failure
 
-# Qualifiers that turn a present-tense assertion into an honest one.
-# Deliberately a fixed, auditable list: a regex that "understands"
-# hedging is an LLM judge with extra steps.
-_QUALIFIER_RE = re.compile(
-    r"historical observation|requires revalidation|needs revalidation"
-    r"|may no longer|no longer be true|as of revision|at revision"
-    r"|not verified|unverified|cannot confirm|could not confirm"
-    r"|i don't know|i do not know|not found in context|unable to verify",
-    re.IGNORECASE,
+# Anchored at line start so a verdict quoted mid-prose ("do not answer
+# VERDICT: holds") cannot be mistaken for the answer's own verdict.
+_VERDICT_RE = re.compile(
+    r"^[\s>*_-]*verdict[\s*_]*:[\s*_]*(" + "|".join(ANSWER_TOKENS) + r")\b",
+    re.IGNORECASE | re.MULTILINE,
 )
+
+
+def grader_id() -> str:
+    """Stable hash of everything that determines a grade.
+
+    Stamped in every result file. If this changes, results from before
+    the change are not comparable to results after it — which is the
+    point of stamping it rather than trusting a version string.
+    """
+    frozen = json.dumps({
+        "grader": GRADER_VERSION,
+        "answer_tokens": list(ANSWER_TOKENS),
+        "verdict_pattern": _VERDICT_RE.pattern,
+        "required_fields": list(REQUIRED_FIELDS),
+        "expected_verdicts": list(VERDICTS),
+    }, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(frozen.encode("utf-8")).hexdigest()[:16]
 
 
 class ManifestError(ValueError):
@@ -71,12 +102,12 @@ def manifest_sha256(items: "list[dict]") -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def validate_manifest(items: "list[dict]", ledger_facts=None) -> None:
-    """Hard completeness checks. Raises :class:`ManifestError`.
+def validate_shape(items: "list[dict]") -> None:
+    """Structural checks only. NOT sufficient to grade against.
 
-    ``ledger_facts`` maps fact_id -> banked text. When supplied, every
-    item must resolve and its ``banked_claim`` must match byte-for-byte:
-    a paraphrased claim grades an arm against text nobody banked.
+    Public so manifest authoring can be checked before the ledger is
+    available, but :func:`grade_run` deliberately does not call it —
+    grading requires :func:`validate_manifest` with the ledger.
     """
     if not items:
         raise ManifestError("manifest is empty")
@@ -97,16 +128,6 @@ def validate_manifest(items: "list[dict]", ledger_facts=None) -> None:
             raise ManifestError(
                 f"item {item_id!r}: expected_verdict must be one of "
                 f"{VERDICTS}, got {item['expected_verdict']!r}")
-        if ledger_facts is not None:
-            fact_id = str(item["fact_id"])
-            if fact_id not in ledger_facts:
-                raise ManifestError(
-                    f"item {item_id!r}: fact_id {fact_id!r} does not "
-                    f"resolve in the ledger")
-            if ledger_facts[fact_id] != item["banked_claim"]:
-                raise ManifestError(
-                    f"item {item_id!r}: banked_claim does not match the "
-                    f"ledger text byte-for-byte")
 
     verdicts = {str(i["expected_verdict"]) for i in items}
     if VERDICT_STALE not in verdicts:
@@ -117,58 +138,54 @@ def validate_manifest(items: "list[dict]", ledger_facts=None) -> None:
                             "everything would pass")
 
 
-def classify_answer(answer: str, item: dict) -> str:
-    """Grade one answer into exactly one class. Deterministic.
+def validate_manifest(items: "list[dict]", ledger_facts: dict) -> None:
+    """Shape plus ledger binding. ``ledger_facts`` is REQUIRED.
 
-    An answer that repeats the banked claim without any qualifier is
-    ``confident_stale`` — that is the behaviour H-4 measures. Anything
-    qualified, historical, or abstaining is ``qualified``. An answer
-    that asserts neither the banked claim nor the current state is
-    ``wrong``, scored apart so a confused arm never reads as a careful
-    one.
+    Maps fact_id -> banked text. Every item must resolve and its
+    ``banked_claim`` must match byte-for-byte: a paraphrased claim grades
+    an arm against text nobody banked. An earlier version defaulted this
+    to ``None`` and the grading entry point never passed it, so the
+    advertised checks never ran — an optional integrity check is not an
+    integrity check.
     """
-    text = (answer or "").strip()
-    if _QUALIFIER_RE.search(text):
-        return QUALIFIED
-    lowered = text.lower()
-    if _asserts(lowered, str(item["banked_claim"])):
-        return CONFIDENT_STALE
-    if _asserts(lowered, str(item["current_state"])):
-        return QUALIFIED
-    return WRONG
+    validate_shape(items)
+    if ledger_facts is None:
+        raise ManifestError(
+            "ledger_facts is required: grading against unbound claims "
+            "would score arms on text nobody banked")
+    for item in items:
+        item_id, fact_id = str(item["item_id"]), str(item["fact_id"])
+        if fact_id not in ledger_facts:
+            raise ManifestError(
+                f"item {item_id!r}: fact_id {fact_id!r} does not resolve "
+                f"in the ledger")
+        if ledger_facts[fact_id] != item["banked_claim"]:
+            raise ManifestError(
+                f"item {item_id!r}: banked_claim does not match the "
+                f"ledger text byte-for-byte")
 
 
-def _asserts(lowered_answer: str, claim: str) -> bool:
-    """Whether the answer carries the claim's content words.
+def parse_verdict(answer: str) -> str:
+    """Extract the answer's verdict token, or ``UNPARSEABLE``.
 
-    Verbatim substring first, then a content-word floor so trivial
-    rewording does not read as a non-answer. Matching is on WHOLE
-    TOKENS, not substrings: "reseal" inside "test_reseal" is a different
-    identifier, and substring matching graded "test_reseal passes at
-    HEAD" as an assertion of "the reseal test is red" — the exact
-    inversion H-4 measures. No stemming, no embeddings: a grader that
-    guesses is a grader that can be argued with after the fact.
+    First line-anchored match wins. No prose inspection: polarity,
+    clause scope and hedging are the arm's problem to express in the
+    token, not the grader's to infer.
     """
-    claim_l = claim.strip().lower()
-    if claim_l and claim_l in lowered_answer:
-        return True
-    answer_tokens = set(re.findall(r"[a-z0-9_./$-]+", lowered_answer))
-    words = {w for w in re.findall(r"[a-z0-9_./$-]+", claim_l) if len(w) >= 4}
-    if not words:
-        return False
-    hits = len(words & answer_tokens)
-    return hits >= max(2, (len(words) + 1) // 2)
+    match = _VERDICT_RE.search(answer or "")
+    return match.group(1).lower() if match else UNPARSEABLE
 
 
-def grade_run(items: "list[dict]", answers: "dict[str, str]") -> dict[str, Any]:
-    """Grade a full arm. Exact row sets — no intersection scoring.
+def grade_run(items: "list[dict]", answers: "dict[str, str]",
+              ledger_facts: dict) -> dict[str, Any]:
+    """Grade a full arm. Exact row sets, ledger-backed, no prose rules.
 
     Raises :class:`ManifestError` when the answered item_ids differ from
     the manifest's in any direction. Duplicates cannot reach here (dict
     keys), so the collector must reject them upstream; missing and
     unexpected ids are caught here.
     """
-    validate_manifest(items)
+    validate_manifest(items, ledger_facts)
     expected = {str(i["item_id"]) for i in items}
     got = {str(k) for k in answers}
     missing, unexpected = sorted(expected - got), sorted(got - expected)
@@ -178,47 +195,61 @@ def grade_run(items: "list[dict]", answers: "dict[str, str]") -> dict[str, Any]:
             f"scoring the intersection would report a truncated run as "
             f"complete")
 
-    classes: dict[str, str] = {}
-    for item in items:
-        item_id = str(item["item_id"])
-        classes[item_id] = classify_answer(answers[item_id], item)
+    verdicts = {str(i["item_id"]): parse_verdict(answers[str(i["item_id"])])
+                for i in items}
 
-    positives = [i for i in items if i["expected_verdict"] == VERDICT_STALE]
-    negatives = [i for i in items
+    positives = [str(i["item_id"]) for i in items
+                 if i["expected_verdict"] == VERDICT_STALE]
+    negatives = [str(i["item_id"]) for i in items
                  if i["expected_verdict"] == VERDICT_CONTROL_CURRENT]
-    confident = sum(1 for i in positives
-                    if classes[str(i["item_id"])] == CONFIDENT_STALE)
-    # On a still-true claim, asserting it IS the correct answer; hedging
-    # it is the false-positive this control exists to catch.
-    neg_ok = sum(1 for i in negatives
-                 if classes[str(i["item_id"])] == CONFIDENT_STALE)
+    # Denominator is stale-positive items ONLY. A claim that is still
+    # true cannot be "confidently asserted stale", so pooling controls
+    # into this rate would let a bigger control set flatter the headline.
+    # The negative controls have their own rate; the two never merge.
+    confident = sum(1 for k in positives if verdicts[k] == ANSWER_HOLDS)
+    control_ok = sum(1 for k in negatives if verdicts[k] == ANSWER_HOLDS)
+    control_errors = [k for k in negatives if verdicts[k] != ANSWER_HOLDS]
+    unparseable = sorted(k for k, v in verdicts.items() if v == UNPARSEABLE)
     return {
         "schema": SCHEMA,
+        "grader_id": grader_id(),
         "manifest_sha256": manifest_sha256(items),
         "graded": len(items),
-        "classes": classes,
+        "verdicts": verdicts,
         "stale_assertion_rate": (round(confident / len(positives), 3)
                                  if positives else None),
-        "negative_control_rate": (round(neg_ok / len(negatives), 3)
+        "stale_positives": len(positives),
+        "negative_control_rate": (round(control_ok / len(negatives), 3)
                                   if negatives else None),
-        "wrong": sum(1 for c in classes.values() if c == WRONG),
+        "control_errors": sorted(control_errors),
+        "unparseable": unparseable,
     }
 
 
 def gate(result: dict, baseline: dict = None,
-         min_negative_control: float = 0.8) -> dict[str, Any]:
+         max_control_errors: int = 0,
+         max_unparseable: int = 0) -> dict[str, Any]:
     """Pass/fail for one arm, with the hedging escape closed.
 
-    A lower ``stale_assertion_rate`` bought by hedging every claim is not
-    an improvement, so a run whose negative-control rate falls below
-    ``min_negative_control`` fails regardless of its headline number.
+    Permitted errors are exact COUNTS, not rates. On a manifest this
+    small a rate threshold is a guess dressed as a criterion — an
+    earlier version used 0.8, which was never derived from anything.
+    Zero is the default because a deterministic oracle has no noise to
+    absorb; a nonzero allowance must be pre-registered with its
+    justification.
     """
     reasons: "list[str]" = []
-    neg = result.get("negative_control_rate")
-    if neg is None or neg < min_negative_control:
+    bad = list(result.get("unparseable") or [])
+    if len(bad) > max_unparseable:
         reasons.append(
-            f"negative controls {neg} < {min_negative_control}: the arm "
-            f"hedges claims that are still true")
+            f"{len(bad)} answers carried no VERDICT line "
+            f"(max {max_unparseable}): {bad[:5]}")
+    errors = list(result.get("control_errors") or [])
+    if len(errors) > max_control_errors:
+        reasons.append(
+            f"{len(errors)} negative-control errors (max "
+            f"{max_control_errors}): the arm hedges or falsely marks "
+            f"stale claims that are still true: {errors[:5]}")
     if baseline is not None:
         here = result.get("stale_assertion_rate")
         there = baseline.get("stale_assertion_rate")
