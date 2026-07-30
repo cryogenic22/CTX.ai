@@ -660,3 +660,52 @@ Standing state unchanged: no replication is reviewer-approved; no new
 $2 authorization exists; `3e1aaee` remains immutable; the parked
 branch remains do-not-merge; the separate parked-code review remains
 outstanding.
+
+## A6 — FLATFILE arm: three-arm handoff calibration
+
+- **Pre-registered:** committed 2026-07-30, before any scored run
+  (drafted and owner-ratified 2026-07-25). Under this file's own opening
+  rule an amendment counts as pre-registered only once committed before
+  the first scored run; A6 was cited as pre-registered for five days
+  before that was true, and the note stays rather than being tidied
+  away — that is the A1 failure repeating in miniature.
+  **Protocol lives in:** `PREREGISTRATION-flatfile-arm.md` — this
+  section is the cross-reference that keeps the amendment trail in its
+  pinned home. **Class: calibration, not proof** (four handoffs).
+
+**Why.** Two independent field reports (setu 07-21, OntoWiz 07-25)
+found that the query tools go uncalled — OntoWiz measured zero
+`ctx/session_*` calls across a full session — and that the SessionStart
+injection is the surface those agents *report* having benefited from.
+Note the asymmetry in evidence class: the zero-call figure is observed,
+the benefit is self-reported. One report further estimated that a hook
+plus a hand-maintained markdown file reproduces ~70% of the value it
+exercised. That is a null-hypothesis claim about the moat, and the GREP
+precedent applies: the honest cheap baseline gets run, not argued with.
+
+**Arms:** `ctx-push` (SessionStart injection ONLY — the read path is
+deliberately not exercised) / `flatfile` (agent-maintained `MEMORY.md`,
+fixed budget, cumulative across handoffs) / `grep`.
+
+**Arm-labelling rule (extends A1's standing rule).** A1 exists because
+an arm silently under-modelled the documented read path. Here the
+under-modelling is deliberate, so the label must carry it: the arm is
+reported as `ctx-push` / "startup injection only" in every result file
+and summary, **never** as "ctx" unqualified. A `flatfile ≈ ctx-push`
+result is evidence about the injection surface and says nothing about
+the query surface.
+
+**Pre-registered prediction:** `ctx-push`
+FAILS handoff H-4 (stale-claim
+discipline), roughly as badly as `flatfile`, because no freshness or
+invalidation machinery exists today (`FactBasis.TOOL_OBSERVED` is
+reserved with no producer; there is no `expires_at` producer). H-4 is
+the pre-slice baseline for Track C, not a fight this arm is expected to
+win. Recording the predicted failure in advance is what makes any later
+improvement attributable rather than retrofitted.
+
+**Amendment F1** in that file pre-registers the `ctx-fresh` fourth arm
+and corrects the 30pp gate to cluster-level, conditional on the measured
+baseline. The H-4 oracle manifest (`h4-oracle/v1`, `4ea08d4`) is the
+gradability precondition: H-4 cannot be instantiated by the resume-probe
+generator, and no scored run may use it without a committed manifest.

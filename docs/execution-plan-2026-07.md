@@ -317,3 +317,122 @@ Dream-fold/consolidation (gated on telemetry), DAG Slice 2 (gated on real
 new memory types, dashboards, notation expansion without ablation — none
 move until their gates clear. The no-feature-bloat constraint applies to
 this plan itself: one active thread at a time.
+
+---
+
+## Amendment 2026-07-25 — trusted session resume (owner-ratified)
+
+Triggered by two independent field reports (setu 2026-07-21, OntoWiz
+2026-07-25) that converged: **the query tools went uncalled** (OntoWiz:
+zero `ctx/session_*` calls in a full session) while the **SessionStart
+injection is the surface those agents report benefiting from**, and a
+hook plus a hand-maintained markdown file was estimated to reproduce
+**~70%** of the value actually exercised.
+
+Note the evidence classes, because the rest of this amendment depends on
+not mixing them: the zero-call count is *observed*, the benefit is
+*self-reported*, and delivery of an injected gist is neither — it proves
+only that bytes were emitted. Nothing we can currently measure shows
+that a model read or benefited from an injection.
+
+**Product framing (replaces "agent memory" / "more recall tools"):**
+
+> A flat file remembers. CTX explains what it remembers, how it knows
+> it, what capture failed, and what may no longer be true.
+
+### R-1 · Query-surface expansion FROZEN
+
+No new MCP tools, DAG features, consolidation, salience learning or
+generic recall work. Existing query tools remain as audit/debugging
+escape hatches; they are no longer treated as the primary product. The
+default five-tool surface (W1-4) stands.
+
+### R-2 · Measurement slice — SHIPPED 2026-07-30
+
+`fc2489f` (state algebra), `a815b78` (honest telemetry), `4ea08d4`
+(H-4 oracle). This section carried "SHIPPED 2026-07-25" for five days
+while nothing was committed; the correction stays on the record rather
+than being tidied away, because a claim with no SHA behind it is exactly
+the class of unverifiable assertion this workstream exists to eliminate.
+
+Built before any roadmap argument, because it is needed either way:
+sessions with explicit recall / zero explicit recall / missing read
+telemetry / transcript fallback; startup injections
+attempted-succeeded-empty-failed with injected size and hash; lint
+armed-vs-silent comparison denominators; checkpoint receipts (turns
+covered, turns new, ledger + gist sha256, lint status).
+
+Rationale: `raw_fallback_rate` returned `None` both for "never queried"
+and "no data", so **the exact phenomenon both field reports describe was
+invisible to our own telemetry.** Honest self-reporting comes before
+claiming that either push or pull usage works.
+
+### R-3 · E-6 stays ahead of evidence anchoring
+
+Storing commands, paths, output summaries and repository metadata
+enlarges the privacy surface. Measurement and preregistration proceed
+now; the `tool_observed` producer follows E-6. **Unchanged from the
+original plan** — E-6 was already elevated.
+
+### R-4 · Flat-file control before further spend
+
+`PREREGISTRATION-flatfile-arm.md` (cross-referenced as A6): `ctx-push` /
+`flatfile` / `grep`, four frozen handoffs, outcome **and maintenance
+cost**, calibration-only. The flat file is maintained by an agent of the
+same class under a fixed budget — a human-perfect file is an unfair
+control.
+
+### R-5 · Freshness derives from fact kind + producer, never literal presence
+
+Corrected at ratification. "Contains a sha/path/version → perishable" is
+unsafe: *"Never edit CLAUDE.md"* contains a path and is durable;
+*"the reseal test is already red"* contains no literal and is
+perishable. Two separate axes are maintained: **fact lifecycle**
+and **evidence freshness**. The vocabulary is defined once in
+`ctxpack/core/states.py` (`ctx-states/v1`) with property tests:
+lifecycle is `draft / banked / superseded / retracted`, freshness is
+`not_applicable / unanchored / not_checked / current / stale / invalid`,
+and delivery (`attempted / injected / empty / failed`) is a third axis
+that is never evidence of use.
+
+This narrows the vocabulary ratified on 2026-07-25. `expired` leaves
+lifecycle because evidence ageing is a freshness statement, not a
+statement about a fact's standing; `prior_state` and
+`needs_revalidation` leave freshness because the first describes what an
+observation record *is* and the second collapses into `not_checked` or
+`stale`. Both were the two-axis confusion surviving inside the fix for
+it.
+
+### R-6 · E-7 delivered; G-8 gate changed
+
+E-7's deliverable is `docs/track-c-verified-freshness-spec.md` — an
+owner-ratified design adopted with eight amendments, committed
+2026-07-30 (it supersedes the planned `track-c-verifier-spec-draft.md`
+filename). Its state vocabulary is not prose: it is
+`ctxpack/core/states.py` (`fc2489f`), and where the spec and the enum
+disagree the enum wins.
+
+**G-8's gate changes from "E-4 result" to: (deterministic spike passes)
+AND (flat-file calibration run) AND (four-arm H-4 result).** E-4 remains
+required for CompactBench-class causal claims, which Track C does not
+make. The post-E-6 build is narrowed to one vertical slice — the
+pytest-only `tool_observed` producer — not a general invalidation
+engine.
+
+### Decision gate (binding)
+
+Continue investing in session memory only if CTX shows **at least one**
+differentiated advantage over the flat file, measured by the probe:
+(1) fewer confident stale assertions; (2) better provenance; (3) lower
+maintenance burden at similar continuity; (4) better recovery across
+decision supersession. **If CTX only matches the flat file while costing
+more to operate, narrow the product to a deterministic audit/checkpoint
+utility and stop expanding memory features.**
+
+The originally ratified fifth criterion — *independently verifiable
+checkpoints* — is **removed from this gate**. It is already true before
+the experiment runs (a flat file cannot emit a receipt at all), so
+including it would let any result clear the gate and make the whole
+decision unfalsifiable. It remains a real differentiator and is retained
+as a claim for the narrower audit/checkpoint product; it just cannot
+serve as evidence in a decision it can never fail.
