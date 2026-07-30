@@ -81,6 +81,19 @@ def _fallback_cell(read_path: dict[str, Any]) -> str:
             f'<span class="lbl">({greps}/{reads + greps} fell back)</span></span>')
 
 
+def _recall_headline(read_path: dict[str, Any]) -> str:
+    """"3 / 11" — sessions that explicitly queried the ledger over
+    sessions where we can tell. Sessions with no telemetry are excluded
+    from the denominator rather than counted as zero: an unmeasured
+    session is not evidence of non-use."""
+    explicit = read_path.get("sessions_explicit_recall")
+    zero = read_path.get("sessions_zero_recall")
+    if explicit is None or zero is None or (explicit + zero) == 0:
+        return "–"
+    return (f"{explicit}<span style='font-size:14px;color:var(--ink-3)'>"
+            f" / {explicit + zero}</span>")
+
+
 def _bar(value: int, max_value: int) -> str:
     pct = 0 if max_value <= 0 else round(100 * value / max_value)
     return (f'<span class="bar"><span class="track">'
@@ -104,8 +117,11 @@ def render_dashboard(scorecard: dict[str, Any]) -> str:
         ("Decisions", str(captured.get("decisions", 0)),
          f"+ {captured.get('constraints', 0)} constraints, "
          f"{captured.get('failed_approaches', 0)} dead ends"),
-        ("Raw-fallback rate", "–" if rate is None else f"{rate:.0%}",
-         "ledger read path vs transcript grep — lower is better"),
+        ("Sessions querying ledger", _recall_headline(
+            cohort.get("read_path", {})),
+         "queried vs never queried — "
+         + ("raw-fallback n/a" if rate is None
+            else f"raw-fallback {rate:.0%}")),
     ]
     tile_html = "".join(
         f'<div class="tile"><div class="k">{escape(k)}</div>'
@@ -176,6 +192,15 @@ def _fallback_md(read_path: dict[str, Any]) -> str:
     return f"{rate:.0%} ({greps}/{reads + greps})"
 
 
+def _injection_md(inj: dict[str, Any]) -> str:
+    attempted = int(inj.get("attempted") or 0)
+    if not attempted:
+        return "not measured"
+    failed = int(inj.get("failed") or 0)
+    out = f"{int(inj.get('injected') or 0)} / {attempted}"
+    return out + (f" ({failed} FAILED)" if failed else "")
+
+
 def render_markdown(scorecard: dict[str, Any]) -> str:
     """Concise, commit-friendly exec-summary of a scorecard.
 
@@ -189,6 +214,7 @@ def render_markdown(scorecard: dict[str, Any]) -> str:
     repos = scorecard.get("repos", [])
     captured = cohort.get("captured", {})
     rp = cohort.get("read_path", {})
+    inj = cohort.get("startup_injection", {})
     rate = rp.get("raw_fallback_rate")
     reads = rp.get("ledger_reads", 0)
     greps = rp.get("transcript_greps", 0)
@@ -217,10 +243,43 @@ def render_markdown(scorecard: dict[str, Any]) -> str:
         f"{captured.get('decisions', 0)} / {captured.get('constraints', 0)} / "
         f"{captured.get('failed_approaches', 0)} |",
         f"| Raw-fallback rate | {rate_txt} |",
+        f"| Sessions with explicit recall | "
+        f"{rp.get('sessions_explicit_recall', 0)} |",
+        f"| Sessions with zero explicit recall | "
+        f"{rp.get('sessions_zero_recall', 0)} |",
+        f"| ...of which a gist was delivered | "
+        f"{rp.get('sessions_zero_recall_with_delivery', 0)} |",
+        f"| ...of which no gist was delivered | "
+        f"{rp.get('sessions_zero_recall_no_delivery', 0)} |",
+        f"| ...delivery unmeasured | "
+        f"{rp.get('sessions_zero_recall_delivery_unmeasured', 0)} |",
+        f"| Sessions using transcript fallback | "
+        f"{rp.get('sessions_transcript_fallback', 0)} |",
+        f"| Sessions with no read telemetry | "
+        f"{rp.get('sessions_no_telemetry', 0)} |",
+        f"| Startup injections (delivered / attempted) | {_injection_md(inj)} |",
         "",
         "Raw-fallback rate = raw-transcript greps ÷ (ledger reads + greps); "
         "lower is better — the earliest honest signal of whether the ledger "
         "earns its keep.",
+        "",
+        "**Pull vs push.** Explicit recall counts deliberate queries "
+        "(`ctx/session_*`, `ctxpack session`) only; the SessionStart "
+        "injection is the push path and is not counted. Zero-recall "
+        "sessions are split by delivery receipt because the bucket "
+        "otherwise hides two different sessions: one handed a gist it "
+        "never queried, and one given no ledger context at all.",
+        "",
+        "**Delivery is not use.** A delivered gist proves bytes were "
+        "emitted at session start. It is not evidence that the model "
+        "read them, relied on them, or benefited from them, and no "
+        "figure on this page may be described as consumption, use or "
+        "value. What the read path is measured to be is *uncalled*; "
+        "what the push path is measured to be is *delivered*. Any claim "
+        "beyond those two needs the flat-file arm, not this table. "
+        "Sessions with no telemetry were packed before these counters "
+        "existed and are excluded from the denominator: unmeasured is "
+        "not the same as unused.",
         "",
         "### Incidents (agent-reported)",
         "",

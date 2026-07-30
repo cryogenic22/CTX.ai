@@ -67,6 +67,23 @@ def build_scorecard(repo_paths: list[str]) -> dict[str, Any]:
 
     ledger_reads = _sum(lambda r: r.get("read_path", {}).get("ledger_reads"))
     greps = _sum(lambda r: r.get("read_path", {}).get("transcript_greps"))
+    # Session-level adoption of the PULL path. Two field reports (setu
+    # 07-21, OntoWiz 07-25) report never querying the ledger; until these
+    # counters exist the claim is neither confirmable nor refutable from
+    # our own telemetry, because a zero-query session and an untracked
+    # session look identical in the rate. The delivery split says whether
+    # a zero-recall session was even handed a gist — it does NOT say the
+    # gist was read or used.
+    rp_sessions = {
+        k: _sum(lambda r, _k=k: r.get("read_path", {}).get(_k))
+        for k in ("sessions_explicit_recall", "sessions_zero_recall",
+                  "sessions_no_telemetry", "sessions_transcript_fallback",
+                  "sessions_zero_recall_with_delivery",
+                  "sessions_zero_recall_no_delivery",
+                  "sessions_zero_recall_delivery_unmeasured")
+    }
+    rp_measured = (rp_sessions["sessions_explicit_recall"]
+                   + rp_sessions["sessions_zero_recall"])
     captured_keys = ("decisions", "constraints", "failed_approaches",
                      "errors", "files_changed", "tasks", "requests",
                      "incidents")
@@ -88,6 +105,10 @@ def build_scorecard(repo_paths: list[str]) -> dict[str, Any]:
             "transcript_greps": greps,
             "raw_fallback_rate": (round(greps / (ledger_reads + greps), 3)
                                   if (ledger_reads + greps) else None),
+            **rp_sessions,
+            "explicit_recall_rate": (
+                round(rp_sessions["sessions_explicit_recall"] / rp_measured, 3)
+                if rp_measured else None),
         },
         # ctx-incident: telemetry — agent-reported; user-corrected rows
         # are the only externally-anchored type, weigh them accordingly
@@ -96,6 +117,14 @@ def build_scorecard(repo_paths: list[str]) -> dict[str, Any]:
         # packed — each one is recall silently missing somewhere)
         "capture_unpacked": _sum(
             lambda r: r.get("capture", {}).get("unpacked")),
+        # push-path delivery: what the SessionStart hook actually handed
+        # to agents. Repos whose ledgers predate the injection log
+        # contribute nothing rather than zeros.
+        "startup_injection": {
+            k: _sum(lambda r, _k=k: r.get("startup_injection", {}).get(_k))
+            for k in ("attempted", "injected", "empty", "failed",
+                      "gap_warnings")
+        },
     }
     return {
         "schema": "ctxpack-scorecard/v1",

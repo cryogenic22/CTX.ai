@@ -1074,11 +1074,29 @@ def _cmd_checkpoint(args: argparse.Namespace) -> int:
         # fail-LOUD in manual mode: no artifact was written
         print(f"Error: {e}", file=sys.stderr)
         return 1
-    print(f"Checkpoint: session {result.session_id[:8]} "
-          f"({result.turns} turns) -> {result.ctx_path}")
-    print(f"  entities: {result.entities}  conflicts: {result.conflicts}  "
-          f"gist: {result.gist_bpe} BPE  sha256: {result.ledger_sha256[:12]}")
+    _print_receipt(result)
     return 0
+
+
+def _print_receipt(result) -> None:
+    """Verifiable checkpoint receipt (OntoWiz field gap 2026-07-25): state
+    what was covered and what came out, so an agent never has to infer
+    capture from turn-count growth."""
+    lint = ("FAILED — no conflict check ran" if result.lint_status != "ok"
+            else f"armed — {result.lint_comparisons} comparisons, "
+                 f"{result.lint_conflicts} unresolved")
+    print(f"Checkpoint receipt: session {result.session_id[:8]}"
+          + ("  [archive]" if result.archive else ""))
+    print(f"  covered:  {result.turns} turns "
+          f"(+{result.turns_new} new since this session's last checkpoint)")
+    print(f"  packed:   {result.entities} entities, "
+          f"{result.conflicts} corpus conflicts")
+    print(f"  ledger:   {result.ctx_path}")
+    print(f"            sha256 {result.ledger_sha256[:16]}")
+    print(f"  gist:     {result.gist_path}")
+    print(f"            sha256 {result.gist_sha256[:16]}  "
+          f"({result.gist_bpe} BPE)")
+    print(f"  lint:     {lint}")
 
 
 def _cmd_backfill(args: argparse.Namespace) -> int:
@@ -1164,8 +1182,10 @@ def _cmd_hook(args: argparse.Namespace) -> int:
                         return 0
                 result = run_checkpoint(transcript, out_dir)
                 print(f"ctxpack checkpoint: {result.entities} entities, "
-                      f"{result.turns} turns -> {result.ctx_path}",
-                      file=sys.stderr)
+                      f"{result.turns} turns (+{result.turns_new} new), "
+                      f"lint {result.lint_status} "
+                      f"({result.lint_comparisons} comparisons) -> "
+                      f"{result.ctx_path}", file=sys.stderr)
             except Exception as e:  # noqa: BLE001 — hooks must not fail the session
                 print(f"ctxpack checkpoint failed: {e}", file=sys.stderr)
         return 0
@@ -1175,8 +1195,16 @@ def _cmd_hook(args: argparse.Namespace) -> int:
     # includes /clear — clearing resets the CONTEXT, not the project memory
     # ("compaction is a commit, not a loss event" applies to clears too).
     # A true blank slate = temporarily disable the hooks.
-    from ..agent.checkpoint import read_startup_context
-    gist = read_startup_context(out_dir)
+    from ..agent.injection_log import FAILED, record_injection
+
+    gist, outcome, error = "", "", ""
+    try:
+        from ..agent.checkpoint import read_startup_context
+        gist = read_startup_context(out_dir)
+    except Exception as e:  # noqa: BLE001 — a broken ledger must not break
+        # the session, but it must not look like a healthy empty one either
+        outcome, error = FAILED, f"{type(e).__name__}: {e}"
+
     # Capture-coverage self-report (setu field gap 2026-07-21): a session
     # the hooks never packed must announce itself at the next start, not
     # hide until someone inspects file mtimes. Fail-open — the check must
@@ -1190,6 +1218,15 @@ def _cmd_hook(args: argparse.Namespace) -> int:
         warning = ""
     if warning:
         gist = f"{warning}\n\n{gist}" if gist else warning
+
+    # Push-path receipt (OntoWiz field gap 2026-07-25): record what was
+    # actually handed to the agent. Until now the ledger could prove what
+    # it WROTE and nothing proved what was READ BACK IN — a hook quietly
+    # injecting nothing was indistinguishable from a healthy one.
+    record_injection(out_dir, session_id=str(payload.get("session_id", "")),
+                     context=gist, outcome=outcome, error=error,
+                     gap_warning=bool(warning))
+
     if gist:
         print(_json.dumps({
             "hookSpecificOutput": {

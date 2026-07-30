@@ -1091,10 +1091,18 @@ def handle_checkpoint(arguments: dict[str, Any]) -> str:
         "ctx_path": result.ctx_path,
         "gist_path": result.gist_path,
         "turns": result.turns,
+        # receipt: what this call actually added, and whether the
+        # governance lint ran — so the caller can verify capture instead
+        # of inferring it from turn-count growth
+        "turns_new": result.turns_new,
         "entities": result.entities,
         "conflicts": result.conflicts,
         "gist_bpe": result.gist_bpe,
         "ledger_sha256": result.ledger_sha256,
+        "gist_sha256": result.gist_sha256,
+        "lint_status": result.lint_status,
+        "lint_comparisons": result.lint_comparisons,
+        "lint_conflicts": result.lint_conflicts,
     }, indent=2)
 
 

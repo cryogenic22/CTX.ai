@@ -96,14 +96,30 @@ _GIST_CONFLICT_CAP = 8
 
 @dataclass
 class CheckpointResult:
+    """Receipt for one checkpoint.
+
+    Field-report gap (OntoWiz 2026-07-25): an agent could not verify its
+    own checkpoint and had to infer capture from turn-count growth. The
+    receipt states what was covered (turns, of which new since this
+    session's last checkpoint), what came out (entities, hashes) and
+    whether the governance lint actually ran — so "did my work get
+    banked?" is answered by the tool, not by inference.
+    """
+
     session_id: str = ""
     ctx_path: str = ""
     gist_path: str = ""
     turns: int = 0
+    turns_new: int = 0
     entities: int = 0
     conflicts: int = 0
     ledger_sha256: str = ""
+    gist_sha256: str = ""
     gist_bpe: int = 0
+    lint_status: str = ""
+    lint_comparisons: int = 0
+    lint_conflicts: int = 0
+    archive: bool = False
 
 
 def _count_bpe(text: str) -> int:
@@ -140,7 +156,8 @@ def _entity_rank(e, ranks: "dict[str, float]") -> float:
 
 def build_gist(parsed: ParsedTranscript,
                ranks: "Optional[dict[str, float]]" = None,
-               conflicts: "Optional[list[dict]]" = None) -> str:
+               conflicts: "Optional[list[dict]]" = None,
+               lint_meta: "Optional[dict]" = None) -> str:
     """Render the session ledger as a compact markdown gist.
 
     Prose-first on purpose: models read markdown natively (.ctx notation is
@@ -184,6 +201,36 @@ def build_gist(parsed: ParsedTranscript,
         if len(unresolved) > len(shown):
             header.append(f"- ... {len(unresolved) - len(shown)} more in "
                           f"the ledger (events.jsonl)")
+
+    # Armed-vs-silent coverage. The lint is precision-first, so its normal
+    # output is silence — and silence is ambiguous: it reads as "checked,
+    # clean" when it may mean "nothing was in scope" or "the lint
+    # crashed". Stating the denominator is the known-unknowns principle
+    # applied to governance.
+    if lint_meta is not None:
+        if str(lint_meta.get("status") or "ok") != "ok":
+            header += ["", "_Decision lint: FAILED — no conflict check ran "
+                           "for this checkpoint._"]
+        else:
+            # Marginals only. An earlier version rendered "N comparisons
+            # (D x C)", which was arithmetically false whenever the turn
+            # gate excluded a pair or a protected subject was checked.
+            gated = int(lint_meta.get("constraint_pairs_turn_gated") or 0)
+            note = ""
+            if lint_meta.get("truncated"):
+                skipped = (int(lint_meta.get("decisions_in_scope") or 0)
+                           - int(lint_meta.get("decisions_linted") or 0))
+                note = f"; row cap reached, {skipped} decisions not examined"
+            header += [
+                "",
+                f"_Decision lint armed: "
+                f"{int(lint_meta.get('comparisons') or 0)} comparisons over "
+                f"{int(lint_meta.get('decisions_linted') or 0)} decisions — "
+                f"{int(lint_meta.get('constraint_comparisons') or 0)} "
+                f"constraint pairs ({gated} turn-gated), "
+                f"{int(lint_meta.get('protected_comparisons') or 0)} "
+                f"protected-subject checks; "
+                f"{len(unresolved)} unresolved{note}._"]
 
     if not ranks:
         lines = list(header)
@@ -463,6 +510,9 @@ def run_checkpoint(
 
     sid = parsed.session_id[:8] if parsed.session_id else "unknown"
     os.makedirs(out_dir, exist_ok=True)
+    # Read BEFORE this run's journal row is appended: turns already
+    # covered by an earlier checkpoint of this same session.
+    prev_turns = _last_checkpoint_turns(out_dir, parsed.session_id)
 
     ctx_path = os.path.join(out_dir, f"session-{sid}.ctx")
     with open(ctx_path, "w", encoding="utf-8", newline="\n") as f:
@@ -498,7 +548,9 @@ def run_checkpoint(
         policy=policy,
         project_root=parsed.stats.cwd or "")
 
-    gist_text = build_gist(parsed, ranks=ranks, conflicts=lint_rows)
+    lint_meta["status"] = lint_status
+    gist_text = build_gist(parsed, ranks=ranks, conflicts=lint_rows,
+                           lint_meta=lint_meta)
     gist_path = os.path.join(out_dir, f"session-{sid}-gist.md")
     with open(gist_path, "w", encoding="utf-8", newline="\n") as f:
         f.write(gist_text)
@@ -508,6 +560,7 @@ def run_checkpoint(
             f.write(gist_text)
 
     gist_bpe = _count_bpe(gist_text)
+    gist_sha = hashlib.sha256(gist_text.encode("utf-8")).hexdigest()
     lit_fidelity, lit_extracted, lit_recovered = _literal_fidelity(
         corpus, ledger_text)
     import datetime
@@ -515,9 +568,13 @@ def run_checkpoint(
         "ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "session": parsed.session_id,
         "turns": parsed.last_turn,
+        # turns this checkpoint added over this session's previous one —
+        # the honest answer to "did my recent work get banked?"
+        "turns_new": max(0, parsed.last_turn - prev_turns),
         "entities": len(corpus.entities),
         "conflicts": len(conflicts),
         "sha256": sha,
+        "gist_sha256": gist_sha,
         "gist_bpe": gist_bpe,
         "latency_ms": round((time.perf_counter() - t0) * 1000, 1),
         # identifier fidelity across the fold (feedback #7): 1.0 = the
@@ -531,6 +588,22 @@ def run_checkpoint(
         "lint_conflicts": sum(1 for r in lint_rows if not r["resolved"]),
         "lint_resolved": sum(1 for r in lint_rows if r["resolved"]),
         "lint_status": lint_status,
+        # Armed-vs-silent coverage: "0 conflicts" from 400 comparisons and
+        # "0 conflicts" from 0 comparisons are the same number and very
+        # different facts. Journalling the denominator makes the
+        # precision-first lint's silence auditable.
+        "lint_comparisons": lint_meta.get("comparisons", 0),
+        "lint_decisions_linted": lint_meta.get("decisions_linted", 0),
+        "lint_decisions_in_scope": lint_meta.get("decisions_in_scope", 0),
+        "lint_constraints_in_scope": lint_meta.get("constraints_in_scope", 0),
+        # Marginals, so the total can be audited rather than trusted
+        "lint_constraint_comparisons": lint_meta.get(
+            "constraint_comparisons", 0),
+        "lint_constraint_pairs_turn_gated": lint_meta.get(
+            "constraint_pairs_turn_gated", 0),
+        "lint_protected_comparisons": lint_meta.get(
+            "protected_comparisons", 0),
+        **({"lint_truncated": True} if lint_meta.get("truncated") else {}),
         **({"lint_error": lint_error} if lint_error else {}),
         **({"lint_ledgers_skipped": lint_meta["ledgers_skipped"]}
            if lint_meta.get("ledgers_skipped") else {}),
@@ -559,10 +632,16 @@ def run_checkpoint(
         ctx_path=ctx_path,
         gist_path=gist_path,
         turns=parsed.last_turn,
+        turns_new=max(0, parsed.last_turn - prev_turns),
         entities=len(corpus.entities),
         conflicts=len(conflicts),
         ledger_sha256=sha,
+        gist_sha256=gist_sha,
         gist_bpe=gist_bpe,
+        lint_status=lint_status,
+        lint_comparisons=int(lint_meta.get("comparisons") or 0),
+        lint_conflicts=sum(1 for r in lint_rows if not r["resolved"]),
+        archive=archive,
     )
 
 

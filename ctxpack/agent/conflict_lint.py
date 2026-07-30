@@ -176,9 +176,15 @@ def lint_decisions(corpus_entities, out_dir: str,
     """Lint the current session's canonical decisions against durable
     memory. Returns conflict rows (resolved ones included, flagged) —
     deterministic for a given (corpus, earlier ledgers, protected.json).
-    ``meta`` (if given) is filled with coverage telemetry, currently
-    ``ledgers_skipped`` — earlier-session ledgers that failed to parse
-    and were skipped fail-open."""
+    ``meta`` (if given) is filled with coverage telemetry:
+    ``ledgers_skipped`` (earlier-session ledgers that failed to parse and
+    were skipped fail-open) plus the armed-vs-silent counters
+    ``decisions_linted`` / ``constraints_in_scope`` /
+    ``protected_subjects`` / ``comparisons``. A precision-first lint
+    reports zero collisions both when it ran clean and when it had
+    nothing to compare; without the comparison count those two are
+    indistinguishable, and "0 conflicts" gets read as proof the lint
+    works when it may only be proof that nothing was in scope."""
     sid8 = (current_session_id or "")[:8]
     if protected is None:
         protected = load_protected_subjects(out_dir)
@@ -208,7 +214,17 @@ def lint_decisions(corpus_entities, out_dir: str,
 
     rows: "list[dict]" = []
     seen: set = set()
+    # Marginals, never a product. The two comparison populations are
+    # counted apart because they are not interchangeable, and the
+    # turn-gated pairs are counted because they are the reason
+    # comparisons != decisions x constraints.
+    decisions_examined = 0
+    constraint_comparisons = 0
+    constraint_pairs_turn_gated = 0
+    protected_comparisons = 0
+    truncated = False
     for e in decisions:
+        decisions_examined += 1
         value = _field(e, "DECISION")
         d_fid = _field(e, "FACT-ID")
         d_turn = e.sources[0].turn if e.sources else -1
@@ -223,7 +239,9 @@ def lint_decisions(corpus_entities, out_dir: str,
             # from future text. Cross-session constraints (turn None)
             # are durable memory and always apply.
             if c_turn is not None and c_turn >= d_turn:
+                constraint_pairs_turn_gated += 1
                 continue
+            constraint_comparisons += 1
             phrase = _shared_phrase(_tokens(c_text), d_tokens)
             if not phrase:
                 continue
@@ -243,6 +261,7 @@ def lint_decisions(corpus_entities, out_dir: str,
             })
 
         for subject in protected:
+            protected_comparisons += 1
             if not _contains(d_tokens, subject["tokens"]):
                 continue
             key = (d_fid, "protected_subject", subject["phrase"])
@@ -264,5 +283,23 @@ def lint_decisions(corpus_entities, out_dir: str,
             })
 
         if len(rows) >= MAX_ROWS:
+            # Decisions after this point are never examined. Reporting
+            # len(decisions) as "linted" here would be the same class of
+            # error as the product identity: a coverage claim wider than
+            # the work actually done.
+            truncated = True
             break
+
+    if meta is not None:
+        meta.update({
+            "decisions_in_scope": len(decisions),
+            "decisions_linted": decisions_examined,
+            "constraints_in_scope": len(constraints),
+            "protected_subjects": len(protected),
+            "constraint_comparisons": constraint_comparisons,
+            "constraint_pairs_turn_gated": constraint_pairs_turn_gated,
+            "protected_comparisons": protected_comparisons,
+            "comparisons": constraint_comparisons + protected_comparisons,
+            "truncated": truncated,
+        })
     return rows[:MAX_ROWS]

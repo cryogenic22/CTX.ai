@@ -631,6 +631,69 @@ def session_resume(ledger_dir: str = DEFAULT_LEDGER_DIR,
     }
 
 
+def classify_read_path(rows, delivered_sessions=None) -> dict[str, Any]:
+    """Session-level read-path adoption from checkpoint journal rows.
+
+    The event counters alone cannot answer the question two field
+    reports raised — "did the agent ever query the ledger?" A session
+    that never queried and a session packed before this telemetry
+    existed BOTH produce ``raw_fallback_rate = None``, so "the read path
+    is dead" is precisely the claim the rate hides.
+
+    ``explicit_recall`` means a deliberate query (an MCP ``ctx/session_*``
+    call or a ``ctxpack session`` command). SessionStart injection is
+    the PUSH path and is deliberately not counted here: conflating the
+    two would make the pull path look adopted in every session that
+    merely started.
+
+    ``delivered_sessions`` — 8-char session prefixes with at least one
+    successful injection receipt — splits the zero-recall bucket, which
+    is otherwise two very different sessions wearing one label: one that
+    was handed a gist and never queried, and one that got no ledger
+    context at all. Without the join, "zero recall" cannot be read as
+    "injection-only". Pass ``None`` when the injection log is absent and
+    the split is reported as unmeasured rather than as zero.
+
+    Delivery is not use. A session in ``with_delivery`` was handed
+    bytes; nothing here shows the model read or benefited from them
+    (see ``ctxpack.core.states.Delivery``).
+
+    The first three buckets partition the sessions; transcript_fallback
+    overlaps them (a session may query the ledger AND still grep raw).
+    """
+    explicit = zero = untracked = fallback = 0
+    with_delivery = no_delivery = delivery_unmeasured = 0
+    for row in rows:
+        stats = row.get("stats") or {}
+        if "ledger_reads" not in stats:
+            untracked += 1          # packed before this counter existed
+            continue
+        if int(stats.get("ledger_reads") or 0) > 0:
+            explicit += 1
+        else:
+            zero += 1
+            if delivered_sessions is None:
+                delivery_unmeasured += 1
+            elif str(row.get("session", ""))[:8] in delivered_sessions:
+                with_delivery += 1
+            else:
+                no_delivery += 1
+        if int(stats.get("transcript_greps") or 0) > 0:
+            fallback += 1
+    measured = explicit + zero
+    return {
+        "sessions_explicit_recall": explicit,
+        "sessions_zero_recall": zero,
+        "sessions_no_telemetry": untracked,
+        "sessions_transcript_fallback": fallback,
+        "sessions_zero_recall_with_delivery": with_delivery,
+        "sessions_zero_recall_no_delivery": no_delivery,
+        "sessions_zero_recall_delivery_unmeasured": delivery_unmeasured,
+        "explicit_recall_rate": (round(explicit / measured, 3)
+                                 if measured else None),
+    }
+
+
 def session_stats(ledger_dir: str = DEFAULT_LEDGER_DIR) -> dict[str, Any]:
     """Aggregate the checkpoint journal into the benefits report.
 
@@ -674,6 +737,14 @@ def session_stats(ledger_dir: str = DEFAULT_LEDGER_DIR) -> dict[str, Any]:
     greps = totals.get("transcript_greps", 0)
     fallback_rate = (round(greps / (ledger_reads + greps), 3)
                      if (ledger_reads + greps) else None)
+    # Push-path delivery record — {} means "not measured" (ledger predates
+    # the injection log), never "never injected". The session set joins
+    # zero-recall sessions to their delivery receipt, so "never queried"
+    # can be told apart from "never given anything".
+    from .injection_log import delivered_sessions, injection_stats
+    startup_injection = injection_stats(ledger_dir)
+    sessions_read_path = classify_read_path(
+        last_per_session.values(), delivered_sessions(ledger_dir))
 
     latencies = [row["latency_ms"] for row in rows
                  if isinstance(row.get("latency_ms"), (int, float))]
@@ -699,7 +770,9 @@ def session_stats(ledger_dir: str = DEFAULT_LEDGER_DIR) -> dict[str, Any]:
             "ledger_reads": ledger_reads,
             "transcript_greps": greps,
             "raw_fallback_rate": fallback_rate,
+            **sessions_read_path,
         },
+        "startup_injection": startup_injection,
         "gist_bpe": {"latest_per_session": sorted(gists)} if gists else {},
         "identifier_fidelity": {
             "min": min(fidelities),
