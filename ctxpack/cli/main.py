@@ -1231,6 +1231,23 @@ def _cmd_hook(args: argparse.Namespace) -> int:
     if warning:
         gist = f"{warning}\n\n{gist}" if gist else warning
 
+    # E-6 egress boundary (PF-14): a second scan of the FINAL serialized
+    # context — defense in depth behind the ingest boundary (old ledgers
+    # predate it; gap warnings and rollups are assembled here). Found
+    # secrets are replaced type-only and the count lands on the receipt.
+    # FAIL-CLOSED on scanner failure: emit NO memory and record `failed`
+    # — a scan crash must never present as a healthy empty result.
+    outgoing_redactions = 0
+    if gist and not outcome:
+        try:
+            from ..core.redaction import redact as _redact_outgoing
+            gist, _out_counts = _redact_outgoing(gist)
+            outgoing_redactions = sum(_out_counts.values())
+        except Exception as e:  # noqa: BLE001
+            outcome = FAILED
+            error = f"outgoing scan failed: {type(e).__name__}: {e}"
+            gist = ""  # unscanned bytes are never emitted
+
     # Emit FIRST, then record. Writing the receipt before the write it
     # attests to would let a failed stdout flush be banked as a
     # successful emission — a receipt that can be true while the thing
@@ -1254,7 +1271,8 @@ def _cmd_hook(args: argparse.Namespace) -> int:
     # ctxpack.core.states.Delivery.
     record_injection(out_dir, session_id=str(payload.get("session_id", "")),
                      context=gist, outcome=outcome, error=error,
-                     gap_warning=bool(warning))
+                     gap_warning=bool(warning),
+                     outgoing_redactions=outgoing_redactions)
     return 0
 
 

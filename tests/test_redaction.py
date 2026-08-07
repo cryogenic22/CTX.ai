@@ -143,3 +143,84 @@ def test_scanner_crash_fails_closed_nothing_persisted(tmp_path, monkeypatch):
                        as_of="2026-08-07")
     assert not (out / "checkpoints.jsonl").exists()
     assert not list(out.glob("session-*.ctx")) if out.exists() else True
+
+
+# ── the egress boundary: outgoing scan before emission (PF-14) ──
+
+def _hook_repo(tmp_path, monkeypatch):
+    import json as _json
+
+    from ctxpack.agent.checkpoint import _claude_project_dir_name
+
+    repo = tmp_path / "repo"
+    home = tmp_path / "home"
+    (home / "projects" / _claude_project_dir_name(str(repo))).mkdir(
+        parents=True)
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(home))
+    out = repo / ".claude" / "ctx"
+    rows = [
+        {"type": "user", "sessionId": "cleanpr1-0000", "uuid": "u1",
+         "message": {"content": "Ship the release notes."}},
+        {"type": "assistant", "sessionId": "cleanpr1-0000", "uuid": "u2",
+         "message": {"content": [{"type": "text", "text":
+                     "Decision: tag v2 because the fix landed."}]}},
+    ]
+    path = tmp_path / "clean.jsonl"
+    path.write_text("\n".join(_json.dumps(r) for r in rows) + "\n",
+                    encoding="utf-8")
+    run_checkpoint(str(path), str(out), as_of="2026-08-07")
+    return repo, out
+
+
+def test_outgoing_scan_redacts_a_secret_that_reached_the_ledger(
+        tmp_path, monkeypatch, capsys):
+    """Defense in depth: old ledgers predate ingest redaction. A secret
+    sitting in a banked gist must not reach the model."""
+    import io
+    import json as _json
+
+    from ctxpack.agent.injection_log import read_injections
+    from ctxpack.cli.main import main
+
+    repo, out = _hook_repo(tmp_path, monkeypatch)
+    gist_path = out / "latest-gist.md"
+    gist_path.write_text(
+        gist_path.read_text(encoding="utf-8")
+        + "\n- old row with AKIAIOSFODNN7EXAMPLE banked pre-E6\n",
+        encoding="utf-8")
+
+    monkeypatch.setattr("sys.stdin", io.StringIO(_json.dumps(
+        {"cwd": str(repo), "session_id": "egress11-0000"})))
+    assert main(["hook", "session-start", "--out", str(out)]) == 0
+    emitted = _json.loads(capsys.readouterr().out)["hookSpecificOutput"][
+        "additionalContext"]
+    assert "AKIAIOSFODNN7EXAMPLE" not in emitted
+    assert "[REDACTED:aws-access-key-id]" in emitted
+    row = read_injections(str(out))[-1]
+    assert row["outcome"] == "injected"
+    assert row["outgoing_redactions"] >= 1
+
+
+def test_outgoing_scan_crash_emits_nothing_and_records_failed(
+        tmp_path, monkeypatch, capsys):
+    """A scan crash must never present as a healthy empty result: no
+    memory is emitted and the receipt says failed, with the error."""
+    import io
+    import json as _json
+
+    from ctxpack.agent.injection_log import read_injections
+    from ctxpack.cli.main import main
+
+    repo, out = _hook_repo(tmp_path, monkeypatch)
+
+    def boom(text):
+        raise RuntimeError("egress scanner exploded")
+
+    monkeypatch.setattr("ctxpack.core.redaction.redact", boom)
+    monkeypatch.setattr("sys.stdin", io.StringIO(_json.dumps(
+        {"cwd": str(repo), "session_id": "egress22-0000"})))
+    assert main(["hook", "session-start", "--out", str(out)]) == 0
+    assert capsys.readouterr().out == ""          # nothing emitted
+    row = read_injections(str(out))[-1]
+    assert row["outcome"] == "failed"
+    assert "outgoing scan failed" in row["error"]

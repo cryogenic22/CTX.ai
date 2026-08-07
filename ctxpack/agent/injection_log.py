@@ -59,6 +59,7 @@ def record_injection(out_dir: str,
                      outcome: str = "",
                      error: str = "",
                      gap_warning: bool = False,
+                     outgoing_redactions: int = 0,
                      source: str = "session-start") -> None:
     """Append one injection row. Never raises."""
     try:
@@ -77,6 +78,10 @@ def record_injection(out_dir: str,
                        if text else ""),
             "gap_warning": bool(gap_warning),
         }
+        if outgoing_redactions:
+            # egress scan hits — the emitted bytes were already
+            # type-only redacted; the count is the audit trail
+            row["outgoing_redactions"] = int(outgoing_redactions)
         if error:
             row["error"] = str(error)[:200]
         os.makedirs(out_dir, exist_ok=True)
