@@ -7,8 +7,16 @@ of the 2026-08-06 adversarial-review assessment. This document **extends**
 `docs/execution-plan-2026-07.md`. Same operating shape: one active owner,
 one notes-only reviewer, one active thread, six-field contract per task.
 
-**Authorization state (2026-08-07):** Loops 1–2 authorized and executing.
-Then expanded E-6. NO live hook, NO paid experiment, NO parked-branch merge.
+**Authorization state (2026-08-07, post re-review):** Loops 1–2 EXECUTED;
+the changes-requested re-review's residuals are fixed and a corrected
+cohort artifact is committed (`scorecard-20260807T195126Z.json` — cite
+the dated immutable file, never an unqualified "latest"). Loops 3, 4a
+and 4b were implemented before the changes-requested verdict arrived
+mid-session — disclosed on the board, presented for re-review. Mandated
+sequence now: **re-review of the corrected range → PF-11 threat model
+(defines the poisoning/authority boundary the committed PF-03 schema
+must be validated against) → remaining E-6 units → Loops 5–6.** NO live
+hook, NO paid experiment, NO parked-branch merge.
 
 ## Amendment log (v1 → v2)
 
@@ -64,12 +72,12 @@ CTX says "unknown — verify or reconcile", never silently selects.
 
 | Loop | Task(s) | Status |
 |---|---|---|
-| 1 emission telemetry | PF-01 | **authorized — executing** |
-| 2 self-verifying scorecards | PF-02 | **authorized — executing** |
-| 3 authority provenance | PF-03 | backlog (after E-6 start, owner call) |
-| 4 E-6 security boundary | PF-11..17 | next thread after Loops 1–2 |
-| 5 eligibility + min freshness | PF-13, PF-51a | after E-6 |
-| 6 deterministic matcher | PF-21 | after Loop 5 |
+| 1 emission telemetry | PF-01 | executed + residuals fixed; re-review pending |
+| 2 self-verifying scorecards | PF-02 | executed + residuals fixed; re-review pending |
+| 3 authority provenance | PF-03 | executed ahead of mandated order (`6768b74`) — disclosed; PF-11 must validate the schema |
+| 4 E-6 security boundary | PF-11..17 | 4a/4b executed (`d2747d5`, `7d389e0`) — disclosed; **PF-11 threat model is the next unit**; retention, fixture scan, security suite held |
+| 5 eligibility + min freshness | PF-13, PF-51a | HELD pending re-review |
+| 6 deterministic matcher | PF-21 | HELD pending re-review |
 | 7 receipts + rendering | PF-22, PF-24 | after Loop 6 |
 | 8 shadow evaluation | PF-23 | gates frozen post-calibration |
 | 9 live canary | PF-31 | triple-gated |
@@ -146,8 +154,12 @@ Multi-writer safety — prerequisite for any external multi-agent pilot
   check passes; mutated ledger input fails; mutated cohort fails;
   missing/pre-v2 latest fails; external entries appear unmeasured.
 - **Kill condition:** none.
-- **Claim earned:** any quoted cohort number is verifiable against its
-  inputs by one command.
+- **Claim earned (narrowed per re-review):** the **input freshness** of
+  any quoted cohort number is verifiable by one command. Metric
+  recomputation is NOT claimed — a hand-edited number over unchanged
+  inputs would pass — and capture-block numbers are outside the
+  fingerprints entirely. Citations must reference the dated immutable
+  artifact, never an unqualified "latest".
 
 ## Phase 1 — E-6 expanded (Loop 4; next thread after Loops 1–2)
 
@@ -161,10 +173,13 @@ inputs; PF-14 outgoing scan of the final serialized context (applies to
 SessionStart today, preflight later); PF-15 retention/deletion with
 containment + symlink checks, dry-run + explicit confirm, honest
 reporting (never overclaiming control) of upstream vendor transcript
-retention; PF-16 synthetic replacement of the remaining contaminated
-fixture (`tests/fixtures/rank_v1/`), privacy scan across ALL committed
-fixtures; PF-17 security regression suite (leakage, false positives,
-determinism, malicious memory content). **Fail-closed rule:** hook
+retention; PF-16 privacy scan across ALL committed
+fixtures (the rank_v1 fixture itself was already pseudonymized in
+`7438514`); PF-16b committed-artifact path privacy (review finding
+2026-08-07 #6): scorecard artifacts carry stable repo aliases with
+machine-absolute paths confined to local configuration; PF-17 security
+regression suite (leakage, false positives, determinism, malicious
+memory content). **Fail-closed rule:** hook
 commands stay operationally fail-open, but a scanner failure emits NO
 memory and records `failed` — it must never present as a healthy empty
 result. Each E-6 concern is its own commit/review unit.
