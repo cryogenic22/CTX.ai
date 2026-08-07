@@ -5,12 +5,11 @@
     "C:/Users/kapil/Documents/KP_SDLC",
     "C:/Users/kapil/Scriptiva_SCA",
     "C:/Users/kapil/Documents/setu",
-    "C:/Users/kapil/Documents/WhynotFamous"
+    "C:/Users/kapil/Documents/WhynotFamous",
+    "C:/Users/kapil/Documents/Onto_Wiz"
   ],
-  "external": [
-    {
-      "name": "OntoWiz",
-      "note": "field-report deployment (report 2026-07-25); ledger not on this machine — cohort member, unmeasured here until its ledger is shared"
-    }
+  "notes": [
+    "Onto_Wiz added 2026-08-07 per review finding P1-1: its ledger IS on this machine (7 sessions, 71 checkpoints, 4 injection receipts) — the earlier external/unmeasured classification was wrong. Chosen as the likely canonical OntoWiz deployment ledger; owner confirmation pending.",
+    "Excluded to avoid double-counting the same deployment: OntoWiz_Authoring_Kit_Claude (separate authoring-kit ledger) and Onto_Wiz_wt_F0.10 (git-worktree ledger of Onto_Wiz)."
   ]
 }
