@@ -79,7 +79,8 @@ def build_scorecard(repo_paths: list[str]) -> dict[str, Any]:
         for k in ("sessions_explicit_recall", "sessions_zero_recall",
                   "sessions_no_telemetry", "sessions_transcript_fallback",
                   "sessions_zero_recall_with_emission",
-                  "sessions_zero_recall_no_emission",
+                  "sessions_zero_recall_emission_empty",
+                  "sessions_zero_recall_emission_failed",
                   "sessions_zero_recall_emission_unmeasured")
     }
     rp_measured = (rp_sessions["sessions_explicit_recall"]

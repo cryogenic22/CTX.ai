@@ -249,9 +249,11 @@ def render_markdown(scorecard: dict[str, Any]) -> str:
         f"{rp.get('sessions_zero_recall', 0)} |",
         f"| ...of which a gist was emitted | "
         f"{rp.get('sessions_zero_recall_with_emission', 0)} |",
-        f"| ...of which no gist was emitted | "
-        f"{rp.get('sessions_zero_recall_no_emission', 0)} |",
-        f"| ...emission unmeasured | "
+        f"| ...hook ran, emitted empty (per receipt) | "
+        f"{rp.get('sessions_zero_recall_emission_empty', 0)} |",
+        f"| ...emission attempt failed (per receipt) | "
+        f"{rp.get('sessions_zero_recall_emission_failed', 0)} |",
+        f"| ...emission unmeasured (no receipt) | "
         f"{rp.get('sessions_zero_recall_emission_unmeasured', 0)} |",
         f"| Sessions using transcript fallback | "
         f"{rp.get('sessions_transcript_fallback', 0)} |",
@@ -267,9 +269,10 @@ def render_markdown(scorecard: dict[str, Any]) -> str:
         "**Pull vs push.** Explicit recall counts deliberate queries "
         "(`ctx/session_*`, `ctxpack session`) only; the SessionStart "
         "hook is the push path and is not counted. Zero-recall sessions "
-        "are split by emission receipt because the bucket otherwise "
-        "hides two different sessions: one for which a gist was written, "
-        "and one for which nothing was.",
+        "are split by what their emission receipts prove: gist emitted, "
+        "hook ran empty, attempt failed, or unmeasured. A session "
+        "without a receipt is unmeasured — absence of a receipt is "
+        "never read as “no gist was emitted”.",
         "",
         "**Emission is not use.** The push-path figures measure exactly "
         "one thing: bytes successfully written to the SessionStart "

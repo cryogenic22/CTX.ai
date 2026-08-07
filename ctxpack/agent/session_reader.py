@@ -631,7 +631,7 @@ def session_resume(ledger_dir: str = DEFAULT_LEDGER_DIR,
     }
 
 
-def classify_read_path(rows, emitted_sessions=None) -> dict[str, Any]:
+def classify_read_path(rows, emission=None) -> dict[str, Any]:
     """Session-level read-path adoption from checkpoint journal rows.
 
     The event counters alone cannot answer the question two field
@@ -646,15 +646,25 @@ def classify_read_path(rows, emitted_sessions=None) -> dict[str, Any]:
     two would make the pull path look adopted in every session that
     merely started.
 
-    ``emitted_sessions`` — 8-char session prefixes with at least one
-    successful injection receipt — splits the zero-recall bucket, which
-    is otherwise two very different sessions wearing one label: one that
-    was handed a gist and never queried, and one that got no ledger
-    context at all. Without the join, "zero recall" cannot be read as
-    "injection-only". Pass ``None`` when the injection log is absent and
-    the split is reported as unmeasured rather than as zero.
+    ``emission`` — the per-session receipt fold from
+    ``injection_log.fold_emission_receipts``. It splits the zero-recall
+    bucket, which is otherwise very different sessions wearing one
+    label. The split reports what the receipts PROVE, and only that:
 
-    Delivery is not use. A session in ``with_delivery`` was handed
+    - ``with_emission`` — a receipt says a non-empty gist reached the
+      hook's stdout.
+    - ``emission_empty`` — a receipt says the hook ran and emitted
+      nothing. This is the ONLY evidence of "no gist": it is proven by
+      a receipt, never inferred.
+    - ``emission_failed`` — a receipt says the emission attempt broke.
+    - ``emission_unmeasured`` — no receipt exists (the fold is ``None``
+      because the log is absent, or the session has no row — it may
+      simply predate the log). Absence of a receipt never proves "no
+      emission", and no timestamp is consulted: checkpoint timestamps
+      can be backfilled and prove nothing about session start. There is
+      deliberately no "no_emission" bucket.
+
+    Emission is not use. A session in ``with_emission`` was handed
     bytes; nothing here shows the model read or benefited from them
     (see ``ctxpack.core.states.Delivery``).
 
@@ -662,7 +672,8 @@ def classify_read_path(rows, emitted_sessions=None) -> dict[str, Any]:
     overlaps them (a session may query the ledger AND still grep raw).
     """
     explicit = zero = untracked = fallback = 0
-    with_delivery = no_delivery = delivery_unmeasured = 0
+    with_emission = emission_empty = emission_failed = unmeasured = 0
+    folded = emission.get("sessions", {}) if emission is not None else None
     for row in rows:
         stats = row.get("stats") or {}
         if "ledger_reads" not in stats:
@@ -672,12 +683,16 @@ def classify_read_path(rows, emitted_sessions=None) -> dict[str, Any]:
             explicit += 1
         else:
             zero += 1
-            if emitted_sessions is None:
-                delivery_unmeasured += 1
-            elif str(row.get("session", ""))[:8] in emitted_sessions:
-                with_delivery += 1
+            outcome = (folded.get(str(row.get("session", ""))[:8])
+                       if folded is not None else None)
+            if outcome == "injected":
+                with_emission += 1
+            elif outcome == "failed":
+                emission_failed += 1
+            elif outcome == "empty":
+                emission_empty += 1
             else:
-                no_delivery += 1
+                unmeasured += 1     # no receipt is not "no emission"
         if int(stats.get("transcript_greps") or 0) > 0:
             fallback += 1
     measured = explicit + zero
@@ -686,9 +701,10 @@ def classify_read_path(rows, emitted_sessions=None) -> dict[str, Any]:
         "sessions_zero_recall": zero,
         "sessions_no_telemetry": untracked,
         "sessions_transcript_fallback": fallback,
-        "sessions_zero_recall_with_emission": with_delivery,
-        "sessions_zero_recall_no_emission": no_delivery,
-        "sessions_zero_recall_emission_unmeasured": delivery_unmeasured,
+        "sessions_zero_recall_with_emission": with_emission,
+        "sessions_zero_recall_emission_empty": emission_empty,
+        "sessions_zero_recall_emission_failed": emission_failed,
+        "sessions_zero_recall_emission_unmeasured": unmeasured,
         "explicit_recall_rate": (round(explicit / measured, 3)
                                  if measured else None),
     }
@@ -737,14 +753,15 @@ def session_stats(ledger_dir: str = DEFAULT_LEDGER_DIR) -> dict[str, Any]:
     greps = totals.get("transcript_greps", 0)
     fallback_rate = (round(greps / (ledger_reads + greps), 3)
                      if (ledger_reads + greps) else None)
-    # Push-path delivery record — {} means "not measured" (ledger predates
-    # the injection log), never "never injected". The session set joins
-    # zero-recall sessions to their delivery receipt, so "never queried"
-    # can be told apart from "never given anything".
-    from .injection_log import emitted_sessions, injection_stats
+    # Push-path emission record — {} means "not measured" (ledger predates
+    # the injection log), never "never injected". The per-session receipt
+    # fold joins zero-recall sessions to what their receipts prove
+    # (injected / empty / failed); a session without a receipt stays
+    # unmeasured — never "never given anything".
+    from .injection_log import fold_emission_receipts, injection_stats
     startup_injection = injection_stats(ledger_dir)
     sessions_read_path = classify_read_path(
-        last_per_session.values(), emitted_sessions(ledger_dir))
+        last_per_session.values(), fold_emission_receipts(ledger_dir))
 
     latencies = [row["latency_ms"] for row in rows
                  if isinstance(row.get("latency_ms"), (int, float))]

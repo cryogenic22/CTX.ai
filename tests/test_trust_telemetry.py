@@ -52,41 +52,142 @@ def test_classify_read_path_separates_zero_recall_from_no_telemetry():
     assert out["explicit_recall_rate"] == 0.5
 
 
-def test_zero_recall_splits_by_delivery_receipt():
+def _fold(sessions, malformed=0):
+    return {"sessions": sessions, "malformed_rows": malformed,
+            "rows": len(sessions)}
+
+
+def test_zero_recall_splits_by_receipt_outcome():
     """"Zero recall" alone cannot be read as "injection-only".
 
-    Two sessions never queried; only one was handed a gist. Without the
-    join they are the same number, and the difference — never queried vs
-    never given anything — is the whole finding.
+    Four sessions never queried: one has an injected receipt, one an
+    empty receipt, one a failed receipt, and one no receipt at all. The
+    last is UNMEASURED — it may simply predate the log — never "no
+    emission".
     """
     rows = [
         {"session": "aaaaaaaa11", "stats": {"ledger_reads": 0,
                                             "transcript_greps": 0}},
         {"session": "bbbbbbbb22", "stats": {"ledger_reads": 0,
                                             "transcript_greps": 0}},
+        {"session": "dddddddd44", "stats": {"ledger_reads": 0,
+                                            "transcript_greps": 0}},
+        {"session": "eeeeeeee55", "stats": {"ledger_reads": 0,
+                                            "transcript_greps": 0}},
         {"session": "cccccccc33", "stats": {"ledger_reads": 5,
                                             "transcript_greps": 0}},
     ]
-    out = classify_read_path(rows, {"aaaaaaaa"})
-    assert out["sessions_zero_recall"] == 2
+    out = classify_read_path(rows, _fold({"aaaaaaaa": "injected",
+                                          "bbbbbbbb": "empty",
+                                          "dddddddd": "failed"}))
+    assert out["sessions_zero_recall"] == 4
     assert out["sessions_zero_recall_with_emission"] == 1
-    assert out["sessions_zero_recall_no_emission"] == 1
-    assert out["sessions_zero_recall_emission_unmeasured"] == 0
+    assert out["sessions_zero_recall_emission_empty"] == 1
+    assert out["sessions_zero_recall_emission_failed"] == 1
+    assert out["sessions_zero_recall_emission_unmeasured"] == 1
+    assert "sessions_zero_recall_no_emission" not in out
 
 
-def test_absent_injection_log_reports_unmeasured_not_no_delivery():
+def test_absent_injection_log_reports_unmeasured_everywhere():
     """The absent-vs-zero rule, applied to the join itself."""
     rows = [{"session": "aaaaaaaa11", "stats": {"ledger_reads": 0,
                                                 "transcript_greps": 0}}]
     out = classify_read_path(rows, None)
     assert out["sessions_zero_recall_emission_unmeasured"] == 1
-    assert out["sessions_zero_recall_no_emission"] == 0
+    assert out["sessions_zero_recall_emission_empty"] == 0
+    assert out["sessions_zero_recall_emission_failed"] == 0
     assert out["sessions_zero_recall_with_emission"] == 0
 
 
-def test_emitted_sessions_absent_log_is_none_not_empty_set():
-    from ctxpack.agent.injection_log import emitted_sessions
-    assert emitted_sessions("no/such/dir") is None
+def test_missing_receipt_is_unmeasured_even_when_the_log_exists():
+    """A session that predates the log — or was packed by `ctxpack
+    backfill`, whose checkpoint timestamps say nothing about when the
+    session started — has no receipt. No timestamp reasoning may turn
+    that absence into "no emission"."""
+    rows = [{"session": "prelogaa11", "stats": {"ledger_reads": 0,
+                                                "transcript_greps": 0}}]
+    out = classify_read_path(rows, _fold({"newerbbb": "injected"}))
+    assert out["sessions_zero_recall_emission_unmeasured"] == 1
+    assert out["sessions_zero_recall_with_emission"] == 0
+    assert out["sessions_zero_recall_emission_empty"] == 0
+
+
+def test_fold_absent_log_is_none_not_empty():
+    from ctxpack.agent.injection_log import fold_emission_receipts
+    assert fold_emission_receipts("no/such/dir") is None
+
+
+def test_fold_multiple_receipts_resolve_deterministically(tmp_path):
+    """any injected → injected; else any failed → failed; else empty —
+    regardless of row order."""
+    from ctxpack.agent.injection_log import fold_emission_receipts
+    out = tmp_path / "ctx"
+    # session A: empty, then failed, then injected → injected
+    record_injection(str(out), session_id="aaaaaaaa-1", context="")
+    record_injection(str(out), session_id="aaaaaaaa-1", context="",
+                     outcome="failed", error="boom")
+    record_injection(str(out), session_id="aaaaaaaa-1", context="gist!")
+    # session B: injected first, later attempts failed → still injected
+    record_injection(str(out), session_id="bbbbbbbb-1", context="gist!")
+    record_injection(str(out), session_id="bbbbbbbb-1", context="",
+                     outcome="failed", error="boom")
+    # session C: failed + empty → failed
+    record_injection(str(out), session_id="cccccccc-1", context="",
+                     outcome="failed", error="boom")
+    record_injection(str(out), session_id="cccccccc-1", context="")
+    # session D: only empty → empty
+    record_injection(str(out), session_id="dddddddd-1", context="")
+    fold = fold_emission_receipts(str(out))
+    assert fold["sessions"] == {"aaaaaaaa": "injected",
+                                "bbbbbbbb": "injected",
+                                "cccccccc": "failed",
+                                "dddddddd": "empty"}
+    assert fold["malformed_rows"] == 0
+    assert fold["rows"] == 8
+
+
+def test_fold_reports_malformed_rows_instead_of_guessing(tmp_path):
+    """Undecodable JSON, rows without a session, and rows with an
+    unknown outcome cannot enter the fold. They are counted, and the
+    sessions they fail to attest stay unmeasured."""
+    from ctxpack.agent.injection_log import (
+        fold_emission_receipts,
+        injection_stats as _stats,
+    )
+    out = tmp_path / "ctx"
+    record_injection(str(out), session_id="goodsess-1", context="gist!")
+    log = out / INJECTION_LOG
+    with open(log, "a", encoding="utf-8") as f:
+        f.write("{not json at all\n")                       # undecodable
+        f.write(json.dumps({"session": "", "outcome": "injected"}) + "\n")
+        f.write(json.dumps({"session": "mystery1-1",
+                            "outcome": "teleported"}) + "\n")
+    fold = fold_emission_receipts(str(out))
+    assert fold["sessions"] == {"goodsess": "injected"}
+    assert fold["malformed_rows"] == 3
+    assert fold["rows"] == 1
+    assert _stats(str(out))["malformed_rows"] == 1  # undecodable line only
+    # the session attested only by a malformed row stays unmeasured
+    rows = [{"session": "mystery1-1", "stats": {"ledger_reads": 0,
+                                                "transcript_greps": 0}}]
+    got = classify_read_path(rows, fold)
+    assert got["sessions_zero_recall_emission_unmeasured"] == 1
+
+
+def test_failed_logging_folds_to_failed_not_empty(tmp_path):
+    """A recorded failure is evidence an attempt broke — it must not
+    read as the hook running clean with nothing to say."""
+    from ctxpack.agent.injection_log import fold_emission_receipts
+    out = tmp_path / "ctx"
+    record_injection(str(out), session_id="failsess-1", context="",
+                     outcome="failed", error="LedgerError: boom")
+    fold = fold_emission_receipts(str(out))
+    assert fold["sessions"] == {"failsess": "failed"}
+    rows = [{"session": "failsess-1", "stats": {"ledger_reads": 0,
+                                                "transcript_greps": 0}}]
+    got = classify_read_path(rows, fold)
+    assert got["sessions_zero_recall_emission_failed"] == 1
+    assert got["sessions_zero_recall_emission_empty"] == 0
 
 
 def test_dashboard_reports_emission_and_never_claims_use():
@@ -97,7 +198,10 @@ def test_dashboard_reports_emission_and_never_claims_use():
     md = render_markdown({
         "cohort": {"read_path": {"sessions_explicit_recall": 0,
                                  "sessions_zero_recall": 3,
-                                 "sessions_zero_recall_with_emission": 3,
+                                 "sessions_zero_recall_with_emission": 2,
+                                 "sessions_zero_recall_emission_empty": 0,
+                                 "sessions_zero_recall_emission_failed": 0,
+                                 "sessions_zero_recall_emission_unmeasured": 1,
                                  "sessions_no_telemetry": 0,
                                  "sessions_transcript_fallback": 0,
                                  "explicit_recall_rate": 0.0},

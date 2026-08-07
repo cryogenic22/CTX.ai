@@ -87,9 +87,11 @@ def record_injection(out_dir: str,
         pass
 
 
-def read_injections(ledger_dir: str) -> "list[dict]":
-    """Every injection row, oldest first. Missing log → []."""
+def _read_rows(ledger_dir: str):
+    """``(rows, malformed_lines)`` — or ``None`` when the log file is
+    absent/unreadable, which callers must report as unmeasured."""
     rows: "list[dict]" = []
+    malformed = 0
     try:
         with open(os.path.join(ledger_dir, INJECTION_LOG),
                   encoding="utf-8") as f:
@@ -100,33 +102,82 @@ def read_injections(ledger_dir: str) -> "list[dict]":
                 try:
                     rows.append(json.loads(line))
                 except json.JSONDecodeError:
-                    continue
+                    malformed += 1
     except OSError:
-        return []
-    return rows
-
-
-def emitted_sessions(ledger_dir: str):
-    """8-char session prefixes for which a non-empty gist was emitted.
-
-    ``None`` when the log is absent — the caller must report the join as
-    unmeasured rather than as "nothing was emitted". Same absent-vs-zero
-    distinction the pull side gets wrong without it.
-    """
-    rows = read_injections(ledger_dir)
-    if not rows:
         return None
-    return {str(r.get("session") or "")[:8] for r in rows
-            if str(r.get("outcome")) == INJECTED}
+    return rows, malformed
+
+
+def read_injections(ledger_dir: str) -> "list[dict]":
+    """Every parseable injection row, oldest first. Missing log → []."""
+    got = _read_rows(ledger_dir)
+    return got[0] if got is not None else []
+
+
+# Fold precedence: one success proves an emission happened; a failure
+# only proves an attempt broke; only a session whose every receipt says
+# "empty" is known to have run clean with nothing to say.
+_FOLD_PRECEDENCE = (INJECTED, FAILED, EMPTY)
+
+
+def fold_emission_receipts(ledger_dir: str):
+    """Deterministic per-session fold of emission receipts.
+
+    ``None`` when the log file is absent — every session's emission is
+    unmeasured. Otherwise::
+
+        {"sessions": {<8-char prefix>: "injected"|"failed"|"empty"},
+         "malformed_rows": <int>,
+         "rows": <int>}            # receipts that entered the fold
+
+    Fold rule, order-independent: any ``injected`` receipt folds the
+    session to ``injected``; otherwise any ``failed`` → ``failed``;
+    otherwise ``empty``.
+
+    A session with no receipt is simply absent from ``sessions`` and
+    must be reported as UNMEASURED: absence of a receipt never proves
+    "no emission", and no timestamp is consulted — checkpoint
+    timestamps can be backfilled and prove nothing about when a session
+    started. (The retired ``emitted_sessions()`` set API made absence
+    look like evidence of non-emission; two review rounds flagged it.)
+
+    ``malformed_rows`` counts lines that cannot enter the fold —
+    undecodable JSON, rows without a session prefix, rows with an
+    unknown outcome. They are reported, never guessed at.
+    """
+    got = _read_rows(ledger_dir)
+    if got is None:
+        return None
+    rows, malformed = got
+    seen: "dict[str, set[str]]" = {}
+    valid = 0
+    for row in rows:
+        prefix = str(row.get("session") or "")[:8]
+        outcome = str(row.get("outcome") or "")
+        if not prefix or outcome not in _FOLD_PRECEDENCE:
+            malformed += 1
+            continue
+        valid += 1
+        seen.setdefault(prefix, set()).add(outcome)
+    folded: "dict[str, str]" = {}
+    for prefix, outcomes in seen.items():
+        for outcome in _FOLD_PRECEDENCE:
+            if outcome in outcomes:
+                folded[prefix] = outcome
+                break
+    return {"sessions": folded, "malformed_rows": malformed, "rows": valid}
 
 
 def injection_stats(ledger_dir: str) -> dict[str, Any]:
-    """Push-path delivery record. ``{}`` when nothing was ever logged —
+    """Push-path emission record. ``{}`` when nothing was ever logged —
     an absent log means "not measured", never "never injected", and the
     two must not be conflated (that conflation is exactly the bug this
     module exists to fix on the pull side)."""
-    rows = read_injections(ledger_dir)
-    if not rows:
+    got = _read_rows(ledger_dir)
+    if got is None:
+        return {}
+    rows, malformed = got
+    if not rows and not malformed:
         return {}
     by_outcome: dict[str, int] = {}
     for row in rows:
@@ -134,22 +185,25 @@ def injection_stats(ledger_dir: str) -> dict[str, Any]:
         by_outcome[key] = by_outcome.get(key, 0) + 1
     sizes = [int(r.get("bytes") or 0) for r in rows
              if str(r.get("outcome")) == INJECTED]
-    latest = rows[-1]
-    return {
+    stats: dict[str, Any] = {
         # names the quantity so no reader has to infer it from a label
         "measures": "emitted_to_hook_stdout",
         "attempted": len(rows),
         "injected": by_outcome.get(INJECTED, 0),
         "empty": by_outcome.get(EMPTY, 0),
         "failed": by_outcome.get(FAILED, 0),
+        "malformed_rows": malformed,
         "gap_warnings": sum(1 for r in rows if r.get("gap_warning")),
-        "emit_success_rate": round(
-            by_outcome.get(INJECTED, 0) / len(rows), 3),
+        "emit_success_rate": (round(
+            by_outcome.get(INJECTED, 0) / len(rows), 3) if rows else None),
         "injected_bytes": ({"min": min(sizes), "max": max(sizes),
                             "mean": round(sum(sizes) / len(sizes), 1)}
                            if sizes else {}),
-        "latest": {"outcome": latest.get("outcome"),
-                   "bytes": latest.get("bytes"),
-                   "sha256": str(latest.get("sha256") or "")[:16],
-                   "ts": latest.get("ts")},
     }
+    if rows:
+        latest = rows[-1]
+        stats["latest"] = {"outcome": latest.get("outcome"),
+                           "bytes": latest.get("bytes"),
+                           "sha256": str(latest.get("sha256") or "")[:16],
+                           "ts": latest.get("ts")}
+    return stats
