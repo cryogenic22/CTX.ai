@@ -30,37 +30,105 @@ _UNMEASURED = ("onboarded_no_data", "external_unmeasured")
 _EXCLUDED = ("not_onboarded", "path_missing")
 
 
-def _sha256_file(path: str) -> "str | None":
-    """sha256 of a file's bytes, or ``None`` when it is absent."""
+def _file_digest(path: str) -> "tuple[str, str | None]":
+    """``(state, sha256)`` — state is present / absent / unreadable.
+
+    Absent and unreadable must not be conflated (review 2026-08-07):
+    "the file is gone" and "the file exists but could not be read" are
+    different claims, and treating them identically lets a permission
+    failure impersonate a clean absence.
+    """
     try:
         with open(path, "rb") as f:
-            return hashlib.sha256(f.read()).hexdigest()
+            return "present", hashlib.sha256(f.read()).hexdigest()
+    except FileNotFoundError:
+        return "absent", None
     except OSError:
-        return None
+        return "unreadable", None
+
+
+def _sha256_file(path: str) -> "str | None":
+    """sha256 of a file's bytes, or ``None`` when it cannot be read."""
+    return _file_digest(path)[1]
 
 
 def repo_input_fingerprint(repo_path: str) -> dict[str, Any]:
     """Fingerprint of the ledger files this scorecard actually reads.
 
-    Covers ``checkpoints.jsonl`` and ``injections.jsonl``. The capture
-    block walks the machine's external transcript directory and is
-    deliberately NOT covered — a passing ``--check`` certifies the
-    ledger-derived numbers, not the capture numbers. An absent file
-    contributes a deterministic ``absent`` marker so missing-vs-changed
-    is distinguishable.
+    Covers ``checkpoints.jsonl`` and ``injections.jsonl``, each with an
+    explicit present/absent/unreadable state folded into the combined
+    fingerprint. The capture block walks the machine's external
+    transcript directory and is deliberately NOT covered — a passing
+    ``--check`` certifies input freshness for the ledger-derived
+    numbers, not the capture numbers and not the report arithmetic.
     """
     ledger = os.path.join(repo_path, ".claude", "ctx")
-    cp = _sha256_file(os.path.join(ledger, "checkpoints.jsonl"))
-    inj = _sha256_file(os.path.join(ledger, "injections.jsonl"))
+    cp_state, cp = _file_digest(os.path.join(ledger, "checkpoints.jsonl"))
+    inj_state, inj = _file_digest(os.path.join(ledger, "injections.jsonl"))
     combined = hashlib.sha256(
-        (f"checkpoints:{cp or 'absent'}\n"
-         f"injections:{inj or 'absent'}").encode("utf-8")).hexdigest()
-    return {"checkpoints_jsonl": cp, "injections_jsonl": inj,
+        (f"checkpoints:{cp_state}:{cp or '-'}\n"
+         f"injections:{inj_state}:{inj or '-'}").encode("utf-8")).hexdigest()
+    return {"checkpoints_jsonl": cp, "checkpoints_state": cp_state,
+            "injections_jsonl": inj, "injections_state": inj_state,
             "fingerprint": combined}
 
 
 def cohort_config_sha256(out_dir: str = "scorecards") -> "str | None":
     return _sha256_file(os.path.join(out_dir, COHORT_FILE))
+
+
+def validate_cohort_config(cfg) -> "list[str]":
+    """Strict cohort-schema validation — a malformed population config
+    is a controlled failure, never a silently-shaped one.
+
+    Enforces: dict shape; ``repos`` a list of non-empty strings with
+    canonical-path uniqueness (Windows case-insensitive, symlink/alias
+    resolved — a repo listed twice under two spellings would be counted
+    twice); ``external`` a list of dicts with unique non-empty names.
+    Returns error strings; empty list = valid.
+    """
+    errors: list[str] = []
+    if not isinstance(cfg, dict):
+        return [f"cohort config must be a JSON object, got "
+                f"{type(cfg).__name__}"]
+    repos = cfg.get("repos")
+    if repos is None:
+        errors.append("cohort config has no 'repos' list")
+        repos = []
+    elif not isinstance(repos, list):
+        errors.append(f"'repos' must be a list, got "
+                      f"{type(repos).__name__}")
+        repos = []
+    seen_canonical: dict[str, str] = {}
+    for entry in repos:
+        if not isinstance(entry, str) or not entry.strip():
+            errors.append(f"repo entries must be non-empty strings: "
+                          f"{entry!r}")
+            continue
+        canonical = os.path.normcase(
+            os.path.realpath(os.path.normpath(entry)))
+        if canonical in seen_canonical:
+            errors.append(
+                f"duplicate repo (canonical-path collision): {entry!r} "
+                f"aliases {seen_canonical[canonical]!r}")
+        else:
+            seen_canonical[canonical] = entry
+    external = cfg.get("external", [])
+    if not isinstance(external, list):
+        errors.append(f"'external' must be a list, got "
+                      f"{type(external).__name__}")
+        external = []
+    seen_names: set[str] = set()
+    for e in external:
+        if not isinstance(e, dict) or not str(e.get("name") or "").strip():
+            errors.append(f"external entries must be objects with a "
+                          f"non-empty 'name': {e!r}")
+            continue
+        name = str(e["name"]).strip()
+        if name in seen_names:
+            errors.append(f"duplicate external deployment id: {name!r}")
+        seen_names.add(name)
+    return errors
 
 
 def repo_scorecard(repo_path: str) -> dict[str, Any]:
@@ -194,7 +262,7 @@ def build_scorecard(repo_paths: list[str],
         "startup_injection": {
             k: _sum(lambda r, _k=k: r.get("startup_injection", {}).get(_k))
             for k in ("attempted", "injected", "empty", "failed",
-                      "gap_warnings")
+                      "malformed_rows", "gap_warnings")
         },
     }
     return {
@@ -265,47 +333,65 @@ def load_cohort(out_dir: str = "scorecards") -> Optional[list[str]]:
 
 
 def verify_latest(out_dir: str = "scorecards") -> tuple[bool, list[str]]:
-    """Recompute the inputs behind ``scorecard-latest.json``; report drift.
+    """INPUT-FRESHNESS check for ``scorecard-latest.json``; report drift.
 
-    Verifies the cohort-config sha and every repo's ledger-file
-    fingerprints, plus that no cohort member is missing from the
-    artifact. The capture block walks external transcript directories
-    and is NOT covered — a passing check certifies the ledger-derived
-    numbers only. Returns ``(ok, findings)``; a stale "latest" is a
-    nonzero exit for the CLI, so dashboards cannot quietly present an
-    old population as current.
+    Scope, stated precisely (review 2026-08-07): this verifies that the
+    cohort config and each repo's fingerprinted ledger files are
+    byte-identical to what the artifact was generated from, and that no
+    cohort member is missing from the artifact. It does NOT recompute
+    the metrics — a hand-edited number in an artifact whose inputs are
+    unchanged would pass — and the capture block is outside the
+    fingerprints entirely. The honest claim is "inputs unchanged since
+    generation", never "numbers verified".
+
+    Malformed artifacts and malformed cohort configs are controlled
+    nonzero failures with named findings, never a traceback. Returns
+    ``(ok, findings)``.
     """
     findings: list[str] = []
     latest_path = os.path.join(out_dir, "scorecard-latest.json")
     try:
         with open(latest_path, encoding="utf-8") as f:
             latest = json.load(f)
-    except (OSError, json.JSONDecodeError):
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
         return False, [f"no readable scorecard at {latest_path}"]
+    if not isinstance(latest, dict):
+        return False, [f"scorecard at {latest_path} is not a JSON object"]
     if latest.get("schema") != SCHEMA:
         return False, [
             f"latest has schema {latest.get('schema')!r} — predates "
             f"self-verification ({SCHEMA}); regenerate"]
+    rows = latest.get("repos")
+    if not isinstance(rows, list) or not all(
+            isinstance(r, dict) for r in rows):
+        return False, ["latest 'repos' is not a list of objects — "
+                       "malformed artifact"]
+    cfg = load_cohort_config(out_dir)
+    cfg_errors = validate_cohort_config(cfg) if cfg is not None else []
+    for err in cfg_errors:
+        findings.append(f"cohort config invalid: {err}")
     if latest.get("cohort_config_sha256") != cohort_config_sha256(out_dir):
         findings.append("cohort config changed since generation "
                         f"({out_dir}/{COHORT_FILE})")
-    rows = latest.get("repos", [])
     for r in rows:
         path = r.get("path")
-        if not path:                      # external rows carry no inputs
-            continue
-        stored = (r.get("inputs") or {}).get("fingerprint")
+        if not path or not isinstance(path, str):
+            continue                      # external rows carry no inputs
+        stored = (r.get("inputs") or {}).get("fingerprint") \
+            if isinstance(r.get("inputs"), dict) else None
         if stored != repo_input_fingerprint(path)["fingerprint"]:
             findings.append(f"{r.get('repo')}: ledger inputs changed "
                             "since generation")
-    cfg = load_cohort_config(out_dir) or {}
+    cfg = cfg or {}
     known_paths = {r.get("path") for r in rows}
-    for p in cfg.get("repos") or []:
+    for p in cfg.get("repos") if isinstance(cfg.get("repos"), list) else []:
         if p not in known_paths:
             findings.append(f"cohort repo missing from latest: {p}")
     known_names = {r.get("repo") for r in rows}
-    for e in cfg.get("external") or []:
-        if str(e.get("name")) not in known_names:
+    ext = cfg.get("external") if isinstance(cfg.get("external"), list) else []
+    for e in ext:
+        name = e.get("name") if isinstance(e, dict) else None
+        if str(name) not in known_names:
             findings.append("external cohort entry missing from latest: "
-                            f"{e.get('name')}")
+                            f"{name}")
     return not findings, findings

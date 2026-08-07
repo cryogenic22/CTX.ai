@@ -1287,13 +1287,17 @@ def _cmd_scorecard(args: argparse.Namespace) -> int:
         write_scorecard,
     )
 
+    from ..agent.scorecard import validate_cohort_config
+
     if args.check:
         ok, findings = verify_latest(args.out)
         for line in findings:
             print(f"STALE: {line}", file=sys.stderr)
         if ok:
-            print("scorecard-latest.json is current with its recorded "
-                  "inputs (capture block not covered by fingerprints)")
+            print("scorecard-latest.json: inputs unchanged since "
+                  "generation. Freshness only — metrics are not "
+                  "recomputed, and capture-block numbers are outside "
+                  "this check.")
             return 0
         print("scorecard-latest.json is STALE — regenerate with "
               "`ctxpack scorecard`", file=sys.stderr)
@@ -1301,12 +1305,29 @@ def _cmd_scorecard(args: argparse.Namespace) -> int:
 
     repos = args.repos
     if repos:
+        errors = validate_cohort_config({"repos": repos})
+        if errors:
+            for err in errors:
+                print(f"Error: {err}", file=sys.stderr)
+            return 1
         save_cohort(repos, args.out)
     else:
-        repos = (load_cohort_config(args.out) or {}).get("repos")
-        if not repos:
+        cfg = load_cohort_config(args.out)
+        if cfg is None:
             print("Error: no --repos given and no saved cohort at "
                   f"{args.out}/cohort.json", file=sys.stderr)
+            return 1
+        errors = validate_cohort_config(cfg)
+        if errors:
+            # a malformed population config is a controlled failure —
+            # never a silently-shaped cohort
+            for err in errors:
+                print(f"Error: {err}", file=sys.stderr)
+            return 1
+        repos = cfg.get("repos")
+        if not repos:
+            print("Error: saved cohort has no repos "
+                  f"({args.out}/cohort.json)", file=sys.stderr)
             return 1
 
     external = (load_cohort_config(args.out) or {}).get("external") or []

@@ -693,6 +693,13 @@ def classify_read_path(rows, emission=None) -> dict[str, Any]:
       can be backfilled and prove nothing about session start. There is
       deliberately no "no_emission" bucket.
 
+    Receipt joining: v2 receipts carry the full session id and join
+    exactly. Legacy v1 receipts carry only an 8-char prefix, which can
+    collide; such a receipt joins ONLY when its prefix maps to exactly
+    one session among the rows being classified — an ambiguous prefix
+    leaves every colliding session unmeasured rather than attributing
+    one session's receipt to another.
+
     Emission is not use. A session in ``with_emission`` was handed
     bytes; nothing here shows the model read or benefited from them
     (see ``ctxpack.core.states.Delivery``).
@@ -700,9 +707,19 @@ def classify_read_path(rows, emission=None) -> dict[str, Any]:
     The first three buckets partition the sessions; transcript_fallback
     overlaps them (a session may query the ledger AND still grep raw).
     """
+    rows = list(rows)
     explicit = zero = untracked = fallback = 0
     with_emission = emission_empty = emission_failed = unmeasured = 0
-    folded = emission.get("sessions", {}) if emission is not None else None
+    by_full = emission.get("by_full", {}) if emission is not None else {}
+    by_prefix = (emission.get("by_prefix", {})
+                 if emission is not None else {})
+    # ambiguity map for legacy prefix receipts: how many DISTINCT full
+    # sessions being classified share each 8-char prefix
+    prefix_owners: dict = {}
+    for row in rows:
+        sid = str(row.get("session", ""))
+        if sid:
+            prefix_owners.setdefault(sid[:8], set()).add(sid)
     for row in rows:
         stats = row.get("stats") or {}
         if "ledger_reads" not in stats:
@@ -712,8 +729,15 @@ def classify_read_path(rows, emission=None) -> dict[str, Any]:
             explicit += 1
         else:
             zero += 1
-            outcome = (folded.get(str(row.get("session", ""))[:8])
-                       if folded is not None else None)
+            sid = str(row.get("session", ""))
+            outcome = None
+            if emission is not None:
+                outcome = by_full.get(sid)
+                if outcome is None and sid:
+                    prefix = sid[:8]
+                    if (prefix in by_prefix
+                            and len(prefix_owners.get(prefix, ())) == 1):
+                        outcome = by_prefix[prefix]
             if outcome == "injected":
                 with_emission += 1
             elif outcome == "failed":

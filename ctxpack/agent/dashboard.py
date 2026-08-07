@@ -177,8 +177,9 @@ def render_dashboard(scorecard: dict[str, Any]) -> str:
 <tbody>{"".join(rows)}</tbody>
 </table></div>
 <footer>ctxpack scorecard &middot; deterministic Layer-1 telemetry computed
- from each repo's committed <code>.claude/ctx/checkpoints.jsonl</code> —
- no content leaves the repo, only counts.</footer>
+ from each repo's ledger files (<code>checkpoints.jsonl</code> +
+ <code>injections.jsonl</code>; git tracking of those files is not
+ verified) — no content leaves the repo, only counts.</footer>
 </div></body></html>
 """
 
@@ -326,8 +327,9 @@ def render_markdown(scorecard: dict[str, Any]) -> str:
 
     lines += [
         "",
-        "_Deterministic Layer-1 telemetry from each repo's committed "
-        "`.claude/ctx/checkpoints.jsonl` — no content leaves the repo, only "
+        "_Deterministic Layer-1 telemetry from each repo's ledger files "
+        "(`checkpoints.jsonl` + `injections.jsonl`; git tracking of those "
+        "files is not verified) — no content leaves the repo, only "
         "counts._",
         "",
     ]

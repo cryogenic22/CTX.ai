@@ -52,9 +52,10 @@ def test_classify_read_path_separates_zero_recall_from_no_telemetry():
     assert out["explicit_recall_rate"] == 0.5
 
 
-def _fold(sessions, malformed=0):
-    return {"sessions": sessions, "malformed_rows": malformed,
-            "rows": len(sessions)}
+def _fold(by_full=None, by_prefix=None, malformed=0):
+    return {"by_full": by_full or {}, "by_prefix": by_prefix or {},
+            "malformed_rows": malformed,
+            "rows": len(by_full or {}) + len(by_prefix or {})}
 
 
 def test_zero_recall_splits_by_receipt_outcome():
@@ -77,9 +78,10 @@ def test_zero_recall_splits_by_receipt_outcome():
         {"session": "cccccccc33", "stats": {"ledger_reads": 5,
                                             "transcript_greps": 0}},
     ]
-    out = classify_read_path(rows, _fold({"aaaaaaaa": "injected",
-                                          "bbbbbbbb": "empty",
-                                          "dddddddd": "failed"}))
+    out = classify_read_path(rows, _fold(by_full={
+        "aaaaaaaa11": "injected",
+        "bbbbbbbb22": "empty",
+        "dddddddd44": "failed"}))
     assert out["sessions_zero_recall"] == 4
     assert out["sessions_zero_recall_with_emission"] == 1
     assert out["sessions_zero_recall_emission_empty"] == 1
@@ -106,10 +108,37 @@ def test_missing_receipt_is_unmeasured_even_when_the_log_exists():
     that absence into "no emission"."""
     rows = [{"session": "prelogaa11", "stats": {"ledger_reads": 0,
                                                 "transcript_greps": 0}}]
-    out = classify_read_path(rows, _fold({"newerbbb": "injected"}))
+    out = classify_read_path(rows,
+                             _fold(by_full={"newerbbb99": "injected"}))
     assert out["sessions_zero_recall_emission_unmeasured"] == 1
     assert out["sessions_zero_recall_with_emission"] == 0
     assert out["sessions_zero_recall_emission_empty"] == 0
+
+
+def test_legacy_prefix_receipt_joins_only_when_unambiguous():
+    """v1 receipts carry an 8-char prefix. Two sessions sharing that
+    prefix must BOTH stay unmeasured — attributing one session's
+    receipt to another is worse than admitting we cannot join."""
+    shared = [
+        {"session": "aaaaaaaa11", "stats": {"ledger_reads": 0,
+                                            "transcript_greps": 0}},
+        {"session": "aaaaaaaa22", "stats": {"ledger_reads": 0,
+                                            "transcript_greps": 0}},
+    ]
+    out = classify_read_path(shared,
+                             _fold(by_prefix={"aaaaaaaa": "injected"}))
+    assert out["sessions_zero_recall_with_emission"] == 0
+    assert out["sessions_zero_recall_emission_unmeasured"] == 2
+    # the same receipt joins fine when only one session owns the prefix
+    out = classify_read_path(shared[:1],
+                             _fold(by_prefix={"aaaaaaaa": "injected"}))
+    assert out["sessions_zero_recall_with_emission"] == 1
+    # and an exact v2 receipt wins over the legacy prefix pool
+    out = classify_read_path(shared, _fold(
+        by_full={"aaaaaaaa11": "empty"},
+        by_prefix={"aaaaaaaa": "injected"}))
+    assert out["sessions_zero_recall_emission_empty"] == 1
+    assert out["sessions_zero_recall_emission_unmeasured"] == 1
 
 
 def test_fold_absent_log_is_none_not_empty():
@@ -119,7 +148,7 @@ def test_fold_absent_log_is_none_not_empty():
 
 def test_fold_multiple_receipts_resolve_deterministically(tmp_path):
     """any injected → injected; else any failed → failed; else empty —
-    regardless of row order."""
+    regardless of row order. v2 receipts carry the FULL session id."""
     from ctxpack.agent.injection_log import fold_emission_receipts
     out = tmp_path / "ctx"
     # session A: empty, then failed, then injected → injected
@@ -138,18 +167,20 @@ def test_fold_multiple_receipts_resolve_deterministically(tmp_path):
     # session D: only empty → empty
     record_injection(str(out), session_id="dddddddd-1", context="")
     fold = fold_emission_receipts(str(out))
-    assert fold["sessions"] == {"aaaaaaaa": "injected",
-                                "bbbbbbbb": "injected",
-                                "cccccccc": "failed",
-                                "dddddddd": "empty"}
+    assert fold["by_full"] == {"aaaaaaaa-1": "injected",
+                               "bbbbbbbb-1": "injected",
+                               "cccccccc-1": "failed",
+                               "dddddddd-1": "empty"}
+    assert fold["by_prefix"] == {}
     assert fold["malformed_rows"] == 0
     assert fold["rows"] == 8
 
 
 def test_fold_reports_malformed_rows_instead_of_guessing(tmp_path):
-    """Undecodable JSON, rows without a session, and rows with an
-    unknown outcome cannot enter the fold. They are counted, and the
-    sessions they fail to attest stay unmeasured."""
+    """Undecodable JSON, non-object JSON, rows without a session, and
+    rows with an unknown outcome cannot enter the fold. They are
+    counted — by the fold AND by injection_stats, with one shared
+    definition — and the sessions they fail to attest stay unmeasured."""
     from ctxpack.agent.injection_log import (
         fold_emission_receipts,
         injection_stats as _stats,
@@ -163,15 +194,48 @@ def test_fold_reports_malformed_rows_instead_of_guessing(tmp_path):
         f.write(json.dumps({"session": "mystery1-1",
                             "outcome": "teleported"}) + "\n")
     fold = fold_emission_receipts(str(out))
-    assert fold["sessions"] == {"goodsess": "injected"}
+    assert fold["by_full"] == {"goodsess-1": "injected"}
     assert fold["malformed_rows"] == 3
     assert fold["rows"] == 1
-    assert _stats(str(out))["malformed_rows"] == 1  # undecodable line only
+    stats = _stats(str(out))
+    assert stats["malformed_rows"] == 3     # same definition as the fold
+    assert stats["attempted"] == 1          # valid receipts only
     # the session attested only by a malformed row stays unmeasured
     rows = [{"session": "mystery1-1", "stats": {"ledger_reads": 0,
                                                 "transcript_greps": 0}}]
     got = classify_read_path(rows, fold)
     assert got["sessions_zero_recall_emission_unmeasured"] == 1
+
+
+def test_non_object_json_rows_are_malformed_not_a_crash(tmp_path):
+    """The reviewer's P1 repro: [], "x", null and 42 are syntactically
+    valid JSON that previously crashed the fold with AttributeError."""
+    from ctxpack.agent.injection_log import (
+        fold_emission_receipts,
+        injection_stats as _stats,
+        read_injections,
+    )
+    out = tmp_path / "ctx"
+    record_injection(str(out), session_id="realsess-1", context="gist!")
+    with open(out / INJECTION_LOG, "a", encoding="utf-8") as f:
+        f.write('[]\n"x"\nnull\n42\n')
+    fold = fold_emission_receipts(str(out))
+    assert fold["by_full"] == {"realsess-1": "injected"}
+    assert fold["malformed_rows"] == 4
+    assert _stats(str(out))["malformed_rows"] == 4
+    assert read_injections(str(out)) and all(
+        isinstance(r, dict) for r in read_injections(str(out)))
+
+
+def test_invalid_utf8_bytes_do_not_crash_the_reader(tmp_path):
+    from ctxpack.agent.injection_log import fold_emission_receipts
+    out = tmp_path / "ctx"
+    record_injection(str(out), session_id="utf8sess-1", context="gist!")
+    with open(out / INJECTION_LOG, "ab") as f:
+        f.write(b'{"session": "\xff\xfe broken\n')
+    fold = fold_emission_receipts(str(out))
+    assert fold["by_full"] == {"utf8sess-1": "injected"}
+    assert fold["malformed_rows"] == 1
 
 
 def test_failed_logging_folds_to_failed_not_empty(tmp_path):
@@ -182,7 +246,7 @@ def test_failed_logging_folds_to_failed_not_empty(tmp_path):
     record_injection(str(out), session_id="failsess-1", context="",
                      outcome="failed", error="LedgerError: boom")
     fold = fold_emission_receipts(str(out))
-    assert fold["sessions"] == {"failsess": "failed"}
+    assert fold["by_full"] == {"failsess-1": "failed"}
     rows = [{"session": "failsess-1", "stats": {"ledger_reads": 0,
                                                 "transcript_greps": 0}}]
     got = classify_read_path(rows, fold)

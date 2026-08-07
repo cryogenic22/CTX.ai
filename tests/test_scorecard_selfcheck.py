@@ -47,7 +47,7 @@ def _generate(tmp_path, repos, out_name="cards"):
 def test_clean_check_passes(tmp_path, capsys):
     out = _generate(tmp_path, [_repo(tmp_path, "repo_a", "aaaaaaaa-1")])
     assert main(["scorecard", "--check", "--out", str(out)]) == 0
-    assert "current with its recorded inputs" in capsys.readouterr().out
+    assert "inputs unchanged since generation" in capsys.readouterr().out
 
 
 def test_changed_ledger_input_fails_check_and_names_the_repo(
@@ -146,6 +146,70 @@ def test_save_cohort_preserves_external_entries(tmp_path):
     assert cfg["repos"] == ["a", "b"]
     assert cfg["external"] == [{"name": "OntoWiz"}]
     assert load_cohort(str(out)) == ["a", "b"]
+
+
+def test_duplicate_and_aliased_repo_paths_are_a_controlled_failure(
+        tmp_path, capsys):
+    """A repo listed twice — including under a case-variant spelling on
+    Windows — would be double-counted. Generation refuses."""
+    repo = _repo(tmp_path, "repo_a", "aaaaaaaa-1")
+    out = tmp_path / "cards"
+    rc = main(["scorecard", "--repos", str(repo), str(repo).upper(),
+               "--out", str(out)])
+    assert rc == 1
+    assert "canonical-path collision" in capsys.readouterr().err
+
+
+def test_malformed_cohort_config_is_a_controlled_failure(
+        tmp_path, capsys):
+    out = tmp_path / "cards"
+    out.mkdir()
+    (out / "cohort.json").write_text(
+        json.dumps({"repos": "not-a-list",
+                    "external": [{"name": "X"}, {"name": "X"}]}) + "\n",
+        encoding="utf-8")
+    assert main(["scorecard", "--out", str(out)]) == 1
+    err = capsys.readouterr().err
+    assert "'repos' must be a list" in err
+    assert "duplicate external deployment id" in err
+    # --check on the same malformed config: controlled stale, no crash
+    (out / "scorecard-latest.json").write_text(json.dumps(
+        {"schema": "ctxpack-scorecard/v2", "repos": [],
+         "cohort_config_sha256": None}), encoding="utf-8")
+    assert main(["scorecard", "--check", "--out", str(out)]) == 1
+    assert "cohort config invalid" in capsys.readouterr().err
+
+
+def test_malformed_latest_shape_is_a_controlled_failure(tmp_path, capsys):
+    (tmp_path / "scorecard-latest.json").write_text(json.dumps(
+        {"schema": "ctxpack-scorecard/v2", "repos": "nope"}),
+        encoding="utf-8")
+    assert main(["scorecard", "--check", "--out", str(tmp_path)]) == 1
+    assert "not a list of objects" in capsys.readouterr().err
+
+
+def test_fingerprints_carry_file_states_not_just_hashes(tmp_path):
+    """Absent and unreadable are different claims; a missing ledger
+    file is recorded as absent, never conflated into one None."""
+    from ctxpack.agent.scorecard import repo_input_fingerprint
+    repo = _repo(tmp_path, "repo_a", "aaaaaaaa-1")
+    fp = repo_input_fingerprint(str(repo))
+    assert fp["checkpoints_state"] == "present"
+    assert fp["injections_state"] == "absent"
+    assert fp["injections_jsonl"] is None
+    assert len(fp["fingerprint"]) == 64
+
+
+def test_check_message_claims_freshness_not_verification(tmp_path, capsys):
+    """The guarantee is input freshness — metrics are not recomputed
+    and the capture block is outside the fingerprints. The success
+    message must say exactly that and no more."""
+    out = _generate(tmp_path, [_repo(tmp_path, "repo_a", "aaaaaaaa-1")])
+    assert main(["scorecard", "--check", "--out", str(out)]) == 0
+    msg = capsys.readouterr().out
+    assert "inputs unchanged since generation" in msg
+    assert "metrics are not recomputed" in msg
+    assert "capture-block numbers are outside this check" in msg
 
 
 def test_verify_latest_covers_regenerated_cohort_flow(tmp_path):

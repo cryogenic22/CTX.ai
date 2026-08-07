@@ -44,7 +44,12 @@ import os
 from typing import Any
 
 INJECTION_LOG = "injections.jsonl"
-SCHEMA = "ctx-injections/v1"
+# v2: the row carries the FULL session id. v1 rows stored an 8-char
+# prefix, which collides at team scale — two sessions sharing a prefix
+# would both inherit one receipt's outcome. Legacy v1 rows are still
+# read, but they join to a session only when the prefix is unambiguous
+# among the sessions being classified (see classify_read_path).
+SCHEMA = "ctx-injections/v2"
 
 # outcome values
 INJECTED = "injected"   # non-empty context handed to the agent
@@ -70,7 +75,7 @@ def record_injection(out_dir: str,
             "ts": datetime.datetime.now(
                 datetime.timezone.utc).isoformat(timespec="seconds"),
             "schema": SCHEMA,
-            "session": (session_id or "")[:8],
+            "session": (session_id or "").strip(),
             "source": source,
             "outcome": outcome,
             "bytes": len(text.encode("utf-8")),
@@ -93,20 +98,32 @@ def record_injection(out_dir: str,
 
 
 def _read_rows(ledger_dir: str):
-    """``(rows, malformed_lines)`` — or ``None`` when the log file is
-    absent/unreadable, which callers must report as unmeasured."""
+    """``(dict_rows, malformed_lines)`` — or ``None`` when the log file
+    is absent, which callers must report as unmeasured.
+
+    Only dict rows are returned: a syntactically valid non-object line
+    (``[]``, ``"x"``, ``null``, ``42``) is a malformed receipt to be
+    counted, never a crash downstream. Bytes are decoded lossily
+    (``errors="replace"``) so one invalid byte cannot blind the whole
+    log; a line the replacement mangles past JSON is malformed too.
+    """
     rows: "list[dict]" = []
     malformed = 0
     try:
         with open(os.path.join(ledger_dir, INJECTION_LOG),
-                  encoding="utf-8") as f:
+                  encoding="utf-8", errors="replace") as f:
             for line in f:
                 line = line.strip()
                 if not line:
                     continue
                 try:
-                    rows.append(json.loads(line))
+                    row = json.loads(line)
                 except json.JSONDecodeError:
+                    malformed += 1
+                    continue
+                if isinstance(row, dict):
+                    rows.append(row)
+                else:
                     malformed += 1
     except OSError:
         return None
@@ -114,7 +131,7 @@ def _read_rows(ledger_dir: str):
 
 
 def read_injections(ledger_dir: str) -> "list[dict]":
-    """Every parseable injection row, oldest first. Missing log → []."""
+    """Every parseable dict row, oldest first. Missing log → []."""
     got = _read_rows(ledger_dir)
     return got[0] if got is not None else []
 
@@ -125,88 +142,125 @@ def read_injections(ledger_dir: str) -> "list[dict]":
 _FOLD_PRECEDENCE = (INJECTED, FAILED, EMPTY)
 
 
+def _receipt_session_outcome(row: dict):
+    """``(session, outcome)`` of a valid receipt, else ``None`` — the
+    ONE definition of a valid receipt, shared by ``injection_stats``
+    and the fold so "attempted" and "folded" can never disagree about
+    what counts."""
+    session = str(row.get("session") or "").strip()
+    outcome = str(row.get("outcome") or "")
+    if not session or outcome not in _FOLD_PRECEDENCE:
+        return None
+    return session, outcome
+
+
 def fold_emission_receipts(ledger_dir: str):
     """Deterministic per-session fold of emission receipts.
 
     ``None`` when the log file is absent — every session's emission is
     unmeasured. Otherwise::
 
-        {"sessions": {<8-char prefix>: "injected"|"failed"|"empty"},
+        {"by_full":   {<full session id>: outcome},   # v2 receipts
+         "by_prefix": {<8-char prefix>:  outcome},    # legacy v1 rows
          "malformed_rows": <int>,
-         "rows": <int>}            # receipts that entered the fold
+         "rows": <int>}            # valid receipts that entered a fold
 
     Fold rule, order-independent: any ``injected`` receipt folds the
     session to ``injected``; otherwise any ``failed`` → ``failed``;
     otherwise ``empty``.
 
-    A session with no receipt is simply absent from ``sessions`` and
-    must be reported as UNMEASURED: absence of a receipt never proves
-    "no emission", and no timestamp is consulted — checkpoint
-    timestamps can be backfilled and prove nothing about when a session
-    started. (The retired ``emitted_sessions()`` set API made absence
-    look like evidence of non-emission; two review rounds flagged it.)
+    v1 receipts stored only an 8-char prefix, which can collide. They
+    are folded separately under ``by_prefix``; the join to a session is
+    the CALLER's decision and must require the prefix to map to exactly
+    one session — an ambiguous prefix is unmeasured, never split or
+    duplicated (see ``classify_read_path``).
 
-    ``malformed_rows`` counts lines that cannot enter the fold —
-    undecodable JSON, rows without a session prefix, rows with an
-    unknown outcome. They are reported, never guessed at.
+    A session with no receipt is simply absent and must be reported as
+    UNMEASURED: absence of a receipt never proves "no emission", and no
+    timestamp is consulted — checkpoint timestamps can be backfilled
+    and prove nothing about when a session started.
+
+    ``malformed_rows`` counts everything that cannot enter a fold —
+    undecodable lines, non-object JSON, rows without a session, rows
+    with an unknown outcome. Reported, never guessed at.
     """
     got = _read_rows(ledger_dir)
     if got is None:
         return None
     rows, malformed = got
-    seen: "dict[str, set[str]]" = {}
+    full_seen: "dict[str, set[str]]" = {}
+    prefix_seen: "dict[str, set[str]]" = {}
     valid = 0
     for row in rows:
-        prefix = str(row.get("session") or "")[:8]
-        outcome = str(row.get("outcome") or "")
-        if not prefix or outcome not in _FOLD_PRECEDENCE:
+        rec = _receipt_session_outcome(row)
+        if rec is None:
             malformed += 1
             continue
+        session, outcome = rec
         valid += 1
-        seen.setdefault(prefix, set()).add(outcome)
-    folded: "dict[str, str]" = {}
-    for prefix, outcomes in seen.items():
-        for outcome in _FOLD_PRECEDENCE:
-            if outcome in outcomes:
-                folded[prefix] = outcome
-                break
-    return {"sessions": folded, "malformed_rows": malformed, "rows": valid}
+        bucket = full_seen if len(session) > 8 else prefix_seen
+        bucket.setdefault(session, set()).add(outcome)
+
+    def _fold(seen: "dict[str, set[str]]") -> "dict[str, str]":
+        out: "dict[str, str]" = {}
+        for key, outcomes in seen.items():
+            for outcome in _FOLD_PRECEDENCE:
+                if outcome in outcomes:
+                    out[key] = outcome
+                    break
+        return out
+
+    return {"by_full": _fold(full_seen), "by_prefix": _fold(prefix_seen),
+            "malformed_rows": malformed, "rows": valid}
 
 
 def injection_stats(ledger_dir: str) -> dict[str, Any]:
     """Push-path emission record. ``{}`` when nothing was ever logged —
     an absent log means "not measured", never "never injected", and the
     two must not be conflated (that conflation is exactly the bug this
-    module exists to fix on the pull side)."""
+    module exists to fix on the pull side).
+
+    ``attempted`` counts VALID receipts only — the same definition the
+    fold uses (``_receipt_session_outcome``) — so a semantically
+    invalid object can never count as attempted here while being called
+    malformed there."""
     got = _read_rows(ledger_dir)
     if got is None:
         return {}
     rows, malformed = got
-    if not rows and not malformed:
+    valid_rows: "list[tuple[dict, str]]" = []
+    for row in rows:
+        rec = _receipt_session_outcome(row)
+        if rec is None:
+            malformed += 1
+        else:
+            valid_rows.append((row, rec[1]))
+    if not valid_rows and not malformed:
         return {}
     by_outcome: dict[str, int] = {}
-    for row in rows:
-        key = str(row.get("outcome") or "unknown")
-        by_outcome[key] = by_outcome.get(key, 0) + 1
-    sizes = [int(r.get("bytes") or 0) for r in rows
-             if str(r.get("outcome")) == INJECTED]
+    for _, outcome in valid_rows:
+        by_outcome[outcome] = by_outcome.get(outcome, 0) + 1
+    sizes = [int(r.get("bytes") or 0) for r, outcome in valid_rows
+             if outcome == INJECTED]
     stats: dict[str, Any] = {
         # names the quantity so no reader has to infer it from a label
         "measures": "emitted_to_hook_stdout",
-        "attempted": len(rows),
+        "attempted": len(valid_rows),
         "injected": by_outcome.get(INJECTED, 0),
         "empty": by_outcome.get(EMPTY, 0),
         "failed": by_outcome.get(FAILED, 0),
         "malformed_rows": malformed,
-        "gap_warnings": sum(1 for r in rows if r.get("gap_warning")),
+        "gap_warnings": sum(1 for r, _ in valid_rows
+                            if r.get("gap_warning")),
         "emit_success_rate": (round(
-            by_outcome.get(INJECTED, 0) / len(rows), 3) if rows else None),
+            by_outcome.get(INJECTED, 0) / len(valid_rows), 3)
+            if valid_rows else None),
         "injected_bytes": ({"min": min(sizes), "max": max(sizes),
                             "mean": round(sum(sizes) / len(sizes), 1)}
                            if sizes else {}),
     }
-    if rows:
-        latest = rows[-1]
+    if valid_rows:
+        latest = valid_rows[-1][0]
         stats["latest"] = {"outcome": latest.get("outcome"),
                            "bytes": latest.get("bytes"),
                            "sha256": str(latest.get("sha256") or "")[:16],
