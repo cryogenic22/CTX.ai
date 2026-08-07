@@ -6,5 +6,11 @@
     "C:/Users/kapil/Scriptiva_SCA",
     "C:/Users/kapil/Documents/setu",
     "C:/Users/kapil/Documents/WhynotFamous"
+  ],
+  "external": [
+    {
+      "name": "OntoWiz",
+      "note": "field-report deployment (report 2026-07-25); ledger not on this machine — cohort member, unmeasured here until its ledger is shared"
+    }
   ]
 }
