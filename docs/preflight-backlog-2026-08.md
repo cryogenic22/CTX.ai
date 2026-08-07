@@ -1,258 +1,324 @@
-# Preflight Backlog — 2026-08 (push-conversion program)
+# Preflight Backlog — 2026-08 (push-conversion program) · v2
 
-Status: **proposed 2026-08-05** — owner ratification pending. Origin: the
-2026-08-05 strategy verdict on the scriptiva field report (recorded
-verbatim-in-substance on `AGENT_COORDINATION.md` under Reviewer Notes).
-This document **extends** `docs/execution-plan-2026-07.md`; it does not
-replace it. Same operating shape: one active owner, one notes-only
-reviewer, one active thread at a time, six-field contract per task
-(**failure addressed / baseline / target / validation loop / kill
-condition / claim earned**).
+Status: **ratified 2026-08-07 with amendments** (owner + reviewer verdict at
+`921fd59`, recorded on `AGENT_COORDINATION.md`). v1 was proposed 2026-08-05;
+v2 applies the reviewer's five mandatory corrections and the adopted parts
+of the 2026-08-06 adversarial-review assessment. This document **extends**
+`docs/execution-plan-2026-07.md`. Same operating shape: one active owner,
+one notes-only reviewer, one active thread, six-field contract per task.
 
-## Thesis change this backlog implements
+**Authorization state (2026-08-07):** Loops 1–2 authorized and executing.
+Then expanded E-6. NO live hook, NO paid experiment, NO parked-branch merge.
 
-Three independent deployments (OntoWiz 0 recall calls, setu near-zero,
-scriptiva 0.4%) show agent-initiated recall is not a viable primary
-interface. The product becomes:
+## Amendment log (v1 → v2)
 
-> A deterministic decision-control layer: before an agent acts, CTX
-> supplies a bounded packet of relevant constraints, current decisions,
-> unresolved forks and evidence status — with exact provenance and an
-> auditable receipt (`ctx-preflight/v1`).
+1. **PF-01 rewritten.** The first-timestamp/coverage-window approach is
+   rejected: backfilled checkpoint timestamps are not session-start
+   timestamps, and absence of a receipt never proves "no emission".
+   Replaced by a deterministic **per-session receipt fold** (see PF-01).
+2. **Extraction basis is not authority.** `marker_stated`
+   (`ctxpack/core/factid.py:31`) describes how text was extracted; an
+   assistant can emit a `Decision:` marker. New PF-03 adds separate
+   `source_role` and `authority` fields; legacy facts default
+   unknown/candidate, never owner-approved.
+3. **Eligibility split from relevance.** PF-13 no longer depends on the
+   matcher (PF-21). Hard eligibility (security, lifecycle, authority,
+   freshness, conflict) ships first as a pure policy module; the matcher
+   applies relevance afterwards.
+4. **Freshness/fork minimums moved before the experiment.** PF-51/PF-52
+   minimum implementations now precede PF-41; otherwise its stale-assertion
+   and fork-side-action endpoints would measure machinery that doesn't
+   exist.
+5. **No exact-BPE promise at runtime.** The live path enforces a
+   conservative, explicitly labelled estimator budget; exact tokenizer
+   counts live only in the evaluation harness where tiktoken can be
+   required.
+6. **Adopted from the adversarial-review assessment:** experiment scale
+   strata + fair flat-file maintenance budget (PF-41); latency
+   measured-then-frozen, precomputed index keyed by ledger sha (PF-21/31);
+   batched ratification queue — merge evidence may create corroboration,
+   never `USER_RATIFIED` (PF-03); fork warnings scoped by semantic lineage
+   match, not git branches (PF-24/52); drift-control boundaries designed
+   now, activated later (new Phase 6); multi-writer safety as an
+   external-pilot prerequisite (new §). **Rejected:** implicit
+   merge-based ratification; git-branch-defined semantic forks; the
+   arbitrary <150ms ceiling (measure first, then freeze).
+7. **Language rule (product docs and marketing):** never "cryptographic
+   provenance" or "mathematical proof". Hashes prove byte integrity, not
+   truth or authorship. Provenance claims are exactly: attributable
+   selection with receipts.
 
-Voluntary `recall`/`why` remain the **human/reviewer audit surface**, not
-the agent product. Recall-call rate is retired as a success metric;
-prompt-time push deliberately makes it irrelevant.
+## Thesis
 
-Two owner-agent overclaims corrected per the verdict, on the record:
-(1) near-zero pull usage does not prove deficient model metacognition is
-the *sole* cause — low need, gist sufficiency, tool-selection friction
-and incomplete telemetry are live alternatives; (2) prompt-time injection
-is **not a cheap fix** — it is a synchronous, every-prompt security and
-relevance boundary (the UserPromptSubmit hook blocks model processing
-while it runs).
+> prompt → secure facts → authority/freshness policy → deterministic match
+> → fork override → bounded packet → outgoing scan → emission → auditable
+> receipt
 
-## Verified code receipts behind this backlog (checked 2026-08-05)
+CTX prevents stale, conflicting, or unauthorized context from silently
+steering an agent. Voluntary `recall`/`why` remain the human/reviewer audit
+surface. Recall-call rate is retired as a metric. "Doubt" must be a system
+state — low margin, stale evidence, competing heads, unknown authority →
+CTX says "unknown — verify or reconcile", never silently selects.
 
-- `ctxpack/core/hydrator.py:244` — `hydrate_by_query` scores by
-  **unweighted term overlap** (docstring: programmatic fallback path).
-  Confirmed inadequate as a live injector; Phase 2 builds a new matcher.
-- `ctxpack/agent/injection_log.py:109` + `session_reader.py:634` — the
-  absent-log case is already reported as unmeasured, but a session that
-  **predates the log's first row** while the log exists lands in
-  `sessions_zero_recall_no_emission` ("handed nothing") at
-  `session_reader.py:677-680`. Coverage is binary where it must be an
-  interval. This is the Phase-0 defect, stated precisely.
-- `ctxpack/cli/main.py:1420` — `_HOOK_SETTINGS` carries
-  PreCompact/SessionStart/SessionEnd/Stop only; no UserPromptSubmit.
-  Adding one is **new hook surface** and is gated (see Phase 3).
+## Loop map (reviewer's 10 loops → tasks)
 
-## Governing constraints (all standing; none relaxed here)
+| Loop | Task(s) | Status |
+|---|---|---|
+| 1 emission telemetry | PF-01 | **authorized — executing** |
+| 2 self-verifying scorecards | PF-02 | **authorized — executing** |
+| 3 authority provenance | PF-03 | backlog (after E-6 start, owner call) |
+| 4 E-6 security boundary | PF-11..17 | next thread after Loops 1–2 |
+| 5 eligibility + min freshness | PF-13, PF-51a | after E-6 |
+| 6 deterministic matcher | PF-21 | after Loop 5 |
+| 7 receipts + rendering | PF-22, PF-24 | after Loop 6 |
+| 8 shadow evaluation | PF-23 | gates frozen post-calibration |
+| 9 live canary | PF-31 | triple-gated |
+| 10 falsification experiment | PF-41 | paid ⇒ fresh approvals |
 
-- E-6 remains the next owner thread. Phase 1 *is* E-6, with scope
-  expanded per the verdict. Phase 0 is small enough to precede it and is
-  a precondition for using any cohort numbers.
-- Banked constraint s:eca3f61c#turn802 (no injection surface beyond what
-  already exists). **Phase 3 activation requires an explicit owner
-  ratification recorded as a `Supersedes:` of that constraint.** Building
-  the matcher in shadow mode (Phase 2) does not touch the constraint.
-- Query-surface expansion stays FROZEN (no new recall/MCP tools).
-- Any paid run (Phase 4) requires fresh reviewer approval of the
-  preregistration plus the owner's explicit budget authorization.
-- Parked branch `feat/fork-surfacing-parked`: do-not-merge; parked→main
-  banned; its outstanding code review gates PF-52.
-- E-6 lands and is approved **before** any live injection; security and
-  injection are one initiative but never one commit or review unit.
-- Frozen for the duration: new recall/MCP tools, semantic-graph
-  expansion, dream/consolidation, LLM memory rewriting, secondary
-  trigger hooks (test-failed / raw-grep), broad vendor integrations,
-  generic-memory or token-compression marketing.
+## Governing constraints (standing; none relaxed)
+
+- s:eca3f61c#turn802 gates any new hook surface: Phase-3 activation
+  requires an explicit owner `Supersedes:` of that constraint.
+- Query-surface expansion FROZEN. No secondary trigger hooks.
+- Paid runs (PF-41) require fresh reviewer approval of the prereg plus
+  the owner's explicit budget authorization.
+- Parked branch: do-not-merge; parked→main banned; its outstanding code
+  review gates PF-52's renderer — until cleared, fork evaluation is
+  excluded from shadow scoring, not simulated.
+- E-6 lands and is approved before any live injection; security and
+  injection are never one commit or review unit.
+- Frozen: new recall/MCP tools, semantic-graph expansion,
+  dream/consolidation, LLM memory rewriting, broad vendor integrations,
+  generic-memory/token-compression marketing.
 
 ## Dependency spine
 
 ```
-PF-01..02 (Phase 0, observability) ─→ any use of cohort numbers
-E-6 expanded (PF-11..17) ─┬─→ PF-21..24 shadow matcher ─→ gates green ─┐
-                          │                                            ├─→ PF-31 live preflight ─→ PF-41 behavioral experiment ─→ PF-51..52 freshness + fork control
-owner ratification superseding s:eca3f61c#turn802 ─────────────────────┘
+PF-01, PF-02 (Loops 1–2, authorized) ─→ trustworthy cohort numbers
+E-6 (PF-11..17) ─→ PF-03 authority ─→ PF-13 eligibility ─→ PF-51a min freshness
+                                                        └→ PF-21 matcher ─→ PF-22/24 receipts+rendering ─→ PF-23 shadow gates ─┐
+owner supersession of s:eca3f61c#turn802 ──────────────────────────────────────────────────────────────────────────────────────┼─→ PF-31 canary ─→ PF-41 experiment
+PF-52 min fork control (parked review cleared) ────────────────────────────────────────────────────────────────────────────────┘
+Phase 6 (PreToolUse/PostToolUse/Stop) — DESIGN alongside PF-13; ACTIVATE only after PF-23 passes
+Multi-writer safety — prerequisite for any external multi-agent pilot
 ```
 
 ---
 
-## Phase 0 — Repair observability (before citing any cohort number)
+## Phase 0 — Repair observability (Loops 1–2, authorized)
 
-### PF-01 · Injection-log coverage intervals
-- **Failure addressed:** sessions predating the injection log are
-  classified "handed nothing" rather than "unmeasured"
-  (`session_reader.py:677-680` join against `injection_log.py:109`).
-- **Baseline:** `emitted_sessions()` returns a set or `None`; no notion
-  of when instrumentation began.
-- **Target:** coverage represented as an interval (first-receipt
-  timestamp); `classify_read_path` buckets pre-coverage sessions into
-  `sessions_zero_recall_emission_unmeasured`.
-- **Validation loop:** regression test with sessions before/after the
-  log's first row; existing absent-log tests unchanged.
+### PF-01 · Per-session emission-receipt fold  *(Loop 1)*
+- **Failure addressed:** `emitted_sessions()` (set/None) lets absence of a
+  receipt read as "no emission" (`session_reader.py` join); pre-log and
+  backfilled sessions are misclassified as "handed nothing".
+- **Baseline:** `sessions_zero_recall_no_emission` counts sessions that
+  merely predate the log; banked constraint forbids quoting cohort
+  numbers until fixed.
+- **Target:** replace with `fold_emission_receipts()` → per-session
+  outcomes {injected, empty, failed} + malformed-row count. Deterministic
+  multi-receipt fold: any `injected` → injected; else any `failed` →
+  failed; else empty. A missing receipt is **unmeasured** regardless of
+  any timestamp; the `no_emission` bucket is abolished — the only proof
+  the hook ran with nothing to say is an `empty` receipt. Report
+  injected/empty/failed/malformed/unmeasured separately everywhere
+  (classify, scorecard, dashboard).
+- **Validation loop:** `tests/test_trust_telemetry.py` — multiple
+  receipts per session, pre-log sessions, malformed rows, failed
+  logging, backfilled sessions.
 - **Kill condition:** none (telemetry honesty; reversible).
-- **Claim earned:** zero-recall splits are trustworthy per-site.
+- **Claim earned:** zero-recall splits trustworthy; the no-quoting
+  constraint on cohort telemetry resolves.
 
-### PF-02 · Scorecard denominators + staleness
-- **Failure addressed:** measured/unmeasured/excluded conflated; a stale
-  scorecard can present as "latest"; OntoWiz not a separate cohort row.
-- **Baseline:** `scorecards/scorecard-latest.json` semantics.
-- **Target:** three denominators reported separately; "latest" status
-  fails automatically when inputs are newer than the artifact; OntoWiz
-  as its own cohort/config change; scorecard regenerated.
-- **Validation loop:** scorecard tests + regenerated artifact committed.
+### PF-02 · Self-verifying scorecards  *(Loop 2)*
+- **Failure addressed:** a stale `scorecard-latest.json` presents as
+  current; population changes are not auditable; denominators conflated.
+- **Baseline:** schema v1, no input fingerprints, no staleness check.
+- **Target:** schema v2 with `cohort_config_sha256` and per-repo input
+  fingerprints (checkpoints.jsonl + injections.jsonl; the capture block
+  walks external transcript dirs and is documented as NOT covered);
+  `ctxpack scorecard --check` recomputes and exits nonzero when latest
+  is stale/missing/pre-v2; denominators measured / unmeasured / excluded
+  reported separately; OntoWiz added as an **external unmeasured**
+  cohort entry in its own configuration commit (no local ledger — a
+  fake path would manufacture data), then the artifact regenerated so
+  the population change is auditable.
+- **Validation loop:** new `tests/test_scorecard_selfcheck.py` — clean
+  check passes; mutated ledger input fails; mutated cohort fails;
+  missing/pre-v2 latest fails; external entries appear unmeasured.
 - **Kill condition:** none.
-- **Claim earned:** cohort numbers usable in Phase-2 gate design.
+- **Claim earned:** any quoted cohort number is verifiable against its
+  inputs by one command.
 
-## Phase 1 — E-6 expanded (the next owner thread, unchanged)
+## Phase 1 — E-6 expanded (Loop 4; next thread after Loops 1–2)
 
-### PF-11 · Threat model (superset of original E-6)
-Transcript ingestion, ledger storage, git commits, telemetry, hook
-stdout, test fixtures — **plus memory poisoning and authority**:
-automatic push makes a poisoned fact reach every future prompt, so the
-threat model must treat assistant-inferred text as untrusted input.
-Validation: threat-model doc reviewed; each threat maps to a control or
-a disclosed gap. Claim earned: security review exists (directive T9).
+PF-11 threat model (transcript ingestion, ledger storage, git commits,
+telemetry, hook stdout, test fixtures, **memory poisoning, authority**);
+PF-12 ingest-side redaction **between transcript normalization and
+extraction** — type-only replacements (no unsalted `hash8`; repo-scoped
+keyed HMAC only if correlation is required, key never committed);
+PF-13 →moved to Phase 2a (eligibility, below) — E-6 provides its security
+inputs; PF-14 outgoing scan of the final serialized context (applies to
+SessionStart today, preflight later); PF-15 retention/deletion with
+containment + symlink checks, dry-run + explicit confirm, honest
+reporting (never overclaiming control) of upstream vendor transcript
+retention; PF-16 synthetic replacement of the remaining contaminated
+fixture (`tests/fixtures/rank_v1/`), privacy scan across ALL committed
+fixtures; PF-17 security regression suite (leakage, false positives,
+determinism, malicious memory content). **Fail-closed rule:** hook
+commands stay operationally fail-open, but a scanner failure emits NO
+memory and records `failed` — it must never present as a healthy empty
+result. Each E-6 concern is its own commit/review unit.
 
-### PF-12 · Ingest-side redaction
-Redaction runs **before literal extraction or any persistent write**.
-Default replacement is **type-only** (`[REDACTED:aws-key]`), never an
-unsalted `hash8` fingerprint (low-entropy secrets are guessable from
-short hashes); correlation, if ever needed, uses a repo-scoped keyed
-HMAC whose key is never committed. Validation: leakage corpus tests +
-false-positive corpus + determinism gate. Kill: >5% false-positive rate
-on the benign corpus blocks default-on.
+## Phase 2a — Authority + eligibility (Loops 3 & 5, first half)
 
-### PF-13 · Injection-eligibility policy (schema + evaluator, no hook)
-A fact is auto-injectable only when policy passes: lifecycle (banked,
-not retracted/superseded), authority (owner/user-approved or
-deterministically tool-observed; agent-inferred defaults to
-**candidate**, never authoritative), freshness (current or n/a),
-security (passed PF-12 + PF-14), relevance (threshold + margin, PF-21),
-conflict (no unresolved heads unless rendered as a conflict warning).
-Validation: property tests over the policy table; poisoning fixtures
-from PF-11 stay ineligible. Claim earned: the authority layer the
-verdict calls "a critical addition to E-6".
+### PF-03 · Authority provenance  *(Loop 3)*
+Separate `source_role` (who wrote the text: user/assistant/tool) and
+`authority` (USER_STATED / USER_RATIFIED / TOOL_OBSERVED /
+AGENT_CANDIDATE / LEGACY_UNKNOWN) from extraction basis
+(`factid.py:31` `marker_stated` stays what it is: an extraction method).
+Stamp source role during transcript parsing. Ratification is an explicit
+event referencing a fact_id — never inferred from git presence or a
+marker. Cold-start: a **batched ratification queue** (candidates linked
+to commits/tests, one-step accept/reject) keeps friction low; a merge
+may create corroborating TOOL_OBSERVED evidence for exact code/test
+claims but must never silently become USER_RATIFIED. Legacy facts
+default LEGACY_UNKNOWN → render as candidates. Event schemas versioned
+honestly.
 
-### PF-14 · Outgoing-context scan
-A second scan at every emission boundary — applies to the existing
-SessionStart gist today, preflight later. Validation: planted-secret
-fixtures never reach hook stdout. Kill: same false-positive bound as
-PF-12.
+### PF-13 · Injection-eligibility policy  *(Loop 5a)*
+Pure `preflight_policy.py` returning an `EligibilityDecision` with
+stable rejection codes; it must not know about matching scores. Hard
+gates: security (PF-12/14 passed), lifecycle (banked, not
+retracted/superseded), authority (per PF-03; AGENT_CANDIDATE and
+LEGACY_UNKNOWN are never authoritative), freshness, conflict (no
+unresolved heads unless rendered as a conflict warning). Wires the
+existing lifecycle/freshness algebra in `ctxpack/core/states.py`.
 
-### PF-15 · Retention + deletion controls
-Retention windows for CTX-created artifacts (raw `.ctx`, gists,
-receipts); deletion dry-run + explicit confirmation; documentation
-reports — without overclaiming control over — upstream vendor transcript
-retention. Validation: dry-run/confirm tests; docs reviewed.
+### PF-51a · Minimum verified freshness  *(Loop 5b — moved before PF-41)*
+The minimal pytest `TOOL_OBSERVED` producer + HEAD verification only.
+Unverifiable or legacy facts render as prior observations, never
+current directives.
 
-### PF-16 · rank_v1 fixture re-label
-`tests/fixtures/rank_v1/kp_sdlc_ca35891c_events.jsonl` (123
-personal-path hits) re-generated synthetic-by-policy or formally
-accepted by the owner; same class as the withdrawn calibration fixture.
+## Phase 2b — Matcher, receipts, shadow gates (Loops 6–8)
 
-### PF-17 · Security regression suite
-Secret leakage, false positives, deterministic output, malicious memory
-content — the durable gate for PF-12..14. Runs in the non-slow suite.
+### PF-21 · Deterministic matcher  *(Loop 6)*
+New module — never calls `hydrate_by_query`. Order: exact
+fact-id/path/identifier first; Unicode-safe entity/decision-subject
+matching; stable IDF lexical scoring **over eligible facts only**; kind
+and authority weights cannot rescue zero relevance; winner margin
+applies to lexical ambiguity, not multiple exact matches; stable
+tie-break by fact id; no qualifying match ⇒ no output; unresolved forks
+bypass ordinary ranking when their **lineage/entity** is matched
+(semantic supersession forks — git-branch state may influence ranking
+but never defines whether the conflict exists). Runs off a precomputed
+index keyed by ledger sha — no full-ledger rescan, no git subprocess
+per prompt. Budget: ≤3 facts, conservative **labelled estimator**
+ceiling (600–800 est. tokens), frozen after unscored calibration; no
+exact-BPE promise at runtime.
 
-## Phase 2 — Shadow-mode matcher (build without installing any hook)
+### PF-22 · `ctx-preflight/v1` receipts  *(Loop 7a)*
+Prompt SHA (never plaintext), session/prompt ids, ledger + HEAD sha,
+matcher version, candidate ids + scores, rejection codes, lifecycle/
+freshness/authority per emitted fact, output sha, estimator label,
+runtime, outcome. **Two durable rows per attempt** — `attempted` before
+output, terminal `injected/empty/rejected/failed` after, flushed +
+fsynced; an interrupted attempt remains visibly uncertain.
 
-### PF-21 · Deterministic matcher cascade (new module)
-- **Failure addressed:** no injector-grade matcher exists;
-  `hydrate_by_query` is unweighted overlap and must not be reused.
-- **Target:** cascade — (1) exact literal/path/fact-id/identifier,
-  (2) normalized multi-word entity/decision-subject, (3) IDF-weighted
-  lexical over fact fields, (4) kind+authority weighting, (5) threshold
-  **plus winner margin**, (6) no match ⇒ **no injection** — never
-  "closest available". Unresolved forks are a separate high-priority
-  output class, not a ranked fact. Output ≤3 facts, hard 600–800 BPE
-  ceiling; exact ceiling frozen after an unscored calibration.
-- **Validation loop:** deterministic (byte-stable ranking) + adversarial
-  common-word and identifier cases.
-- **Kill condition:** PF-23 gates unreachable after calibration ⇒ no
-  live injection (the concept survives as audit/receipt tooling only).
-
-### PF-22 · `ctx-preflight/v1` receipt
-Prompt **hash** (never plaintext), session/prompt ids, git HEAD + ledger
-sha, matcher version, candidate fact-ids + scores, emitted fact-ids,
-rejection reasons, lifecycle/freshness/authority per emitted fact,
-emitted-context sha + BPE, runtime, outcome
-(injected/empty/rejected/failed). Receipts prove what was selected and
-emitted — behavioral benefit is Phase 4's question, never inferred from
-receipts (the delivery-is-not-use lesson, again).
-
-### PF-23 · Shadow replay + labelled gates
-Replay historical prompts from the three sites; record what *would*
-have been injected. Human-label a sanitized set: required / relevant-
-but-unnecessary / harmful-stale / no-memory-needed / conflicting /
-adversarial. **Candidate gates, frozen by commit after an unscored
-pilot:** ≥95% precision among injected facts; ≥80% recall on critical
-must-recall facts; ≤5% of no-memory-needed prompts receive anything;
-zero authoritative rendering of stale/conflicting/untrusted facts; hard
-budget respected; p50/p95 latency measured (no asserted target before
-measurement). **Gates fail ⇒ live injection does not activate.**
-
-### PF-24 · Packet rendering + SessionStart dedup
+### PF-24 · Rendering + dedup  *(Loop 7b)*
 Visibly distinct classes: UNRESOLVED CONFLICT / APPLICABLE CONSTRAINT /
-CURRENT DECISION / UNVERIFIED PRIOR OBSERVATION / SOURCE (fact-id +
-repo-relative source). Stale/unverified never renders in the same form
-as a current directive. Prompt-time injection never repeats a fact
-already in-session unless its state changed, a new fork appeared, HEAD
-invalidated the evidence, or the prompt contains an exact identifier
-requiring it.
+CURRENT DECISION / UNVERIFIED PRIOR OBSERVATION / SOURCE. Stale or
+unverified never renders like a current directive. Dedup key: fact id +
+state + HEAD + fork-head set; repeat within a session only when state
+changes.
 
-## Phase 3 — Live preflight (triple-gated)
+### PF-23 · Shadow evaluation  *(Loop 8)*
+Calibration and held-out sets split by **repository/task cluster**, not
+random prompts; raw customer prompts never committed. Controls include
+poisoned, secret-bearing, stale, conflicting, common-word, Unicode and
+no-memory prompts. Thresholds frozen by commit only after unscored
+calibration; the held-out pass must meet: ≥95% injected-fact precision,
+≥80% critical-fact recall, ≤5% no-memory pollution, zero authoritative
+rendering of stale/conflicting/untrusted, hard budget, latency
+p50/p95/p99 warm+cold **measured, then a ceiling frozen** (no asserted
+target first). Fork evaluation excluded until the parked review clears.
+Gates fail ⇒ no live hook.
+
+## Phase 3 — Live canary (Loop 9; triple-gated)
 
 ### PF-31 · UserPromptSubmit hook
-Gates: E-6 approved **and** PF-23 gates green **and** owner ratification
-recorded as `Supersedes:` of s:eca3f61c#turn802 **and** reviewer
-approval of the hook unit. Initial scope only: exact literal/entity
-matches, owner-approved constraints, reviewed current decisions,
-applicable unresolved-fork warnings. **No secondary triggers**
-(test-failed, raw-grep) until the primary mechanism is proven. Fail-open
-with a **durable failure receipt** — a timeout must never masquerade as
-"no relevant memory". Latency budget from PF-23 measurements.
+Only after PF-23 passes AND the owner supersedes s:eca3f61c#turn802 AND
+reviewer approval of the hook unit. Initial scope: exact identifiers,
+user-approved constraints, reviewed decisions, applicable fork
+warnings. Cached parsed ledger/index state keyed by ledger sha.
+Diagnostics to stderr (stdout becomes model context). Fail-open with a
+durable failure receipt — a timeout never masquerades as "no relevant
+memory". No secondary triggers.
 
-## Phase 4 — Behavioral experiment (preregistered; paid ⇒ fresh approvals)
+## Phase 4 — Falsification experiment (Loop 10; paid ⇒ fresh approvals)
 
-### PF-41 · Three-arm comparison
-Arms: (1) SessionStart gist only; (2) gist + prompt preflight;
-(3) maintained flat file + grep/native memory. Primary analysis at
-**fixed total context budget**; additive overhead secondary. Primary
-outcomes: confident stale assertions, acting on one side of an
-unresolved fork, constraint violations, repeating a documented failed
-approach, time to recover the authoritative source, harmful false
-alarms / attention displacement. **Recall-call rate is not a metric.**
-Kill condition (verbatim from the verdict): if preflight does not beat
-the flat-file condition, retain CTX as an audit/checkpoint utility and
-stop broad memory claims.
+### PF-41 · Three-arm preregistered comparison
+Arms: gist-only / gist+preflight / **maintained** flat-file+grep — both
+memory arms get the same maintenance budget, maintenance time recorded
+(a neglected flat file is a straw man). Cluster by independent
+repository/task, never by prompt. Primary analysis at fixed total
+context budget; **scale strata** (sessions, supersessions, handoffs) so
+the small-history regime where flat files win is visible rather than
+averaged away. One primary composite: **avoidable control failure**
+(stale assertion, fork-side action, constraint violation, repeated
+failed approach). Hard safety gates: harmful injection, attention
+displacement. Secondary: recovery time, overhead. Complete responses +
+invocation evidence preserved under the artifact self-audit rules.
+Kill condition: preflight loses to flat-file ⇒ stop broad agent-memory
+positioning; CTX remains a deterministic checkpoint/provenance/audit
+utility.
 
-## Phase 5 — Verified freshness + fork control (after Phase 4)
+## Phase 5 — Full freshness + fork control (post-experiment)
 
-### PF-51 · TOOL_OBSERVED producer (pytest only) + HEAD verification
-Only the pytest producer first; claims verified against current HEAD;
-unverifiable facts render **unknown**, never current. Aligns with
-`docs/track-c-verified-freshness-spec.md` and its standing gates
-(E-6 + deterministic spike + calibration).
+PF-51 full TOOL_OBSERVED expansion beyond pytest; PF-52 fork-surfacing
+renderer integrated into preflight (parked review must clear first),
+explicit reconciliation recorded as a new decision referencing both
+predecessors.
 
-### PF-52 · Fork-surfacing into preflight
-Integrate the reviewed fork-surfacing implementation into the preflight
-packet; competing heads require explicit reconciliation recorded as a
-new decision referencing both predecessors. **Depends on the parked
-branch clearing its outstanding code review; do-not-merge stands until
-then.**
+## Phase 6 — Drift-control boundaries (design now, activate later)
 
----
+The same policy engine reused at three additional boundaries, with four
+graduated modes — observe / advise / ask / block:
+- **PreToolUse:** ask or block when a proposed action deterministically
+  violates a ratified constraint. Only exact, current, authoritative,
+  deterministic policies qualify for block; matcher-based or ambiguous
+  judgments stay advise/ask.
+- **PostToolUse:** record TOOL_OBSERVED evidence; invalidate freshness
+  where repository state changed.
+- **Stop/TaskCompleted:** prevent "done" while required tests,
+  deliverables or reconciliations remain outstanding.
+Design may proceed alongside PF-13 (same policy engine); **activation
+is frozen** until the PF-23 primary gates pass — this preserves the
+secondary-trigger freeze.
+
+## External-pilot prerequisite — multi-writer safety
+
+Before any multi-agent/team pilot: replace shared writable journals
+with immutable per-session/per-checkpoint event segments plus a
+deterministic derived index, so concurrent agents append independent
+segments without last-writer-wins corruption. The board's
+one-active-owner rule is a workaround, not a product property.
+
+## What CTX can and cannot guarantee (positioning discipline)
+
+Can (if built as specified): ineligible/stale/unauthorized facts never
+render as current directives; known conflicts never silently
+linearized; hard constraints evaluated before guarded actions; every
+packet attributable to fact ids + matcher version; CTX failure
+distinguishable from "nothing relevant"; deterministic policy
+violations blockable. Cannot: prove an extracted fact true without
+evidence; force a model to obey advisory context; remember unrecorded
+objectives; guarantee complete retrieval; guarantee generalization.
+Market the first list only.
 
 ## Decisions only the owner can make
 
-1. Ratify this backlog (or edit) — Phase 0 + Phase 1 sequencing in
-   particular.
-2. Phase 3 activation — the supersession of s:eca3f61c#turn802 is the
-   owner's call alone.
-3. Phase 4 budget and go/no-go, after reviewer approval of its prereg.
-4. PF-16 disposition of the rank_v1 fixture (re-label vs. formal
-   acceptance) and whether the withdrawn calibration fixture's git
-   history is purged.
+1. Loop-3 (authority) start timing relative to E-6.
+2. Phase-3 activation (supersession of s:eca3f61c#turn802).
+3. Phase-4 budget and go/no-go after reviewer prereg approval.
+4. PF-16 fixture disposition; git-history purge of the withdrawn one.
+5. External-pilot timing (gated on multi-writer safety).
