@@ -246,6 +246,12 @@ class TranscriptStats:
     # keyed by incident type, with malformed payloads under "unparsed"
     incidents: int = 0
     incident_types: dict = field(default_factory=dict)
+    # E-6 ingest boundary: secrets replaced (type-only) BEFORE extraction,
+    # so no fact value, literal or gist can carry one. Counts are
+    # observability, not proof of completeness — detection is
+    # pattern-based with documented limitations (core/redaction.py).
+    redactions: int = 0
+    redaction_types: dict = field(default_factory=dict)
     # Workspace the session ran in (first cwd seen in the transcript).
     # Stamped onto event rows so rank folds can exclude eval-harness
     # workspaces deterministically — transcript-derived, so re-deriving
@@ -526,9 +532,30 @@ def parse_transcript(
     entries = normalized.entries
     sidechain_entries = normalized.sidechain_entries
 
+    # E-6 ingest boundary: redact BETWEEN normalization and extraction —
+    # the single choke point every extractor sits behind, so no secret
+    # can reach a fact value, literal, gist, or persistent write. Only
+    # the message payload is walked (ids/timestamps are schema, not
+    # content). FAIL-CLOSED: an exception here propagates and the
+    # checkpoint does not happen — an unscanned transcript is never
+    # persisted, and the hook layer records the failure rather than
+    # presenting a healthy empty result.
+    from ..core.redaction import redact_tree
+    _red_counts: dict = {}
+    for _entry in entries:
+        if "message" in _entry:
+            _entry["message"], _ = redact_tree(_entry["message"],
+                                               _red_counts)
+    for _entry in sidechain_entries:
+        if "message" in _entry:
+            _entry["message"], _ = redact_tree(_entry["message"],
+                                               _red_counts)
+
     sid = session_id[:8] if session_id else "unknown"
     corpus = IRCorpus(domain=domain or f"session-{sid}")
     stats = TranscriptStats()
+    stats.redactions = sum(_red_counts.values())
+    stats.redaction_types = dict(sorted(_red_counts.items()))
     stats.cwd = next(
         (str(e["cwd"]) for e in entries if e.get("cwd")), "")
     src_file = f"session:{sid}"
