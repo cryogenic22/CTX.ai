@@ -24,7 +24,10 @@ _WS_RE = re.compile(r"\s+")
 _EDGE_PUNCT = " \t\r\n.,:;!?\"'`*_-—"
 
 # Stamped into per-source provenance, never into fact_id.
-EXTRACTOR_VERSION = "tp/1.1"
+# 1.2: facts additionally carry SOURCE-ROLE (who wrote the text the
+# fact was extracted from). Provenance change only — identities of
+# previously extracted facts are unchanged by construction.
+EXTRACTOR_VERSION = "tp/1.2"
 
 # rank = fold(events, policy); v0 is today's behavior — static
 # extraction-time priors, no updates. Recorded in every checkpoint
@@ -40,6 +43,12 @@ class FactBasis(str, Enum):
     ``inferred`` is the only basis allowed to be wrong about whether
     this is a fact at all (best-effort verb patterns); every other
     basis is structurally anchored.
+
+    Basis is EXTRACTION MECHANICS, never authority: ``marker_stated``
+    says a ``Decision:`` marker matched, not who wrote it — an
+    assistant emits those markers routinely. Who wrote the text is
+    :class:`SourceRole`; what standing that gives the fact is
+    :class:`Authority`.
     """
 
     MARKER_STATED = "marker_stated"        # Decision:/Constraint:/ctx-incident:
@@ -48,6 +57,58 @@ class FactBasis(str, Enum):
     TOOL_OBSERVED = "tool_observed"        # reserved: no v1.1 producer
     STRUCTURAL = "structural"              # files, tasks, errors, tool runs
     INFERRED = "inferred"                  # decision verb patterns
+
+
+class SourceRole(str, Enum):
+    """Who authored the text a fact was extracted from.
+
+    Stamped by the transcript parser (extractor tp/1.2+) from the turn
+    type it is reading — never guessed from content. Facts extracted
+    before stamping existed carry no role and must be treated as
+    :attr:`UNKNOWN`.
+    """
+
+    USER = "user"
+    ASSISTANT = "assistant"
+    TOOL = "tool"            # tool_result content (errors, outputs)
+    UNKNOWN = "unknown"      # legacy rows predate stamping
+
+
+class Authority(str, Enum):
+    """What standing a fact has for automatic use.
+
+    Derived deterministically from :class:`SourceRole` plus explicit
+    ratification events — never from extraction basis, git presence,
+    or a marker. ``USER_RATIFIED`` is reachable ONLY through a
+    recorded ratification event referencing the fact_id.
+    """
+
+    USER_STATED = "user_stated"          # user-authored text
+    USER_RATIFIED = "user_ratified"      # explicit ratification event
+    TOOL_OBSERVED = "tool_observed"      # tool-emitted content
+    AGENT_CANDIDATE = "agent_candidate"  # assistant-authored
+    LEGACY_UNKNOWN = "legacy_unknown"    # no source_role recorded
+
+
+def derive_authority(source_role: str, ratified: bool = False) -> Authority:
+    """Deterministic authority from provenance.
+
+    ``ratified`` must come from an explicit ratification event (see
+    ``ctxpack.agent.ratification``); passing ``True`` from anywhere
+    else — a merge, a marker, a hunch — is a policy violation, not a
+    shortcut. Rejection is not an authority level: a rejected fact
+    keeps its derived authority and is excluded by eligibility policy.
+    """
+    if ratified:
+        return Authority.USER_RATIFIED
+    role = str(source_role or "")
+    if role == SourceRole.USER.value:
+        return Authority.USER_STATED
+    if role == SourceRole.ASSISTANT.value:
+        return Authority.AGENT_CANDIDATE
+    if role == SourceRole.TOOL.value:
+        return Authority.TOOL_OBSERVED
+    return Authority.LEGACY_UNKNOWN
 
 
 def normalize_value(value: str) -> str:

@@ -1,0 +1,190 @@
+"""Authority provenance (Loop 3, preflight backlog PF-03).
+
+Extraction basis is NOT authority: `marker_stated` says how text was
+matched, not who wrote it — an assistant emits Decision: markers
+routinely. Authority derives from SOURCE-ROLE (stamped at parse) plus
+explicit ratification events referencing a fact_id, and from nothing
+else: not git presence, not a marker, not a merge.
+"""
+
+import json
+
+from ctxpack.agent.ratification import (
+    RATIFICATION_LOG,
+    RATIFY,
+    REJECT,
+    is_ratified,
+    ratification_state,
+    record_ratification,
+)
+from ctxpack.agent.transcript_parser import parse_transcript
+from ctxpack.cli.main import main
+from ctxpack.core.factid import Authority, SourceRole, derive_authority
+
+
+def _write(tmp_path, rows, name="s.jsonl"):
+    path = tmp_path / name
+    path.write_text("\n".join(json.dumps(r) for r in rows) + "\n",
+                    encoding="utf-8")
+    return str(path)
+
+
+def _transcript(tmp_path, sid="authsess-0000"):
+    rows = [
+        {"type": "user", "sessionId": sid, "uuid": "u1",
+         "message": {"content":
+                     "Do not merge the parked branch. Fix cf2753c first."}},
+        {"type": "assistant", "sessionId": sid, "uuid": "u2",
+         "message": {"content": [
+             {"type": "text", "text":
+              "Decision: use exponential backoff because the cap is "
+              "40 req/min."}]}},
+        {"type": "user", "sessionId": sid, "uuid": "u3",
+         "message": {"content": [
+             {"type": "tool_result", "is_error": True,
+              "content": "FileNotFoundError: config.yaml missing"}]}},
+    ]
+    return _write(tmp_path, rows)
+
+
+def _facts_by_kind(parsed):
+    out = {}
+    for e in parsed.corpus.entities:
+        fields = {f.key: f.value for f in e.fields}
+        if "FACT-ID" in fields:
+            kind = e.name.split("-")[0]
+            out.setdefault(kind, []).append(fields)
+    return out
+
+
+# ── source-role stamping at parse ──
+
+def test_user_constraint_is_user_role_agent_decision_is_assistant_role(
+        tmp_path):
+    facts = _facts_by_kind(parse_transcript(_transcript(tmp_path)))
+    constraint = facts["CONSTRAINT"][0]
+    assert constraint["SOURCE-ROLE"] == "user"
+    decision = facts["DECISION"][0]
+    assert decision["SOURCE-ROLE"] == "assistant"
+    # the load-bearing distinction: the decision IS marker_stated and
+    # STILL not user authority — basis never implies who wrote it
+    assert decision["BASIS"] == "marker_stated"
+    assert derive_authority(
+        decision["SOURCE-ROLE"]) is Authority.AGENT_CANDIDATE
+    assert derive_authority(
+        constraint["SOURCE-ROLE"]) is Authority.USER_STATED
+
+
+def test_tool_error_is_tool_role(tmp_path):
+    facts = _facts_by_kind(parse_transcript(_transcript(tmp_path)))
+    err = facts["ERROR"][0]
+    assert err["SOURCE-ROLE"] == "tool"
+    assert derive_authority(err["SOURCE-ROLE"]) is Authority.TOOL_OBSERVED
+
+
+def test_extractor_version_bumped_for_the_provenance_change(tmp_path):
+    facts = _facts_by_kind(parse_transcript(_transcript(tmp_path)))
+    assert facts["DECISION"][0]["EXTRACTOR"] == "tp/1.2"
+
+
+# ── authority derivation ──
+
+def test_legacy_fact_without_role_is_legacy_unknown_never_approved():
+    assert derive_authority("") is Authority.LEGACY_UNKNOWN
+    assert derive_authority(None) is Authority.LEGACY_UNKNOWN
+    assert derive_authority("unknown") is Authority.LEGACY_UNKNOWN
+
+
+def test_ratified_flag_is_the_only_path_to_user_ratified():
+    for role in (SourceRole.USER.value, SourceRole.ASSISTANT.value,
+                 SourceRole.TOOL.value, ""):
+        assert derive_authority(role) is not Authority.USER_RATIFIED
+        assert derive_authority(role,
+                                ratified=True) is Authority.USER_RATIFIED
+
+
+# ── ratification events ──
+
+def test_ratification_roundtrip_and_last_event_wins(tmp_path):
+    ledger = str(tmp_path / "ctx")
+    fid = "a" * 16
+    record_ratification(ledger, fid)
+    assert ratification_state(ledger) == {fid: RATIFY}
+    assert is_ratified(ledger, fid)
+    record_ratification(ledger, fid, action=REJECT, note="wrong value")
+    assert ratification_state(ledger) == {fid: REJECT}
+    assert not is_ratified(ledger, fid)
+    # append-only: both events remain in the journal
+    lines = (tmp_path / "ctx" / RATIFICATION_LOG).read_text(
+        encoding="utf-8").splitlines()
+    assert len(lines) == 2
+
+
+def test_malformed_fact_id_is_refused_not_recorded(tmp_path):
+    ledger = str(tmp_path / "ctx")
+    for bad in ("", "zz", "not-a-fact-id", "A" * 15, "g" * 16):
+        try:
+            record_ratification(ledger, bad)
+            raise AssertionError(f"accepted {bad!r}")
+        except ValueError:
+            pass
+    assert ratification_state(ledger) == {}
+
+
+def test_malformed_journal_rows_confer_nothing(tmp_path):
+    ledger = tmp_path / "ctx"
+    ledger.mkdir()
+    (ledger / RATIFICATION_LOG).write_text(
+        "{broken\n"
+        + json.dumps({"fact_id": "short", "action": "ratify"}) + "\n"
+        + json.dumps({"fact_id": "b" * 16, "action": "bless"}) + "\n",
+        encoding="utf-8")
+    assert ratification_state(str(ledger)) == {}
+
+
+# ── CLI: explicit event referencing an EXISTING fact ──
+
+def test_cli_ratify_unknown_fact_id_refuses(tmp_path, capsys):
+    from ctxpack.agent.checkpoint import run_checkpoint
+    out = tmp_path / "ctx"
+    run_checkpoint(_transcript(tmp_path), str(out), as_of="2026-08-07")
+    rc = main(["session", "ratify", "f" * 16, "--ledger", str(out)])
+    assert rc == 1
+    assert "must reference an existing fact" in capsys.readouterr().err
+    assert ratification_state(str(out)) == {}
+
+
+def test_cli_ratify_banked_fact_upgrades_why_authority(tmp_path, capsys):
+    from ctxpack.agent.checkpoint import run_checkpoint
+    from ctxpack.agent.session_reader import session_why_across
+
+    out = tmp_path / "ctx"
+    run_checkpoint(_transcript(tmp_path), str(out), as_of="2026-08-07")
+    why = session_why_across(str(out), "exponential backoff")
+    match = why["matches"][0]
+    assert match["authority"] == "agent_candidate"
+    fid = next(f["value"] for f in match["fields"]
+               if f["key"] == "FACT-ID")
+
+    assert main(["session", "ratify", fid, "--ledger", str(out)]) == 0
+    capsys.readouterr()
+    why = session_why_across(str(out), "exponential backoff")
+    assert why["matches"][0]["authority"] == "user_ratified"
+
+    assert main(["session", "ratify", fid, "--reject", "--ledger",
+                 str(out), "--note", "superseded by review"]) == 0
+    why = session_why_across(str(out), "exponential backoff")
+    assert why["matches"][0]["authority"] == "agent_candidate"
+    assert why["matches"][0]["ratification"] == "rejected"
+
+
+def test_why_reports_user_stated_for_user_constraints(tmp_path):
+    from ctxpack.agent.checkpoint import run_checkpoint
+    from ctxpack.agent.session_reader import session_why_across
+
+    out = tmp_path / "ctx"
+    run_checkpoint(_transcript(tmp_path), str(out), as_of="2026-08-07")
+    why = session_why_across(str(out), "parked branch")
+    roles = {m["authority"] for m in why["matches"]
+             if m["kind"] == "CONSTRAINT"}
+    assert roles == {"user_stated"}

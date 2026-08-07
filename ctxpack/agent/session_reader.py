@@ -565,12 +565,41 @@ def session_why_across(ledger_dir: str = DEFAULT_LEDGER_DIR, key: str = "",
     forked = _annotate_supersession(matches, ledger_dir)
     if forked and not note:
         note = _FORK_NOTE
+    _annotate_authority(matches, ledger_dir)
     return {"key": key, "matches": matches, "found": True,
             "count": len(matches), "sessions_searched": len(order),
             **({"truncated": True, "total_matches": len(collected)}
                if truncated else {}),
             **({"has_conflict": True} if forked else {}),
             **({"note": note} if note else {})}
+
+
+def _annotate_authority(matches: "list[dict[str, Any]]",
+                        ledger_dir: str) -> None:
+    """Stamp each match with its derived authority.
+
+    Extraction basis is not authority (an assistant emits ``Decision:``
+    markers routinely): authority derives from the SOURCE-ROLE the
+    parser stamped plus explicit ratification events only. Facts
+    predating tp/1.2 carry no role and honestly report
+    ``legacy_unknown`` — they are candidates, never owner-approved by
+    age. A last-event rejection is surfaced as ``ratification:
+    rejected`` so eligibility policy can exclude it downstream.
+    """
+    from ..core.factid import derive_authority
+    from .ratification import RATIFY, ratification_state
+
+    state = ratification_state(ledger_dir)
+    for m in matches:
+        fields = {str(f.get("key", "")).upper(): str(f.get("value", ""))
+                  for f in m.get("fields") or []}
+        fid = fields.get("FACT-ID", "").lower()
+        role = fields.get("SOURCE-ROLE", "")
+        action = state.get(fid) if fid else None
+        m["authority"] = derive_authority(
+            role, ratified=(action == RATIFY)).value
+        if action and action != RATIFY:
+            m["ratification"] = "rejected"
 
 
 def session_literals(doc: CTXDocument, sid: str) -> dict[str, Any]:

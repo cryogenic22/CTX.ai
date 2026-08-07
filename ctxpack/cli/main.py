@@ -391,11 +391,19 @@ def _run(argv: list[str]) -> int:
              "why | literals | resume")
     p_session.add_argument("action",
                            choices=["recall", "timeline", "decisions", "why",
-                                    "graph", "stats", "literals", "resume"],
-                           help="What to read")
+                                    "graph", "stats", "literals", "resume",
+                                    "ratify"],
+                           help="What to read (ratify: record an explicit "
+                                "owner ratification event for a fact_id)")
     p_session.add_argument("key", nargs="?", default="",
                            help="why: key to trace; recall: keyword query; "
-                                "graph: start entity")
+                                "graph: start entity; ratify: fact_id")
+    p_session.add_argument("--reject", action="store_true",
+                           help="ratify: record a rejection instead "
+                                "(last event per fact wins)")
+    p_session.add_argument("--note", default="",
+                           help="ratify: optional reason recorded on the "
+                                "event")
     p_session.add_argument("--ledger", default=".claude/ctx",
                            help="Ledger directory (default: .claude/ctx)")
     p_session.add_argument("--session", dest="session_id", default=None,
@@ -1346,6 +1354,42 @@ def _cmd_session(args: argparse.Namespace) -> int:
         except LedgerError as e:
             print(f"Error: {e}", file=sys.stderr)
             return 1
+        return 0
+
+    if args.action == "ratify":
+        # Ratification is an explicit event referencing an EXISTING
+        # fact_id — never inferred, never recorded against a typo.
+        from ..agent.ratification import RATIFY, REJECT, record_ratification
+
+        fid = (args.key or "").strip().lower()
+        if not fid:
+            print("Error: `ctxpack session ratify <fact_id>` needs a "
+                  "fact_id (recover one via `ctxpack session why`)",
+                  file=sys.stderr)
+            return 1
+        try:
+            found = session_why_across(args.ledger, fid)
+        except LedgerError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+        exists = any(
+            any(f.get("key", "").upper() == "FACT-ID"
+                and str(f.get("value", "")).lower() == fid
+                for f in m.get("fields") or [])
+            for m in found.get("matches") or [])
+        if not exists:
+            print(f"Error: no banked fact carries FACT-ID {fid} — "
+                  "ratification must reference an existing fact",
+                  file=sys.stderr)
+            return 1
+        try:
+            row = record_ratification(
+                args.ledger, fid,
+                action=REJECT if args.reject else RATIFY, note=args.note)
+        except (ValueError, OSError) as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+        print(json.dumps(row, indent=2))
         return 0
 
     if args.action == "resume":

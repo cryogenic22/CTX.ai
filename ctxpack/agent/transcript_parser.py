@@ -546,11 +546,14 @@ def parse_transcript(
     def _add(name: str, fields: dict[str, str], *, turn: int, ts: str,
              salience: float, update: bool = False,
              fact: "tuple[str, str, str] | None" = None,
-             basis: str = "") -> None:
+             basis: str = "", source_role: str = "") -> None:
         """fact=(kind, key, value) stamps the v1.1 substrate fields:
         FACT-ID (canonical content hash), BASIS (extraction mechanics,
         an enum never a float), STATUS (lifecycle, current at birth),
-        EXTRACTOR (parser version — provenance, never identity)."""
+        EXTRACTOR (parser version — provenance, never identity),
+        SOURCE-ROLE (who wrote the text — tp/1.2; basis is never
+        authority, so an assistant's Decision: marker stays an agent
+        candidate no matter how it was extracted)."""
         nonlocal source_words
         if fact is not None:
             kind, key, value = fact
@@ -558,7 +561,9 @@ def parse_transcript(
                       "fact_id": factid.fact_id(kind, value, key=key),
                       "basis": basis or factid.FactBasis.STRUCTURAL.value,
                       "status": "current",
-                      "extractor": factid.EXTRACTOR_VERSION}
+                      "extractor": factid.EXTRACTOR_VERSION,
+                      "source_role": (source_role
+                                      or factid.SourceRole.UNKNOWN.value)}
         if name in seen_names:
             if update and name in entities_by_name:
                 # Refresh mutable fields in place (e.g. a TodoWrite status
@@ -603,7 +608,8 @@ def parse_transcript(
                                      raw_value=value, source=_src(turn, ts),
                                      salience=salience))
 
-    def _extract_incidents(text: str, *, turn: int, ts: str) -> str:
+    def _extract_incidents(text: str, *, turn: int, ts: str,
+                           role: str = "") -> str:
         """Bank ctx-incident: lines and return the text WITHOUT them, so
         downstream extractors can't re-mine incident payloads (a stale
         `got` value must not get banked as a LITERAL; payload prose must
@@ -633,10 +639,12 @@ def parse_transcript(
             _add(f"INCIDENT-{_short_hash(line)}", fields,
                  turn=turn, ts=ts, salience=2.6,
                  fact=("INCIDENT", rec["type"], line),
-                 basis=factid.FactBasis.MARKER_STATED.value)
+                 basis=factid.FactBasis.MARKER_STATED.value,
+                 source_role=role)
         return "\n".join(kept)
 
-    def _add_literals(text: str, *, turn: int, ts: str) -> None:
+    def _add_literals(text: str, *, turn: int, ts: str,
+                      role: str = "") -> None:
         """Bank each verbatim identifier as a LITERAL entity (dedup first-wins;
         stats count distinct)."""
         for kind, value in _extract_literals(text):
@@ -646,7 +654,8 @@ def parse_transcript(
             _add(name, {"value": value, "kind": kind, "turn": str(turn)},
                  turn=turn, ts=ts, salience=2.4,
                  fact=("LITERAL", kind, value),
-                 basis=factid.FactBasis.LITERAL_EXTRACTOR.value)
+                 basis=factid.FactBasis.LITERAL_EXTRACTOR.value,
+                 source_role=role)
 
     for turn, d in enumerate(entries):
         if turn < since_turn:
@@ -674,7 +683,8 @@ def parse_transcript(
                              {"message": text, "turn": str(turn)},
                              turn=turn, ts=ts, salience=1.5,
                              fact=("ERROR", "", text),
-                             basis=factid.FactBasis.STRUCTURAL.value)
+                             basis=factid.FactBasis.STRUCTURAL.value,
+                             source_role=factid.SourceRole.TOOL.value)
 
             text = _clean_multiline(_text_of(content))
             if not text:
@@ -686,7 +696,9 @@ def parse_transcript(
             # double-count); the request/constraint/literal extractors see
             # the text with incident lines removed
             if len(text) <= _PASTED_CONTENT_THRESHOLD:
-                text = _extract_incidents(text, turn=turn, ts=ts)
+                text = _extract_incidents(
+                    text, turn=turn, ts=ts,
+                    role=factid.SourceRole.USER.value)
                 if not text.strip():
                     continue
 
@@ -697,7 +709,8 @@ def parse_transcript(
                  {"request": first_line, "turn": str(turn)},
                  turn=turn, ts=ts, salience=2.0,
                  fact=("USER-REQUEST", "", first_line),
-                 basis=factid.FactBasis.STRUCTURAL.value)
+                 basis=factid.FactBasis.STRUCTURAL.value,
+                 source_role=factid.SourceRole.USER.value)
 
             # Constraints: verbatim, never compressed — negations intact.
             # Skip pasted material (long messages) and timestamp-riddled
@@ -715,10 +728,12 @@ def parse_transcript(
                              {"rule": sentence, "stated_turn": str(turn)},
                              turn=turn, ts=ts, salience=3.0,
                              fact=("CONSTRAINT", "", sentence),
-                             basis=factid.FactBasis.USER_IMPERATIVE.value)
+                             basis=factid.FactBasis.USER_IMPERATIVE.value,
+                             source_role=factid.SourceRole.USER.value)
                 # Verbatim identifiers the user named (short turns only — a
                 # pasted log is skipped by the same threshold as constraints).
-                _add_literals(text, turn=turn, ts=ts)
+                _add_literals(text, turn=turn, ts=ts,
+                              role=factid.SourceRole.USER.value)
 
         else:  # assistant
             blocks = content if isinstance(content, list) else []
@@ -729,7 +744,9 @@ def parse_transcript(
 
                 if btype == "text":
                     atext = _clean_multiline(blk.get("text", ""))
-                    atext = _extract_incidents(atext, turn=turn, ts=ts)
+                    atext = _extract_incidents(
+                        atext, turn=turn, ts=ts,
+                        role=factid.SourceRole.ASSISTANT.value)
                     last_decision_name = ""
                     for sentence in _sentences(atext):
                         if _SUPERSEDES_MARKER_RE.match(_prose_of(sentence)):
@@ -761,14 +778,18 @@ def parse_transcript(
                                  {"rule": sentence, "stated_turn": str(turn)},
                                  turn=turn, ts=ts, salience=3.0,
                                  fact=("CONSTRAINT", "", sentence),
-                                 basis=factid.FactBasis.MARKER_STATED.value)
+                                 basis=factid.FactBasis.MARKER_STATED.value,
+                                 source_role=(
+                                     factid.SourceRole.ASSISTANT.value))
                         elif _FAILED_RE.search(_prose_of(sentence)):
                             stats.failed_approaches += 1
                             _add(f"FAILED-APPROACH-{_short_hash(sentence)}",
                                  {"note": sentence[:280], "turn": str(turn)},
                                  turn=turn, ts=ts, salience=2.2,
                                  fact=("FAILED-APPROACH", "", sentence),
-                                 basis=factid.FactBasis.INFERRED.value)
+                                 basis=factid.FactBasis.INFERRED.value,
+                                 source_role=(
+                                     factid.SourceRole.ASSISTANT.value))
                         elif _is_decision(sentence):
                             stats.decisions += 1
                             # marker-stated vs verb-pattern decisions carry
@@ -784,7 +805,9 @@ def parse_transcript(
                                  {"decision": sentence[:280], "turn": str(turn)},
                                  turn=turn, ts=ts, salience=2.5,
                                  fact=("DECISION", "", sentence),
-                                 basis=d_basis)
+                                 basis=d_basis,
+                                 source_role=(
+                                     factid.SourceRole.ASSISTANT.value))
                             last_decision_name = dname
                     # Verbatim identifiers stated in the assistant's reasoning
                     # (commit shas, PR #s, versions, paths, domain ids).
@@ -793,7 +816,8 @@ def parse_transcript(
                     lit_text = "\n".join(
                         line for line in atext.splitlines()
                         if not _SUPERSEDES_MARKER_RE.match(_prose_of(line)))
-                    _add_literals(lit_text, turn=turn, ts=ts)
+                    _add_literals(lit_text, turn=turn, ts=ts,
+                                  role=factid.SourceRole.ASSISTANT.value)
 
                 elif btype == "tool_use":
                     tool_seq += 1
@@ -892,7 +916,8 @@ def parse_transcript(
                       "marker": marker, "turn": str(verdict_turn)},
                      turn=verdict_turn, ts=ts, salience=2.3,
                      fact=("FINDING", "", sentence),
-                     basis=factid.FactBasis.MARKER_STATED.value)
+                     basis=factid.FactBasis.MARKER_STATED.value,
+                     source_role=factid.SourceRole.ASSISTANT.value)
 
     corpus.source_token_count = source_words
     corpus.source_files = [src_file]
