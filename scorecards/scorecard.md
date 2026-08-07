@@ -1,6 +1,6 @@
 # CtxPack session-memory scorecard
 
-_Generated 2026-08-07T19:09:16+00:00 · schema ctxpack-scorecard/v2_
+_Generated 2026-08-07T19:51:26+00:00 · schema ctxpack-scorecard/v2_
 
 > **Measurement class: observational.** These numbers support adoption and token-economics claims only. Accuracy claims come from the resume-probe evals; causal claims from CompactBench.
 
@@ -8,20 +8,20 @@ _Generated 2026-08-07T19:09:16+00:00 · schema ctxpack-scorecard/v2_
 
 | Metric | Value |
 | --- | --- |
-| Repos active | 6 / 7 |
-| Sessions banked | 278 |
-| Turns packed | 49,459 |
-| Decisions / constraints / dead ends | 1101 / 89 / 120 |
-| Raw-fallback rate | **45%** (54/119 fell back) |
-| Sessions with explicit recall | 17 |
-| Sessions with zero explicit recall | 260 |
-| ...of which a gist was emitted | 8 |
+| Repos active | 7 / 7 |
+| Sessions banked | 285 |
+| Turns packed | 54,177 |
+| Decisions / constraints / dead ends | 1221 / 146 / 120 |
+| Raw-fallback rate | **46%** (60/129 fell back) |
+| Sessions with explicit recall | 19 |
+| Sessions with zero explicit recall | 265 |
+| ...of which a gist was emitted | 9 |
 | ...hook ran, emitted empty (per receipt) | 0 |
 | ...emission attempt failed (per receipt) | 0 |
-| ...emission unmeasured (no receipt) | 252 |
+| ...emission unmeasured (no receipt) | 256 |
 | Sessions using transcript fallback | 14 |
 | Sessions with no read telemetry | 1 |
-| Startup gists emitted to hook stdout / attempted | 52 / 52 |
+| Startup gists emitted to hook stdout / attempted | 56 / 56 |
 
 Raw-fallback rate = raw-transcript greps ÷ (ledger reads + greps); lower is better — the earliest honest signal of whether the ledger earns its keep.
 
@@ -31,22 +31,23 @@ Raw-fallback rate = raw-transcript greps ÷ (ledger reads + greps); lower is bet
 
 ### Incidents (agent-reported)
 
-- saved: 20
+- saved: 28
 - missed: 7
+- user-corrected: 5
 - native-better: 2
+- stale: 2
 - wrong: 2
-- stale: 1
 
 ## By repo
 
 | Repo | Status | Sessions | Turns | Decisions | Constraints / dead ends | Ledger reads | Greps | Fallback |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| CTX_mod | active | 11 | 9,342 | 155 | 52 / 4 | 31 | 21 | 40% (21/52) |
-| market_zero | active | 4 | 5,182 | 85 | 1 / 6 | 13 | 10 | 44% (10/23) |
+| CTX_mod | active | 11 | 9,480 | 155 | 52 / 4 | 32 | 21 | 40% (21/53) |
+| market_zero | active | 4 | 5,286 | 88 | 1 / 6 | 13 | 16 | 55% (16/29) |
 | KP_SDLC | active | 2 | 1,826 | 30 | 1 / 9 | 6 | 5 | 46% (5/11) |
-| Scriptiva_SCA | active | 247 | 11,578 | 547 | 6 / 76 | 6 | 8 | 57% (8/14) |
+| Scriptiva_SCA | active | 247 | 11,608 | 547 | 8 / 76 | 6 | 8 | 57% (8/14) |
 | setu | active | 12 | 17,328 | 240 | 19 / 24 | 8 | 10 | 56% (10/18) |
 | WhynotFamous | active | 2 | 4,203 | 44 | 10 / 1 | 1 | 0 | 0% (0/1) |
-| OntoWiz | external unmeasured | — | — | — | — | — | — | — |
+| Onto_Wiz | active | 7 | 4,446 | 117 | 55 / 0 | 3 | 0 | 0% (0/3) |
 
-_Deterministic Layer-1 telemetry from each repo's committed `.claude/ctx/checkpoints.jsonl` — no content leaves the repo, only counts._
+_Deterministic Layer-1 telemetry from each repo's ledger files (`checkpoints.jsonl` + `injections.jsonl`; git tracking of those files is not verified) — no content leaves the repo, only counts._
