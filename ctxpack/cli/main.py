@@ -379,6 +379,10 @@ def _run(argv: list[str]) -> int:
                          help="Also render dashboard.html")
     p_score.add_argument("--md", action="store_true",
                          help="Also render scorecard.md exec-summary")
+    p_score.add_argument("--check", action="store_true",
+                         help="Verify scorecard-latest.json against its "
+                              "recorded inputs (cohort sha + per-repo "
+                              "ledger fingerprints); exit 1 when stale")
 
     # session — read path over the checkpoint ledger (P4)
     p_session = sub.add_parser(
@@ -1250,22 +1254,39 @@ def _cmd_scorecard(args: argparse.Namespace) -> int:
     """Layer-1 aggregation: cohort ledgers → versioned scorecard (+ HTML)."""
     from ..agent.scorecard import (
         build_scorecard,
-        load_cohort,
+        cohort_config_sha256,
+        load_cohort_config,
         save_cohort,
+        verify_latest,
         write_scorecard,
     )
+
+    if args.check:
+        ok, findings = verify_latest(args.out)
+        for line in findings:
+            print(f"STALE: {line}", file=sys.stderr)
+        if ok:
+            print("scorecard-latest.json is current with its recorded "
+                  "inputs (capture block not covered by fingerprints)")
+            return 0
+        print("scorecard-latest.json is STALE — regenerate with "
+              "`ctxpack scorecard`", file=sys.stderr)
+        return 1
 
     repos = args.repos
     if repos:
         save_cohort(repos, args.out)
     else:
-        repos = load_cohort(args.out)
+        repos = (load_cohort_config(args.out) or {}).get("repos")
         if not repos:
             print("Error: no --repos given and no saved cohort at "
                   f"{args.out}/cohort.json", file=sys.stderr)
             return 1
 
-    scorecard = build_scorecard(repos)
+    external = (load_cohort_config(args.out) or {}).get("external") or []
+    scorecard = build_scorecard(
+        repos, external=external,
+        cohort_config_sha=cohort_config_sha256(args.out))
     json_path, latest = write_scorecard(scorecard, args.out)
     print(f"Scorecard: {json_path}")
 
