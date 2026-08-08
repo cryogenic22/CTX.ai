@@ -75,7 +75,7 @@ CTX says "unknown — verify or reconcile", never silently selects.
 | 1 emission telemetry | PF-01 | executed + residuals fixed; re-review pending |
 | 2 self-verifying scorecards | PF-02 | executed + residuals fixed; re-review pending |
 | 3 authority provenance | PF-03 | executed ahead of mandated order (`6768b74`) — disclosed; PF-11 must validate the schema |
-| 4 E-6 security boundary | PF-11..17 | 4a/4b executed (`d2747d5`, `7d389e0`) — disclosed; **PF-11 threat model is the next unit**; retention, fixture scan, security suite held |
+| 4 E-6 security boundary | PF-11..17 | 4a/4b executed (`d2747d5`, `7d389e0`); **PF-11 DRAFTED design-only** (`docs/preflight-threat-model-pf11.md`, awaiting reviewer approval) — post-approval: TM-1..4 P1 fixes → TM-5..7 P2s → retention, PF-16/16b, PF-17 (absorbs TC-1..14) |
 | 5 eligibility + min freshness | PF-13, PF-51a | HELD pending re-review |
 | 6 deterministic matcher | PF-21 | HELD pending re-review |
 | 7 receipts + rendering | PF-22, PF-24 | after Loop 6 |
