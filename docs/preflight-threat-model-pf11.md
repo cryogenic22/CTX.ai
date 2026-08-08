@@ -188,9 +188,10 @@ boundaries.
 ### TM-2 · Authority escalation by self-ratification (finding 2, P1)
 Actor T-A ratifies its own candidate:
 `ctxpack session ratify <fid-of-its-own-decision>`.
-**Control:** the B2 ruling (`LOCAL_RATIFIED`, never rendered as human
-approval); eligibility policy (PF-13) treats it as elevated-local, and
-only genuine `USER_STATED`/future-`USER_RATIFIED` as owner authority.
+**Control:** the B2 axes ruling. `LOCAL_RATIFIED` is a local intent
+marker with no security standing beyond `AGENT_CANDIDATE`, never
+rendered as human or owner approval; the owner-approval axis is
+unsatisfiable in v1 — no value on any other axis substitutes for it.
 - **TC-4:** an agent-invoked ratification yields the local intent
   marker `local_ratified`; no rendering path anywhere prints it as
   user or owner approval; the value `user_ratified` is unreachable
@@ -223,13 +224,16 @@ turn 40 (the user's authority evidence is silently discarded); the
 reverse ordering silently discards the assistant occurrence.
 **Control (post-review fix):** record assertion provenance as a
 role-evidence SET (occurrences with turns), never an irreversible
-single role; authority derives from the strongest evidenced role
-without erasing weaker ones.
+single role. The set is NOT collapsed into an authority value: the
+source-provenance axis reports every evidenced occurrence, consumers
+see the full set, and owner approval remains unavailable regardless
+of which roles appear in it.
 - **TC-8:** assistant asserts F at turn i, user asserts F at turn j>i:
-  provenance shows both occurrences; derived authority is
-  `user_stated`; the assistant occurrence remains auditable.
-- **TC-9:** the reverse order yields the same derived authority with
-  both occurrences preserved.
+  provenance reports BOTH occurrences with their turns; no output
+  anywhere collapses the set to a single role; the owner-approval
+  axis still reports unavailable.
+- **TC-9:** the reverse order preserves the identical occurrence set
+  (order recorded, nothing discarded).
 
 ### TM-5 · Receipt misrouting by id-length heuristic (finding 5, P2)
 An exactly-8-character v2 session id is routed as a legacy prefix; if
@@ -329,11 +333,18 @@ adversarial rewrites (hashes prove bytes, not authorship or
 recency). Disclosure in rendered gists that ledger state is
 advisory; future integrity anchors (external timestamping or vendor
 attestation) belong to enforced mode.
-- **TC-16:** a hand-edited fact value in a banked `.ctx` is detected
-  by the checkpoint-receipt sha mismatch on next read (accidental
-  class); a full-directory rollback to an earlier valid state is
-  documented as UNDETECTABLE in advisory mode — the acceptance case
-  is that no doc claims otherwise.
+- **TC-16 (corrected):** a hand-edited fact value in a banked `.ctx`
+  is **UNDETECTABLE TODAY** — `load_session()` performs no comparison
+  against the checkpoint-journal sha; the recorded shas are write-time
+  receipts nothing re-checks on read. Both direct edits and
+  full-directory rollback are documented as undetectable in advisory
+  mode; the acceptance case is that no doc claims otherwise. A named
+  FUTURE unit — read-time integrity verification (`load_session`
+  optionally verifying file bytes against the checkpoint-journal sha,
+  surfacing mismatch as degraded, still defeatable by an adversary
+  who edits the journal too) — may upgrade the accidental-edit class
+  only; it is not scheduled in this program and never covers the
+  adversarial class.
 
 ### TM-14 · Diagnostic leakage outside the journals (v2)
 Secrets escape through channels the scanners never see: stderr
@@ -369,13 +380,23 @@ corrupts `ratifications.jsonl` deliberately can demote every
 locally-ratified fact — availability loss by design.
 **Ruling:** accepted. Fail-closed integrity outranks availability for
 an authority signal that is only a local intent marker anyway; the
-degradation is SURFACED (malformed counts + degraded flag), so the
-owner can repair by appending fresh valid events (append-only journal
-— repair is re-ratification, never row editing).
-- **TC-20:** with a corrupted journal, the degraded state names the
-  malformed count and every affected fact reads as unratified;
-  appending a fresh valid ratify row restores that fact without
-  touching prior rows.
+degradation is SURFACED (malformed counts + degraded flag).
+**Recovery protocol (v2.1 — appending cannot work while any malformed
+row degrades the whole journal):** recovery is an explicit
+**quarantine rotation**. The corrupted `ratifications.jsonl` is
+renamed to `ratifications.jsonl.quarantine-<n>` (preserved verbatim
+for audit, never edited, never read for state); a fresh journal
+starts a new recovery epoch; intent is re-asserted with fresh events
+in the new epoch. The reader derives state ONLY from a fully-valid
+active journal and reports how many quarantined predecessors exist,
+so a rotation can never be silent.
+- **TC-20 (corrected):** with a corrupted journal, the degraded state
+  names the malformed count and every affected fact reads as
+  unratified; appending a valid row to the CORRUPTED journal does NOT
+  restore anything (still degraded); after quarantine rotation plus a
+  fresh ratify event, the fact reads ratified, the quarantined file
+  is byte-identical to the pre-rotation journal, and the reader
+  reports the quarantine count.
 
 ## 5. Loop 3/4a/4b validation summary (the schema judged against the model)
 
@@ -405,17 +426,23 @@ undecoded encodings, prose about secrets.
 
 ## 7. Execution order (restates the reviewer's v2 instruction)
 
-1. **This document (PF-11 v2) relayed for short re-review.** No code
-   until approval.
-2. After approval: implement TM-1..TM-4 in separate review units
-   (scanner corpus + fence-aware extraction join TM-1/TM-8;
-   LOCAL_RATIFIED axes TM-2; journal degradation TM-3; role-evidence
-   set TM-4).
+1. **This document relayed for final approval.** No implementation
+   until then.
+2. After approval: TM-1..TM-4 as separate review units, one mechanism
+   per commit — **secret-corpus scanner (TM-1) and fence-aware
+   extraction (TM-8) are different mechanisms and ship as separate
+   commits**; LOCAL_RATIFIED axes (TM-2); journal degradation +
+   quarantine rotation (TM-3/TM-16); role-evidence set (TM-4).
+   **Every remediation commit ships its own TC tests immediately** —
+   tests are never postponed to PF-17.
 3. Implement TM-5..TM-7 (schema-routed receipts; scoped-`why`
    authority parity; error codes — extended to diagnostics per
-   TM-14).
-4. Complete PF-15 (bound by TM-15's acceptance cases), PF-16/16b,
-   PF-17 (absorbs TC-1..TC-20).
+   TM-14), same one-mechanism-one-commit-with-tests rule.
+4. Complete PF-15 (bound by TM-15's acceptance cases) and PF-16/16b.
+   PF-17 then adds CROSS-BOUNDARY coverage (end-to-end leakage across
+   ingest+egress+diagnostics, combined-threat scenarios) on top of
+   the per-commit TCs — it is additive, never the first home of a
+   test.
 5. Re-review the complete E-6 boundary.
 6. Only then: eligibility (PF-13) and matcher (PF-21) — Loops 5–6
    stay held. No live hook, no paid run, no parked merge.
