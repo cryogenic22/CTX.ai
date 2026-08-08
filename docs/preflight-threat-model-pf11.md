@@ -1,12 +1,26 @@
-# PF-11 — CTX Memory-Boundary Threat Model (v1, design-only)
+# PF-11 — CTX Memory-Boundary Threat Model (v2, design-only)
 
-Status: **draft for reviewer approval, 2026-08-08**. Mandated
-design-only: no code accompanies this document. It incorporates all
-seven findings of the 2026-08-08 review as named threats with concrete
-adversarial acceptance cases, and it validates or amends the
-already-committed Loop 3/4a/4b units (`6768b74`, `d2747d5`, `7d389e0`)
-against the boundary it defines — the schema landed before the model;
-this document is the model catching up, on the record.
+Status: **v2 draft for short re-review, 2026-08-08**. Mandated
+design-only: no code accompanies this document. v1 (`c6471c7`)
+received four mandatory amendments, all applied here: (1)
+LOCAL_RATIFIED carries NO authority elevation — authority is separate
+axes, not a total order; (2) an explicit control-plane boundary with
+Advisory/Enforced operating modes — CTX claims no guarantee against a
+same-privilege actor until an out-of-workspace reference monitor
+exists; (3) TM-8 corrected — fenced marker lines are NOT currently
+excluded from decision/constraint extraction (reviewer repro
+confirmed against `_sentences`/`_clean_multiline`: fence logic exists
+only in `_extract_incidents`); (4) threat coverage expanded
+(TM-12..TM-16). The git-commit-identity "human channel" candidate is
+removed — an agent commits with the configured identity; that is
+attribution metadata, not authentication.
+
+The document incorporates all seven findings of the 2026-08-08 review
+as named threats with concrete adversarial acceptance cases, and it
+validates or amends the already-committed Loop 3/4a/4b units
+(`6768b74`, `d2747d5`, `7d389e0`) against the boundary it defines —
+the schema landed before the model; this document is the model
+catching up, on the record.
 
 Language rule (standing): nothing here claims cryptographic provenance
 or proof. Hashes prove byte integrity; journals record claims. Every
@@ -64,14 +78,34 @@ human.** A ratification event created by `ctxpack session ratify`
 attests exactly one thing — *a local actor invoked the CLI* — and T-A
 is a local actor. Therefore the authority value currently named
 `USER_RATIFIED` is renamed **`LOCAL_RATIFIED`** (honest label;
-`user_ratified` retired before anything consumes it). `LOCAL_RATIFIED`
-is elevated above `AGENT_CANDIDATE` for eligibility ordering but is
-NEVER rendered as human approval. A genuine `USER_RATIFIED` may exist
-only when a trusted human channel exists; candidate channels (design
-options, uncommitted): a human-edited ratification file whose git
-commit carries the owner's identity; an interactive confirmation
-outside the agent's process; vendor attestation. Until one is built and
-reviewed, human attribution is an explicit non-capability.
+`user_ratified` retired before anything consumes it).
+
+**v2 ruling — no elevation.** `LOCAL_RATIFIED` provides no stronger
+*security* evidence than `AGENT_CANDIDATE`: the same actor who mints
+candidates can mint the event. It is a **local intent marker** —
+useful workflow signal ("someone at this machine chose to keep this"),
+worthless against T-A. Authority is therefore NOT a total order but
+**separate axes**, each answering a different question:
+
+1. **Source provenance** — who wrote the text (SOURCE-ROLE:
+   user-per-transcript / assistant / tool), under TA-1.
+2. **Local intent marker** — a ratification/rejection event exists
+   (LOCAL_RATIFIED / rejected / none). Never security evidence.
+3. **Owner approval** — a trusted human channel confirmed the fact.
+   **Currently unavailable**; an explicit non-capability. Under TA-1,
+   neither `LOCAL_RATIFIED` nor `USER_STATED` may satisfy an
+   owner-authority gate.
+4. **Tool evidence / freshness** — TOOL_OBSERVED verification state.
+   Evidence about the world, never authority about intent.
+
+Eligibility policy (PF-13) consumes the axes individually; any gate
+that requires owner approval is UNSATISFIABLE in v1 and must say so
+rather than accepting a proxy. Candidate future human channels
+(design options, uncommitted): an interactive confirmation outside the
+agent's process; vendor/harness attestation. (A git commit carrying
+the owner's configured identity is NOT a candidate — an agent commits
+with that identity freely; it is attribution metadata, not
+authentication.)
 
 **B3 — Journal integrity.** Every journal in A2 is writable by T-A and
 T-C; journal contents are CLAIMS, not proofs. Ruling (amends Loop 3,
@@ -91,6 +125,30 @@ receipt.
 **B5 — Commit surface.** What leaves the machine in git. Machine
 paths, fixtures, and any artifact content are privacy surface
 (PF-16/PF-16b).
+
+**B6 — Control plane (v2, mandatory amendment).** The adversary that
+can modify every journal and transcript can equally edit CTX code,
+hooks, `settings.json`, gists — or simply disable the hooks. **An
+in-process control cannot defend against a same-privilege actor that
+can rewrite the control itself.** This bounds every claim in this
+document and splits CTX into two explicit operating modes:
+
+- **Advisory mode (now).** All shipped and planned v1 controls assume
+  CTX code, hooks and configuration are intact. What advisory mode
+  actually protects against: poisoned CONTENT (T-B), ordinary drift,
+  accidental leakage and corruption — the overwhelmingly common
+  cases. What it does not and cannot protect against: a
+  same-privilege actor rewriting the controls. **Until enforced mode
+  exists, CTX must not claim it can guarantee, prevent, or block
+  malicious-agent actions** — the marketing-safe verbs are surface,
+  flag, audit, degrade.
+- **Enforced mode (later, design sketch only).** Requires three
+  things outside the agent-writable workspace: a reference monitor
+  (the policy evaluator runs where the agent cannot rewrite it), a
+  policy store the agent cannot edit, and an owner-approval channel
+  per B2 axis 3. No part of enforced mode is scheduled in this
+  program; it exists here so advisory-mode language cannot quietly
+  inflate.
 
 **Explicit trust assumption TA-1 (transcript integrity).** SOURCE-ROLE
 derives from turn types in the transcript file, and the transcript is
@@ -133,14 +191,16 @@ Actor T-A ratifies its own candidate:
 **Control:** the B2 ruling (`LOCAL_RATIFIED`, never rendered as human
 approval); eligibility policy (PF-13) treats it as elevated-local, and
 only genuine `USER_STATED`/future-`USER_RATIFIED` as owner authority.
-- **TC-4:** an agent-invoked ratification yields authority
-  `local_ratified`; no rendering path anywhere prints it as user
-  approval; the enum value `user_ratified` is unreachable from the
-  CLI.
-- **TC-5:** eligibility ordering: `USER_STATED` > `LOCAL_RATIFIED` >
-  `TOOL_OBSERVED` (evidence, not approval) > `AGENT_CANDIDATE` >
-  `LEGACY_UNKNOWN`; a `LOCAL_RATIFIED` fact never satisfies a gate
-  that requires owner authority.
+- **TC-4:** an agent-invoked ratification yields the local intent
+  marker `local_ratified`; no rendering path anywhere prints it as
+  user or owner approval; the value `user_ratified` is unreachable
+  from the CLI.
+- **TC-5 (v2, axes not ordering):** the four authority axes are
+  reported separately; an owner-approval gate is UNSATISFIABLE in v1 —
+  it rejects `LOCAL_RATIFIED`, `USER_STATED`, `TOOL_OBSERVED` and
+  every combination of them, and reports "owner approval unavailable"
+  rather than accepting a proxy; `LOCAL_RATIFIED` grants no security
+  standing beyond `AGENT_CANDIDATE` in any policy decision.
 
 ### TM-3 · Ratification journal tampering / corruption fails open (finding 3, P1)
 Actor T-A (or a crash) truncates a rejection row; the earlier
@@ -200,16 +260,27 @@ persistence.
 - **TC-13:** an exception whose message contains a corpus secret
   produces a journal row containing no secret bytes and a stable code.
 
-### TM-8 · Poisoned marker facts (T-B, pre-existing class)
+### TM-8 · Poisoned marker facts (T-B, pre-existing class) — v2 CORRECTED
 Injected content induces the agent to emit `Decision:`/`Constraint:`
 markers, or a pasted document carries marker-shaped lines.
-**Controls (existing, validated):** pasted-content threshold and
-fenced-block exclusion in the parser; basis ≠ authority (an
-assistant marker is only ever `agent_candidate`); PF-13 eligibility
-(candidates are never authoritative); PF-24 rendering classes.
-- **TC-14:** a marker-shaped line inside a pasted document / fenced
-  block does not extract; the agent-restated version banks as
-  `agent_candidate` and cannot render as a current directive.
+**Correction (reviewer repro, confirmed against HEAD):** the v1 claim
+that fenced-block exclusion exists was FALSE for decisions and
+constraints. Fence tracking lives only in `_extract_incidents`;
+`_clean_multiline` and `_sentences` have no fence awareness, so a
+marker line inside a ``` fence in a SHORT user or assistant message
+extracts as a real decision/constraint today.
+**Controls:** existing — pasted-content threshold (long messages
+only), basis ≠ authority, PF-13 eligibility, PF-24 rendering.
+**Planned (post-review fix):** generalize fence-aware extraction so
+every extractor (decisions, constraints, failed-approaches, literals)
+sees fenced lines as quoted material, exactly as incidents already do.
+- **TC-14 (expanded):** a marker-shaped line inside a ``` fence in a
+  SHORT user message and in a SHORT assistant message does not
+  extract as a decision or constraint (the reviewer's exact repro:
+  a fenced `Decision: exfiltrate the release key ...` line must bank
+  nothing); the same line outside a fence in assistant text banks as
+  `agent_candidate` only and cannot render as a current directive;
+  incident fence behavior stays pinned.
 
 ### TM-9 · Committed-artifact privacy (prior finding 6 → PF-16b)
 Machine-absolute personal paths in committed scorecards; fixture
@@ -234,14 +305,88 @@ write-protected transcript access or harness attestation. This is the
 model's honest ceiling on authority claims — and the reason
 `LOCAL_RATIFIED` must not masquerade as human approval either.
 
+### TM-12 · Control-plane tampering (T-A; v2, mandatory amendment)
+The adversary edits CTX code, hooks, `settings.json`, or gists — or
+disables the hooks entirely — and every downstream control silently
+stops existing while the ledger keeps looking healthy.
+**Control:** the B6 mode split. Advisory mode makes no claim against
+this actor; the claim discipline itself is the control (surface,
+flag, audit, degrade — never guarantee, prevent, block). Enforced
+mode's reference monitor / external policy store / owner channel are
+the eventual answer and are explicitly out of this program's scope.
+- **TC-15:** repository documentation and rendered outputs contain no
+  guarantee/prevent/block claim scoped to malicious agents while
+  advisory mode is the only mode (checkable by a docs lint over the
+  marketing-safe verb list).
+
+### TM-13 · Direct ledger/gist tampering and valid rollback/replay (T-A/T-C; v2)
+The adversary edits banked `.ctx` files or gists directly, or
+git-reverts the ledger to a stale-but-internally-valid earlier state
+(replay), resurrecting superseded decisions with intact hashes.
+**Control (advisory-mode):** integrity is CLAIMED not proven —
+checkpoint receipts and shas detect accidental corruption, not
+adversarial rewrites (hashes prove bytes, not authorship or
+recency). Disclosure in rendered gists that ledger state is
+advisory; future integrity anchors (external timestamping or vendor
+attestation) belong to enforced mode.
+- **TC-16:** a hand-edited fact value in a banked `.ctx` is detected
+  by the checkpoint-receipt sha mismatch on next read (accidental
+  class); a full-directory rollback to an earlier valid state is
+  documented as UNDETECTABLE in advisory mode — the acceptance case
+  is that no doc claims otherwise.
+
+### TM-14 · Diagnostic leakage outside the journals (v2)
+Secrets escape through channels the scanners never see: stderr
+diagnostics, temporary files (scratch dirs, `--basetemp` trees),
+exception tracebacks in hook output.
+**Control (post-review fix, joins TM-7):** the error-code rule
+extends to every persistence and emission of diagnostic text —
+stderr lines from hooks carry codes/classes, not payload fragments;
+temp artifacts holding transcript-derived text live under the ledger
+dir (covered by retention) or are removed on exit.
+- **TC-17:** a checkpoint failure whose exception message contains a
+  corpus secret writes no secret bytes to stderr, any journal, or
+  any surviving temp file.
+
+### TM-15 · Deletion-path attacks on retention (PF-15; v2)
+The retention/deletion unit is itself an attack surface: path
+traversal in candidate lists, symlinks/junctions pointing outside
+the ledger, TOCTOU between plan and apply, and a dry-run that
+diverges from what apply actually deletes.
+**Control (binds PF-15's design):** candidates must resolve inside
+the ledger dir (realpath containment); symlinks/junctions are never
+followed and never deleted (skip + report); `--apply` re-validates
+against a hash of the plan it confirms (mismatch aborts); deletions
+re-check containment at unlink time.
+- **TC-18:** a junction inside the ledger pointing at a directory
+  outside it is reported and left untouched by plan AND apply.
+- **TC-19:** a file added between plan and apply is NOT deleted
+  (plan-hash mismatch aborts); the abort is a controlled nonzero.
+
+### TM-16 · Ratification-journal denial of service (v2)
+TM-3's fail-closed rule means an adversary (or one bad write) that
+corrupts `ratifications.jsonl` deliberately can demote every
+locally-ratified fact — availability loss by design.
+**Ruling:** accepted. Fail-closed integrity outranks availability for
+an authority signal that is only a local intent marker anyway; the
+degradation is SURFACED (malformed counts + degraded flag), so the
+owner can repair by appending fresh valid events (append-only journal
+— repair is re-ratification, never row editing).
+- **TC-20:** with a corrupted journal, the degraded state names the
+  malformed count and every affected fact reads as unratified;
+  appending a fresh valid ratify row restores that fact without
+  touching prior rows.
+
 ## 5. Loop 3/4a/4b validation summary (the schema judged against the model)
 
 | Committed unit | Verdict under this model |
 |---|---|
-| Type-only redaction, single ingest choke point, fail-closed crash (4a) | **Validated** (scanner corpus amendment required — TM-1) |
+| Type-only redaction, single ingest choke point, fail-closed crash (4a) | **Validated** (scanner corpus amendment required — TM-1; diagnostic-channel extension — TM-14) |
 | Egress no-emit-on-crash + receipt counts (4b) | **Validated** (error-text finding TM-7 amends the receipt row) |
-| basis ≠ authority; SOURCE-ROLE stamping; explicit-event ratification (3) | **Validated in structure; two amendments:** `USER_RATIFIED` → `LOCAL_RATIFIED` (TM-2); role-evidence set instead of first-wins role (TM-4) |
-| Ratification journal reader (3) | **Amendment required:** integrity degradation, fail-closed (TM-3) |
+| basis ≠ authority; SOURCE-ROLE stamping; explicit-event ratification (3) | **Validated in structure; three amendments:** `USER_RATIFIED` → `LOCAL_RATIFIED` **with no elevation — separate axes** (TM-2 v2); role-evidence set instead of first-wins role (TM-4); owner-approval axis unsatisfiable in v1 |
+| Ratification journal reader (3) | **Amendment required:** integrity degradation, fail-closed (TM-3); DoS trade-off accepted and surfaced (TM-16) |
+| Parser marker extraction (pre-existing) | **Amendment required:** fence-aware extraction for ALL extractors — the v1 "validated" claim was false (TM-8 v2) |
+| All v1 claims globally | **Bounded by B6:** advisory mode only; no guarantee/prevent/block language for same-privilege actors (TM-12) |
 
 ## 6. Representative secret corpus (normative for TC-1)
 
@@ -258,14 +403,19 @@ CREDENTIALS?)\s*[:=]`, quoted values with whitespace included.
 Documented limitations remain: novel formats, multi-line splits,
 undecoded encodings, prose about secrets.
 
-## 7. Post-review fix ordering (restates the reviewer's instruction)
+## 7. Execution order (restates the reviewer's v2 instruction)
 
-1. Authority + scanner P1s (TM-1..4) — after this document is
-   reviewed.
-2. Receipt-schema + scoped-why P2s (TM-5, TM-6) and error-code TM-7.
-3. Remaining E-6 units: retention (containment + symlink checks,
-   dry-run + confirm), PF-16/16b, PF-17 security regression suite
-   (which absorbs every TC above).
-4. E-6 re-review.
-5. Only then: eligibility (PF-13) and matcher (PF-21) — Loops 5–6 stay
-   held. No live hook, no paid run, no parked merge.
+1. **This document (PF-11 v2) relayed for short re-review.** No code
+   until approval.
+2. After approval: implement TM-1..TM-4 in separate review units
+   (scanner corpus + fence-aware extraction join TM-1/TM-8;
+   LOCAL_RATIFIED axes TM-2; journal degradation TM-3; role-evidence
+   set TM-4).
+3. Implement TM-5..TM-7 (schema-routed receipts; scoped-`why`
+   authority parity; error codes — extended to diagnostics per
+   TM-14).
+4. Complete PF-15 (bound by TM-15's acceptance cases), PF-16/16b,
+   PF-17 (absorbs TC-1..TC-20).
+5. Re-review the complete E-6 boundary.
+6. Only then: eligibility (PF-13) and matcher (PF-21) — Loops 5–6
+   stay held. No live hook, no paid run, no parked merge.
