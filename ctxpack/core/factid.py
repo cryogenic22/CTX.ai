@@ -27,7 +27,10 @@ _EDGE_PUNCT = " \t\r\n.,:;!?\"'`*_-—"
 # 1.2: facts additionally carry SOURCE-ROLE (who wrote the text the
 # fact was extracted from). Provenance change only — identities of
 # previously extracted facts are unchanged by construction.
-EXTRACTOR_VERSION = "tp/1.2"
+# tp/1.3 (2026-08-09): CommonMark fence state (type+length match,
+# tilde fences) and every-occurrence role evidence — extraction output
+# changed, so the provenance version moves with it.
+EXTRACTOR_VERSION = "tp/1.3"
 
 # rank = fold(events, policy); v0 is today's behavior — static
 # extraction-time priors, no updates. Recorded in every checkpoint

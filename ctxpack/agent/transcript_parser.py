@@ -635,7 +635,7 @@ def parse_transcript(
         FACT-ID (canonical content hash), BASIS (extraction mechanics,
         an enum never a float), STATUS (lifecycle, current at birth),
         EXTRACTOR (parser version — provenance, never identity),
-        SOURCE-ROLE (who wrote the text — tp/1.2; basis is never
+        SOURCE-ROLE (who wrote the text — tp/1.2+; basis is never
         authority, so an assistant's Decision: marker stays an agent
         candidate no matter how it was extracted)."""
         nonlocal source_words

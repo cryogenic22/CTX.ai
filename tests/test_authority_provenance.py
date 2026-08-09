@@ -86,7 +86,7 @@ def test_tool_error_is_tool_role(tmp_path):
 
 def test_extractor_version_bumped_for_the_provenance_change(tmp_path):
     facts = _facts_by_kind(parse_transcript(_transcript(tmp_path)))
-    assert facts["DECISION"][0]["EXTRACTOR"] == "tp/1.2"
+    assert facts["DECISION"][0]["EXTRACTOR"] == "tp/1.3"
 
 
 # ── authority axes (PF-11 v2.1: no ordering, no user_ratified) ──

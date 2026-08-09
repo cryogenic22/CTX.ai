@@ -447,6 +447,27 @@ def test_scanner_crash_fails_closed_nothing_persisted(tmp_path, monkeypatch):
     assert not list(out.glob("session-*.ctx")) if out.exists() else True
 
 
+def test_checkpoint_receipt_stamps_extractor_and_redaction_versions(
+        tmp_path):
+    """Re-review P2 (provenance receipts): extraction and scanning
+    behavior changed (TM-1/TM-8/TM-4), so the versions must MOVE and
+    the redaction version must be stamped into the checkpoint receipt
+    — policy built on receipts has to know which scanner produced
+    them. RED on parent: versions unbumped, redaction key absent."""
+    from ctxpack.core import factid
+    from ctxpack.core.redaction import REDACTION_VERSION
+
+    out = tmp_path / "ctx"
+    run_checkpoint(_secret_transcript(tmp_path), str(out),
+                   as_of="2026-08-09")
+    row = json.loads((out / "checkpoints.jsonl").read_text(
+        encoding="utf-8").splitlines()[-1])
+    assert factid.EXTRACTOR_VERSION == "tp/1.3"
+    assert REDACTION_VERSION == "redact/v2"
+    assert row["extractor"] == factid.EXTRACTOR_VERSION
+    assert row["redaction"] == REDACTION_VERSION
+
+
 # ── the egress boundary: outgoing scan before emission (PF-14) ──
 
 def _hook_repo(tmp_path, monkeypatch):

@@ -29,7 +29,7 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
-from ..core import factid, rank
+from ..core import factid, rank, redaction
 from ..core.packer.compressor import compress
 from ..core.packer.conflict import detect_conflicts
 from ..core.packer.entity_resolver import resolve_entities
@@ -576,6 +576,11 @@ def run_checkpoint(
         "sha256": sha,
         "gist_sha256": gist_sha,
         "gist_bpe": gist_bpe,
+        # Provenance receipts (re-review 2026-08-09): which extractor
+        # and which secret scanner produced this artifact — policy
+        # built over receipts must be able to tell versions apart.
+        "extractor": factid.EXTRACTOR_VERSION,
+        "redaction": redaction.REDACTION_VERSION,
         "latency_ms": round((time.perf_counter() - t0) * 1000, 1),
         # identifier fidelity across the fold (feedback #7): 1.0 = the
         # ledger is lossless for ids; a dip means the read path dropped one

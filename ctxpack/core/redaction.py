@@ -30,7 +30,11 @@ from __future__ import annotations
 
 import re
 
-REDACTION_VERSION = "redact/v1"
+# redact/v2 (2026-08-09): TM-1 corpus amendments — uppercase
+# environment-style *_KEY names, benign-span rescan, nested quoted
+# tails. Scanner output changed, so the version moves with it and is
+# stamped into every checkpoint receipt.
+REDACTION_VERSION = "redact/v2"
 
 _MARK = "[REDACTED:{}]"
 
