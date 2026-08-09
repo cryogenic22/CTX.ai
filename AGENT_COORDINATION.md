@@ -359,6 +359,13 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 - **Open for the reviewer:** P1-batch re-review of `85302ea..600aef9` (7 commits incl. governance). TM-5..7 not started, per the gate.
 - **Next:** on P1-batch approval — TM-5 schema-routed receipts, TM-6 scoped-why authority parity, TM-7+TM-14 error codes; then PF-15/16/16b/17; then E-6 re-review. Frozen: Loops 5–6, live hook, paid runs, parked merge.
 
+### 2026-08-09 — Claude Code (session `d84e91c2`, continued) — harness parity with the owner's other repos (`7ecf5fb`)
+- **Owner directive:** follow the SAME harness strategy as Scriptiva_SCA/setu/KP_SDLC — no invented checks. Audit found CTX_mod was the outlier: it ships `ctxpack codebase harness` and instructed the Scriptiva team to run it, but never ran it on itself (no `.claude/rules/`, no anti-slop index, no codebase map).
+- **Adopted (same files, same doctrine):** generator run on this repo (anti-slop symbol index, commit-conventions, quality-check hook, codebase-map — privacy-scanned, no personal paths); `test-requirements.md` replaced with hand-authored doctrine per the setu pattern ("not regenerated"), expressing this repo's EXISTING invariants (byte determinism, negation preservation, immutable results, can-fail guards, red-on-parent, pins/forward-guards self-identify, paste-output-never-memory, flaky = disclosed); `conservation-gates.md` transplanted from the market_zero/setu doctrine onto native primitives (bar = preregs/graders/results/reviewer gate; spine = deterministic write path; two lanes = deterministic vs authorized-paid; DoD incl. independent review).
+- **Honest floor/ceiling accounting (setu principle 4):** CTX_mod is mostly ceiling — no CI, no CODEOWNERS, no protected-surface enforcement; gates run when an agent runs them. Flagged as owner decisions in conservation-gates.md, NOT built.
+- **Evidence check that motivated this:** the P1 batch's 23 new tests re-run against the pre-batch commit — 21 red (fix-detecting), 2 designed passes (incident-fence regression pin; false-positive forward guard). Standing gates green: claims gate OK (20 warn-only), coordination reporter clean, determinism + negation gates in the 1752-passed suite.
+- **Owner wiring left to you (CLAUDE.md is do-not-touch):** add `@.claude/codebase-map.md` to CLAUDE.md if you want the map auto-loaded; CI/branch-protection floor items when ready.
+
 ---
 
 ## Reviewer Notes
