@@ -616,6 +616,8 @@ def parse_transcript(
                       "source_role": (source_role
                                       or factid.SourceRole.UNKNOWN.value)}
         if name in seen_names:
+            if fact is not None and source_role:
+                _merge_role_evidence(name, source_role, turn)
             if update and name in entities_by_name:
                 # Refresh mutable fields in place (e.g. a TodoWrite status
                 # change) — first-wins dedup must not freeze task state.
@@ -643,6 +645,37 @@ def parse_transcript(
             source_words += len(str(value).split())
         corpus.entities.append(entity)
         entities_by_name[name] = entity
+
+    def _merge_role_evidence(name: str, role: str, turn: int) -> None:
+        """TM-4: a re-assertion of an existing fact by a DIFFERENT role
+        is evidence, not a duplicate to discard. Occurrences accumulate
+        in a SOURCE-ROLES field (`role@turn`, first turn per role,
+        transcript order). SOURCE-ROLE stays the FIRST assertion — a
+        provenance record, not a ranking — and the set is never
+        collapsed into a single authority value downstream."""
+        entity = entities_by_name.get(name)
+        if entity is None:
+            return
+        base = next((f for f in entity.fields
+                     if f.key == "SOURCE-ROLE"), None)
+        if base is None:
+            return                      # legacy entity, no provenance
+        roles = next((f for f in entity.fields
+                      if f.key == "SOURCE-ROLES"), None)
+        present = ({occ.split("@")[0]
+                    for occ in roles.value.split(",") if occ}
+                   if roles is not None else {base.value})
+        if role in present:
+            return
+        if roles is None:
+            base_turn = base.source.turn if base.source else 0
+            initial = f"{base.value}@{base_turn}"
+            roles = IRField(key="SOURCE-ROLES", value=initial,
+                            raw_value=initial, source=base.source,
+                            salience=base.salience)
+            entity.fields.append(roles)
+        roles.value = f"{roles.value},{role}@{turn}"
+        roles.raw_value = roles.value
 
     def _attach(name: str, key: str, value: str, *, turn: int, ts: str,
                 salience: float = 2.5) -> None:

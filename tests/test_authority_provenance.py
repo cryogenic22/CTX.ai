@@ -281,6 +281,65 @@ def test_cli_ratify_marks_the_axis_without_touching_provenance(
     assert match["local_ratification"] == "rejected"
 
 
+def test_tc8_role_evidence_set_preserves_both_occurrences(tmp_path):
+    """TC-8: assistant asserts a fact, the user later asserts the
+    identical fact — BOTH occurrences are reported and no output
+    collapses the set to a single role; owner approval stays
+    unavailable."""
+    from ctxpack.agent.checkpoint import run_checkpoint
+    from ctxpack.agent.session_reader import session_why_across
+
+    sid = "roleset8-0000"
+    rows = [
+        {"type": "user", "sessionId": sid, "uuid": "u1",
+         "message": {"content": "Start the release work."}},
+        {"type": "assistant", "sessionId": sid, "uuid": "u2",
+         "message": {"content": [{"type": "text", "text":
+                     "Decision: pin commit 4afef09aa11 because it "
+                     "passed the gate."}]}},
+        {"type": "user", "sessionId": sid, "uuid": "u3",
+         "message": {"content": "Yes, ship commit 4afef09aa11 today."}},
+    ]
+    path = tmp_path / "roles.jsonl"
+    path.write_text("\n".join(json.dumps(r) for r in rows) + "\n",
+                    encoding="utf-8")
+    out = tmp_path / "ctx"
+    run_checkpoint(str(path), str(out), as_of="2026-08-09")
+    why = session_why_across(str(out), "4afef09aa11")
+    lit = next(m for m in why["matches"] if m["kind"] == "LITERAL")
+    roles = {occ.split("@")[0] for occ in lit["source_roles"]}
+    assert roles == {"assistant", "user"}
+    assert len(lit["source_roles"]) == 2
+    assert lit["authority"] == "multiple"       # not a single role
+    assert lit["owner_approval"] == "unavailable"
+
+
+def test_tc9_reverse_order_preserves_the_same_evidence_set(tmp_path):
+    from ctxpack.agent.checkpoint import run_checkpoint
+    from ctxpack.agent.session_reader import session_why_across
+
+    sid = "roleset9-0000"
+    rows = [
+        {"type": "user", "sessionId": sid, "uuid": "u1",
+         "message": {"content": "Please pin commit 4afef09aa11 today."}},
+        {"type": "assistant", "sessionId": sid, "uuid": "u2",
+         "message": {"content": [{"type": "text", "text":
+                     "Decision: pin commit 4afef09aa11 because you "
+                     "asked."}]}},
+    ]
+    path = tmp_path / "roles9.jsonl"
+    path.write_text("\n".join(json.dumps(r) for r in rows) + "\n",
+                    encoding="utf-8")
+    out = tmp_path / "ctx"
+    run_checkpoint(str(path), str(out), as_of="2026-08-09")
+    why = session_why_across(str(out), "4afef09aa11")
+    lit = next(m for m in why["matches"] if m["kind"] == "LITERAL")
+    assert lit["source_roles"][0].startswith("user@")     # order kept
+    assert {o.split("@")[0] for o in lit["source_roles"]} \
+        == {"user", "assistant"}
+    assert lit["authority"] == "multiple"
+
+
 def test_why_reports_user_stated_for_user_constraints(tmp_path):
     from ctxpack.agent.checkpoint import run_checkpoint
     from ctxpack.agent.session_reader import session_why_across

@@ -607,7 +607,17 @@ def _annotate_authority(matches: "list[dict[str, Any]]",
                   for f in m.get("fields") or []}
         fid = fields.get("FACT-ID", "").lower()
         role = fields.get("SOURCE-ROLE", "")
-        m["authority"] = derive_authority(role).value
+        roles_raw = fields.get("SOURCE-ROLES", "")
+        if roles_raw:
+            # TM-4: the evidence set is reported whole; multiple
+            # distinct roles are NEVER collapsed to one
+            occurrences = [x for x in roles_raw.split(",") if x]
+            m["source_roles"] = occurrences
+            distinct = {x.split("@")[0] for x in occurrences}
+            m["authority"] = (derive_authority(next(iter(distinct))).value
+                              if len(distinct) == 1 else "multiple")
+        else:
+            m["authority"] = derive_authority(role).value
         m["owner_approval"] = OWNER_APPROVAL_UNAVAILABLE
         if journal["degraded"]:
             # fail-closed: an uncertain journal confers nothing and
