@@ -307,6 +307,74 @@ def test_rows_missing_ts_or_by_degrade_the_journal(tmp_path):
     assert journal["state"] == {"e" * 16: RATIFY}
 
 
+def test_invalid_utf8_byte_in_a_valid_row_degrades_the_journal(tmp_path):
+    """Journal-integrity acceptance 1 (re-re-review): bytes decode
+    STRICTLY — an invalid UTF-8 byte in an otherwise valid row (here
+    in `note`) must taint the journal, not become U+FFFD and keep
+    conferring ratify. RED on parent (errors='replace' accepted it:
+    state={'aaa…': 'ratify'}, degraded=False)."""
+    from ctxpack.agent.ratification import SCHEMA, read_ratifications
+
+    ledger = tmp_path / "ctx"
+    ledger.mkdir()
+    row = {"ts": "2026-08-09T12:00:00+00:00", "schema": SCHEMA,
+           "fact_id": "a" * 16, "action": RATIFY, "by": "local-cli",
+           "note": "AAA"}
+    raw = json.dumps(row).encode("utf-8").replace(b"AAA", b"\xff\xfe")
+    (ledger / RATIFICATION_LOG).write_bytes(raw + b"\n")
+    journal = read_ratifications(str(ledger))
+    assert journal["degraded"] is True
+    assert journal["malformed_rows"] == 1
+    assert journal["state"] == {}
+    assert not is_ratified(str(ledger), "a" * 16)
+
+
+def test_unreadable_journal_degrades_never_reads_as_absent(tmp_path):
+    """Journal-integrity acceptance 2 (re-re-review): only
+    FileNotFoundError is absence. A directory squatting on the journal
+    path raises PermissionError on Windows / IsADirectoryError on
+    POSIX — the reader cannot know what the journal says, so it must
+    degrade with the stable non-sensitive code, never present as a
+    healthy empty journal. RED on parent (every OSError read as
+    absent: state={}, malformed_rows=0, degraded=False)."""
+    from ctxpack.agent.ratification import read_ratifications
+
+    ledger = tmp_path / "ctx"
+    ledger.mkdir()
+    (ledger / RATIFICATION_LOG).mkdir()
+    journal = read_ratifications(str(ledger))
+    assert journal["degraded"] is True
+    assert journal["state"] == {}
+    assert journal["error"] == "journal_read_failed"
+    assert not is_ratified(str(ledger), "a" * 16)
+
+
+def test_genuinely_absent_journal_is_a_real_zero(tmp_path):
+    """Journal-integrity acceptance 3 — regression pin (passes on the
+    parent): no journal file at all is genuine absence, a real zero
+    with no error code — ratification only exists through this
+    journal, so nothing-there confers nothing and degrades nothing."""
+    from ctxpack.agent.ratification import read_ratifications
+
+    ledger = tmp_path / "ctx"
+    ledger.mkdir()
+    assert read_ratifications(str(ledger)) == {
+        "state": {}, "malformed_rows": 0, "degraded": False,
+        "quarantined": 0}
+
+
+def test_writer_refuses_a_by_its_reader_would_reject(tmp_path):
+    """Journal-integrity acceptance 4 (re-re-review): the public API
+    must not be able to create a row the strict reader rejects —
+    `by` is validated BEFORE writing. RED on parent (an empty `by`
+    was written happily)."""
+    ledger = str(tmp_path / "ctx")
+    for bad in ("", "   ", None, 123):
+        with pytest.raises(ValueError):
+            record_ratification(ledger, "d" * 16, by=bad)
+    assert not (tmp_path / "ctx" / RATIFICATION_LOG).exists()
+
+
 # ── CLI: explicit event referencing an EXISTING fact ──
 
 def test_cli_ratify_unknown_fact_id_refuses(tmp_path, capsys):

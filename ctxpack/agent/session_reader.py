@@ -570,6 +570,8 @@ def session_why_across(ledger_dir: str = DEFAULT_LEDGER_DIR, key: str = "",
             **({"ratification_journal": {
                 "degraded": True,
                 "malformed_rows": journal["malformed_rows"],
+                **({"error": journal["error"]}
+                   if journal.get("error") else {}),
                 "quarantined": journal["quarantined"]}}
                if journal["degraded"] else {}),
             "count": len(matches), "sessions_searched": len(order),

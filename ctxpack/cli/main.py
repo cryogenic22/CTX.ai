@@ -1414,11 +1414,14 @@ def _cmd_session(args: argparse.Namespace) -> int:
 
         journal = read_ratifications(args.ledger)
         if journal["degraded"] and not args.rotate_quarantine:
+            code = journal.get("error")
+            detail = (code if code and not journal["malformed_rows"]
+                      else f"{journal['malformed_rows']} malformed rows")
             print(f"Error: ratification journal integrity degraded "
-                  f"({journal['malformed_rows']} malformed rows) — "
-                  "appending cannot repair it. Run again with "
-                  "--rotate-quarantine to preserve the corrupted journal "
-                  "for audit and start a fresh epoch.", file=sys.stderr)
+                  f"({detail}) — appending cannot repair it. Run again "
+                  "with --rotate-quarantine to preserve the corrupted "
+                  "journal for audit and start a fresh epoch.",
+                  file=sys.stderr)
             return 1
         if args.rotate_quarantine:
             if not journal["degraded"]:
@@ -1426,7 +1429,12 @@ def _cmd_session(args: argparse.Namespace) -> int:
                       "journal that does not need recovery.",
                       file=sys.stderr)
                 return 1
-            path = quarantine_rotation(args.ledger)
+            try:
+                path = quarantine_rotation(args.ledger)
+            except OSError as e:
+                print(f"Error: quarantine rotation failed: {e}",
+                      file=sys.stderr)
+                return 1
             print(f"Quarantined corrupted journal: {path}",
                   file=sys.stderr)
 

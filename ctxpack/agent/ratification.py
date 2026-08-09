@@ -53,6 +53,10 @@ def record_ratification(ledger_dir: str, fact_id: str, *,
         raise ValueError(f"not a 16-hex fact_id: {fact_id!r}")
     if action not in _ACTIONS:
         raise ValueError(f"action must be one of {_ACTIONS}: {action!r}")
+    if not isinstance(by, str) or not by.strip():
+        # validated BEFORE writing: the public API must not be able to
+        # create a row the strict reader rejects (re-re-review)
+        raise ValueError(f"by must be a non-empty string: {by!r}")
     row: dict[str, Any] = {
         "ts": datetime.datetime.now(
             datetime.timezone.utc).isoformat(timespec="seconds"),
@@ -63,10 +67,15 @@ def record_ratification(ledger_dir: str, fact_id: str, *,
     }
     if note:
         row["note"] = str(note)[:300]
+    # Encode BEFORE opening (any encoding failure writes nothing) and
+    # append the finished bytes in binary — no platform newline
+    # translation, no half-encoded row on error. json.dumps with
+    # ensure_ascii keeps the file pure ASCII, so the strict reader can
+    # never reject bytes this writer produced.
+    row_bytes = (json.dumps(row) + "\n").encode("utf-8")
     os.makedirs(ledger_dir, exist_ok=True)
-    with open(os.path.join(ledger_dir, RATIFICATION_LOG), "a",
-              encoding="utf-8") as f:
-        f.write(json.dumps(row) + "\n")
+    with open(os.path.join(ledger_dir, RATIFICATION_LOG), "ab") as f:
+        f.write(row_bytes)
     return row
 
 
@@ -104,12 +113,21 @@ def read_ratifications(ledger_dir: str) -> dict:
     """The journal with its integrity state (TM-3/TM-16, fail-closed).
 
     Returns ``{"state": {fact_id: action}, "malformed_rows": int,
-    "degraded": bool, "quarantined": int}``.
+    "degraded": bool, "quarantined": int}``, plus a stable
+    non-sensitive ``"error"`` code when the journal could not be read
+    at all.
 
     ANY malformed row degrades the whole journal: ``state`` comes back
     EMPTY, because a truncated rejection could otherwise leave an
     earlier ratification silently active — and the reader cannot know
-    which rows are missing. Recovery is quarantine rotation
+    which rows are missing. Bytes decode STRICTLY (re-re-review
+    2026-08-09): an invalid UTF-8 byte anywhere in a row makes that
+    row malformed — ``errors="replace"`` let mojibake land in ``note``
+    or ``by`` while the row kept conferring ratify. Only a genuinely
+    ABSENT file is a real zero; every other read failure (permissions,
+    a directory squatting on the path, I/O) degrades with
+    ``journal_read_failed`` — unknown must never present as
+    healthy-empty. Recovery is quarantine rotation
     (:func:`quarantine_rotation`) plus fresh events in a new epoch;
     appending to a corrupted journal restores nothing. ``quarantined``
     counts prior epochs so a rotation can never be silent. The
@@ -117,8 +135,6 @@ def read_ratifications(ledger_dir: str) -> dict:
     TM-16 trade-off: fail-closed integrity outranks availability for
     a signal that is only a local intent marker.
     """
-    state: dict[str, str] = {}
-    malformed = 0
     quarantined = 0
     try:
         for name in os.listdir(ledger_dir):
@@ -127,25 +143,35 @@ def read_ratifications(ledger_dir: str) -> dict:
     except OSError:
         pass
     try:
-        with open(os.path.join(ledger_dir, RATIFICATION_LOG),
-                  encoding="utf-8", errors="replace") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    row = json.loads(line)
-                except json.JSONDecodeError:
-                    malformed += 1
-                    continue
-                rec = _row_is_valid(row)
-                if rec is None:
-                    malformed += 1
-                    continue
-                state[rec[0]] = rec[1]
-    except OSError:
+        with open(os.path.join(ledger_dir, RATIFICATION_LOG), "rb") as f:
+            raw = f.read()
+    except FileNotFoundError:
         return {"state": {}, "malformed_rows": 0, "degraded": False,
                 "quarantined": quarantined}
+    except OSError:
+        return {"state": {}, "malformed_rows": 0, "degraded": True,
+                "error": "journal_read_failed",
+                "quarantined": quarantined}
+    state: dict[str, str] = {}
+    malformed = 0
+    for rawline in raw.split(b"\n"):
+        if not rawline.strip():
+            continue
+        try:
+            line = rawline.decode("utf-8")
+        except UnicodeDecodeError:
+            malformed += 1
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            malformed += 1
+            continue
+        rec = _row_is_valid(row)
+        if rec is None:
+            malformed += 1
+            continue
+        state[rec[0]] = rec[1]
     degraded = malformed > 0
     return {"state": {} if degraded else state,
             "malformed_rows": malformed, "degraded": degraded,
