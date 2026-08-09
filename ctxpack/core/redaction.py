@@ -42,6 +42,9 @@ _PATTERNS: "tuple[tuple[str, re.Pattern], ...]" = (
         r"(?:[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----|[\s\S]*\Z)")),
     ("aws-access-key-id", re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b")),
     ("github-token", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b")),
+    ("github-pat", re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b")),
+    ("gitlab-token", re.compile(r"\bglpat-[A-Za-z0-9_-]{10,}\b")),
+    ("gcp-api-key", re.compile(r"\bAIza[A-Za-z0-9_-]{30,}\b")),
     ("slack-token", re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b")),
     ("sk-api-key", re.compile(
         r"\bsk-(?:[A-Za-z0-9_-]+-)?[A-Za-z0-9]{20,}\b")),
@@ -53,17 +56,46 @@ _PATTERNS: "tuple[tuple[str, re.Pattern], ...]" = (
         r"(?<=://)[^/\s:@]{1,64}:[^/\s@]{1,256}(?=@)")),
 )
 
+# TM-1 (PF-11 v2.1): the assignment matcher must catch PREFIXED names
+# (AWS_SECRET_ACCESS_KEY, DATABASE_PASSWORD, npm's _authToken) and
+# QUOTED values containing whitespace. The name is matched loosely and
+# then judged by its SEGMENTS (split on _ - . and camelCase) so that
+# "oauth" does not trigger on the "auth" substring.
+# separator whitespace is SAME-LINE only: with \s* a benign "config:"
+# line ending would swallow the secret assignment on the next line as
+# its "value", consuming the span so the real match never fires
 _ASSIGNMENT = re.compile(
-    r"""(?ix)\b(password|passwd|pwd|secret|token|api[_-]?key|apikey|
-        access[_-]?key|client[_-]?secret|auth)\b\s*[:=]\s*
-        (["']?)(?!\[REDACTED)([^\s"']{8,})\2""",
+    r"""(?x)\b([A-Za-z0-9_.\-]{1,64})[ \t]*[:=][ \t]*
+        (?!\[REDACTED)
+        ( "[^"\n]{4,256}" | '[^'\n]{4,256}' | [^\s"']{8,256} )""",
     re.VERBOSE)
+
+_SECRET_SEGMENTS = frozenset({
+    "password", "passwd", "pwd", "secret", "token", "apikey",
+    "credential", "credentials", "auth"})
+# "key" alone is too common ("sort key"); it counts only next to one of
+# these qualifying segments (AWS_SECRET_ACCESS_KEY, AccountKey, ...)
+_KEY_QUALIFIERS = frozenset({
+    "api", "access", "account", "private", "secret", "client", "app"})
+
+_CAMEL_SPLIT = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
+
+
+def _name_is_secretlike(name: str) -> bool:
+    parts: "list[str]" = []
+    for chunk in re.split(r"[_.\-]+", name):
+        parts.extend(_CAMEL_SPLIT.split(chunk))
+    segments = {p.lower() for p in parts if p}
+    if segments & _SECRET_SEGMENTS:
+        return True
+    return "key" in segments and bool(segments & _KEY_QUALIFIERS)
 
 
 def _assignment_value_is_secretlike(value: str) -> bool:
     """Bound false positives: placeholders, env references and short
-    plain words are prose, not credentials."""
-    if value[0] in "$<{%":          # $ENV, <placeholder>, {template}, %VAR%
+    plain words are prose, not credentials. A quoted multi-word value
+    (a passphrase) IS secret-like — TM-1's reviewer bypass."""
+    if value and value[0] in "$<{%":  # $ENV, <placeholder>, {template}, %VAR%
         return False
     if value.isalpha() and len(value) < 16:
         return False
@@ -80,10 +112,15 @@ def redact(text: str) -> "tuple[str, dict[str, int]]":
             counts[label] = counts.get(label, 0) + n
 
     def _sub_assignment(m: "re.Match") -> str:
-        if not _assignment_value_is_secretlike(m.group(3)):
+        name, value = m.group(1), m.group(2)
+        if value[0] in "\"'":
+            value = value[1:-1]
+        if not _name_is_secretlike(name):
+            return m.group(0)
+        if not value or not _assignment_value_is_secretlike(value):
             return m.group(0)
         counts["secret-assignment"] = counts.get("secret-assignment", 0) + 1
-        return f"{m.group(1)}={_MARK.format('secret-assignment')}"
+        return f"{name}={_MARK.format('secret-assignment')}"
 
     out = _ASSIGNMENT.sub(_sub_assignment, out)
     return out, counts

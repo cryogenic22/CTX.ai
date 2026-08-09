@@ -66,6 +66,84 @@ def test_secret_assignment_redacts_and_bounds_false_positives():
         assert c == {}
 
 
+# ── TC-1/TC-2 (TM-1): the reviewer's exact bypass probes ──
+
+@pytest.mark.parametrize("probe,gone", [
+    ("AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI_K7MDENG_bPxRfiCYEXAMPLEKEY",
+     "wJalrXUtnFEMI_K7MDENG_bPxRfiCYEXAMPLEKEY"),
+    ("AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDHRlc3R0b2tlbnZhbHVl",
+     "FwoGZXIvYXdzEBYaDHRlc3R0b2tlbnZhbHVl"),
+    ("GITHUB_FINE_GRAINED=github_pat_11AA22BB33CC44DD55EE66FF77GG88HH99II",
+     "github_pat_11AA22BB33CC44DD55EE66FF77GG88HH99II"),
+    ('DATABASE_PASSWORD="correct horse battery staple"',
+     "correct horse battery staple"),
+    ("AccountKey=8fjZk29QmPl3xWv7Tn5RbY1cS6dH4gA0",
+     "8fjZk29QmPl3xWv7Tn5RbY1cS6dH4gA0"),
+    ("//registry.npmjs.org/:_authToken=npm_9Zk2mPq8vLw4njRt5Yb3",
+     "npm_9Zk2mPq8vLw4njRt5Yb3"),
+    ("GITLAB_DEPLOY=glpat-Zx9k2mPq8vLw4njR",
+     "glpat-Zx9k2mPq8vLw4njR"),
+    ("maps_key: AIzaSyD9k2mPq8vLw4njRt5Yb3cS6dH4gA0xWv7",
+     "AIzaSyD9k2mPq8vLw4njRt5Yb3cS6dH4gA0xWv7"),
+])
+def test_tc2_prefixed_and_quoted_whitespace_assignments_redact(probe, gone):
+    out, counts = redact(f"deploy config:\n{probe}\ndone")
+    assert gone not in out, probe
+    assert counts, probe
+
+
+def test_tc3_segment_matching_does_not_fire_on_substrings():
+    """'oauth' contains 'auth' but is not a credential name; segment
+    matching keeps the substring class benign."""
+    for benign in ("oauth-provider = google-oauth2-service",
+                   "authorization_docs = docs/authz-design.md",
+                   "sort_key = created_at_desc"):
+        got, c = redact(benign)
+        assert got == benign, benign
+        assert c == {}
+
+
+def test_tc1_no_corpus_secret_survives_checkpoint_end_to_end(tmp_path):
+    """TC-1: corpus secrets planted in user text, assistant text,
+    tool_result content and tool_use input — zero occurrences in any
+    persisted ledger file."""
+    secrets = [
+        "wJalrXUtnFEMI_K7MDENG_bPxRfiCYEXAMPLEKEY",
+        "github_pat_11AA22BB33CC44DD55EE66FF77GG88HH99II",
+        "correct horse battery staple",
+        "glpat-Zx9k2mPq8vLw4njR",
+    ]
+    sid = "tcone111-0000"
+    rows = [
+        {"type": "user", "sessionId": sid, "uuid": "u1",
+         "message": {"content":
+                     f"Deploy now. AWS_SECRET_ACCESS_KEY={secrets[0]} "
+                     "and do not commit it."}},
+        {"type": "assistant", "sessionId": sid, "uuid": "u2",
+         "message": {"content": [
+             {"type": "text", "text":
+              f"Decision: rotate GITHUB_FINE_GRAINED={secrets[1]} "
+              "because it leaked."},
+             {"type": "tool_use", "id": "t1", "name": "Bash",
+              "input": {"command":
+                        f'export DATABASE_PASSWORD="{secrets[2]}"'}}]}},
+        {"type": "user", "sessionId": sid, "uuid": "u3",
+         "message": {"content": [
+             {"type": "tool_result", "is_error": True,
+              "content": f"auth failed for GITLAB_DEPLOY={secrets[3]}"}]}},
+    ]
+    path = tmp_path / "corpus.jsonl"
+    path.write_text("\n".join(json.dumps(r) for r in rows) + "\n",
+                    encoding="utf-8")
+    out = tmp_path / "ctx"
+    run_checkpoint(str(path), str(out), as_of="2026-08-09")
+    for f in out.rglob("*"):
+        if f.is_file():
+            body = f.read_text(encoding="utf-8", errors="replace")
+            for secret in secrets:
+                assert secret not in body, (f.name, secret)
+
+
 def test_redact_is_idempotent_and_scan_matches():
     text = "key AKIAIOSFODNN7EXAMPLE and ghp_AbCdEfGhIjKlMnOpQrStUvWxYz012345"
     once, _ = redact(text)
