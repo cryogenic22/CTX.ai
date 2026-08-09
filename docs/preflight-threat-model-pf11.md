@@ -435,6 +435,15 @@ undecoded encodings, prose about secrets.
    quarantine rotation (TM-3/TM-16); role-evidence set (TM-4).
    **Every remediation commit ships its own TC tests immediately** —
    tests are never postponed to PF-17.
+   **Vacuous-green guard (owner-mandated 2026-08-09):** a
+   fix-detecting test earns its green by being demonstrated RED
+   against the parent commit (worktree at the fix's parent, new tests
+   copied in, expected to fail); the handoff records the red count.
+   Tests that legitimately pass on the parent must say which kind
+   they are — a *regression pin* (freezing existing behavior) or a
+   *forward guard* (bounding new behavior, e.g. a false-positive
+   corpus) — so a reviewer can tell a designed pass from a test that
+   cannot fail.
 3. Implement TM-5..TM-7 (schema-routed receipts; scoped-`why`
    authority parity; error codes — extended to diagnostics per
    TM-14), same one-mechanism-one-commit-with-tests rule.
