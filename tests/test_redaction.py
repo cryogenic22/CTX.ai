@@ -215,6 +215,10 @@ _SIX_CORPUS = [
     ("env-password-quoted-ws",
      'PROD_DB_PASSWORD: "correct horse battery staple"',
      "correct horse battery staple"),
+    # standalone bare *_SECRET (regression pin — the "secret" segment
+    # already catches it; committed corpus previously covered the
+    # class only in combination, reviewer count check 2026-08-09)
+    ("env-secret", "APP_SECRET=Yb3cS6dH4gA0xWv7", "Yb3cS6dH4gA0xWv7"),
     ("env-passwd", "SVC_PASSWD=njRt5Yb3cS6dH4gA",
      "njRt5Yb3cS6dH4gA"),
     ("env-pwd", "APP_PWD=t5Yb3cS6dH4gA0xW", "t5Yb3cS6dH4gA0xW"),
