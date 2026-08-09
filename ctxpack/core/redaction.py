@@ -64,10 +64,18 @@ _PATTERNS: "tuple[tuple[str, re.Pattern], ...]" = (
 # separator whitespace is SAME-LINE only: with \s* a benign "config:"
 # line ending would swallow the secret assignment on the next line as
 # its "value", consuming the span so the real match never fires
+# the unquoted alternative may carry a quoted TAIL: in
+# `SECRETISH_NAME: X_KEY="quoted ws"` the value is the whole nested
+# assignment — stopping at the quote redacted `X_KEY=` and left the
+# quoted payload behind; the spaced form (`... PASSWORD: "quoted"`)
+# only attaches when the run ends in the separator itself, so plain
+# prose quotes never get swallowed (TC-1 position matrix, 2026-08-09)
 _ASSIGNMENT = re.compile(
     r"""(?x)\b([A-Za-z0-9_.\-]{1,64})[ \t]*[:=][ \t]*
         (?!\[REDACTED)
-        ( "[^"\n]{4,256}" | '[^'\n]{4,256}' | [^\s"']{8,256} )""",
+        ( "[^"\n]{4,256}" | '[^'\n]{4,256}'
+        | [^\s"']{8,256}
+          (?:(?:(?<=[:=])[ \t]*)?(?:"[^"\n]{0,256}"|'[^'\n]{0,256}'))? )""",
     re.VERBOSE)
 
 _SECRET_SEGMENTS = frozenset({
@@ -80,6 +88,13 @@ _KEY_QUALIFIERS = frozenset({
 
 _CAMEL_SPLIT = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
 
+# TM-1 (2026-08-09 re-review): an UPPERCASE environment-style name
+# ending in _KEY (DATA_KEY=..., SIGNING_KEY: ...) is a credential slot
+# per the §6 corpus rule `*_(KEY|...)` even without a qualifying
+# segment. Uppercase-only on purpose: the lowercase false-positive
+# bound stays (sort_key = created_at_desc is code, not a credential).
+_ENV_KEY_STYLE = re.compile(r"[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*_KEY")
+
 
 def _name_is_secretlike(name: str) -> bool:
     parts: "list[str]" = []
@@ -88,7 +103,9 @@ def _name_is_secretlike(name: str) -> bool:
     segments = {p.lower() for p in parts if p}
     if segments & _SECRET_SEGMENTS:
         return True
-    return "key" in segments and bool(segments & _KEY_QUALIFIERS)
+    if "key" in segments and segments & _KEY_QUALIFIERS:
+        return True
+    return bool(_ENV_KEY_STYLE.fullmatch(name))
 
 
 def _assignment_value_is_secretlike(value: str) -> bool:
@@ -112,10 +129,19 @@ def redact(text: str) -> "tuple[str, dict[str, int]]":
             counts[label] = counts.get(label, 0) + n
 
     def _sub_assignment(m: "re.Match") -> str:
-        name, value = m.group(1), m.group(2)
-        if value[0] in "\"'":
-            value = value[1:-1]
+        name, raw_value = m.group(1), m.group(2)
+        quote = raw_value[0] if raw_value[0] in "\"'" else ""
+        value = raw_value[1:-1] if quote else raw_value
         if not _name_is_secretlike(name):
+            # A benign-name match still CONSUMES its value span, which
+            # can contain a secret assignment of its own ("auth failed
+            # for azure-accountkey: AccountKey=..." — found by the
+            # TC-1 position matrix, 2026-08-09). Rescan the value so
+            # consumption never shadows a match.
+            redone = _ASSIGNMENT.sub(_sub_assignment, value)
+            if redone != value:
+                head = m.group(0)[: m.start(2) - m.start(0)]
+                return f"{head}{quote}{redone}{quote}"
             return m.group(0)
         if not value or not _assignment_value_is_secretlike(value):
             return m.group(0)

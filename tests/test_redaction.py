@@ -144,6 +144,230 @@ def test_tc1_no_corpus_secret_survives_checkpoint_end_to_end(tmp_path):
                 assert secret not in body, (f.name, secret)
 
 
+# ── TC-1 (re-review P1-4): full §6 corpus × content-position matrix ──
+
+# Every entry of the PF-11 §6 normative corpus: (label, planted text,
+# the secret bytes that must never survive).
+_SIX_CORPUS = [
+    ("aws-access-key-id", "creds AKIAIOSFODNN7EXAMPLE in env",
+     "AKIAIOSFODNN7EXAMPLE"),
+    ("aws-access-key-id-asia", "temp ASIAJQRSTUVWXYZ01234 issued",
+     "ASIAJQRSTUVWXYZ01234"),
+    ("aws-secret-prefixed",
+     "AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI_K7MDENG_bPxRfiCYEXAMPLEKEY",
+     "wJalrXUtnFEMI_K7MDENG_bPxRfiCYEXAMPLEKEY"),
+    ("aws-session-token",
+     "AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDHRlc3R0b2tlbnZhbHVl",
+     "FwoGZXIvYXdzEBYaDHRlc3R0b2tlbnZhbHVl"),
+    ("github-ghp", "pat ghp_AbCdEfGhIjKlMnOpQrStUvWxYz012345",
+     "ghp_AbCdEfGhIjKlMnOpQrStUvWxYz012345"),
+    ("github-gho", "oauth gho_BcDeFgHiJkLmNoPqRsTuVwXyZ0123456",
+     "gho_BcDeFgHiJkLmNoPqRsTuVwXyZ0123456"),
+    ("github-ghu", "user gh token ghu_CdEfGhIjKlMnOpQrStUvWxYz01234567",
+     "ghu_CdEfGhIjKlMnOpQrStUvWxYz01234567"),
+    ("github-ghs", "server token ghs_DeFgHiJkLmNoPqRsTuVwXyZ012345678",
+     "ghs_DeFgHiJkLmNoPqRsTuVwXyZ012345678"),
+    ("github-ghr", "refresh ghr_EfGhIjKlMnOpQrStUvWxYz0123456789",
+     "ghr_EfGhIjKlMnOpQrStUvWxYz0123456789"),
+    ("github-pat-fine-grained",
+     "github_pat_11AA22BB33CC44DD55EE66FF77GG88HH99II",
+     "github_pat_11AA22BB33CC44DD55EE66FF77GG88HH99II"),
+    ("gitlab-glpat", "deploy glpat-Zx9k2mPq8vLw4njR",
+     "glpat-Zx9k2mPq8vLw4njR"),
+    ("slack-xoxb", "bot xoxb-1234567890-abcdefghijkl",
+     "xoxb-1234567890-abcdefghijkl"),
+    ("sk-api-key", "openai sk-proj-abcdefghijklmnopqrstuvwxyz123456",
+     "sk-proj-abcdefghijklmnopqrstuvwxyz123456"),
+    ("jwt",
+     "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0."
+     "dozjgNryP4J3jVmNHl0w5N_XgL0n3I9P",
+     "eyJzdWIiOiIxMjM0NTY3ODkwIn0"),
+    ("pem-private-key",
+     "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA7bq0z9\n"
+     "-----END RSA PRIVATE KEY-----",
+     "MIIEowIBAAKCAQEA7bq0z9"),
+    ("pem-truncated",
+     "-----BEGIN RSA PRIVATE KEY-----\nMIIEowTRUNCATEDBYTES99",
+     "MIIEowTRUNCATEDBYTES99"),
+    ("bearer-token", "Authorization: Bearer abQR7stuvwxyz0123456789mn",
+     "abQR7stuvwxyz0123456789mn"),
+    ("url-credentials", "push https://kapil:hunter2secretpw@github.com/x/y",
+     "hunter2secretpw"),
+    ("postgres-connstring",
+     "postgres://svcuser:pgSecret99word@db.internal:5432/app",
+     "pgSecret99word"),
+    ("mongodb-srv-connstring",
+     "mongodb+srv://svcuser:moSecret99word@cluster0.example.net/db",
+     "moSecret99word"),
+    ("azure-accountkey", "AccountKey=8fjZk29QmPl3xWv7Tn5RbY1cS6dH4gA0",
+     "8fjZk29QmPl3xWv7Tn5RbY1cS6dH4gA0"),
+    ("gcp-aiza", "maps AIzaSyD9k2mPq8vLw4njRt5Yb3cS6dH4gA0xWv7",
+     "AIzaSyD9k2mPq8vLw4njRt5Yb3cS6dH4gA0xWv7"),
+    ("npm-authtoken",
+     "//registry.npmjs.org/:_authToken=npm_9Zk2mPq8vLw4njRt5Yb3",
+     "npm_9Zk2mPq8vLw4njRt5Yb3"),
+    ("env-bare-uppercase-key", "DATA_KEY=Zx9k2mPq8vLw4njR",
+     "Zx9k2mPq8vLw4njR"),
+    ("env-prefixed-uppercase-key", "APP_SIGNING_KEY=vLw4njRt5Yb3cS6d",
+     "vLw4njRt5Yb3cS6d"),
+    ("env-secret-key-quoted-ws", 'X_SECRET_KEY="Zq8vLw4njRt5Yb3c pT7"',
+     "Zq8vLw4njRt5Yb3c pT7"),
+    ("env-password-quoted-ws",
+     'PROD_DB_PASSWORD: "correct horse battery staple"',
+     "correct horse battery staple"),
+    ("env-passwd", "SVC_PASSWD=njRt5Yb3cS6dH4gA",
+     "njRt5Yb3cS6dH4gA"),
+    ("env-pwd", "APP_PWD=t5Yb3cS6dH4gA0xW", "t5Yb3cS6dH4gA0xW"),
+    ("env-token", "CI_TOKEN=b3cS6dH4gA0xWv7T", "b3cS6dH4gA0xWv7T"),
+    ("env-credential", "DB_CREDENTIAL=cS6dH4gA0xWv7Tn5",
+     "cS6dH4gA0xWv7Tn5"),
+    ("env-credentials", "SVC_CREDENTIALS=dH4gA0xWv7Tn5Yb3",
+     "dH4gA0xWv7Tn5Yb3"),
+]
+
+_POSITIONS = ("user", "assistant", "tool_result", "tool_use")
+
+
+def test_tc1_unit_every_corpus_entry_redacts_at_the_scanner():
+    """Scanner-level sweep of the FULL §6 corpus. Mostly a regression
+    pin for entries the scanner already caught; RED on the parent for
+    the uppercase environment-style *_KEY entries (the reviewer's
+    DATA_KEY bypass)."""
+    for label, planted, secret in _SIX_CORPUS:
+        out, counts = redact(planted)
+        assert secret not in out, (label, out)
+        assert counts, label
+
+
+def _matrix_rows(sid, position):
+    """One transcript per position: EVERY corpus entry planted in that
+    position, each in its own turn, embedded in the shape that BANKS
+    for that position (marker sentence, error content, described Bash
+    command) — so an unredacted byte genuinely reaches the ledger
+    rather than being dropped by extraction and passing vacuously."""
+    rows = [{"type": "user", "sessionId": sid, "uuid": "u-lead",
+             "message": {"content": "Start the security audit."}}]
+    for i, (label, planted, _secret) in enumerate(_SIX_CORPUS):
+        if position == "user":
+            rows.append({"type": "user", "sessionId": sid,
+                         "uuid": f"u{i}", "message": {"content":
+                         f"Constraint: never commit {planted} "
+                         "anywhere."}})
+        elif position == "assistant":
+            rows.append({"type": "assistant", "sessionId": sid,
+                         "uuid": f"a{i}", "message": {"content": [
+                             {"type": "text", "text":
+                              f"Decision: rotate {planted} because "
+                              f"the {label} leaked."}]}})
+        elif position == "tool_result":
+            rows.append({"type": "user", "sessionId": sid,
+                         "uuid": f"t{i}", "message": {"content": [
+                             {"type": "tool_result", "is_error": True,
+                              "content":
+                              f"auth failed for {label}: {planted}"}]}})
+        else:  # tool_use input — banks only with a description
+            rows.append({"type": "assistant", "sessionId": sid,
+                         "uuid": f"c{i}", "message": {"content": [
+                             {"type": "tool_use", "id": f"tu{i}",
+                              "name": "Bash",
+                              "input": {"description": f"plant {label}",
+                                        "command": planted}}]}})
+    return rows
+
+
+@pytest.mark.parametrize("position", _POSITIONS)
+def test_tc1_matrix_no_corpus_secret_reaches_ledger_or_emission(
+        position, tmp_path, monkeypatch, capsys):
+    """TC-1 as preregistered: every §6 corpus entry, planted in each
+    content position, leaves ZERO secret bytes in any file under the
+    ledger AND in the context emitted at session-start (ingest and
+    egress share the scanner, so they shared the bypass — RED on the
+    parent for the uppercase *_KEY entries)."""
+    import io
+
+    from ctxpack.agent.checkpoint import _claude_project_dir_name
+    from ctxpack.cli.main import main
+
+    repo = tmp_path / "repo"
+    home = tmp_path / "home"
+    (home / "projects" / _claude_project_dir_name(str(repo))).mkdir(
+        parents=True)
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(home))
+    out = repo / ".claude" / "ctx"
+
+    sid = f"tcmx{_POSITIONS.index(position)}000-0000"
+    rows = _matrix_rows(sid, position)
+    path = tmp_path / f"matrix-{position}.jsonl"
+    path.write_text("\n".join(json.dumps(r) for r in rows) + "\n",
+                    encoding="utf-8")
+    run_checkpoint(str(path), str(out), as_of="2026-08-09")
+
+    for f in out.rglob("*"):
+        if f.is_file():
+            body = f.read_text(encoding="utf-8", errors="replace")
+            for label, _planted, secret in _SIX_CORPUS:
+                assert secret not in body, (position, label, f.name)
+
+    monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(
+        {"cwd": str(repo), "session_id": f"emit{position[:4]}-0000"})))
+    assert main(["hook", "session-start", "--out", str(out)]) == 0
+    emitted = capsys.readouterr().out
+    for label, _planted, secret in _SIX_CORPUS:
+        assert secret not in emitted, (position, label)
+
+
+def test_benign_name_span_does_not_swallow_a_secret_assignment():
+    """RED on parent — found by the position matrix, not the unit
+    sweep: when a benign name matches first (`azure-accountkey: ...`),
+    its consumed value span must not swallow a secret assignment
+    sitting inside it — the same consumption class as the
+    line-boundary rule already documented on _ASSIGNMENT."""
+    probe = ("auth failed for azure-accountkey: "
+             "AccountKey=8fjZk29QmPl3xWv7Tn5RbY1cS6dH4gA0")
+    out, counts = redact(probe)
+    assert "8fjZk29QmPl3xWv7Tn5RbY1cS6dH4gA0" not in out
+    assert counts["secret-assignment"] == 1
+    # two levels of benign nesting rescan all the way down
+    out2, c2 = redact("ctx: cfg: DB_PASSWORD=njRt5Yb3cS6dH4gA")
+    assert "njRt5Yb3cS6dH4gA" not in out2
+    assert c2["secret-assignment"] == 1
+
+
+def test_secretlike_name_nested_quoted_assignment_fully_consumed():
+    """RED on parent — found by the position matrix, not the unit
+    sweep: with a secret-like OUTER name, `X: Y_KEY="quoted ws"` used
+    to stop the value at the quote, redacting `Y_KEY=` and leaving
+    the quoted payload behind."""
+    probe = ('auth failed for env-secret-key-quoted-ws: '
+             'X_SECRET_KEY="Zq8vLw4njRt5Yb3c pT7"')
+    out, counts = redact(probe)
+    assert "Zq8vLw4njRt5Yb3c pT7" not in out
+    assert counts["secret-assignment"] == 1
+    # the spaced nested form: the run ends in the separator itself
+    probe2 = ('auth failed for env-password-quoted-ws: '
+              'PROD_DB_PASSWORD: "correct horse battery staple"')
+    out2, c2 = redact(probe2)
+    assert "correct horse battery staple" not in out2
+    assert c2["secret-assignment"] == 1
+    # prose quotes after a complete value never get swallowed
+    probe3 = 'reason: mismatch9 "the quoted excerpt stays"'
+    out3, c3 = redact(probe3)
+    assert out3 == probe3 and c3 == {}
+
+
+def test_tc3_uppercase_key_fix_keeps_the_benign_bound():
+    """Forward guard on the DATA_KEY fix: lowercase bare-key names and
+    env/placeholder values stay untouched."""
+    for benign in ("sort_key = created_at_desc",
+                   "primary_key = user_id_hash",
+                   "DATA_KEY=$VAULT_REF",
+                   "KEY_ROTATION_DAYS=30",
+                   "data_key = partition_by_day"):
+        got, c = redact(benign)
+        assert got == benign, benign
+        assert c == {}
+
+
 def test_redact_is_idempotent_and_scan_matches():
     text = "key AKIAIOSFODNN7EXAMPLE and ghp_AbCdEfGhIjKlMnOpQrStUvWxYz012345"
     once, _ = redact(text)
