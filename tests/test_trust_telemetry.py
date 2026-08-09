@@ -573,7 +573,8 @@ def test_injection_outcomes_and_hash(tmp_path):
     record_injection(str(out), session_id="aaaaaaaa-1", context="hello memory")
     record_injection(str(out), session_id="bbbbbbbb-1", context="")
     record_injection(str(out), session_id="cccccccc-1", context="",
-                     outcome="failed", error="LedgerError: boom")
+                     outcome="failed", error="startup_read_failed",
+                     error_class="LedgerError")
     stats = injection_stats(str(out))
     assert stats == {**stats, "attempted": 3, "injected": 1, "empty": 1,
                      "failed": 1}
@@ -582,7 +583,8 @@ def test_injection_outcomes_and_hash(tmp_path):
             (out / INJECTION_LOG).read_text(encoding="utf-8").splitlines()]
     assert len(rows[0]["sha256"]) == 64
     assert rows[0]["bytes"] == len("hello memory")
-    assert rows[2]["error"].startswith("LedgerError")
+    assert rows[2]["error"] == "startup_read_failed"    # TM-7: code
+    assert rows[2]["error_class"] == "LedgerError"
 
 
 def test_session_start_hook_logs_what_it_injected(tmp_path, monkeypatch,
@@ -653,7 +655,8 @@ def test_a_failed_emit_is_never_recorded_as_a_successful_one(
     assert stats["failed"] == 1
     row = json.loads((out / INJECTION_LOG).read_text(
         encoding="utf-8").splitlines()[0])
-    assert "emit failed" in row["error"]
+    assert row["error"] == "emit_failed"      # TM-7: code, not text
+    assert row["error_class"] == "BrokenPipeError"
 
 
 def test_session_start_records_failure_without_breaking_the_session(

@@ -56,6 +56,13 @@ INJECTED = "injected"   # non-empty context handed to the agent
 EMPTY = "empty"         # hook ran, had nothing to say (fresh repo, or a gap)
 FAILED = "failed"       # hook raised; the session started with no memory
 
+# TM-7: this journal is written where no scanner ever looks, so it must
+# never receive free exception text — a message can embed secret bytes
+# (a token inside an OSError path). Only these stable codes persist;
+# anything else is coerced to "unknown_error", never trusted.
+ERROR_CODES = ("startup_read_failed", "egress_scan_failed",
+               "emit_failed", "unknown_error")
+
 
 def record_injection(out_dir: str,
                      *,
@@ -63,10 +70,16 @@ def record_injection(out_dir: str,
                      context: str = "",
                      outcome: str = "",
                      error: str = "",
+                     error_class: str = "",
                      gap_warning: bool = False,
                      outgoing_redactions: int = 0,
                      source: str = "session-start") -> None:
-    """Append one injection row. Never raises."""
+    """Append one injection row. Never raises.
+
+    ``error`` takes a stable code from :data:`ERROR_CODES`;
+    ``error_class`` the raising exception's class name (an identifier,
+    or it is dropped). Free text handed to either is never persisted
+    (TM-7/TC-13)."""
     try:
         text = context or ""
         if not outcome:
@@ -88,7 +101,10 @@ def record_injection(out_dir: str,
             # type-only redacted; the count is the audit trail
             row["outgoing_redactions"] = int(outgoing_redactions)
         if error:
-            row["error"] = str(error)[:200]
+            row["error"] = (error if error in ERROR_CODES
+                            else "unknown_error")
+        if error_class and str(error_class).isidentifier():
+            row["error_class"] = str(error_class)
         os.makedirs(out_dir, exist_ok=True)
         with open(os.path.join(out_dir, INJECTION_LOG), "a",
                   encoding="utf-8") as f:

@@ -550,4 +550,94 @@ def test_outgoing_scan_crash_emits_nothing_and_records_failed(
     assert capsys.readouterr().out == ""          # nothing emitted
     row = read_injections(str(out))[-1]
     assert row["outcome"] == "failed"
-    assert "outgoing scan failed" in row["error"]
+    assert row["error"] == "egress_scan_failed"   # TM-7: code, not text
+    assert row["error_class"] == "RuntimeError"
+
+
+def test_tc13_exception_text_with_secret_never_reaches_the_receipt(
+        tmp_path, monkeypatch, capsys):
+    """TC-13 (TM-7): the injection journal is written where no scanner
+    ever looks, so it must never receive free exception text — a
+    crash whose message embeds a corpus secret produces a receipt
+    carrying the stable code and exception class ONLY. RED on parent:
+    str(e) was persisted into the row."""
+    import io
+    import json as _json
+
+    from ctxpack.agent.injection_log import read_injections
+    from ctxpack.cli.main import main
+
+    repo, out = _hook_repo(tmp_path, monkeypatch)
+    secret = "AKIAIOSFODNN7EXAMPLE"
+
+    def boom(text):
+        raise RuntimeError(f"vault unreachable at https://u:{secret}@v")
+
+    monkeypatch.setattr("ctxpack.core.redaction.redact", boom)
+    monkeypatch.setattr("sys.stdin", io.StringIO(_json.dumps(
+        {"cwd": str(repo), "session_id": "tc13sess-0000"})))
+    assert main(["hook", "session-start", "--out", str(out)]) == 0
+    capsys.readouterr()
+    row = read_injections(str(out))[-1]
+    assert row["outcome"] == "failed"
+    assert row["error"] == "egress_scan_failed"
+    assert row["error_class"] == "RuntimeError"
+    body = (out / "injections.jsonl").read_text(encoding="utf-8")
+    assert secret not in body
+
+
+def test_free_text_error_is_coerced_never_persisted(tmp_path):
+    """TM-7 structural guard: a caller handing record_injection free
+    text (here with a secret inside) gets `unknown_error` on the row —
+    the journal cannot receive text through this API at all. RED on
+    parent: the text landed verbatim."""
+    import json as _json
+
+    from ctxpack.agent.injection_log import (
+        read_injections,
+        record_injection,
+    )
+
+    record_injection(str(tmp_path / "ctx"), session_id="freetext-1",
+                     context="", outcome="failed",
+                     error="boom AKIAIOSFODNN7EXAMPLE happened")
+    row = read_injections(str(tmp_path / "ctx"))[-1]
+    assert row["error"] == "unknown_error"
+    assert "AKIA" not in _json.dumps(row)
+
+
+def test_tc17_checkpoint_hook_failure_leaks_no_secret_to_stderr(
+        tmp_path, monkeypatch, capsys):
+    """TC-17 (TM-14): a checkpoint-hook failure whose exception
+    message embeds a corpus secret writes no secret bytes to stderr or
+    any persisted file — hook stderr carries the stable code and the
+    exception class only. (This hook path creates no temp files, so
+    there is nothing to sweep.) RED on parent: the raw exception text
+    was printed."""
+    import io
+    import json as _json
+
+    from ctxpack.cli.main import main
+
+    secret = "AKIAIOSFODNN7EXAMPLE"
+    transcript = tmp_path / "t.jsonl"
+    transcript.write_text("{}\n", encoding="utf-8")
+    out = tmp_path / "ctx"
+
+    def boom(*a, **k):
+        raise RuntimeError(f"exploded while holding {secret}")
+
+    monkeypatch.setattr("ctxpack.agent.checkpoint.run_checkpoint", boom)
+    monkeypatch.setattr("sys.stdin", io.StringIO(_json.dumps(
+        {"cwd": str(tmp_path), "session_id": "tc17sess-0000",
+         "transcript_path": str(transcript)})))
+    assert main(["hook", "session-end", "--out", str(out)]) == 0
+    err = capsys.readouterr().err
+    assert secret not in err
+    assert "checkpoint_failed" in err
+    assert "RuntimeError" in err
+    if out.exists():
+        for f in out.rglob("*"):
+            if f.is_file():
+                assert secret not in f.read_text(encoding="utf-8",
+                                                 errors="replace")
