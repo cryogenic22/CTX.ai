@@ -271,6 +271,42 @@ def test_cli_ratify_emitted_json_attributes_local_cli(tmp_path, capsys):
     assert "owner" not in json.dumps(emitted)
 
 
+def test_rows_missing_ts_or_by_degrade_the_journal(tmp_path):
+    """Re-review P1-2 (TM-3): a row without its timestamp or actor —
+    or with an unreadable timestamp — is not EXACTLY readable;
+    provenance-incomplete events confer nothing and taint the whole
+    journal, same fail-closed stance as a truncated row."""
+    from ctxpack.agent.ratification import SCHEMA, read_ratifications
+
+    complete = {"ts": "2026-08-09T12:00:00+00:00", "schema": SCHEMA,
+                "fact_id": "e" * 16, "action": RATIFY, "by": "local-cli"}
+    variants = [
+        {k: v for k, v in complete.items() if k != "ts"},
+        {k: v for k, v in complete.items() if k != "by"},
+        {**complete, "ts": "yesterday-ish"},
+        {**complete, "ts": 1754700000},
+        {**complete, "by": ""},
+        {**complete, "by": None},
+    ]
+    for i, row in enumerate(variants):
+        ledger = tmp_path / f"ctx{i}"
+        ledger.mkdir()
+        (ledger / RATIFICATION_LOG).write_text(
+            json.dumps(row) + "\n", encoding="utf-8")
+        journal = read_ratifications(str(ledger))
+        assert journal["degraded"] is True, row
+        assert journal["malformed_rows"] == 1, row
+        assert journal["state"] == {}, row
+    # control: the complete row is accepted — the gate can distinguish
+    ledger = tmp_path / "ctxok"
+    ledger.mkdir()
+    (ledger / RATIFICATION_LOG).write_text(
+        json.dumps(complete) + "\n", encoding="utf-8")
+    journal = read_ratifications(str(ledger))
+    assert journal["degraded"] is False
+    assert journal["state"] == {"e" * 16: RATIFY}
+
+
 # ── CLI: explicit event referencing an EXISTING fact ──
 
 def test_cli_ratify_unknown_fact_id_refuses(tmp_path, capsys):

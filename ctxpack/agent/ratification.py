@@ -72,9 +72,11 @@ def record_ratification(ledger_dir: str, fact_id: str, *,
 
 def _row_is_valid(row) -> "tuple[str, str] | None":
     """``(fact_id, action)`` for a complete, schema-correct row; else
-    ``None``. Strict by design (TM-3): schema string, 16-hex id, known
-    action — a row that cannot be read EXACTLY confers nothing and
-    taints the journal."""
+    ``None``. Strict by design (TM-3, tightened in the 2026-08-09
+    re-review): schema string, 16-hex id, known action, ISO-8601 ``ts``
+    and a non-empty ``by`` actor — a row that cannot be read EXACTLY,
+    including WHEN it happened and through WHICH path, confers nothing
+    and taints the journal."""
     if not isinstance(row, dict):
         return None
     if row.get("schema") != SCHEMA:
@@ -84,6 +86,16 @@ def _row_is_valid(row) -> "tuple[str, str] | None":
     if len(fid) != 16 or any(c not in "0123456789abcdef" for c in fid):
         return None
     if action not in _ACTIONS:
+        return None
+    ts = row.get("ts")
+    if not isinstance(ts, str):
+        return None
+    try:
+        datetime.datetime.fromisoformat(ts)
+    except ValueError:
+        return None
+    by = row.get("by")
+    if not isinstance(by, str) or not by.strip():
         return None
     return fid, action
 
