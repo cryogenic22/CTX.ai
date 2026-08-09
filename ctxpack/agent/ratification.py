@@ -67,11 +67,13 @@ def record_ratification(ledger_dir: str, fact_id: str, *,
     }
     if note:
         row["note"] = str(note)[:300]
-    # Encode BEFORE opening (any encoding failure writes nothing) and
-    # append the finished bytes in binary — no platform newline
-    # translation, no half-encoded row on error. json.dumps with
-    # ensure_ascii keeps the file pure ASCII, so the strict reader can
-    # never reject bytes this writer produced.
+    # Encode BEFORE opening and append the finished bytes in binary —
+    # validation and encoding failures cannot partially append a row,
+    # and there is no platform newline translation. An interrupted
+    # filesystem write can still truncate mid-row; the strict reader
+    # detects that and degrades (reviewer wording, 2026-08-10).
+    # json.dumps with ensure_ascii keeps the file pure ASCII, so the
+    # strict reader can never reject bytes this writer produced.
     row_bytes = (json.dumps(row) + "\n").encode("utf-8")
     os.makedirs(ledger_dir, exist_ok=True)
     with open(os.path.join(ledger_dir, RATIFICATION_LOG), "ab") as f:
