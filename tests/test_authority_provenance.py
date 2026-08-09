@@ -412,6 +412,39 @@ def test_tc9_reverse_order_preserves_the_same_evidence_set(tmp_path):
     assert lit["authority"] == "multiple"
 
 
+def test_every_unique_role_at_turn_occurrence_is_preserved(tmp_path):
+    """Re-review P2 (TM-4): a SECOND occurrence by an already-seen
+    role is still evidence — the set keeps every unique role@turn in
+    transcript order, not merely the first turn per role."""
+    from ctxpack.agent.checkpoint import run_checkpoint
+    from ctxpack.agent.session_reader import session_why_across
+
+    sid = "roleall1-0000"
+    rows = [
+        {"type": "user", "sessionId": sid, "uuid": "u1",
+         "message": {"content": "Please pin commit 4afef09aa11 today."}},
+        {"type": "assistant", "sessionId": sid, "uuid": "u2",
+         "message": {"content": [{"type": "text", "text":
+                     "Decision: pin commit 4afef09aa11 because you "
+                     "asked."}]}},
+        {"type": "user", "sessionId": sid, "uuid": "u3",
+         "message": {"content":
+                     "Confirmed: ship commit 4afef09aa11 today."}},
+    ]
+    path = tmp_path / "roleall.jsonl"
+    path.write_text("\n".join(json.dumps(r) for r in rows) + "\n",
+                    encoding="utf-8")
+    out = tmp_path / "ctx"
+    run_checkpoint(str(path), str(out), as_of="2026-08-09")
+    why = session_why_across(str(out), "4afef09aa11")
+    lit = next(m for m in why["matches"] if m["kind"] == "LITERAL")
+    occ = lit["source_roles"]
+    assert [o.split("@")[0] for o in occ] == ["user", "assistant", "user"]
+    turns = [int(o.split("@")[1]) for o in occ]
+    assert turns == sorted(turns) and len(set(turns)) == 3
+    assert lit["authority"] == "multiple"
+
+
 def test_why_reports_user_stated_for_user_constraints(tmp_path):
     from ctxpack.agent.checkpoint import run_checkpoint
     from ctxpack.agent.session_reader import session_why_across

@@ -680,12 +680,13 @@ def parse_transcript(
         entities_by_name[name] = entity
 
     def _merge_role_evidence(name: str, role: str, turn: int) -> None:
-        """TM-4: a re-assertion of an existing fact by a DIFFERENT role
-        is evidence, not a duplicate to discard. Occurrences accumulate
-        in a SOURCE-ROLES field (`role@turn`, first turn per role,
-        transcript order). SOURCE-ROLE stays the FIRST assertion — a
-        provenance record, not a ranking — and the set is never
-        collapsed into a single authority value downstream."""
+        """TM-4 (re-review 2026-08-09): EVERY re-assertion of an
+        existing fact is evidence, not a duplicate to discard —
+        including a later assertion by an already-seen role.
+        Occurrences accumulate in a SOURCE-ROLES field as every unique
+        `role@turn`, transcript order. SOURCE-ROLE stays the FIRST
+        assertion — a provenance record, not a ranking — and the set
+        is never collapsed into a single authority value downstream."""
         entity = entities_by_name.get(name)
         if entity is None:
             return
@@ -695,11 +696,6 @@ def parse_transcript(
             return                      # legacy entity, no provenance
         roles = next((f for f in entity.fields
                       if f.key == "SOURCE-ROLES"), None)
-        present = ({occ.split("@")[0]
-                    for occ in roles.value.split(",") if occ}
-                   if roles is not None else {base.value})
-        if role in present:
-            return
         if roles is None:
             base_turn = base.source.turn if base.source else 0
             initial = f"{base.value}@{base_turn}"
@@ -707,7 +703,10 @@ def parse_transcript(
                             raw_value=initial, source=base.source,
                             salience=base.salience)
             entity.fields.append(roles)
-        roles.value = f"{roles.value},{role}@{turn}"
+        occurrence = f"{role}@{turn}"
+        if occurrence in roles.value.split(","):
+            return
+        roles.value = f"{roles.value},{occurrence}"
         roles.raw_value = roles.value
 
     def _attach(name: str, key: str, value: str, *, turn: int, ts: str,
