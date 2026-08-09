@@ -9,7 +9,8 @@
     "C:/Users/kapil/Documents/Onto_Wiz"
   ],
   "notes": [
-    "Onto_Wiz added 2026-08-07 per review finding P1-1: its ledger IS on this machine (7 sessions, 71 checkpoints, 4 injection receipts) — the earlier external/unmeasured classification was wrong. Chosen as the likely canonical OntoWiz deployment ledger; owner confirmation pending.",
-    "Excluded to avoid double-counting the same deployment: OntoWiz_Authoring_Kit_Claude (separate authoring-kit ledger) and Onto_Wiz_wt_F0.10 (git-worktree ledger of Onto_Wiz)."
+    "Onto_Wiz added 2026-08-07 per review finding P1-1 (ledger is local: 7 sessions, 71 checkpoints, 4 injection receipts). OWNER-CONFIRMED 2026-08-09 as the canonical OntoWiz deployment ledger ('it's the repo where ctx is being used' — relayed on the board).",
+    "Excluded to avoid double-counting the same deployment: OntoWiz_Authoring_Kit_Claude (separate authoring-kit ledger) and Onto_Wiz_wt_F0.10 (git-worktree ledger of Onto_Wiz).",
+    "The 2026-07-25 field report's '0 recall calls' remains historically accurate at its observation date; the 2 later explicit-recall sessions do not invalidate it."
   ]
 }
