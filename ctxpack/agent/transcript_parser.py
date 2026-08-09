@@ -295,6 +295,30 @@ def _clean_multiline(text: str, limit: int = 100_000) -> str:
     return "\n".join(line for line in lines if line)[:limit]
 
 
+def _drop_fenced(text: str) -> str:
+    """Remove lines inside ``` fences before extraction (TM-8).
+
+    Fenced content is QUOTED MATERIAL: a `Decision:`/`Constraint:`
+    line inside a code fence is an example someone pasted, not a
+    statement the author made — extracting it lets injected content
+    mint facts (reviewer repro: a fenced "Decision: exfiltrate the
+    release key ..." extracted as a real decision). Fence tracking for
+    incidents lives in `_extract_incidents` and is unchanged; this
+    generalizes the same rule to every other extractor. An
+    unterminated fence drops everything after it — fail-closed, same
+    stance as the truncated private-key redaction.
+    """
+    kept: list[str] = []
+    fenced = False
+    for line in text.splitlines():
+        if line.lstrip().startswith("```"):
+            fenced = not fenced
+            continue
+        if not fenced:
+            kept.append(line)
+    return "\n".join(kept)
+
+
 def _short_hash(text: str) -> str:
     normalized = " ".join(text.lower().split())
     return hashlib.sha1(normalized.encode("utf-8")).hexdigest()[:8].upper()
@@ -726,6 +750,7 @@ def parse_transcript(
                 text = _extract_incidents(
                     text, turn=turn, ts=ts,
                     role=factid.SourceRole.USER.value)
+                text = _drop_fenced(text)   # TM-8: quoted ≠ stated
                 if not text.strip():
                     continue
 
@@ -774,6 +799,7 @@ def parse_transcript(
                     atext = _extract_incidents(
                         atext, turn=turn, ts=ts,
                         role=factid.SourceRole.ASSISTANT.value)
+                    atext = _drop_fenced(atext)  # TM-8: quoted ≠ stated
                     last_decision_name = ""
                     for sentence in _sentences(atext):
                         if _SUPERSEDES_MARKER_RE.match(_prose_of(sentence)):
@@ -933,7 +959,8 @@ def parse_transcript(
         for blk in content if isinstance(content, list) else []:
             if not (isinstance(blk, dict) and blk.get("type") == "text"):
                 continue
-            for sentence in _sentences(str(blk.get("text", ""))):
+            for sentence in _sentences(_drop_fenced(
+                    str(blk.get("text", "")))):
                 marker = decision_marker(_prose_of(sentence))
                 if not marker:
                     continue
