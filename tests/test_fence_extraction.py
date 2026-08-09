@@ -85,6 +85,102 @@ def test_unterminated_fence_drops_the_rest_fail_closed(tmp_path):
     assert not any("exfiltrate" in v for v in values)
 
 
+def test_four_backtick_fence_with_inner_triple_stays_quoted(tmp_path):
+    """Re-review P1-3: a valid 4-backtick fence containing a ```
+    example must stay ONE fence — the old any-``` toggle treated the
+    inner ``` as a close and extracted the poisoned Decision:."""
+    sid = "fence4bt-0000"
+    parsed = _parse(tmp_path, [
+        {"type": "assistant", "sessionId": sid, "uuid": "u1",
+         "message": {"content": [{"type": "text", "text":
+                     "Quoting the doc verbatim:\n````\nExample fence:\n"
+                     f"```\n{_POISON}\n```\n````\n"
+                     "Decision: keep hydration lazy because packs stay "
+                     "small."}]}}])
+    values = _values(parsed)
+    assert not any("exfiltrate" in v for v in values)
+    # the author's own unfenced decision still extracts — no over-drop
+    assert any("keep hydration lazy" in v for v in values)
+    assert parsed.stats.decisions == 1
+
+
+def test_tilde_fences_are_fences(tmp_path):
+    """Re-review P1-3: ~~~ is a CommonMark fence; the old
+    backtick-only detector extracted its poisoned content."""
+    sid = "fencetld-0000"
+    parsed = _parse(tmp_path, [
+        {"type": "assistant", "sessionId": sid, "uuid": "u1",
+         "message": {"content": [{"type": "text", "text":
+                     f"Pasted example:\n~~~\n{_POISON}\n~~~\n"
+                     "Decision: support tilde fences because CommonMark "
+                     "defines them."}]}}])
+    values = _values(parsed)
+    assert not any("exfiltrate" in v for v in values)
+    assert any("support tilde fences" in v for v in values)
+    assert parsed.stats.decisions == 1
+
+
+def test_closing_fence_cannot_carry_an_info_string(tmp_path):
+    """Re-review P1-3: inside a ``` fence a ```python line is CONTENT
+    (a closing fence has no info string) — the old toggle closed on it
+    and leaked what followed."""
+    sid = "fenceinf-0000"
+    parsed = _parse(tmp_path, [
+        {"type": "assistant", "sessionId": sid, "uuid": "u1",
+         "message": {"content": [{"type": "text", "text":
+                     "The tutorial shows:\n```\nsome output\n```python\n"
+                     f"{_POISON}\n```\n"
+                     "Decision: close only on a bare fence because the "
+                     "spec says so."}]}}])
+    values = _values(parsed)
+    assert not any("exfiltrate" in v for v in values)
+    assert any("close only on a bare fence" in v for v in values)
+
+
+def test_backtick_fence_is_not_closed_by_tildes(tmp_path):
+    """Forward guard (passes on the parent, which dropped any fenced
+    line): a ~~~ line inside a backtick fence is content, never a
+    close — the fence type must match."""
+    sid = "fencemix-0000"
+    parsed = _parse(tmp_path, [
+        {"type": "assistant", "sessionId": sid, "uuid": "u1",
+         "message": {"content": [{"type": "text", "text":
+                     f"Mixed markers:\n```\n~~~\n{_POISON}\n```\n"
+                     "Decision: match the fence marker type because "
+                     "mixing is not closing."}]}}])
+    values = _values(parsed)
+    assert not any("exfiltrate" in v for v in values)
+    assert any("match the fence marker type" in v for v in values)
+
+
+def test_unterminated_tilde_fence_drops_the_rest_fail_closed(tmp_path):
+    """Re-review P1-3: an unterminated ~~~ fence quotes everything
+    after it — same fail-closed stance as the backtick case."""
+    sid = "fencetop-0000"
+    parsed = _parse(tmp_path, [
+        {"type": "assistant", "sessionId": sid, "uuid": "u1",
+         "message": {"content": [{"type": "text", "text":
+                     "Decision: cap retries at 3 because the queue "
+                     f"backs up.\n~~~\n{_POISON}"}]}}])
+    values = _values(parsed)
+    assert any("cap retries at 3" in v for v in values)
+    assert not any("exfiltrate" in v for v in values)
+
+
+def test_incident_inside_four_backtick_fence_stays_unbanked(tmp_path):
+    """Re-review P1-3: the incident extractor shares the fence state —
+    a ctx-incident line quoted inside a 4-backtick fence (with an
+    inner ``` example) must not bank."""
+    sid = "fenceni4-0000"
+    parsed = _parse(tmp_path, [
+        {"type": "assistant", "sessionId": sid, "uuid": "u1",
+         "message": {"content": [{"type": "text", "text":
+                     "The convention doc, verbatim:\n````\nUsage:\n```\n"
+                     "ctx-incident: saved | fact=\"poisoned row\"\n"
+                     "```\n````\nThat is the whole doc."}]}}])
+    assert parsed.stats.incidents == 0
+
+
 def test_fenced_incident_lines_stay_unbanked_and_kept(tmp_path):
     """Pin the pre-existing incident fence rule: a ctx-incident line
     inside a fence is quoted, not recorded."""

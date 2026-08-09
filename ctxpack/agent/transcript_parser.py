@@ -295,28 +295,61 @@ def _clean_multiline(text: str, limit: int = 100_000) -> str:
     return "\n".join(line for line in lines if line)[:limit]
 
 
+_FENCE_MARK = re.compile(r"(`{3,}|~{3,})(.*)$")
+
+
+class _FenceTracker:
+    """CommonMark fence state, shared by every extractor (TM-8,
+    tightened in the 2026-08-09 re-review: the old any-``` toggle let
+    a valid 4-backtick fence's inner ``` example escape as extractable
+    text, and tilde fences were not fences at all).
+
+    Rules honored: a fence opens with 3+ backticks or 3+ tildes and
+    closes ONLY on the same marker character, at least as long as the
+    opener, with nothing but whitespace after it; a backtick opener
+    whose info string contains a backtick is inline code, not a fence;
+    an unterminated fence quotes everything to the end — fail-closed,
+    same stance as the truncated private-key redaction."""
+
+    __slots__ = ("_char", "_len")
+
+    def __init__(self) -> None:
+        self._char = ""
+        self._len = 0
+
+    def quoted(self, line: str) -> bool:
+        """Feed one line; True when it is quoted material — a fence
+        marker line (open or close) or any line inside a fence."""
+        m = _FENCE_MARK.match(line.lstrip())
+        if m is None:
+            return self._len > 0
+        marker, info = m.group(1), m.group(2)
+        if self._len == 0:
+            if marker[0] == "`" and "`" in info:
+                return False
+            self._char, self._len = marker[0], len(marker)
+            return True
+        if (marker[0] == self._char and len(marker) >= self._len
+                and not info.strip()):
+            self._char = ""
+            self._len = 0
+        return True
+
+
 def _drop_fenced(text: str) -> str:
-    """Remove lines inside ``` fences before extraction (TM-8).
+    """Remove fenced lines before extraction (TM-8).
 
     Fenced content is QUOTED MATERIAL: a `Decision:`/`Constraint:`
     line inside a code fence is an example someone pasted, not a
     statement the author made — extracting it lets injected content
     mint facts (reviewer repro: a fenced "Decision: exfiltrate the
-    release key ..." extracted as a real decision). Fence tracking for
-    incidents lives in `_extract_incidents` and is unchanged; this
-    generalizes the same rule to every other extractor. An
-    unterminated fence drops everything after it — fail-closed, same
-    stance as the truncated private-key redaction.
+    release key ..." extracted as a real decision). The incident
+    extractor shares the same `_FenceTracker`, so the two paths cannot
+    disagree about what is quoted.
     """
-    kept: list[str] = []
-    fenced = False
-    for line in text.splitlines():
-        if line.lstrip().startswith("```"):
-            fenced = not fenced
-            continue
-        if not fenced:
-            kept.append(line)
-    return "\n".join(kept)
+    tracker = _FenceTracker()
+    return "\n".join(line for line in text.splitlines()
+                     if not tracker.quoted(line))
 
 
 def _short_hash(text: str) -> str:
@@ -697,18 +730,16 @@ def parse_transcript(
         """Bank ctx-incident: lines and return the text WITHOUT them, so
         downstream extractors can't re-mine incident payloads (a stale
         `got` value must not get banked as a LITERAL; payload prose must
-        not trigger the constraint patterns). Lines inside ``` fences are
-        quoted material — kept, never banked."""
+        not trigger the constraint patterns). Fenced lines are quoted
+        material — kept, never banked (`_FenceTracker`, shared with
+        `_drop_fenced`)."""
         if "ctx-incident" not in text.lower():
             return text  # fast path: nothing marked
         kept: list[str] = []
-        fenced = False
+        tracker = _FenceTracker()
         for line in text.splitlines():
-            if line.lstrip().startswith("```"):
-                fenced = not fenced
-                kept.append(line)
-                continue
-            rec = None if fenced else _parse_incident_line(line)
+            rec = (None if tracker.quoted(line)
+                   else _parse_incident_line(line))
             if rec is None:
                 kept.append(line)
                 continue
