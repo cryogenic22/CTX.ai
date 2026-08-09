@@ -1,12 +1,15 @@
-"""Explicit ratification events — the ONLY path to USER_RATIFIED.
+"""Explicit ratification events — the LOCAL INTENT MARKER axis.
 
-The reviewer's rule (2026-08-07, binding): ratification is an explicit
-event referencing a fact_id — never inferred from git presence, a
-marker, or a merge. A merge may later corroborate exact code/test
-claims as TOOL_OBSERVED evidence; it must never silently become
-USER_RATIFIED. The low-friction path for the cold-start problem is a
-batched queue of AGENT_CANDIDATE facts the owner accepts or rejects
-one command at a time — not an implicit escalation.
+PF-11 v2.1 (approved 2026-08-09): a ratification event attests exactly
+one thing — a local actor invoked the CLI — and the resident agent IS
+a local actor, so this axis carries no security standing beyond an
+agent candidate. It is bookkeeping ("someone at this machine chose to
+keep this"), never approval: there is no user_ratified anywhere, and
+the owner-approval axis stays unsatisfiable until a trusted human
+channel exists. Ratification remains an explicit event referencing a
+fact_id — never inferred from git presence, a marker, or a merge (a
+merge may later corroborate exact code/test claims as TOOL_OBSERVED
+evidence; evidence, not intent).
 
 Deliberately a separate file from ``events.jsonl``: that log is derived
 from a transcript fold ONLY and stays byte-replayable (spec v1.1 §6). A

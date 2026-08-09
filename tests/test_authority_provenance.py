@@ -87,7 +87,7 @@ def test_extractor_version_bumped_for_the_provenance_change(tmp_path):
     assert facts["DECISION"][0]["EXTRACTOR"] == "tp/1.2"
 
 
-# ── authority derivation ──
+# ── authority axes (PF-11 v2.1: no ordering, no user_ratified) ──
 
 def test_legacy_fact_without_role_is_legacy_unknown_never_approved():
     assert derive_authority("") is Authority.LEGACY_UNKNOWN
@@ -95,12 +95,29 @@ def test_legacy_fact_without_role_is_legacy_unknown_never_approved():
     assert derive_authority("unknown") is Authority.LEGACY_UNKNOWN
 
 
-def test_ratified_flag_is_the_only_path_to_user_ratified():
-    for role in (SourceRole.USER.value, SourceRole.ASSISTANT.value,
-                 SourceRole.TOOL.value, ""):
-        assert derive_authority(role) is not Authority.USER_RATIFIED
-        assert derive_authority(role,
-                                ratified=True) is Authority.USER_RATIFIED
+def test_tc4_no_path_yields_user_ratified():
+    """TC-4: the local CLI is not a human — user_ratified does not
+    exist as an authority value, and ratification is a separate axis
+    that derive_authority cannot even express."""
+    assert not hasattr(Authority, "USER_RATIFIED")
+    assert "user_ratified" not in {a.value for a in Authority}
+    import inspect
+    assert "ratified" not in inspect.signature(derive_authority).parameters
+
+
+def test_tc5_axes_are_separate_and_owner_approval_is_unavailable():
+    """TC-5: no total ordering — provenance, local intent marker and
+    owner approval are separate fields; owner approval is always
+    unavailable in v1 regardless of every other axis."""
+    from ctxpack.core.factid import (
+        LOCAL_RATIFIED,
+        OWNER_APPROVAL_UNAVAILABLE,
+    )
+    assert LOCAL_RATIFIED == "local_ratified"
+    assert OWNER_APPROVAL_UNAVAILABLE == "unavailable"
+    # LOCAL_RATIFIED is not an Authority member: it cannot outrank or
+    # even compare with provenance values
+    assert LOCAL_RATIFIED not in {a.value for a in Authority}
 
 
 # ── ratification events ──
@@ -154,7 +171,11 @@ def test_cli_ratify_unknown_fact_id_refuses(tmp_path, capsys):
     assert ratification_state(str(out)) == {}
 
 
-def test_cli_ratify_banked_fact_upgrades_why_authority(tmp_path, capsys):
+def test_cli_ratify_marks_the_axis_without_touching_provenance(
+        tmp_path, capsys):
+    """A ratification event moves ONLY the local-intent axis: the
+    provenance axis stays agent_candidate and owner approval stays
+    unavailable — no promotion anywhere (TC-4/TC-5)."""
     from ctxpack.agent.checkpoint import run_checkpoint
     from ctxpack.agent.session_reader import session_why_across
 
@@ -163,19 +184,25 @@ def test_cli_ratify_banked_fact_upgrades_why_authority(tmp_path, capsys):
     why = session_why_across(str(out), "exponential backoff")
     match = why["matches"][0]
     assert match["authority"] == "agent_candidate"
+    assert match["owner_approval"] == "unavailable"
+    assert "local_ratification" not in match
     fid = next(f["value"] for f in match["fields"]
                if f["key"] == "FACT-ID")
 
     assert main(["session", "ratify", fid, "--ledger", str(out)]) == 0
     capsys.readouterr()
     why = session_why_across(str(out), "exponential backoff")
-    assert why["matches"][0]["authority"] == "user_ratified"
+    match = why["matches"][0]
+    assert match["authority"] == "agent_candidate"      # unchanged
+    assert match["local_ratification"] == "ratified"
+    assert match["owner_approval"] == "unavailable"     # never satisfied
 
     assert main(["session", "ratify", fid, "--reject", "--ledger",
                  str(out), "--note", "superseded by review"]) == 0
     why = session_why_across(str(out), "exponential backoff")
-    assert why["matches"][0]["authority"] == "agent_candidate"
-    assert why["matches"][0]["ratification"] == "rejected"
+    match = why["matches"][0]
+    assert match["authority"] == "agent_candidate"
+    assert match["local_ratification"] == "rejected"
 
 
 def test_why_reports_user_stated_for_user_constraints(tmp_path):

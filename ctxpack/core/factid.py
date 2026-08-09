@@ -75,32 +75,42 @@ class SourceRole(str, Enum):
 
 
 class Authority(str, Enum):
-    """What standing a fact has for automatic use.
+    """The SOURCE-PROVENANCE axis of a fact's standing.
 
-    Derived deterministically from :class:`SourceRole` plus explicit
-    ratification events — never from extraction basis, git presence,
-    or a marker. ``USER_RATIFIED`` is reachable ONLY through a
-    recorded ratification event referencing the fact_id.
+    PF-11 v2.1 (approved 2026-08-09): authority is four SEPARATE axes
+    — source provenance (this enum), local intent marker
+    (ratification events; ``LOCAL_RATIFIED``), owner approval
+    (UNSATISFIABLE in v1 — no trusted human channel exists; no value
+    on any other axis substitutes for it), and tool evidence/
+    freshness (evidence about the world, never authority about
+    intent). There is deliberately NO total ordering across axes and
+    no ``user_ratified`` member: the local CLI is not a human, so a
+    ratification event carries no security standing beyond
+    ``AGENT_CANDIDATE`` (the same actor can mint both). Under trust
+    assumption TA-1, ``USER_STATED`` means user-per-transcript.
     """
 
-    USER_STATED = "user_stated"          # user-authored text
-    USER_RATIFIED = "user_ratified"      # explicit ratification event
+    USER_STATED = "user_stated"          # user-authored text (per TA-1)
     TOOL_OBSERVED = "tool_observed"      # tool-emitted content
     AGENT_CANDIDATE = "agent_candidate"  # assistant-authored
     LEGACY_UNKNOWN = "legacy_unknown"    # no source_role recorded
 
 
-def derive_authority(source_role: str, ratified: bool = False) -> Authority:
-    """Deterministic authority from provenance.
+# The local-intent-marker axis (ratification events). A bookkeeping
+# signal, never security evidence — see ``ctxpack.agent.ratification``.
+LOCAL_RATIFIED = "local_ratified"
 
-    ``ratified`` must come from an explicit ratification event (see
-    ``ctxpack.agent.ratification``); passing ``True`` from anywhere
-    else — a merge, a marker, a hunch — is a policy violation, not a
-    shortcut. Rejection is not an authority level: a rejected fact
-    keeps its derived authority and is excluded by eligibility policy.
+# The owner-approval axis has exactly one value in v1. Gates that
+# require owner approval must report it rather than accept a proxy.
+OWNER_APPROVAL_UNAVAILABLE = "unavailable"
+
+
+def derive_authority(source_role: str) -> Authority:
+    """Deterministic source-provenance axis from the stamped role.
+
+    Ratification is a DIFFERENT axis and deliberately not a parameter:
+    folding it in here rebuilt the total ordering PF-11 forbids.
     """
-    if ratified:
-        return Authority.USER_RATIFIED
     role = str(source_role or "")
     if role == SourceRole.USER.value:
         return Authority.USER_STATED

@@ -576,17 +576,23 @@ def session_why_across(ledger_dir: str = DEFAULT_LEDGER_DIR, key: str = "",
 
 def _annotate_authority(matches: "list[dict[str, Any]]",
                         ledger_dir: str) -> None:
-    """Stamp each match with its derived authority.
+    """Stamp each match with its authority AXES (PF-11 v2.1).
 
     Extraction basis is not authority (an assistant emits ``Decision:``
-    markers routinely): authority derives from the SOURCE-ROLE the
-    parser stamped plus explicit ratification events only. Facts
-    predating tp/1.2 carry no role and honestly report
-    ``legacy_unknown`` — they are candidates, never owner-approved by
-    age. A last-event rejection is surfaced as ``ratification:
-    rejected`` so eligibility policy can exclude it downstream.
+    markers routinely). The axes are reported SEPARATELY and never
+    folded into one ordering:
+
+    - ``authority`` — the source-provenance axis from the stamped
+      SOURCE-ROLE. Facts predating tp/1.2 report ``legacy_unknown``;
+      never owner-approved by age.
+    - ``local_ratification`` — the local intent marker
+      (``ratified``/``rejected``), present only when an event exists.
+      Bookkeeping, not security evidence: the local CLI is not a
+      human. ``degraded`` when the journal's integrity is uncertain.
+    - ``owner_approval`` — always ``unavailable`` in v1: no trusted
+      human channel exists, and no other axis substitutes for it.
     """
-    from ..core.factid import derive_authority
+    from ..core.factid import OWNER_APPROVAL_UNAVAILABLE, derive_authority
     from .ratification import RATIFY, ratification_state
 
     state = ratification_state(ledger_dir)
@@ -595,11 +601,12 @@ def _annotate_authority(matches: "list[dict[str, Any]]",
                   for f in m.get("fields") or []}
         fid = fields.get("FACT-ID", "").lower()
         role = fields.get("SOURCE-ROLE", "")
+        m["authority"] = derive_authority(role).value
+        m["owner_approval"] = OWNER_APPROVAL_UNAVAILABLE
         action = state.get(fid) if fid else None
-        m["authority"] = derive_authority(
-            role, ratified=(action == RATIFY)).value
-        if action and action != RATIFY:
-            m["ratification"] = "rejected"
+        if action:
+            m["local_ratification"] = ("ratified" if action == RATIFY
+                                       else "rejected")
 
 
 def session_literals(doc: CTXDocument, sid: str) -> dict[str, Any]:
