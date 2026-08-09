@@ -143,15 +143,25 @@ _FOLD_PRECEDENCE = (INJECTED, FAILED, EMPTY)
 
 
 def _receipt_session_outcome(row: dict):
-    """``(session, outcome)`` of a valid receipt, else ``None`` — the
-    ONE definition of a valid receipt, shared by ``injection_stats``
-    and the fold so "attempted" and "folded" can never disagree about
-    what counts."""
+    """``(session, outcome, kind)`` of a valid receipt, else ``None`` —
+    the ONE definition of a valid receipt, shared by
+    ``injection_stats`` and the fold so "attempted" and "folded" can
+    never disagree about what counts. ``kind`` is the schema route
+    (TM-5): ``"full"`` for a declared v2 row, ``"prefix"`` for a
+    legacy schemaless v1 row; a row declaring any other schema is not
+    a valid receipt."""
     session = str(row.get("session") or "").strip()
     outcome = str(row.get("outcome") or "")
     if not session or outcome not in _FOLD_PRECEDENCE:
         return None
-    return session, outcome
+    schema = str(row.get("schema") or "")
+    if schema == SCHEMA:
+        kind = "full"
+    elif not schema:                   # legacy v1: predates the field
+        kind = "prefix"
+    else:                              # unknown/future schema (TC-11)
+        return None
+    return session, outcome, kind
 
 
 def fold_emission_receipts(ledger_dir: str):
@@ -169,11 +179,18 @@ def fold_emission_receipts(ledger_dir: str):
     session to ``injected``; otherwise any ``failed`` → ``failed``;
     otherwise ``empty``.
 
-    v1 receipts stored only an 8-char prefix, which can collide. They
-    are folded separately under ``by_prefix``; the join to a session is
-    the CALLER's decision and must require the prefix to map to exactly
+    Routing is by the row's DECLARED ``schema`` (TM-5): a
+    ``ctx-injections/v2`` row folds under ``by_full`` no matter how
+    short its id — an exactly-8-char v2 session must join exactly, not
+    fall into the prefix pool where an unlucky collision makes it
+    unmeasured. Rows with no schema field are legacy v1 receipts: they
+    stored only an 8-char prefix, which can collide, so they fold
+    separately under ``by_prefix``; the join to a session is the
+    CALLER's decision and must require the prefix to map to exactly
     one session — an ambiguous prefix is unmeasured, never split or
-    duplicated (see ``classify_read_path``).
+    duplicated (see ``classify_read_path``). A row declaring any OTHER
+    schema is malformed: a future writer's receipts are counted, never
+    misread under today's rules.
 
     A session with no receipt is simply absent and must be reported as
     UNMEASURED: absence of a receipt never proves "no emission", and no
@@ -196,9 +213,9 @@ def fold_emission_receipts(ledger_dir: str):
         if rec is None:
             malformed += 1
             continue
-        session, outcome = rec
+        session, outcome, kind = rec
         valid += 1
-        bucket = full_seen if len(session) > 8 else prefix_seen
+        bucket = full_seen if kind == "full" else prefix_seen
         bucket.setdefault(session, set()).add(outcome)
 
     def _fold(seen: "dict[str, set[str]]") -> "dict[str, str]":

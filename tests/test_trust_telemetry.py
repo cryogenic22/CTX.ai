@@ -176,6 +176,68 @@ def test_fold_multiple_receipts_resolve_deterministically(tmp_path):
     assert fold["rows"] == 8
 
 
+def test_tc10_v2_receipt_with_8char_session_routes_by_schema(tmp_path):
+    """TC-10 (TM-5): an exactly-8-char v2 session id joins EXACTLY —
+    the row's DECLARED schema routes it, never its length. RED on
+    parent: length routing dumped it into the legacy prefix pool,
+    where a second session sharing the prefix made it ambiguous and
+    the legitimate exact receipt became unmeasured."""
+    from ctxpack.agent.injection_log import fold_emission_receipts
+    out = tmp_path / "ctx"
+    record_injection(str(out), session_id="abcd1234", context="gist!")
+    fold = fold_emission_receipts(str(out))
+    assert fold["by_full"] == {"abcd1234": "injected"}
+    assert fold["by_prefix"] == {}
+    rows = [
+        {"session": "abcd1234", "stats": {"ledger_reads": 0,
+                                          "transcript_greps": 0}},
+        {"session": "abcd1234efgh5678", "stats": {"ledger_reads": 0,
+                                                  "transcript_greps": 0}},
+    ]
+    got = classify_read_path(rows, fold)
+    assert got["sessions_zero_recall_with_emission"] == 1
+    assert got["sessions_zero_recall_emission_unmeasured"] == 1
+
+
+def test_tc11_unknown_receipt_schema_is_malformed_confers_nothing(
+        tmp_path):
+    """TC-11 (TM-5): a receipt declaring an unknown schema
+    (ctx-injections/v9) is malformed — counted, folded nowhere. RED on
+    parent: the schema field was ignored and the row folded by id
+    length."""
+    from ctxpack.agent.injection_log import fold_emission_receipts
+    out = tmp_path / "ctx"
+    out.mkdir()
+    row = {"ts": "2026-08-10T00:00:00+00:00",
+           "schema": "ctx-injections/v9", "session": "zzzz9999-full-id",
+           "outcome": "injected", "bytes": 5, "sha256": "",
+           "gap_warning": False}
+    (out / INJECTION_LOG).write_text(json.dumps(row) + "\n",
+                                     encoding="utf-8")
+    fold = fold_emission_receipts(str(out))
+    assert fold["by_full"] == {}
+    assert fold["by_prefix"] == {}
+    assert fold["malformed_rows"] == 1
+    assert fold["rows"] == 0
+
+
+def test_legacy_schemaless_receipt_still_routes_to_prefix_pool(tmp_path):
+    """Regression pin (passes on the parent): a v1 row — no schema
+    field, 8-char prefix session — keeps folding into the legacy
+    prefix pool with the unambiguity join rule unchanged."""
+    from ctxpack.agent.injection_log import fold_emission_receipts
+    out = tmp_path / "ctx"
+    out.mkdir()
+    row = {"ts": "2026-07-01T00:00:00+00:00", "session": "aaaaaaaa",
+           "outcome": "injected", "bytes": 5}
+    (out / INJECTION_LOG).write_text(json.dumps(row) + "\n",
+                                     encoding="utf-8")
+    fold = fold_emission_receipts(str(out))
+    assert fold["by_prefix"] == {"aaaaaaaa": "injected"}
+    assert fold["by_full"] == {}
+    assert fold["malformed_rows"] == 0
+
+
 def test_fold_reports_malformed_rows_instead_of_guessing(tmp_path):
     """Undecodable JSON, non-object JSON, rows without a session, and
     rows with an unknown outcome cannot enter the fold. They are
