@@ -394,7 +394,9 @@ def _run(argv: list[str]) -> int:
                                     "graph", "stats", "literals", "resume",
                                     "ratify"],
                            help="What to read (ratify: record an explicit "
-                                "owner ratification event for a fact_id)")
+                                "local ratification event for a fact_id — "
+                                "bookkeeping by an unauthenticated local "
+                                "actor, never owner approval)")
     p_session.add_argument("key", nargs="?", default="",
                            help="why: key to trace; recall: keyword query; "
                                 "graph: start entity; ratify: fact_id")

@@ -45,7 +45,10 @@ hook, NO paid experiment, NO parked-branch merge.
    strata + fair flat-file maintenance budget (PF-41); latency
    measured-then-frozen, precomputed index keyed by ledger sha (PF-21/31);
    batched ratification queue — merge evidence may create corroboration,
-   never `USER_RATIFIED` (PF-03); fork warnings scoped by semantic lineage
+   never ratification of any kind (PF-03; PF-11 v2.1 later removed
+   `user_ratified` entirely — local ratification is unauthenticated
+   bookkeeping, owner approval unsatisfiable in v1); fork warnings
+   scoped by semantic lineage
    match, not git branches (PF-24/52); drift-control boundaries designed
    now, activated later (new Phase 6); multi-writer safety as an
    external-pilot prerequisite (new §). **Rejected:** implicit
@@ -188,15 +191,18 @@ result. Each E-6 concern is its own commit/review unit.
 
 ### PF-03 · Authority provenance  *(Loop 3)*
 Separate `source_role` (who wrote the text: user/assistant/tool) and
-`authority` (USER_STATED / USER_RATIFIED / TOOL_OBSERVED /
-AGENT_CANDIDATE / LEGACY_UNKNOWN) from extraction basis
+`authority` (USER_STATED / TOOL_OBSERVED / AGENT_CANDIDATE /
+LEGACY_UNKNOWN — PF-11 v2.1 removed `USER_RATIFIED`: local
+ratification is a separate unauthenticated-bookkeeping axis, never an
+authority value, and owner approval is unsatisfiable in v1) from
+extraction basis
 (`factid.py:31` `marker_stated` stays what it is: an extraction method).
 Stamp source role during transcript parsing. Ratification is an explicit
 event referencing a fact_id — never inferred from git presence or a
 marker. Cold-start: a **batched ratification queue** (candidates linked
 to commits/tests, one-step accept/reject) keeps friction low; a merge
 may create corroborating TOOL_OBSERVED evidence for exact code/test
-claims but must never silently become USER_RATIFIED. Legacy facts
+claims but must never silently become any ratification. Legacy facts
 default LEGACY_UNKNOWN → render as candidates. Event schemas versioned
 honestly.
 

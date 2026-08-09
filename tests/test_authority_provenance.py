@@ -9,6 +9,8 @@ else: not git presence, not a marker, not a merge.
 
 import json
 
+import pytest
+
 from ctxpack.agent.ratification import (
     RATIFICATION_LOG,
     RATIFY,
@@ -233,6 +235,40 @@ def test_tc20_recovery_is_quarantine_rotation_not_appending(
     assert main(["session", "ratify", fid, "--rotate-quarantine",
                  "--ledger", str(out)]) == 1
     assert "healthy" in capsys.readouterr().err
+
+
+def test_ratification_surface_says_local_never_owner(tmp_path, capsys):
+    """TC-4 (re-review P1-1): local ratification must not masquerade
+    as owner or human approval anywhere on the surface — the CLI help
+    says local, and the recorded row attributes `local-cli`."""
+    with pytest.raises(SystemExit):
+        main(["session", "--help"])
+    helptext = " ".join(capsys.readouterr().out.split())  # unwrap argparse
+    assert "owner ratification" not in helptext
+    assert "local ratification" in helptext
+    row = record_ratification(str(tmp_path / "ctx"), "d" * 16)
+    assert row["by"] == "local-cli"
+    persisted = json.loads((tmp_path / "ctx" / RATIFICATION_LOG)
+                           .read_text(encoding="utf-8"))
+    assert persisted["by"] == "local-cli"
+    assert "owner" not in json.dumps(persisted)
+
+
+def test_cli_ratify_emitted_json_attributes_local_cli(tmp_path, capsys):
+    """TC-4 (re-review P1-1): the JSON the CLI prints back is the
+    exact row written — attributed to `local-cli`, no owner wording."""
+    from ctxpack.agent.checkpoint import run_checkpoint
+    from ctxpack.agent.session_reader import session_why_across
+
+    out = tmp_path / "ctx"
+    run_checkpoint(_transcript(tmp_path), str(out), as_of="2026-08-09")
+    why = session_why_across(str(out), "exponential backoff")
+    fid = next(f["value"] for f in why["matches"][0]["fields"]
+               if f["key"] == "FACT-ID")
+    assert main(["session", "ratify", fid, "--ledger", str(out)]) == 0
+    emitted = json.loads(capsys.readouterr().out)
+    assert emitted["by"] == "local-cli"
+    assert "owner" not in json.dumps(emitted)
 
 
 # ── CLI: explicit event referencing an EXISTING fact ──

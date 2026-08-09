@@ -13,8 +13,12 @@ evidence; evidence, not intent).
 
 Deliberately a separate file from ``events.jsonl``: that log is derived
 from a transcript fold ONLY and stays byte-replayable (spec v1.1 §6). A
-ratification is a live owner action with no transcript record — same
-design as ``injections.jsonl``.
+ratification is a live local-actor action with no transcript record —
+same design as ``injections.jsonl``. The ``by`` attribution is
+``local-cli``: a label for the unauthenticated local invocation path,
+NEVER a claim about who (or what) typed the command — any process that
+can run the CLI can mint one, which is exactly why this axis carries
+no standing (PF-11 P1-2 ruling).
 
 Rejection is not an authority level: a rejected fact keeps its derived
 authority and is excluded by eligibility policy (stable code, Loop 5).
@@ -40,7 +44,7 @@ _ACTIONS = (RATIFY, REJECT)
 
 def record_ratification(ledger_dir: str, fact_id: str, *,
                         action: str = RATIFY, note: str = "",
-                        by: str = "owner-cli") -> dict[str, Any]:
+                        by: str = "local-cli") -> dict[str, Any]:
     """Append one ratification event. Raises on a malformed request —
     a ratification that cannot be recorded exactly must not happen."""
     fid = str(fact_id or "").strip().lower()
