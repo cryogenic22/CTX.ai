@@ -565,8 +565,13 @@ def session_why_across(ledger_dir: str = DEFAULT_LEDGER_DIR, key: str = "",
     forked = _annotate_supersession(matches, ledger_dir)
     if forked and not note:
         note = _FORK_NOTE
-    _annotate_authority(matches, ledger_dir)
+    journal = _annotate_authority(matches, ledger_dir)
     return {"key": key, "matches": matches, "found": True,
+            **({"ratification_journal": {
+                "degraded": True,
+                "malformed_rows": journal["malformed_rows"],
+                "quarantined": journal["quarantined"]}}
+               if journal["degraded"] else {}),
             "count": len(matches), "sessions_searched": len(order),
             **({"truncated": True, "total_matches": len(collected)}
                if truncated else {}),
@@ -593,9 +598,10 @@ def _annotate_authority(matches: "list[dict[str, Any]]",
       human channel exists, and no other axis substitutes for it.
     """
     from ..core.factid import OWNER_APPROVAL_UNAVAILABLE, derive_authority
-    from .ratification import RATIFY, ratification_state
+    from .ratification import RATIFY, read_ratifications
 
-    state = ratification_state(ledger_dir)
+    journal = read_ratifications(ledger_dir)
+    state = journal["state"]
     for m in matches:
         fields = {str(f.get("key", "")).upper(): str(f.get("value", ""))
                   for f in m.get("fields") or []}
@@ -603,10 +609,16 @@ def _annotate_authority(matches: "list[dict[str, Any]]",
         role = fields.get("SOURCE-ROLE", "")
         m["authority"] = derive_authority(role).value
         m["owner_approval"] = OWNER_APPROVAL_UNAVAILABLE
+        if journal["degraded"]:
+            # fail-closed: an uncertain journal confers nothing and
+            # says so, per fact, so the degradation cannot hide
+            m["local_ratification"] = "degraded"
+            continue
         action = state.get(fid) if fid else None
         if action:
             m["local_ratification"] = ("ratified" if action == RATIFY
                                        else "rejected")
+    return journal
 
 
 def session_literals(doc: CTXDocument, sid: str) -> dict[str, Any]:

@@ -148,7 +148,10 @@ def test_malformed_fact_id_is_refused_not_recorded(tmp_path):
     assert ratification_state(ledger) == {}
 
 
-def test_malformed_journal_rows_confer_nothing(tmp_path):
+def test_malformed_journal_rows_confer_nothing_and_degrade(tmp_path):
+    """TC-7: unknown schema, short ids and unknown actions are
+    malformed; any malformed row degrades the whole journal."""
+    from ctxpack.agent.ratification import read_ratifications
     ledger = tmp_path / "ctx"
     ledger.mkdir()
     (ledger / RATIFICATION_LOG).write_text(
@@ -156,7 +159,80 @@ def test_malformed_journal_rows_confer_nothing(tmp_path):
         + json.dumps({"fact_id": "short", "action": "ratify"}) + "\n"
         + json.dumps({"fact_id": "b" * 16, "action": "bless"}) + "\n",
         encoding="utf-8")
+    journal = read_ratifications(str(ledger))
+    assert journal["state"] == {}
+    assert journal["degraded"] is True
+    assert journal["malformed_rows"] == 3
     assert ratification_state(str(ledger)) == {}
+
+
+def test_tc6_truncated_rejection_degrades_instead_of_failing_open(
+        tmp_path):
+    """TC-6: ratify F, then a truncated reject row — F must NOT read
+    as ratified, because the reader cannot know what the lost row
+    said."""
+    from ctxpack.agent.ratification import read_ratifications
+    ledger = str(tmp_path / "ctx")
+    fid = "c" * 16
+    record_ratification(ledger, fid)
+    assert is_ratified(ledger, fid)
+    with open(tmp_path / "ctx" / RATIFICATION_LOG, "a",
+              encoding="utf-8") as f:
+        f.write('{"ts": "2026-08-09", "schema": "ctx-ratifications/v1", '
+                '"fact_id": "' + fid + '", "action": "rej')  # truncated
+    journal = read_ratifications(ledger)
+    assert journal["degraded"] is True
+    assert journal["malformed_rows"] >= 1
+    assert not is_ratified(ledger, fid)
+
+
+def test_tc20_recovery_is_quarantine_rotation_not_appending(
+        tmp_path, capsys):
+    """TC-20: appending a valid row to a corrupted journal restores
+    nothing; quarantine rotation + a fresh event does, the quarantined
+    file is byte-identical, and the reader reports the count."""
+    from ctxpack.agent.checkpoint import run_checkpoint
+    from ctxpack.agent.ratification import read_ratifications
+    from ctxpack.agent.session_reader import session_why_across
+
+    out = tmp_path / "ctx"
+    run_checkpoint(_transcript(tmp_path), str(out), as_of="2026-08-09")
+    why = session_why_across(str(out), "exponential backoff")
+    fid = next(f["value"] for f in why["matches"][0]["fields"]
+               if f["key"] == "FACT-ID")
+    assert main(["session", "ratify", fid, "--ledger", str(out)]) == 0
+    capsys.readouterr()
+    log = out / RATIFICATION_LOG
+    with open(log, "a", encoding="utf-8") as f:
+        f.write("{truncated garbage\n")
+    corrupted_bytes = log.read_bytes()
+
+    # appending a valid event to the corrupted journal restores nothing
+    record_ratification(str(out), fid)
+    assert not is_ratified(str(out), fid)
+    # the CLI refuses to append onto a degraded journal
+    assert main(["session", "ratify", fid, "--ledger", str(out)]) == 1
+    assert "--rotate-quarantine" in capsys.readouterr().err
+    # why surfaces the degradation per fact and at the top level
+    why = session_why_across(str(out), "exponential backoff")
+    assert why["matches"][0]["local_ratification"] == "degraded"
+    assert why["ratification_journal"]["degraded"] is True
+
+    # recovery: rotate + fresh event in a new epoch
+    assert main(["session", "ratify", fid, "--rotate-quarantine",
+                 "--ledger", str(out)]) == 0
+    capsys.readouterr()
+    journal = read_ratifications(str(out))
+    assert journal["degraded"] is False
+    assert journal["quarantined"] == 1
+    assert is_ratified(str(out), fid)
+    quarantine = out / (RATIFICATION_LOG + ".quarantine-1")
+    assert quarantine.read_bytes()[:len(corrupted_bytes)] \
+        == corrupted_bytes  # preserved verbatim (plus the append probe)
+    # rotating a healthy journal is refused
+    assert main(["session", "ratify", fid, "--rotate-quarantine",
+                 "--ledger", str(out)]) == 1
+    assert "healthy" in capsys.readouterr().err
 
 
 # ── CLI: explicit event referencing an EXISTING fact ──

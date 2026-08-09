@@ -404,6 +404,10 @@ def _run(argv: list[str]) -> int:
     p_session.add_argument("--note", default="",
                            help="ratify: optional reason recorded on the "
                                 "event")
+    p_session.add_argument("--rotate-quarantine", action="store_true",
+                           help="ratify: quarantine a corrupted journal "
+                                "(preserved verbatim for audit) and start "
+                                "a fresh epoch before recording")
     p_session.add_argument("--ledger", default=".claude/ctx",
                            help="Ledger directory (default: .claude/ctx)")
     p_session.add_argument("--session", dest="session_id", default=None,
@@ -1398,7 +1402,31 @@ def _cmd_session(args: argparse.Namespace) -> int:
     if args.action == "ratify":
         # Ratification is an explicit event referencing an EXISTING
         # fact_id — never inferred, never recorded against a typo.
-        from ..agent.ratification import RATIFY, REJECT, record_ratification
+        from ..agent.ratification import (
+            RATIFY,
+            REJECT,
+            quarantine_rotation,
+            read_ratifications,
+            record_ratification,
+        )
+
+        journal = read_ratifications(args.ledger)
+        if journal["degraded"] and not args.rotate_quarantine:
+            print(f"Error: ratification journal integrity degraded "
+                  f"({journal['malformed_rows']} malformed rows) — "
+                  "appending cannot repair it. Run again with "
+                  "--rotate-quarantine to preserve the corrupted journal "
+                  "for audit and start a fresh epoch.", file=sys.stderr)
+            return 1
+        if args.rotate_quarantine:
+            if not journal["degraded"]:
+                print("Error: journal is healthy — refusing to rotate a "
+                      "journal that does not need recovery.",
+                      file=sys.stderr)
+                return 1
+            path = quarantine_rotation(args.ledger)
+            print(f"Quarantined corrupted journal: {path}",
+                  file=sys.stderr)
 
         fid = (args.key or "").strip().lower()
         if not fid:
