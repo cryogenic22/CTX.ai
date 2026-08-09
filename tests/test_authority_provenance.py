@@ -480,6 +480,48 @@ def test_tc9_reverse_order_preserves_the_same_evidence_set(tmp_path):
     assert lit["authority"] == "multiple"
 
 
+def test_tc12_why_and_why_session_report_identical_trust(
+        tmp_path, capsys):
+    """TC-12 (TM-6): ONE annotation path for every `why` variant — the
+    same fact through cross-session `why` and `why --session` carries
+    identical authority axes, including ratification and journal
+    degradation. RED on parent: the single-session variant returned no
+    authority keys at all."""
+    from ctxpack.agent.checkpoint import run_checkpoint
+    from ctxpack.agent.session_reader import session_why_across
+
+    out = tmp_path / "ctx"
+    run_checkpoint(_transcript(tmp_path), str(out), as_of="2026-08-09")
+    why = session_why_across(str(out), "exponential backoff")
+    fid = next(f["value"] for f in why["matches"][0]["fields"]
+               if f["key"] == "FACT-ID")
+    assert main(["session", "ratify", fid, "--ledger", str(out)]) == 0
+    capsys.readouterr()
+
+    assert main(["session", "why", "exponential backoff",
+                 "--ledger", str(out)]) == 0
+    across = json.loads(capsys.readouterr().out)
+    sid = across["matches"][0]["session"]
+    assert main(["session", "why", "exponential backoff",
+                 "--session", sid, "--ledger", str(out)]) == 0
+    single = json.loads(capsys.readouterr().out)
+    a, s = across["matches"][0], single["matches"][0]
+    for axis in ("authority", "local_ratification", "owner_approval"):
+        assert s.get(axis) == a.get(axis), axis
+    assert s["authority"] == "agent_candidate"
+    assert s["local_ratification"] == "ratified"
+    assert s["owner_approval"] == "unavailable"
+
+    # journal degradation surfaces identically at single-session scope
+    with open(out / RATIFICATION_LOG, "a", encoding="utf-8") as f:
+        f.write("{truncated garbage\n")
+    assert main(["session", "why", "exponential backoff",
+                 "--session", sid, "--ledger", str(out)]) == 0
+    degraded = json.loads(capsys.readouterr().out)
+    assert degraded["matches"][0]["local_ratification"] == "degraded"
+    assert degraded["ratification_journal"]["degraded"] is True
+
+
 def test_every_unique_role_at_turn_occurrence_is_preserved(tmp_path):
     """Re-review P2 (TM-4): a SECOND occurrence by an already-seen
     role is still evidence — the set keeps every unique role@turn in

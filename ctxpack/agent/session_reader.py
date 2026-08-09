@@ -492,7 +492,12 @@ def session_why(doc: CTXDocument, sid: str, key: str,
     forked = _annotate_supersession(matches, ledger_dir)
     if forked and not note:
         note = _FORK_NOTE
+    # TM-6: ONE annotation path for every `why` variant — single-session
+    # scope must report the same trust surface as the cross-session
+    # default (authority axes, ratification, journal degradation).
+    journal = _annotate_authority(matches, ledger_dir)
     return {"session": sid, "key": key, "matches": matches, "found": True,
+            **_ratification_journal_block(journal),
             "count": len(matches),
             **({"has_conflict": True} if forked else {}),
             **({"note": note} if note else {})}
@@ -567,18 +572,25 @@ def session_why_across(ledger_dir: str = DEFAULT_LEDGER_DIR, key: str = "",
         note = _FORK_NOTE
     journal = _annotate_authority(matches, ledger_dir)
     return {"key": key, "matches": matches, "found": True,
-            **({"ratification_journal": {
-                "degraded": True,
-                "malformed_rows": journal["malformed_rows"],
-                **({"error": journal["error"]}
-                   if journal.get("error") else {}),
-                "quarantined": journal["quarantined"]}}
-               if journal["degraded"] else {}),
+            **_ratification_journal_block(journal),
             "count": len(matches), "sessions_searched": len(order),
             **({"truncated": True, "total_matches": len(collected)}
                if truncated else {}),
             **({"has_conflict": True} if forked else {}),
             **({"note": note} if note else {})}
+
+
+def _ratification_journal_block(journal) -> "dict[str, Any]":
+    """The top-level ``ratification_journal`` surfacing block, shared
+    by every ``why`` variant (TM-6) so degradation reads identically
+    at any scope. Empty when the journal is healthy."""
+    if not journal or not journal.get("degraded"):
+        return {}
+    return {"ratification_journal": {
+        "degraded": True,
+        "malformed_rows": journal["malformed_rows"],
+        **({"error": journal["error"]} if journal.get("error") else {}),
+        "quarantined": journal["quarantined"]}}
 
 
 def _annotate_authority(matches: "list[dict[str, Any]]",
@@ -602,7 +614,12 @@ def _annotate_authority(matches: "list[dict[str, Any]]",
     from ..core.factid import OWNER_APPROVAL_UNAVAILABLE, derive_authority
     from .ratification import RATIFY, read_ratifications
 
-    journal = read_ratifications(ledger_dir)
+    # No ledger_dir (doc-only callers): the authority axis still stamps
+    # from the matches' own SOURCE-ROLE fields; the ratification axis
+    # reads as an absent journal — a real zero, not degradation.
+    journal = (read_ratifications(ledger_dir) if ledger_dir else
+               {"state": {}, "malformed_rows": 0, "degraded": False,
+                "quarantined": 0})
     state = journal["state"]
     for m in matches:
         fields = {str(f.get("key", "")).upper(): str(f.get("value", ""))
