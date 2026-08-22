@@ -619,3 +619,138 @@ Reviewed commits `ca080fe..b6f1f8d`. Codex ran read-only; recorded here by Claud
 - **[P2] cross-session `why` masked a missing ledger** — an empty/wrong `--ledger` returned asserted-absence instead of an error. **Status: resolved** — `session_why_across` raises `LedgerError` when no sessions exist; CLI exits 1, MCP returns `ledger_not_found`.
 - **[P2] a malformed session aborted the whole search** — the loop caught only `LedgerError`. **Status: resolved** — now catches `LedgerError`/`ParseError`/`UnicodeDecodeError`/`OSError` and skips the bad session.
 - **[P3] reporter counted `Status: unresolved` as resolved** (substring of "resolved"). **Status: resolved** — `_unresolved_notes` parses the Status field with a word-boundary match.
+
+---
+
+### 2026-08-22 — vNext assessment ratified (docs-only unit)
+
+**What:** External design proposal ("CTX vNext — Engineering Knowledge
+Control Plane", 2026-08-22, authored against the stale public mirror
+`cryogenic22/CTX.ai`) assessed at owner request and dispositioned:
+**adopt 2 / defer 4 / reject 6**. Full document:
+`paper/vnext-assessment-2026-08.md` (includes a Part-1 current-state
+grounding for external reviewers to use instead of the public mirror).
+`paper/agentic-context-plan-v1.md` gains Amendment A1 (pointer + summary).
+
+**Key dispositions:**
+- Adopted #1 = **execute already-ratified Track C**
+  (`docs/track-c-verified-freshness-spec.md`) as the first post-preflight
+  milestone — three independent sources now converge on the mechanism
+  (OntoWiz incident 2026-07-25 → Track C ratified 2026-07-30 → vNext
+  proposal 2026-08-22). Track C's own build gate unchanged (E-6 + spike +
+  calibration + H-4).
+- Adopted #2 = failure-to-eval codification (ReviewFinding objects + the
+  finding-not-fixed-without-linked-test lint, structuralizing the
+  reviewer-mandated acceptance-case rule).
+- Rejected-for-now recorded as non-goals: org hub, cross-repo federation,
+  ctxd daemon, model router, loop runner/auto-merge, graph DB,
+  multi-coefficient context scoring. Two-ledger rule (Track C A-5)
+  restated against vNext's single-ledger sketch.
+- IncrementalPacker: retire-over-harden recommendation recorded (§3.4);
+  **owner decision remains queued, nothing implemented.**
+
+**Files touched:** `paper/vnext-assessment-2026-08.md` (new),
+`paper/agentic-context-plan-v1.md` (Amendment A1 appended),
+`AGENT_COORDINATION.md` (this entry). No code touched.
+
+**Verification:** docs-only; `python scripts/check_claims.py` → OK
+(21 warnings, all warn-only; the new doc adds one warn-only row like every
+other paper doc). Deterministic lane unchanged since the 4280bcd handoff
+(1783/35 non-slow). Track C citations checked against the spec text
+(A-3/A-4/A-5/A-6/A-8 quoted accurately; vNext's `valid_from_commit`
+anchoring flagged as the design A-3 rejected).
+
+**Open reviewer questions:** Part 7 of the assessment — notably TM/TC scope
+for verification receipts before Track C spike code, and the delta check
+(anything in vNext worth a Track C amendment).
+
+**Standing frozen, unchanged:** Loops 5–6, live UserPromptSubmit hook, paid
+runs, parked merges; TM-5..7 range `31fc0ad..644731f` still awaiting review.
+
+---
+
+### 2026-08-22 — Amendment A2: owner ratification of the second-round slate (docs-only)
+
+**What:** Owner (Kapil) ratified the second-round architecture items after the
+external architect's adversarial review of the plain-English brief. Full terms:
+Amendment A2 in `paper/vnext-assessment-2026-08.md`. Summary:
+
+- **CI floor RATIFIED** — precondition for unfreezing any autonomous-loop
+  work; `ctx verify --json` machine-readable gate manifest is the interface
+  contract (CI today, any future orchestrator tomorrow). Standing constraint:
+  agents are never the authority on whether their own work passed.
+  Implementation is its own future unit — ratified, NOT built.
+- **Federation envelope RATIFIED as constraint** — per-artifact header
+  (repo_id/artifact_type/schema_version/producer_version/content_hash/
+  namespace/provenance/export_classification); envelope ≠ protocol;
+  export_classification lands only through threat-tested review, default
+  repo-private; no exchange format until a first real consumer exists.
+- **Discovery lane RATIFIED as contingent option** — LLM proposes only into a
+  quarantined candidate namespace, never rendered as fact; promotion via
+  evidence/marker/ratification; activation gated on missed-decision telemetry
+  + precision-barred extraction eval. Headline property: "no LLM in the
+  authoritative write path."
+- **Name RATIFIED:** "engineering continuity substrate" — "control" excluded
+  while PF-11 B6 advisory posture stands.
+- Second-round refinements ratified with it: two-sided freshness reporting
+  (false-stale + detection recall + anchor coverage), two-tier failure-to-eval
+  (regression witness vs promoted invariant), three-ledger logical model,
+  recall rewording, claim-hygiene fixes (A5 p-value hypothesis, scoped 24×).
+
+**Files touched:** `paper/vnext-assessment-2026-08.md` (A2 + header + §1.7
+p-value precision + Part 6 measurement note), `paper/agentic-context-plan-v1.md`
+(A2 pointer), `AGENT_COORDINATION.md` (this entry). No code touched.
+
+**Verification:** docs-only; `python scripts/check_claims.py` → OK (21
+warnings, all warn-only, unchanged set).
+
+**Unchanged:** PF-11 gates all new capture surface; Track C build gate + kill
+conditions; Part 5 non-goals; Loops 5–6 / live hooks / paid runs / parked
+merges frozen; TM-5..7 range `31fc0ad..644731f` still awaiting reviewer verdict;
+IncrementalPacker module decision still queued with the owner.
+
+---
+
+### 2026-08-22 — Reverse-transplant input for the CI-floor unit (from market_zero survey)
+
+While transplanting the process layer INTO market_zero (owner-requested; see
+its docs/COORDINATION.md entry of this date), the survey found market_zero
+already has the STRUCTURAL floor our ratified A2.1 CI-floor unit needs —
+lift these when building it, don't reinvent:
+
+1. **protected-surface.txt → generated CODEOWNERS → sync-test triangle**
+   (market_zero: `protected-surface.txt`, `scripts/gen_codeowners.py`,
+   `tests/test_protected_surface_sync.py`) — the one mechanism that converts
+   bar-ownership discipline into structure.
+2. **Anti-vacuity meta-tests** (`test_lane1_suite_is_not_vacuous`, honest
+   smoke-manifest guard) — a gate suite that collapses to a shell fails
+   closed.
+3. **Stop-hook 6-tag self-review prompt** (settings.json `type: prompt`:
+   SILENT-LOSS / TEST-WEAKENED / BAR-MOVED / VACUOUS-GREEN / UNGROUNDED /
+   SILENT-CATCH; clean = "Turn review: clean.").
+4. **Two-lane CI split** (deterministic PR-hard vs live scheduled;
+   live-source-down never reds a PR; a skipped health gate fails loudly).
+5. `.claude/commands/review-gate.md` adversarial checklist (now upgraded
+   there with our acceptance-case format — port the merged version).
+
+Also noted for the owner: market_zero's Lane-1 run surfaced 3 live-data
+findings (2 stale openfda feeds + 1 orphan-ceiling breach) — its Lane-2 CI
+secret is a standing TODO, so CI may never have seen them.
+
+---
+
+### 2026-08-22 — Claude Code (session `60c1d612`) — TM-7 scoped re-review fix: bounded exception categories (`98e3649`)
+
+- **Reviewer finding addressed (one mechanism-scoped commit, as required):** `record_injection()` still persisted caller-supplied `error_class` strings behind an `isidentifier()` check — which "AKIAIOSFODNN7EXAMPLE" passes, and which `type(secret, (Exception,), {})` defeats by minting a class whose `__name__` IS the secret.
+- **Mechanism (`98e3649`):** the `error_class` parameter is REMOVED. Call sites hand the exception OBJECT (`exc=`); `classify_exception()` maps it by `isinstance` against stdlib bases into a closed set — `io_error` / `runtime_error` / `encoding_error` / `unknown_exception` (`ERROR_CLASSES`) — and only the category ever persists. Nothing of the input (name, message, repr) is serialized; a non-exception input (even the raw secret string) classifies to `unknown_exception`. Stable `ERROR_CODES` (`startup_read_failed` / `egress_scan_failed` / `emit_failed` / `unknown_error`) unchanged. The TM-14 hook stderr diagnostic routes through the SAME classifier — the minted-name vector leaks identically there, and the required acceptance ("no secret reaches stderr") cannot hold otherwise. PF-11 TM-7/TM-14 control text aligned in the same commit (TC-13b/TC-17b added) so the spec no longer prescribes the vulnerable control ("class names").
+- **Required acceptance cases → tests (all in `98e3649`):**
+  1. Direct API probe `error_class="AKIAIOSFODNN7EXAMPLE"` → parameter removed entirely; `test_direct_api_probe_error_class_cannot_persist_secret` pins TypeError + nothing on disk.
+  2. Dynamically named exception class carrying a secret → generic category: `test_tc13b_minted_class_name_with_secret_never_reaches_receipt` (receipt), `test_tc17b_minted_class_name_with_secret_never_reaches_stderr` (stderr), `test_classifier_bounds_every_diagnostic_category` (closed map incl. non-exception input), `test_exc_that_is_a_raw_secret_string_is_never_echoed`.
+  3. RuntimeError / BrokenPipeError paths keep useful stable categories: `runtime_error` (egress + startup-read tests) and `io_error` (broken-pipe emit test) re-pinned.
+  4. TC-13 / TC-17 still prove no secret reaches receipts, stderr, or surviving artifacts (assertions moved from class name to category — strictly narrower).
+  5. **Red on parent `4280bcd`** (worktree, this commit's two test files copied in): **10 failed / 64 passed** — 5 new adversarial tests red (parent stderr visibly printed `checkpoint_failed (AKIAIOSFODNN7EXAMPLE)`; parent journal persisted the minted name verbatim) + 5 existing tests red on the re-pinned category assertions.
+- **Verification (deterministic lane):** `python -m pytest tests/test_trust_telemetry.py tests/test_redaction.py -q` → **74 passed**; full `python -m pytest tests/ -q -m "not slow"` → **1788 passed / 35 skipped / 57 deselected in 61s** (+5 vs the 4280bcd baseline = the 5 new tests); `git diff --check 644731f..HEAD` clean; claims gate OK (21 warn-only); capability registry gate OK.
+- **Semantics note for the reviewer:** the journal field name stays `error_class` under schema `ctx-injections/v2` — no fold/telemetry logic routes on its value, pre-rule rows carrying raw class names remain opaque display text, so no schema bump; flagging in case you want v3 instead.
+- **Observation, NOT fixed here (scope):** `ctxpack/agent/backfill.py:215` formats `f"{type(e).__name__}: {e}"` into `BackfillRow.note` for the manual `ctxpack backfill` report (also `core/code/pack.py:173` FileWarning, `integrations/mcp_server.py:1182` MCP error surface). Different mechanisms/channels than the injection journal — reviewer to rule whether the TM-14 bounded-category rule should extend to them as a follow-up unit.
+- **Open for the reviewer:** scoped re-review of **`98e3649`** only. `31fc0ad`, `ca3fa13`, `174555d` approved and untouched; `644731f` unmodified (this commit supersedes its error_class mechanism forward, no history rewritten).
+- **Next on approval (mandated order):** PF-15 retention/deletion safety → PF-16/16b privacy/artifact controls → PF-17 cross-boundary suite (incl. raw-corpus egress fixture) → complete E-6. Frozen throughout until E-6 approval: Loops 5–6, live prompt hooks, paid runs, parked merges.

@@ -311,3 +311,51 @@ Remaining from the 90-day sequence: spec v1.1 trust annotations + op-level journ
 - COMPACT condition: one question-agnostic summary per trajectory length (≤1500 tokens, temp 0) — mirrors auto-compaction's question-blindness; generated once and reused across questions, as real compaction is.
 - BM25: Okapi (k1=1.5, b=0.75) over episodes, ~3.5K-BPE budget, chronological re-ordering — parity with CTX's typical hydration budget.
 - Judge: GPT-4o cross-model (answers by claude-sonnet-4-6), same protocol as v0.4/0.5 evals; rule grader secondary.
+
+---
+
+## Amendment A1 (2026-08-22) — CTX vNext assessment ratified
+
+An external design proposal ("CTX vNext — Engineering Knowledge Control
+Plane", 2026-08-22, authored against the stale public mirror) was assessed
+and dispositioned in **`paper/vnext-assessment-2026-08.md`**. Summary of what
+that amendment adds to this plan:
+
+- **Adopted (2):** evidence-anchored resume with fact invalidation — **by
+  executing the already-ratified Track C**
+  (`docs/track-c-verified-freshness-spec.md`; the vNext proposal
+  independently converged on the mechanism Track C ratified 2026-07-30) —
+  and failure-to-eval codification (`ReviewFinding` objects + a
+  finding-not-fixed-without-linked-test lint). Both sequenced **after**
+  PF-11 preflight completion (new capture surface gets threat cases first);
+  Track C additionally keeps its own build gate (spike + calibration + H-4).
+- **Rejected for now (recorded non-goals):** org hub, cross-repo federation,
+  `ctxd` daemon, model router, autonomous loop runner/auto-merge, dedicated
+  graph database, multi-coefficient context scoring.
+- **Design constraint carried forward:** the state plane is a live
+  evidence-receipt stream *beside* the replayable transcript fold — never
+  merged into `events.jsonl` (byte-replayability of the spine is
+  non-negotiable).
+- **`IncrementalPacker`:** recommendation on record is retire-over-harden
+  (mtime fast-path contradicts the evidence-freshness invariant); decision
+  remains with the owner as queued by the reviewer.
+
+The assessment doc also contains the current-state grounding (Part 1) that
+external reviewers should use instead of the public mirror.
+
+**A2 (2026-08-22, same day):** after the external architect's adversarial
+review of the plain-English brief, the owner ratified the second-round
+slate — see Amendment A2 in `paper/vnext-assessment-2026-08.md` for full
+terms. In one line each: **CI floor** ratified as a precondition for any
+autonomous-loop unfreeze, with `ctx verify --json` as the machine-readable
+gate-manifest contract (agents are never the authority on whether their own
+work passed); **federation envelope** ratified as a standing per-artifact
+constraint (repo_id / artifact_type / schema_version / producer_version /
+content_hash / namespace / provenance / export_classification — envelope,
+never a protocol; export_classification threat-gated, default repo-private);
+**discovery lane** ratified as a contingent, telemetry-gated design option
+(LLM proposes into quarantine only — "no LLM in the authoritative write
+path"); **name** ratified as "engineering continuity substrate" ("control"
+excluded while B6 advisory posture stands). Two-sided freshness reporting,
+two-tier failure-to-eval, and the three-ledger logical model ratified with
+it. Frozen items and non-goals unchanged.
