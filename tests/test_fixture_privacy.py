@@ -1,45 +1,120 @@
-"""E-6A standing gate, widened per the 2026-07-12 substantive
-re-review (finding 4): NO committed fixture may carry real user data —
-usernames, user-profile paths, or raw session content tied to a real
-person. Fictional users authored deliberately into synthetic fixtures
-are allowlisted BY NAME; any other name in a home-directory path
-fails. The owner's username is forbidden outright, including the
-munged Claude-project-directory form.
+"""PF-16 committed-fixture privacy gate.
 
-This sweeps ALL of tests/fixtures/**, not one fixture family — the
-rank/v1-local gate remains as a tighter check on that directory.
-"""
+Green-field unit: red on the parent commit (module + allowlist absent).
+The live-tree test is the GATE; the violation-fixture test is the
+committed negative control the gate discipline requires (a gate never
+observed failing must not count as a gate)."""
 
-import re
-from pathlib import Path
+import json
+import os
 
-FIXTURES = Path(__file__).parent / "fixtures"
+import pytest
 
-# forbidden outright, any casing (the owner's identity)
-FORBIDDEN_SUBSTRINGS = ("kapil", "c--users-kapil")
+from ctxpack.agent.fixture_privacy import (
+    ALLOWLIST_FILE,
+    ALLOWLIST_SCHEMA,
+    GateError,
+    committed_files,
+    gate_findings,
+    load_allowlist,
+    run_gate,
+    scan_file,
+    scan_text,
+)
 
-# fictional users deliberately authored into synthetic fixtures
-# (gen_synth_cohort.py / gen_synth_session.py / the unicode prose
-# sample). Adding a name here is a review-visible act.
-ALLOWED_FICTIONAL_USERS = {"dev", "müller", "zoë"}
-
-_HOME_SEG = re.compile(r"[\\/](?:users|home)[\\/]+([^\\/\s\"'`|>]+)",
-                       re.IGNORECASE)
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+VIOLATION = os.path.join(REPO_ROOT, "tests", "privacy_gate_violation",
+                         "planted.txt")
 
 
-def test_no_committed_fixture_carries_real_user_data():
-    assert FIXTURES.is_dir()
-    hits = []
-    for f in sorted(FIXTURES.rglob("*")):
-        if not f.is_file():
-            continue
-        text = f.read_bytes().decode("utf-8", errors="ignore").lower()
-        rel = str(f.relative_to(FIXTURES))
-        for pat in FORBIDDEN_SUBSTRINGS:
-            if pat in text:
-                hits.append((rel, pat))
-        for m in _HOME_SEG.finditer(text):
-            if m.group(1) not in ALLOWED_FICTIONAL_USERS:
-                hits.append((rel, m.group(0)))
-    assert not hits, (
-        f"real-user data in committed fixtures (E-6A gate): {hits[:10]}")
+# ── the live gate ──
+
+def test_committed_trees_match_the_reviewed_allowlist():
+    """THE gate: every committed file under the fixture/benchmark/
+    artifact roots matches the reviewed allowlist exactly — new hits,
+    grown hits, and stale allowlist entries all fail. Forward guard
+    freezing the reviewed 2026-08-22 state."""
+    findings = run_gate(REPO_ROOT)
+    assert findings == [], "\n".join(findings)
+
+
+def test_gate_is_deterministic():
+    from ctxpack.agent.fixture_privacy import scan_tree
+    assert scan_tree(REPO_ROOT) == scan_tree(REPO_ROOT)
+
+
+# ── the committed negative control ──
+
+def test_gate_rejects_the_committed_violation_fixture():
+    """Can-fail proof: the planted fixture (outside the scanned roots)
+    trips BOTH detector families and would fail the gate if it ever
+    entered a scanned tree with no allowlist entry."""
+    counts = scan_file(VIOLATION)
+    assert any(d.startswith("secret:") for d in counts)
+    assert counts.get("user_path", 0) >= 1
+    findings = gate_findings({"tests/privacy_gate_violation/planted.txt":
+                              counts}, allowed={})
+    assert findings and all("NEW hit" in f for f in findings)
+
+
+# ── exact-match semantics, both directions ──
+
+def test_new_grown_and_stale_hits_all_fail():
+    observed = {"a.txt": {"secret:secret-assignment": 2}}
+    ok = {("a.txt", "secret:secret-assignment"): 2}
+    assert gate_findings(observed, ok) == []
+    assert any("NEW hit" in f for f in gate_findings(observed, {}))
+    grown = {("a.txt", "secret:secret-assignment"): 1}
+    assert any("CHANGED hit" in f for f in gate_findings(observed, grown))
+    stale = {**ok, ("gone.txt", "user_path"): 3}
+    assert any("STALE allowlist entry" in f
+               for f in gate_findings(observed, stale))
+
+
+def test_unscanned_file_is_a_finding_not_a_silent_skip(tmp_path):
+    """Can-fail: undecodable bytes cannot be proven clean — they must
+    be explicitly allowlisted or they fail."""
+    bad = tmp_path / "blob.bin"
+    bad.write_bytes(b"\xff\xfe\x00garbage")
+    assert scan_file(str(bad)) == {"unscanned": 1}
+    findings = gate_findings({"blob.bin": {"unscanned": 1}}, allowed={})
+    assert findings and "unscanned" in findings[0]
+
+
+def test_user_path_detector_counts_distinct_paths():
+    text = ("saved to C:\\Users\\alice\\one and C:\\Users\\alice\\one "
+            "then /home/bob/two")
+    assert scan_text(text)["user_path"] == 2
+
+
+# ── the gate must fail loudly when it cannot run ──
+
+def test_enumeration_failure_raises_never_passes(tmp_path):
+    """Can-fail: a non-repo root means the gate could not enumerate —
+    that is a GateError, never an empty (passing) scan."""
+    with pytest.raises(GateError):
+        committed_files(str(tmp_path))
+
+
+def test_malformed_allowlist_refuses(tmp_path):
+    for body in ('{"schema": "wrong/v9", "entries": []}',
+                 '{"schema": "%s", "entries": [{"path": "x"}]}'
+                 % ALLOWLIST_SCHEMA,
+                 "not json at all"):
+        p = tmp_path / "allow.json"
+        p.write_text(body, encoding="utf-8")
+        with pytest.raises(GateError):
+            load_allowlist(str(p))
+
+
+def test_allowlist_entries_all_carry_a_review_note():
+    """Forward guard: the bar itself stays reviewable — every entry has
+    a non-empty why (load_allowlist enforces it; this pins the live
+    file, and pins that the violation fixture is NOT allowlisted)."""
+    allowed = load_allowlist(os.path.join(REPO_ROOT, ALLOWLIST_FILE))
+    assert allowed, "allowlist unexpectedly empty"
+    raw = json.load(open(os.path.join(REPO_ROOT, ALLOWLIST_FILE),
+                         encoding="utf-8"))
+    assert raw["schema"] == ALLOWLIST_SCHEMA
+    assert all(str(e["why"]).strip() for e in raw["entries"])
+    assert not any("privacy_gate_violation" in p for p, _ in allowed)
