@@ -1,0 +1,328 @@
+"""Retention/deletion of per-session ledger artifacts (PF-15, TM-15-bound).
+
+The deletion unit is itself an attack surface (PF-11 §TM-15): path
+traversal in candidate lists, symlinks/junctions pointing outside the
+ledger, TOCTOU between plan and apply, and a dry-run that diverges from
+what apply actually deletes. Every control here is structural, not
+advisory:
+
+- **Scope is a closed set.** Only direct children of the ledger dir
+  named ``session-<prefix>.ctx`` / ``session-<prefix>-gist.md`` are ever
+  candidates. ``latest-gist.md``, ``project-gist.md``, every journal
+  (``checkpoints/events/injections/ratifications``.jsonl) and every
+  quarantine file are outside the vocabulary — they cannot be selected,
+  not merely "are not selected".
+- **Ordering comes from the checkpoint journal only.** The keep-window
+  is the last N distinct session ids by journal append order — never
+  mtime (backfilled timestamps prove nothing, and mtime comparison is
+  this repo's recorded IncrementalPacker sin). A journal that cannot be
+  read exactly (any malformed row) REFUSES the whole plan: a destructive
+  operation does not guess at ordering (fail-closed, TM-3 discipline).
+- **Links are never followed and never deleted** (TC-18): any symlink or
+  Windows reparse point (junctions included) is skipped and reported, at
+  enumeration AND re-checked at unlink time.
+- **Containment is re-checked at unlink time**: a candidate must
+  realpath-resolve inside the ledger dir both when planned and when
+  unlinked.
+- **Apply confirms a plan hash** (TC-19): ``apply`` recomputes the plan
+  from current state and compares its sha256 (path + size + content
+  sha256 of every deletion) against the hash the caller confirms. ANY
+  drift — a new session, an added candidate, swapped file bytes —
+  aborts with a controlled nonzero before anything is unlinked.
+- **Unattributable files are never deleted**: artifacts with no journal
+  row (orphans) and prefixes shared by more than one full session id
+  (ambiguous) are skipped and reported.
+
+Honesty (PF-15 mandate): deleting ledger artifacts deletes ONLY the
+ledger's copy. See :data:`UPSTREAM_NOTE` — no claim is ever made about
+the vendor transcript store.
+
+Receipts: ``apply`` appends one row to ``retention.jsonl`` AFTER the
+deletions it attests to (same order-of-write rule as the injection log).
+Rows carry ledger-relative paths and stable reason codes only — never
+exception text, never absolute paths (TM-7/TM-14 discipline). The
+receipt is a live journal like ``injections.jsonl``, deliberately
+outside the byte-replayable transcript fold.
+"""
+
+from __future__ import annotations
+
+import datetime
+import hashlib
+import json
+import os
+import stat
+from dataclasses import dataclass, field
+
+RETENTION_LOG = "retention.jsonl"
+PLAN_SCHEMA = "ctx-retention-plan/v1"
+RECEIPT_SCHEMA = "ctx-retention/v1"
+
+CTX_PREFIX, CTX_SUFFIX = "session-", ".ctx"
+GIST_SUFFIX = "-gist.md"
+
+# Fixed reason codes — the only strings that can reach a receipt row
+# (TM-7 discipline: a journal must be structurally unable to receive
+# free text).
+SKIP_LINK = "link"                      # symlink/junction/reparse point
+SKIP_OUTSIDE = "outside_ledger"         # realpath escaped the ledger dir
+SKIP_NOT_REGULAR = "not_regular"        # directory or special file
+SKIP_ORPHAN = "orphan"                  # no journal row claims it
+SKIP_AMBIGUOUS = "ambiguous_prefix"     # >1 full id shares the 8-char prefix
+SKIP_UNREADABLE = "unreadable"          # lstat/read failed at plan time
+SKIP_UNLINK_FAILED = "unlink_failed"    # os.remove failed at apply time
+SKIP_REASONS = (SKIP_LINK, SKIP_OUTSIDE, SKIP_NOT_REGULAR, SKIP_ORPHAN,
+                SKIP_AMBIGUOUS, SKIP_UNREADABLE, SKIP_UNLINK_FAILED)
+
+# Refusal codes (controlled aborts; the CLI maps every one to a nonzero
+# exit, never a traceback)
+ERR_INVALID_KEEP = "invalid_keep"
+ERR_NO_JOURNAL = "no_journal"
+ERR_JOURNAL_DEGRADED = "journal_degraded"
+ERR_PLAN_MISMATCH = "plan_mismatch"
+ERR_RECEIPT_WRITE_FAILED = "receipt_write_failed"
+
+UPSTREAM_NOTE = (
+    "Note: this deletes artifacts inside the ledger dir ONLY. The vendor "
+    "transcript store (e.g. ~/.claude/projects/**) is upstream-controlled "
+    "and is not touched; no claim is made about upstream retention.")
+
+
+class RetentionError(Exception):
+    """Controlled refusal. ``code`` is one of the ERR_* constants;
+    ``detail`` may carry ledger-relative paths or counts ONLY — never
+    exception text (TM-7)."""
+
+    def __init__(self, code: str, detail: str = ""):
+        self.code = code
+        self.detail = detail
+        super().__init__(code if not detail else f"{code}: {detail}")
+
+
+@dataclass
+class PlanEntry:
+    path: str       # ledger-relative (a direct-child filename)
+    size: int
+    sha256: str
+
+
+@dataclass
+class RetentionPlan:
+    keep: int
+    sessions_total: int                      # distinct ids in the journal
+    kept_sessions: "list[str]"               # full ids, newest last
+    delete: "list[PlanEntry]" = field(default_factory=list)
+    skipped: "list[tuple[str, str]]" = field(default_factory=list)
+    rows_unattributed: int = 0               # journal rows with no session id
+    plan_hash: str = ""
+
+
+@dataclass
+class RetentionResult:
+    plan: RetentionPlan
+    deleted: "list[str]" = field(default_factory=list)
+    skipped: "list[tuple[str, str]]" = field(default_factory=list)
+    receipt_written: bool = False
+
+
+def _is_link(path: str) -> bool:
+    """True for anything that must never be followed or deleted: POSIX
+    symlinks and every Windows reparse point (junctions included —
+    ``islink`` alone misses those)."""
+    if os.path.islink(path):
+        return True
+    try:
+        st = os.lstat(path)
+    except OSError:
+        return False        # enumeration reports lstat failures separately
+    attrs = getattr(st, "st_file_attributes", 0)
+    reparse = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    return bool(attrs & reparse)
+
+
+def _contained(path: str, root: str) -> bool:
+    rp = os.path.normcase(os.path.realpath(path))
+    root_rp = os.path.normcase(os.path.realpath(root))
+    return rp.startswith(root_rp + os.sep)
+
+
+def _unsafe_reason(path: str, root: str):
+    """The last-line guard shared by plan and unlink: reason code when
+    ``path`` must not be deleted, else ``None``. Checked at plan time
+    AND again immediately before every ``os.remove`` — the plan hash
+    should catch all drift first, but the unlink guard does not trust
+    that it did."""
+    if _is_link(path):
+        return SKIP_LINK
+    try:
+        st = os.lstat(path)
+    except OSError:
+        return SKIP_UNREADABLE
+    if not stat.S_ISREG(st.st_mode):
+        return SKIP_NOT_REGULAR
+    if not _contained(path, root):
+        return SKIP_OUTSIDE
+    return None
+
+
+def _session_prefix(name: str):
+    """The 8-char-prefix key of a session artifact filename, else None.
+    Only these two shapes exist in retention's vocabulary."""
+    if not name.startswith(CTX_PREFIX):
+        return None
+    if name.endswith(GIST_SUFFIX):
+        stem = name[len(CTX_PREFIX):-len(GIST_SUFFIX)]
+    elif name.endswith(CTX_SUFFIX):
+        stem = name[len(CTX_PREFIX):-len(CTX_SUFFIX)]
+    else:
+        return None
+    return stem or None
+
+
+def _journal_order(ledger_dir: str):
+    """``(ordered distinct full ids, rows_unattributed)`` from
+    ``checkpoints.jsonl`` append order (last appearance wins).
+
+    Fail-closed: a missing journal or ANY malformed row refuses the
+    plan — deletion ordering is never guessed from a journal that
+    cannot be read exactly."""
+    path = os.path.join(ledger_dir, "checkpoints.jsonl")
+    try:
+        with open(path, "rb") as f:
+            raw = f.read()
+    except FileNotFoundError:
+        raise RetentionError(ERR_NO_JOURNAL)
+    except OSError:
+        # an unreadable journal is not a missing one (TM-3): refuse,
+        # never treat as empty
+        raise RetentionError(ERR_JOURNAL_DEGRADED, "journal unreadable")
+    ordered: "list[str]" = []
+    unattributed = 0
+    for i, line in enumerate(raw.splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line.decode("utf-8", errors="strict"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise RetentionError(ERR_JOURNAL_DEGRADED, f"row {i}")
+        if not isinstance(row, dict) or not isinstance(
+                row.get("session", ""), str):
+            raise RetentionError(ERR_JOURNAL_DEGRADED, f"row {i}")
+        sid = row.get("session", "")
+        if not sid:
+            unattributed += 1
+            continue
+        if sid in ordered:
+            ordered.remove(sid)     # last appearance decides recency
+        ordered.append(sid)
+    return ordered, unattributed
+
+
+def _hash_plan(keep: int, delete: "list[PlanEntry]") -> str:
+    payload = {
+        "schema": PLAN_SCHEMA,
+        "keep": keep,
+        "delete": [{"path": e.path, "size": e.size, "sha256": e.sha256}
+                   for e in sorted(delete, key=lambda e: e.path)],
+    }
+    blob = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+def plan_retention(ledger_dir: str, keep: int) -> RetentionPlan:
+    """Deterministic deletion plan: same ledger bytes ⇒ same plan and
+    same ``plan_hash`` (sorted enumeration, journal-order window, no
+    wall-clock anywhere in the plan)."""
+    if not isinstance(keep, int) or keep < 1:
+        raise RetentionError(ERR_INVALID_KEEP, str(keep))
+    ordered, unattributed = _journal_order(ledger_dir)
+    kept = ordered[-keep:]
+    prefix_ids: "dict[str, set[str]]" = {}
+    for sid in ordered:
+        prefix_ids.setdefault(sid[:8], set()).add(sid)
+
+    plan = RetentionPlan(keep=keep, sessions_total=len(ordered),
+                         kept_sessions=list(kept),
+                         rows_unattributed=unattributed)
+    try:
+        names = sorted(os.listdir(ledger_dir))
+    except OSError:
+        raise RetentionError(ERR_JOURNAL_DEGRADED, "ledger dir unreadable")
+    for name in names:
+        prefix = _session_prefix(name)
+        if prefix is None:
+            continue                      # outside retention's vocabulary
+        full = os.path.join(ledger_dir, name)
+        reason = _unsafe_reason(full, ledger_dir)
+        if reason:
+            plan.skipped.append((name, reason))
+            continue
+        ids = prefix_ids.get(prefix)
+        if not ids:
+            plan.skipped.append((name, SKIP_ORPHAN))
+            continue
+        if len(ids) > 1:
+            plan.skipped.append((name, SKIP_AMBIGUOUS))
+            continue
+        if next(iter(ids)) in kept:
+            continue
+        try:
+            with open(full, "rb") as f:
+                blob = f.read()
+        except OSError:
+            plan.skipped.append((name, SKIP_UNREADABLE))
+            continue
+        plan.delete.append(PlanEntry(
+            path=name, size=len(blob),
+            sha256=hashlib.sha256(blob).hexdigest()))
+    plan.plan_hash = _hash_plan(keep, plan.delete)
+    return plan
+
+
+def apply_retention(ledger_dir: str, keep: int,
+                    confirmed_hash: str) -> RetentionResult:
+    """Delete exactly what a prior plan confirmed, or nothing at all.
+
+    The plan is recomputed from CURRENT state; any difference from the
+    confirmed hash — file added, removed, or swapped between plan and
+    apply — raises ``plan_mismatch`` before a single unlink (TC-19).
+    Each surviving deletion re-runs the unsafe-path guard immediately
+    before ``os.remove`` (TC-18 defense in depth)."""
+    plan = plan_retention(ledger_dir, keep)
+    if not confirmed_hash or plan.plan_hash != confirmed_hash:
+        raise RetentionError(ERR_PLAN_MISMATCH,
+                             f"{len(plan.delete)} candidate(s) at apply time")
+    result = RetentionResult(plan=plan, skipped=list(plan.skipped))
+    for entry in plan.delete:
+        full = os.path.join(ledger_dir, entry.path)
+        reason = _unsafe_reason(full, ledger_dir)
+        if reason:
+            result.skipped.append((entry.path, reason))
+            continue
+        try:
+            os.remove(full)
+        except OSError:
+            result.skipped.append((entry.path, SKIP_UNLINK_FAILED))
+            continue
+        result.deleted.append(entry.path)
+
+    # Receipt AFTER the deletions it attests to — a receipt that can be
+    # true while the thing it certifies did not happen is worse than no
+    # receipt. Reason codes and relative paths only.
+    row = {
+        "ts": datetime.datetime.now(
+            datetime.timezone.utc).isoformat(timespec="seconds"),
+        "schema": RECEIPT_SCHEMA,
+        "keep": keep,
+        "plan_hash": plan.plan_hash,
+        "deleted": sorted(result.deleted),
+        "skipped": [{"path": p, "reason": r} for p, r in result.skipped],
+    }
+    try:
+        with open(os.path.join(ledger_dir, RETENTION_LOG), "a",
+                  encoding="utf-8") as f:
+            f.write(json.dumps(row) + "\n")
+        result.receipt_written = True
+    except OSError:
+        result.receipt_written = False
+    return result

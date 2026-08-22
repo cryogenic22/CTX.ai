@@ -365,6 +365,26 @@ def _run(argv: list[str]) -> int:
                             help="Also re-pack sessions modified in the "
                                  "last 15 min (normally left to the hooks)")
 
+    # retention — TM-15-bound deletion of old per-session artifacts
+    p_ret = sub.add_parser(
+        "retention",
+        help="Plan (default) or apply deletion of old per-session ledger "
+             "artifacts. TM-15-bound: journal-order keep-window, realpath "
+             "containment, links/junctions never followed, --apply "
+             "requires the plan hash it confirms")
+    p_ret.add_argument("--keep", type=int, required=True,
+                       help="Sessions to keep (the N most recently "
+                            "checkpointed; ordering from checkpoints.jsonl "
+                            "append order, never mtime)")
+    p_ret.add_argument("--out", default=".claude/ctx",
+                       help="Ledger dir (default: .claude/ctx)")
+    p_ret.add_argument("--apply", action="store_true",
+                       help="Actually delete. Requires --plan-hash from a "
+                            "prior plan run; any drift since aborts")
+    p_ret.add_argument("--plan-hash", dest="plan_hash", default="",
+                       help="sha256 printed by the plan run this apply "
+                            "confirms")
+
     # scorecard — Layer-1 cross-repo telemetry aggregation
     p_score = sub.add_parser(
         "scorecard",
@@ -474,6 +494,8 @@ def _run(argv: list[str]) -> int:
             return _cmd_lessons(args)
         elif args.command == "backfill":
             return _cmd_backfill(args)
+        elif args.command == "retention":
+            return _cmd_retention(args)
         elif args.command == "scorecard":
             return _cmd_scorecard(args)
         elif args.command == "session":
@@ -1115,6 +1137,61 @@ def _print_receipt(result) -> None:
     print(f"            sha256 {result.gist_sha256[:16]}  "
           f"({result.gist_bpe} BPE)")
     print(f"  lint:     {lint}")
+
+
+def _cmd_retention(args: argparse.Namespace) -> int:
+    """PF-15: plan (default) or apply retention over the ledger dir.
+
+    Exit codes: 0 = plan printed / apply fully succeeded; 1 = controlled
+    refusal (bad journal, plan-hash mismatch) or partial apply (skips,
+    unlink failures, unwritten receipt); 2 = usage (--apply without the
+    hash it must confirm). Never a traceback for a refusal."""
+    from ..agent.retention import (
+        UPSTREAM_NOTE,
+        RetentionError,
+        apply_retention,
+        plan_retention,
+    )
+
+    if args.apply and not args.plan_hash:
+        print("retention: --apply requires --plan-hash <sha256> from a "
+              "prior plan run (the explicit-confirm step is not optional)",
+              file=sys.stderr)
+        return 2
+    try:
+        if args.apply:
+            result = apply_retention(args.out, args.keep, args.plan_hash)
+            for path in result.deleted:
+                print(f"deleted  {path}")
+            for path, reason in result.skipped:
+                print(f"skipped  {path}  [{reason}]")
+            print(f"retention apply: {len(result.deleted)} deleted, "
+                  f"{len(result.skipped)} skipped; receipt "
+                  f"{'written' if result.receipt_written else 'NOT written'}")
+            print(UPSTREAM_NOTE)
+            clean = not result.skipped and result.receipt_written
+            return 0 if clean else 1
+        plan = plan_retention(args.out, args.keep)
+        for entry in plan.delete:
+            print(f"delete   {entry.path}  ({entry.size} bytes)")
+        for path, reason in plan.skipped:
+            print(f"skipped  {path}  [{reason}]")
+        print(f"retention plan: keep {plan.keep} of "
+              f"{plan.sessions_total} session(s); "
+              f"{len(plan.delete)} candidate(s), "
+              f"{len(plan.skipped)} skipped"
+              + (f", {plan.rows_unattributed} journal row(s) unattributed"
+                 if plan.rows_unattributed else ""))
+        print(f"plan sha256: {plan.plan_hash}")
+        if plan.delete:
+            print(f"to apply:  ctxpack retention --keep {plan.keep} "
+                  f"--out {args.out} --apply --plan-hash {plan.plan_hash}")
+        print(UPSTREAM_NOTE)
+        return 0
+    except RetentionError as e:
+        print(f"retention: refused ({e.code})"
+              + (f" — {e.detail}" if e.detail else ""), file=sys.stderr)
+        return 1
 
 
 def _cmd_backfill(args: argparse.Namespace) -> int:
