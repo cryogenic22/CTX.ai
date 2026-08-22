@@ -762,3 +762,27 @@ secret is a standing TODO, so CI may never have seen them.
 - **Verdict (relayed verbatim by the owner):** the required-fix note restated in full, then: "approved." — scoped re-review of `98e3649` passes. With `31fc0ad` / `ca3fa13` / `174555d` already approved, the **TM-5..7 chain is CLOSED** (`31fc0ad..644731f` + `98e3649`).
 - **No ruling given** on the two non-blocking flags in the `98e3649` handoff (the `type(e).__name__: {e}` sites in `backfill.py:215` / `core/code/pack.py:173` / `mcp_server.py:1182`, and `error_class` v2-vs-v3 schema) — they remain OPEN reviewer questions, non-blocking.
 - **Unfrozen by this approval, per the reviewer's mandated order:** PF-15 retention/deletion safety (TM-15-bound) → PF-16/16b → PF-17 cross-boundary suite → complete E-6. Still frozen until E-6 approval: Loops 5–6, live prompt hooks, paid runs, parked merges.
+
+---
+
+### 2026-08-22 — Claude Code (session `60c1d612`) — PF-15 retention/deletion safety implemented (`5a0d96c`); review requested
+
+- **Unit (first of the post-approval chain):** `ctxpack retention` — plan by default, destruction only via `--apply --plan-hash <sha256>`. New module `ctxpack/agent/retention.py` (stdlib only), CLI wiring in `ctxpack/cli/main.py`, suite `tests/test_retention.py` (16 tests).
+- **TM-15 controls, all structural:**
+  - **Closed vocabulary:** only direct-child `session-<prefix>.ctx` / `session-<prefix>-gist.md` can be candidates; `latest-gist.md`, `project-gist.md`, all journals, and quarantine files are outside the pattern space — unselectable, not merely unselected.
+  - **Ordering:** keep-window = last N distinct session ids by `checkpoints.jsonl` APPEND order (never mtime). Missing journal → `no_journal` refusal; any malformed row → `journal_degraded` refusal (fail-closed: a destructive op never guesses ordering). Unattributed rows (empty session) counted + reported, non-fatal.
+  - **TC-18:** symlinks AND Windows reparse points (junctions; `st_file_attributes & FILE_ATTRIBUTE_REPARSE_POINT`, since `islink` misses junctions) are never followed, never deleted — skip + report at enumeration, re-checked by the same `_unsafe_reason` guard immediately before every `os.remove` (defense in depth; also re-checks realpath containment + regular-file at unlink time).
+  - **TC-19:** `--apply` recomputes the plan from current state; the confirmed hash covers path + size + CONTENT sha256 of every deletion, so an added file, a shifted keep-window, or swapped bytes all abort `plan_mismatch` (controlled exit 1) before a single unlink. `--apply` without `--plan-hash` is usage error exit 2 — explicit confirm is not optional.
+  - **Never-attributable never deleted:** orphan artifacts (no journal row) and ambiguous 8-char prefixes (>1 full id) skip + report through plan AND apply.
+  - **Receipts:** one row to `retention.jsonl` (schema `ctx-retention/v1`) appended AFTER the deletions it attests to (injection-log order-of-write rule); ledger-relative paths + fixed reason codes only (`link`/`outside_ledger`/`not_regular`/`orphan`/`ambiguous_prefix`/`unreadable`/`unlink_failed`) — no exception text, no absolute paths (test-pinned).
+  - **Honesty (PF-15 mandate):** every plan/apply prints the upstream non-claim (`UPSTREAM_NOTE`): ledger artifacts only; the vendor transcript store is upstream-controlled and untouched.
+- **Determinism:** plan is byte-deterministic given ledger state (sorted enumeration, journal-order window, canonical-JSON hash; no wall-clock in the plan). The receipt `ts` is a live-journal timestamp, same class as `injections.jsonl`, outside the replayable fold.
+- **Red on parent `d5ea46a`:** all 16 tests fail (collection error — module absent; the honest green-field red). Docstrings self-identify forward guards vs can-fail cases per the vacuous-green rule.
+- **Tests run:** `python -m pytest tests/test_retention.py -q` → **16 passed** (TC-18 exercised with a real junction/symlink on this host; skips only if the host can create neither); full non-slow → **1804 passed / 35 skipped / 57 deselected in 101s** (+16 vs 1788 baseline); claims gate OK (21 warn-only); capability registry OK.
+- **Design decisions for the reviewer:**
+  1. Keep-count policy only in v1 — age-based retention deferred (wall-clock ban; would need an explicit `--as-of` ruling).
+  2. Ambiguous prefixes always skip, even when every colliding id is outside the keep-window — conservative reading of TM-15; relaxable later if you rule it safe.
+  3. Fail-closed on ANY malformed checkpoint row (vs skipping bad rows) — ordering integrity outranks convenience for deletions; quarantine-rotation-style recovery for checkpoints.jsonl was NOT built (owner scope call).
+  4. No MCP tool for retention — destructive surface stays CLI-only with the explicit-confirm step.
+- **Open for the reviewer:** review of **`5a0d96c`** (one unit). Also still open from the previous entry, non-blocking: the `type(e).__name__` free-text sites (backfill/pack/mcp_server) and `error_class` v2-vs-v3.
+- **Next per the mandated order:** PF-16 (privacy scan across ALL committed fixtures) + PF-16b (committed-artifact path aliasing) → PF-17 cross-boundary suite (absorbs TC-1..20 incl. the raw-corpus old-ledger/gist egress fixture) → complete E-6. Frozen until E-6 approval: Loops 5–6, live prompt hooks, paid runs, parked merges.
