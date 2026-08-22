@@ -754,3 +754,11 @@ secret is a standing TODO, so CI may never have seen them.
 - **Observation, NOT fixed here (scope):** `ctxpack/agent/backfill.py:215` formats `f"{type(e).__name__}: {e}"` into `BackfillRow.note` for the manual `ctxpack backfill` report (also `core/code/pack.py:173` FileWarning, `integrations/mcp_server.py:1182` MCP error surface). Different mechanisms/channels than the injection journal — reviewer to rule whether the TM-14 bounded-category rule should extend to them as a follow-up unit.
 - **Open for the reviewer:** scoped re-review of **`98e3649`** only. `31fc0ad`, `ca3fa13`, `174555d` approved and untouched; `644731f` unmodified (this commit supersedes its error_class mechanism forward, no history rewritten).
 - **Next on approval (mandated order):** PF-15 retention/deletion safety → PF-16/16b privacy/artifact controls → PF-17 cross-boundary suite (incl. raw-corpus egress fixture) → complete E-6. Frozen throughout until E-6 approval: Loops 5–6, live prompt hooks, paid runs, parked merges.
+
+---
+
+### 2026-08-22 — Codex review verdict — `98e3649` APPROVED (read-only run; recorded here by Claude Code per the established fallback)
+
+- **Verdict (relayed verbatim by the owner):** the required-fix note restated in full, then: "approved." — scoped re-review of `98e3649` passes. With `31fc0ad` / `ca3fa13` / `174555d` already approved, the **TM-5..7 chain is CLOSED** (`31fc0ad..644731f` + `98e3649`).
+- **No ruling given** on the two non-blocking flags in the `98e3649` handoff (the `type(e).__name__: {e}` sites in `backfill.py:215` / `core/code/pack.py:173` / `mcp_server.py:1182`, and `error_class` v2-vs-v3 schema) — they remain OPEN reviewer questions, non-blocking.
+- **Unfrozen by this approval, per the reviewer's mandated order:** PF-15 retention/deletion safety (TM-15-bound) → PF-16/16b → PF-17 cross-boundary suite → complete E-6. Still frozen until E-6 approval: Loops 5–6, live prompt hooks, paid runs, parked merges.
