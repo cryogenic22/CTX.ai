@@ -63,6 +63,45 @@ FAILED = "failed"       # hook raised; the session started with no memory
 ERROR_CODES = ("startup_read_failed", "egress_scan_failed",
                "emit_failed", "unknown_error")
 
+# TM-7, second finding: a class NAME is caller-controlled text too. An
+# identifier check does not bound it — "AKIAIOSFODNN7EXAMPLE" is a
+# valid identifier, and type(secret, (Exception,), {}) mints a class
+# whose __name__ IS the secret. So no class name is ever serialized:
+# the exception OBJECT is classified by isinstance against stdlib
+# bases only, and exactly one of these fixed categories can reach a
+# row — or a hook stderr line, which shares the classifier (TM-14).
+# Rows written before this rule carry raw class names; error_class is
+# opaque display text to every reader either way.
+IO_ERROR = "io_error"
+RUNTIME_ERROR = "runtime_error"
+ENCODING_ERROR = "encoding_error"
+UNKNOWN_EXCEPTION = "unknown_exception"
+ERROR_CLASSES = (IO_ERROR, RUNTIME_ERROR, ENCODING_ERROR,
+                 UNKNOWN_EXCEPTION)
+
+# UnicodeError subclasses ValueError, not OSError, so nothing overlaps
+# today — but this stays an ordered tuple, not a dict, so the first
+# match is deterministic if a future base ever does.
+_EXCEPTION_BASES = ((UnicodeError, ENCODING_ERROR),
+                    (OSError, IO_ERROR),
+                    (RuntimeError, RUNTIME_ERROR))
+
+
+def classify_exception(exc: object) -> str:
+    """Bounded diagnostic category for an exception object.
+
+    Returns one of :data:`ERROR_CLASSES` — never ``type(exc).__name__``,
+    never message text, never any caller-supplied string. Anything that
+    is not an instance of a recognized stdlib base (including a
+    non-exception handed in by mistake) maps to ``unknown_exception``.
+    The input is classified, not serialized: no byte of it can reach
+    the channel the category lands in.
+    """
+    for base, label in _EXCEPTION_BASES:
+        if isinstance(exc, base):
+            return label
+    return UNKNOWN_EXCEPTION
+
 
 def record_injection(out_dir: str,
                      *,
@@ -70,16 +109,17 @@ def record_injection(out_dir: str,
                      context: str = "",
                      outcome: str = "",
                      error: str = "",
-                     error_class: str = "",
+                     exc: object = None,
                      gap_warning: bool = False,
                      outgoing_redactions: int = 0,
                      source: str = "session-start") -> None:
     """Append one injection row. Never raises.
 
-    ``error`` takes a stable code from :data:`ERROR_CODES`;
-    ``error_class`` the raising exception's class name (an identifier,
-    or it is dropped). Free text handed to either is never persisted
-    (TM-7/TC-13)."""
+    ``error`` takes a stable code from :data:`ERROR_CODES`; ``exc`` the
+    raising exception OBJECT, persisted only as its
+    :func:`classify_exception` category. Free text handed to ``error``
+    coerces to ``unknown_error``, and no parameter can put a
+    caller-supplied string on the row (TM-7/TC-13)."""
     try:
         text = context or ""
         if not outcome:
@@ -103,8 +143,8 @@ def record_injection(out_dir: str,
         if error:
             row["error"] = (error if error in ERROR_CODES
                             else "unknown_error")
-        if error_class and str(error_class).isidentifier():
-            row["error_class"] = str(error_class)
+        if exc is not None:
+            row["error_class"] = classify_exception(exc)
         os.makedirs(out_dir, exist_ok=True)
         with open(os.path.join(out_dir, INJECTION_LOG), "a",
                   encoding="utf-8") as f:

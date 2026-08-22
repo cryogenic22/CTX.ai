@@ -551,7 +551,7 @@ def test_outgoing_scan_crash_emits_nothing_and_records_failed(
     row = read_injections(str(out))[-1]
     assert row["outcome"] == "failed"
     assert row["error"] == "egress_scan_failed"   # TM-7: code, not text
-    assert row["error_class"] == "RuntimeError"
+    assert row["error_class"] == "runtime_error"  # category, not name
 
 
 def test_tc13_exception_text_with_secret_never_reaches_the_receipt(
@@ -559,7 +559,7 @@ def test_tc13_exception_text_with_secret_never_reaches_the_receipt(
     """TC-13 (TM-7): the injection journal is written where no scanner
     ever looks, so it must never receive free exception text — a
     crash whose message embeds a corpus secret produces a receipt
-    carrying the stable code and exception class ONLY. RED on parent:
+    carrying the stable code and bounded category ONLY. RED on parent:
     str(e) was persisted into the row."""
     import io
     import json as _json
@@ -581,7 +581,40 @@ def test_tc13_exception_text_with_secret_never_reaches_the_receipt(
     row = read_injections(str(out))[-1]
     assert row["outcome"] == "failed"
     assert row["error"] == "egress_scan_failed"
-    assert row["error_class"] == "RuntimeError"
+    assert row["error_class"] == "runtime_error"
+    body = (out / "injections.jsonl").read_text(encoding="utf-8")
+    assert secret not in body
+
+
+def test_tc13b_minted_class_name_with_secret_never_reaches_receipt(
+        tmp_path, monkeypatch, capsys):
+    """TC-13 companion (TM-7, second finding): a class NAME is
+    caller-controlled text — type(secret, ...) mints an exception whose
+    __name__ IS the secret and passes an isidentifier() check. The
+    receipt must carry only the bounded category of its stdlib base.
+    RED on parent: the class name was persisted verbatim."""
+    import io
+    import json as _json
+
+    from ctxpack.agent.injection_log import read_injections
+    from ctxpack.cli.main import main
+
+    repo, out = _hook_repo(tmp_path, monkeypatch)
+    secret = "AKIAIOSFODNN7EXAMPLE"
+    evil = type(secret, (RuntimeError,), {})
+
+    def boom(text):
+        raise evil("scanner exploded")
+
+    monkeypatch.setattr("ctxpack.core.redaction.redact", boom)
+    monkeypatch.setattr("sys.stdin", io.StringIO(_json.dumps(
+        {"cwd": str(repo), "session_id": "tc13bses-0000"})))
+    assert main(["hook", "session-start", "--out", str(out)]) == 0
+    capsys.readouterr()
+    row = read_injections(str(out))[-1]
+    assert row["outcome"] == "failed"
+    assert row["error"] == "egress_scan_failed"
+    assert row["error_class"] == "runtime_error"   # base's category
     body = (out / "injections.jsonl").read_text(encoding="utf-8")
     assert secret not in body
 
@@ -611,7 +644,7 @@ def test_tc17_checkpoint_hook_failure_leaks_no_secret_to_stderr(
     """TC-17 (TM-14): a checkpoint-hook failure whose exception
     message embeds a corpus secret writes no secret bytes to stderr or
     any persisted file — hook stderr carries the stable code and the
-    exception class only. (This hook path creates no temp files, so
+    bounded category only. (This hook path creates no temp files, so
     there is nothing to sweep.) RED on parent: the raw exception text
     was printed."""
     import io
@@ -635,9 +668,41 @@ def test_tc17_checkpoint_hook_failure_leaks_no_secret_to_stderr(
     err = capsys.readouterr().err
     assert secret not in err
     assert "checkpoint_failed" in err
-    assert "RuntimeError" in err
+    assert "runtime_error" in err
     if out.exists():
         for f in out.rglob("*"):
             if f.is_file():
                 assert secret not in f.read_text(encoding="utf-8",
                                                  errors="replace")
+
+
+def test_tc17b_minted_class_name_with_secret_never_reaches_stderr(
+        tmp_path, monkeypatch, capsys):
+    """TC-17 companion (TM-14): the stderr diagnostic shares the
+    bounded classifier — a minted class whose __name__ embeds a secret
+    prints as its base's category, because a class name is
+    caller-controlled text exactly like a message. RED on parent:
+    stderr carried type(e).__name__ verbatim."""
+    import io
+    import json as _json
+
+    from ctxpack.cli.main import main
+
+    secret = "AKIAIOSFODNN7EXAMPLE"
+    evil = type(secret, (RuntimeError,), {})
+    transcript = tmp_path / "t.jsonl"
+    transcript.write_text("{}\n", encoding="utf-8")
+    out = tmp_path / "ctx"
+
+    def boom(*a, **k):
+        raise evil("exploded")
+
+    monkeypatch.setattr("ctxpack.agent.checkpoint.run_checkpoint", boom)
+    monkeypatch.setattr("sys.stdin", io.StringIO(_json.dumps(
+        {"cwd": str(tmp_path), "session_id": "tc17bses-0000",
+         "transcript_path": str(transcript)})))
+    assert main(["hook", "session-end", "--out", str(out)]) == 0
+    err = capsys.readouterr().err
+    assert secret not in err
+    assert "checkpoint_failed" in err
+    assert "runtime_error" in err

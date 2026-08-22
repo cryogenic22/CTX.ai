@@ -574,7 +574,7 @@ def test_injection_outcomes_and_hash(tmp_path):
     record_injection(str(out), session_id="bbbbbbbb-1", context="")
     record_injection(str(out), session_id="cccccccc-1", context="",
                      outcome="failed", error="startup_read_failed",
-                     error_class="LedgerError")
+                     exc=RuntimeError("ledger unreadable"))
     stats = injection_stats(str(out))
     assert stats == {**stats, "attempted": 3, "injected": 1, "empty": 1,
                      "failed": 1}
@@ -584,7 +584,62 @@ def test_injection_outcomes_and_hash(tmp_path):
     assert len(rows[0]["sha256"]) == 64
     assert rows[0]["bytes"] == len("hello memory")
     assert rows[2]["error"] == "startup_read_failed"    # TM-7: code
-    assert rows[2]["error_class"] == "LedgerError"
+    assert rows[2]["error_class"] == "runtime_error"    # category, not name
+
+
+def test_classifier_bounds_every_diagnostic_category():
+    """Forward guard: the exception→category map is CLOSED. Stdlib
+    bases land in their category; everything else — a custom class, a
+    dynamically minted class, a non-exception — is unknown_exception,
+    and the category set is exactly ERROR_CLASSES. RED on parent: the
+    classifier did not exist (class names persisted instead)."""
+    from ctxpack.agent.injection_log import ERROR_CLASSES, classify_exception
+
+    assert classify_exception(FileNotFoundError("gone")) == "io_error"
+    assert classify_exception(BrokenPipeError("closed")) == "io_error"
+    assert classify_exception(RuntimeError("boom")) == "runtime_error"
+    assert classify_exception(UnicodeDecodeError(
+        "utf-8", b"\xff", 0, 1, "bad byte")) == "encoding_error"
+
+    class LedgerError(Exception):
+        pass
+
+    assert classify_exception(LedgerError("x")) == "unknown_exception"
+    assert classify_exception("not an exception") == "unknown_exception"
+    assert set(ERROR_CLASSES) == {"io_error", "runtime_error",
+                                  "encoding_error", "unknown_exception"}
+
+
+def test_direct_api_probe_error_class_cannot_persist_secret(tmp_path):
+    """TM-7 probe: the error_class parameter is REMOVED — a caller
+    handing record_injection an identifier-shaped secret gets a
+    TypeError from the signature and nothing reaches disk. RED on
+    parent: "AKIAIOSFODNN7EXAMPLE" passed the isidentifier() check and
+    landed verbatim in the journal."""
+    import pytest
+
+    secret = "AKIAIOSFODNN7EXAMPLE"
+    out = tmp_path / "ctx"
+    with pytest.raises(TypeError):
+        record_injection(str(out), session_id="probe111-0000", context="",
+                         outcome="failed", error="startup_read_failed",
+                         error_class=secret)
+    assert not (out / INJECTION_LOG).exists()
+
+
+def test_exc_that_is_a_raw_secret_string_is_never_echoed(tmp_path):
+    """TM-7 structural guard (forward): even the raw secret handed AS
+    the exc argument persists only a bounded category — the input is
+    classified, never serialized."""
+    from ctxpack.agent.injection_log import read_injections
+
+    secret = "AKIAIOSFODNN7EXAMPLE"
+    out = tmp_path / "ctx"
+    record_injection(str(out), session_id="rawsecrt-0000", context="",
+                     outcome="failed", error="unknown_error", exc=secret)
+    row = read_injections(str(out))[-1]
+    assert row["error_class"] == "unknown_exception"
+    assert secret not in (out / INJECTION_LOG).read_text(encoding="utf-8")
 
 
 def test_session_start_hook_logs_what_it_injected(tmp_path, monkeypatch,
@@ -656,7 +711,7 @@ def test_a_failed_emit_is_never_recorded_as_a_successful_one(
     row = json.loads((out / INJECTION_LOG).read_text(
         encoding="utf-8").splitlines()[0])
     assert row["error"] == "emit_failed"      # TM-7: code, not text
-    assert row["error_class"] == "BrokenPipeError"
+    assert row["error_class"] == "io_error"   # BrokenPipeError ⊂ OSError
 
 
 def test_session_start_records_failure_without_breaking_the_session(

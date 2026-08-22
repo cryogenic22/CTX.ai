@@ -1159,6 +1159,7 @@ def _cmd_hook(args: argparse.Namespace) -> int:
     import json as _json
 
     from ..agent.checkpoint import run_checkpoint
+    from ..agent.injection_log import classify_exception
 
     # Per-invocation kill switch: CTXPACK_HOOK_SKIP="stop,session-end"
     # no-ops those events. Used by harnesses that fork probe sessions
@@ -1206,10 +1207,11 @@ def _cmd_hook(args: argparse.Namespace) -> int:
                       f"{result.ctx_path}", file=sys.stderr)
             except Exception as e:  # noqa: BLE001 — hooks must not fail the session
                 # TM-14: hook stderr is a diagnostic channel the
-                # scanners never see — code + exception class only,
-                # never the message payload (TC-17)
+                # scanners never see — stable code + bounded category
+                # only, never the message payload or a class name a
+                # caller can mint (TC-17)
                 print("ctxpack checkpoint failed: checkpoint_failed "
-                      f"({type(e).__name__})", file=sys.stderr)
+                      f"({classify_exception(e)})", file=sys.stderr)
         return 0
 
     # session-start: inject the project rollup (cross-session decisions/
@@ -1219,15 +1221,17 @@ def _cmd_hook(args: argparse.Namespace) -> int:
     # A true blank slate = temporarily disable the hooks.
     from ..agent.injection_log import FAILED, record_injection
 
-    gist, outcome, error, error_class = "", "", "", ""
+    gist, outcome, error, exc = "", "", "", None
     try:
         from ..agent.checkpoint import read_startup_context
         gist = read_startup_context(out_dir)
     except Exception as e:  # noqa: BLE001 — a broken ledger must not break
         # the session, but it must not look like a healthy empty one
-        # either. TM-7: stable code + class, never the message text.
+        # either. TM-7: stable code + bounded category, never the
+        # message text or a class name (the object is classified at
+        # the write, never serialized).
         outcome, error = FAILED, "startup_read_failed"
-        error_class = type(e).__name__
+        exc = e
 
     # Capture-coverage self-report (setu field gap 2026-07-21): a session
     # the hooks never packed must announce itself at the next start, not
@@ -1257,7 +1261,7 @@ def _cmd_hook(args: argparse.Namespace) -> int:
             outgoing_redactions = sum(_out_counts.values())
         except Exception as e:  # noqa: BLE001
             outcome, error = FAILED, "egress_scan_failed"
-            error_class = type(e).__name__
+            exc = e
             gist = ""  # unscanned bytes are never emitted
 
     # Emit FIRST, then record. Writing the receipt before the write it
@@ -1275,7 +1279,7 @@ def _cmd_hook(args: argparse.Namespace) -> int:
             sys.stdout.flush()
         except Exception as e:  # noqa: BLE001 — broken pipe, closed stdout
             outcome, error = FAILED, "emit_failed"
-            error_class = type(e).__name__
+            exc = e
 
     # Push-path receipt (OntoWiz field gap 2026-07-25). Measures exactly
     # one thing: bytes successfully written to this hook's stdout.
@@ -1284,7 +1288,7 @@ def _cmd_hook(args: argparse.Namespace) -> int:
     # ctxpack.core.states.Delivery.
     record_injection(out_dir, session_id=str(payload.get("session_id", "")),
                      context=gist, outcome=outcome, error=error,
-                     error_class=error_class, gap_warning=bool(warning),
+                     exc=exc, gap_warning=bool(warning),
                      outgoing_redactions=outgoing_redactions)
     return 0
 

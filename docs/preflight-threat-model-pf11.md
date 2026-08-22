@@ -258,11 +258,18 @@ variant.
 `record_injection` writes `error` as free exception text; an exception
 message can embed secret bytes (e.g. a path or token inside an
 OSError), landing them in a journal the scanner never sees.
-**Control (post-review fix):** persist stable error CODES plus
-exception class names; free text is dropped or scanned before
-persistence.
+**Control (post-review fix; v2, scoped re-review):** persist stable
+error CODES plus a BOUNDED exception category (`io_error` /
+`runtime_error` / `encoding_error` / `unknown_exception`, classified
+from the exception object by stdlib base) — never free text and never
+a class name, which is caller-controlled text too: an identifier check
+does not bound it (`AKIAIOSFODNN7EXAMPLE` is a valid identifier, and
+`type(secret, ...)` mints a class whose `__name__` is the secret).
 - **TC-13:** an exception whose message contains a corpus secret
   produces a journal row containing no secret bytes and a stable code.
+- **TC-13b:** a dynamically minted exception class whose `__name__` is
+  a corpus secret produces a journal row carrying only its base's
+  bounded category; the secret reaches no persisted byte.
 
 ### TM-8 · Poisoned marker facts (T-B, pre-existing class) — v2 CORRECTED
 Injected content induces the agent to emit `Decision:`/`Constraint:`
@@ -350,14 +357,19 @@ attestation) belong to enforced mode.
 Secrets escape through channels the scanners never see: stderr
 diagnostics, temporary files (scratch dirs, `--basetemp` trees),
 exception tracebacks in hook output.
-**Control (post-review fix, joins TM-7):** the error-code rule
-extends to every persistence and emission of diagnostic text —
-stderr lines from hooks carry codes/classes, not payload fragments;
-temp artifacts holding transcript-derived text live under the ledger
-dir (covered by retention) or are removed on exit.
+**Control (post-review fix, joins TM-7; v2, scoped re-review):** the
+error-code rule extends to every persistence and emission of
+diagnostic text — stderr lines from hooks carry stable codes plus the
+TM-7 bounded categories (shared classifier; never a class name, which
+is caller-controlled text), not payload fragments; temp artifacts
+holding transcript-derived text live under the ledger dir (covered by
+retention) or are removed on exit.
 - **TC-17:** a checkpoint failure whose exception message contains a
   corpus secret writes no secret bytes to stderr, any journal, or
   any surviving temp file.
+- **TC-17b:** a checkpoint failure raising a dynamically minted class
+  whose `__name__` embeds a corpus secret prints only the stable code
+  and its base's bounded category to stderr.
 
 ### TM-15 · Deletion-path attacks on retention (PF-15; v2)
 The retention/deletion unit is itself an attack surface: path
