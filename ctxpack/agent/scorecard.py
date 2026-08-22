@@ -21,7 +21,21 @@ from typing import Any, Optional
 from .session_reader import LedgerError, session_stats
 
 COHORT_FILE = "cohort.json"
-SCHEMA = "ctxpack-scorecard/v2"
+SCHEMA = "ctxpack-scorecard/v3"
+# v2 artifact rows carried each repo's machine-absolute path (PF-16b
+# finding 2026-08-07 #6). v3 rows carry the basename alias only;
+# absolute paths stay in cohort.json — the local configuration — and
+# --check re-derives them from there. Committed pre-v3 artifacts are
+# immutable and still verified under their own legacy rule below,
+# never misread under v3's.
+LEGACY_SCHEMA_V2 = "ctxpack-scorecard/v2"
+
+
+def repo_alias(repo_path: str) -> str:
+    """Machine-independent artifact identity for a repo: the basename.
+    Cohort validation refuses basename collisions, so within a valid
+    cohort the alias joins artifact rows to configured paths uniquely."""
+    return os.path.basename(os.path.normpath(repo_path))
 
 # statuses folded into each denominator; every status appears in
 # exactly one bucket so measured + unmeasured + excluded == total
@@ -100,6 +114,7 @@ def validate_cohort_config(cfg) -> "list[str]":
                       f"{type(repos).__name__}")
         repos = []
     seen_canonical: dict[str, str] = {}
+    seen_alias: dict[str, str] = {}
     for entry in repos:
         if not isinstance(entry, str) or not entry.strip():
             errors.append(f"repo entries must be non-empty strings: "
@@ -111,8 +126,19 @@ def validate_cohort_config(cfg) -> "list[str]":
             errors.append(
                 f"duplicate repo (canonical-path collision): {entry!r} "
                 f"aliases {seen_canonical[canonical]!r}")
+            continue
+        seen_canonical[canonical] = entry
+        # v3 artifact rows are joined to cohort paths by basename alias
+        # (PF-16b) — two distinct repos sharing a basename would be
+        # unjoinable, so the population refuses up front
+        alias = repo_alias(entry)
+        if alias in seen_alias:
+            errors.append(
+                f"alias collision: {entry!r} and {seen_alias[alias]!r} "
+                f"share basename {alias!r} — v3 artifact rows would be "
+                f"unjoinable; rename one checkout")
         else:
-            seen_canonical[canonical] = entry
+            seen_alias[alias] = entry
     external = cfg.get("external", [])
     if not isinstance(external, list):
         errors.append(f"'external' must be a list, got "
@@ -132,11 +158,15 @@ def validate_cohort_config(cfg) -> "list[str]":
 
 
 def repo_scorecard(repo_path: str) -> dict[str, Any]:
-    """Layer-1 stats for one repo, or a quiet placeholder."""
-    name = os.path.basename(os.path.normpath(repo_path))
+    """Layer-1 stats for one repo, or a quiet placeholder.
+
+    The row carries the ALIAS only — no machine-absolute path may enter
+    a committed artifact (PF-16b); ``--check`` re-derives paths from
+    cohort.json."""
+    name = repo_alias(repo_path)
     ledger = os.path.join(repo_path, ".claude", "ctx")
     onboarded = os.path.isdir(os.path.join(repo_path, ".claude"))
-    entry: dict[str, Any] = {"repo": name, "path": repo_path,
+    entry: dict[str, Any] = {"repo": name,
                              "inputs": repo_input_fingerprint(repo_path)}
     if not os.path.isdir(repo_path):
         entry["status"] = "path_missing"
@@ -357,9 +387,10 @@ def verify_latest(out_dir: str = "scorecards") -> tuple[bool, list[str]]:
         return False, [f"no readable scorecard at {latest_path}"]
     if not isinstance(latest, dict):
         return False, [f"scorecard at {latest_path} is not a JSON object"]
-    if latest.get("schema") != SCHEMA:
+    schema = latest.get("schema")
+    if schema not in (SCHEMA, LEGACY_SCHEMA_V2):
         return False, [
-            f"latest has schema {latest.get('schema')!r} — predates "
+            f"latest has schema {schema!r} — predates "
             f"self-verification ({SCHEMA}); regenerate"]
     rows = latest.get("repos")
     if not isinstance(rows, list) or not all(
@@ -367,26 +398,59 @@ def verify_latest(out_dir: str = "scorecards") -> tuple[bool, list[str]]:
         return False, ["latest 'repos' is not a list of objects — "
                        "malformed artifact"]
     cfg = load_cohort_config(out_dir)
-    cfg_errors = validate_cohort_config(cfg) if cfg is not None else []
+    had_cfg = cfg is not None
+    cfg_errors = validate_cohort_config(cfg) if had_cfg else []
     for err in cfg_errors:
         findings.append(f"cohort config invalid: {err}")
     if latest.get("cohort_config_sha256") != cohort_config_sha256(out_dir):
         findings.append("cohort config changed since generation "
                         f"({out_dir}/{COHORT_FILE})")
-    for r in rows:
-        path = r.get("path")
-        if not path or not isinstance(path, str):
-            continue                      # external rows carry no inputs
-        stored = (r.get("inputs") or {}).get("fingerprint") \
-            if isinstance(r.get("inputs"), dict) else None
-        if stored != repo_input_fingerprint(path)["fingerprint"]:
-            findings.append(f"{r.get('repo')}: ledger inputs changed "
-                            "since generation")
     cfg = cfg or {}
-    known_paths = {r.get("path") for r in rows}
-    for p in cfg.get("repos") if isinstance(cfg.get("repos"), list) else []:
-        if p not in known_paths:
-            findings.append(f"cohort repo missing from latest: {p}")
+    cfg_repos = [p for p in (cfg.get("repos") if isinstance(
+        cfg.get("repos"), list) else []) if isinstance(p, str)]
+    if schema == LEGACY_SCHEMA_V2:
+        # Legacy rule for immutable pre-PF-16b artifacts: rows carry
+        # machine paths and are verified as written — a frozen artifact
+        # is checked under the rules it was generated with, never
+        # misread under v3's.
+        for r in rows:
+            path = r.get("path")
+            if not path or not isinstance(path, str):
+                continue                  # external rows carry no inputs
+            stored = (r.get("inputs") or {}).get("fingerprint") \
+                if isinstance(r.get("inputs"), dict) else None
+            if stored != repo_input_fingerprint(path)["fingerprint"]:
+                findings.append(f"{r.get('repo')}: ledger inputs changed "
+                                "since generation")
+        known_paths = {r.get("path") for r in rows}
+        for p in cfg_repos:
+            if p not in known_paths:
+                findings.append(f"cohort repo missing from latest: {p}")
+    else:
+        # v3: rows carry aliases only; paths are re-derived from
+        # cohort.json. No cohort file while local rows exist means the
+        # inputs CANNOT be re-derived — unverifiable is reported stale,
+        # never presented as fresh (absent-vs-zero discipline).
+        by_alias: dict[str, dict] = {}
+        for r in rows:
+            by_alias.setdefault(str(r.get("repo")), r)
+        for p in cfg_repos:
+            alias = repo_alias(p)
+            row = by_alias.get(alias)
+            if row is None:
+                findings.append(f"cohort repo missing from latest: {alias}")
+                continue
+            stored = (row.get("inputs") or {}).get("fingerprint") \
+                if isinstance(row.get("inputs"), dict) else None
+            if stored != repo_input_fingerprint(p)["fingerprint"]:
+                findings.append(f"{alias}: ledger inputs changed "
+                                "since generation")
+        if not had_cfg and any(isinstance(r.get("inputs"), dict)
+                               for r in rows):
+            findings.append(
+                "no cohort config — v3 rows carry aliases only, so "
+                "per-repo inputs cannot be re-derived; unverifiable "
+                "is not fresh")
     known_names = {r.get("repo") for r in rows}
     ext = cfg.get("external") if isinstance(cfg.get("external"), list) else []
     for e in ext:

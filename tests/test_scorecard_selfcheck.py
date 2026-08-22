@@ -100,7 +100,7 @@ def test_external_cohort_entry_is_unmeasured_not_fabricated(tmp_path):
     assert card["cohort"]["repos_unmeasured"] == 1
     assert card["cohort"]["repos_excluded"] == 0
     assert card["cohort"]["repos_total"] == 2
-    assert card["schema"] == "ctxpack-scorecard/v2"
+    assert card["schema"] == "ctxpack-scorecard/v3"
 
 
 def test_denominators_partition_all_statuses(tmp_path):
@@ -210,6 +210,79 @@ def test_check_message_claims_freshness_not_verification(tmp_path, capsys):
     assert "inputs unchanged since generation" in msg
     assert "metrics are not recomputed" in msg
     assert "capture-block numbers are outside this check" in msg
+
+
+def test_v3_artifact_carries_no_machine_absolute_paths(tmp_path):
+    """PF-16b forward guard: no committed artifact byte may identify
+    the machine — the repo's absolute path must not appear anywhere in
+    the generated scorecard (rows carry the basename alias only)."""
+    repo = _repo(tmp_path, "repo_a", "aaaaaaaa-1")
+    out = _generate(tmp_path, [repo])
+    body = (out / "scorecard-latest.json").read_text(encoding="utf-8")
+    assert str(repo) not in body
+    assert str(tmp_path) not in body
+    card = json.loads(body)
+    assert card["repos"][0]["repo"] == "repo_a"
+    assert "path" not in card["repos"][0]
+    # cohort.json IS the sanctioned home for the machine paths
+    cohort = (out / "cohort.json").read_text(encoding="utf-8")
+    assert str(repo).replace("\\", "\\\\") in cohort or str(repo) in cohort
+
+
+def test_alias_collision_is_a_controlled_failure(tmp_path, capsys):
+    """PF-16b: two distinct repos sharing a basename cannot be joined
+    by alias — generation refuses rather than producing an artifact
+    --check cannot verify."""
+    a = _repo(tmp_path / "siteA", "repo_a", "aaaaaaaa-1")
+    b = _repo(tmp_path / "siteB", "repo_a", "bbbbbbbb-1")
+    rc = main(["scorecard", "--repos", str(a), str(b),
+               "--out", str(tmp_path / "cards")])
+    assert rc == 1
+    assert "alias collision" in capsys.readouterr().err
+
+
+def test_legacy_v2_artifact_still_verifies_by_its_own_rule(tmp_path):
+    """Regression pin (self-identified): the committed pre-PF-16b
+    artifacts are immutable and carry machine paths in rows — the v2
+    branch of verify_latest keeps checking them exactly as written,
+    fresh AND stale both detectable."""
+    from ctxpack.agent.scorecard import (
+        cohort_config_sha256,
+        repo_input_fingerprint,
+    )
+    repo = _repo(tmp_path, "repo_a", "aaaaaaaa-1")
+    out = tmp_path / "cards"
+    out.mkdir()
+    save_cohort([str(repo)], str(out))
+    artifact = {"schema": "ctxpack-scorecard/v2",
+                "cohort_config_sha256": cohort_config_sha256(str(out)),
+                "repos": [{"repo": "repo_a", "path": str(repo),
+                           "status": "active",
+                           "inputs": repo_input_fingerprint(str(repo))}]}
+    (out / "scorecard-latest.json").write_text(
+        json.dumps(artifact), encoding="utf-8")
+    ok, findings = verify_latest(str(out))
+    assert ok and findings == []
+    with open(repo / ".claude" / "ctx" / "checkpoints.jsonl", "a",
+              encoding="utf-8") as f:
+        f.write(json.dumps({"session": "new", "stats": {}}) + "\n")
+    ok, findings = verify_latest(str(out))
+    assert not ok
+    assert any("repo_a" in f and "ledger inputs changed" in f
+               for f in findings)
+
+
+def test_v3_without_cohort_config_is_unverifiable_not_fresh(tmp_path):
+    """PF-16b can-fail: v3 rows carry aliases only, so with no
+    cohort.json the per-repo inputs cannot be re-derived — that must
+    read stale, never silently fresh."""
+    from ctxpack.agent.scorecard import build_scorecard, write_scorecard
+    repo = _repo(tmp_path, "repo_a", "aaaaaaaa-1")
+    out = tmp_path / "cards"
+    write_scorecard(build_scorecard([str(repo)]), str(out))
+    ok, findings = verify_latest(str(out))
+    assert not ok
+    assert any("cannot be re-derived" in f for f in findings)
 
 
 def test_verify_latest_covers_regenerated_cohort_flow(tmp_path):

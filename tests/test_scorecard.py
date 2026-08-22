@@ -61,7 +61,7 @@ def test_scorecard_versioned_write_never_overwrites(tmp_path):
     assert p1 != p2, "second write must not overwrite the first"
     assert latest1 == latest2
     assert json.loads(open(p1, encoding="utf-8").read())["schema"] == \
-        "ctxpack-scorecard/v2"
+        "ctxpack-scorecard/v3"
 
 
 def test_cohort_roundtrip(tmp_path):
