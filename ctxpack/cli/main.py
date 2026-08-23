@@ -1468,6 +1468,7 @@ def _cmd_scorecard(args: argparse.Namespace) -> int:
 def _cmd_session(args: argparse.Namespace) -> int:
     """Read path over the checkpoint ledger — the CLI twin of the MCP
     session tools, so any agent with a shell can use the ledger."""
+    from ..agent.egress import EGRESS_SCAN_FAILED, EgressError, scan_out
     from ..agent.session_reader import (
         LedgerError,
         load_session,
@@ -1481,13 +1482,25 @@ def _cmd_session(args: argparse.Namespace) -> int:
         session_why_across,
     )
 
+    def _emit(text: str) -> int:
+        """Finding 6: EVERY session-read emission passes the shared
+        final-serialization egress scan; scanner failure emits nothing
+        but the stable code."""
+        try:
+            safe = scan_out(text)
+        except EgressError:
+            print(f"Error: {EGRESS_SCAN_FAILED} — output withheld",
+                  file=sys.stderr)
+            return 1
+        print(safe)
+        return 0
+
     if args.action == "stats":
         try:
-            print(json.dumps(session_stats(args.ledger), indent=2))
+            return _emit(json.dumps(session_stats(args.ledger), indent=2))
         except LedgerError as e:
             print(f"Error: {e}", file=sys.stderr)
             return 1
-        return 0
 
     if args.action == "ratify":
         # Ratification is an explicit event referencing an EXISTING
@@ -1554,8 +1567,7 @@ def _cmd_session(args: argparse.Namespace) -> int:
         except (ValueError, OSError) as e:
             print(f"Error: {e}", file=sys.stderr)
             return 1
-        print(json.dumps(row, indent=2))
-        return 0
+        return _emit(json.dumps(row, indent=2))
 
     if args.action == "resume":
         try:
@@ -1564,12 +1576,10 @@ def _cmd_session(args: argparse.Namespace) -> int:
             print(f"Error: {e}", file=sys.stderr)
             return 1
         gist = result.pop("gist", "")
-        print(json.dumps(result, indent=2))
+        out = json.dumps(result, indent=2)
         if gist:
-            print()
-            print("--- startup gist ---")
-            print(gist)
-        return 0
+            out += f"\n\n--- startup gist ---\n{gist}"
+        return _emit(out)
 
     # `why` defaults to CROSS-SESSION — the whole ledger, "what do we know
     # about this across the repo's history?" — because that is the question
@@ -1625,12 +1635,8 @@ def _cmd_session(args: argparse.Namespace) -> int:
     text = result.pop("text", None)
     if text is not None:
         meta = ", ".join(f"{k}={v}" for k, v in result.items())
-        print(f"[{meta}]")
-        print()
-        print(text)
-    else:
-        print(json.dumps(result, indent=2))
-    return 0
+        return _emit(f"[{meta}]\n\n{text}")
+    return _emit(json.dumps(result, indent=2))
 
 
 # Hook commands run `python -m ctxpack.cli.main` rather than the `ctxpack`

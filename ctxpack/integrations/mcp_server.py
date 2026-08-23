@@ -1157,6 +1157,28 @@ _HANDLERS = {
 
 # ── MCP Server setup ──
 
+# Finding 6 (2026-08-23): session-ledger read results are injected
+# into the calling agent's context — they pass the shared
+# final-serialization egress scan before leaving the process. The
+# corpus-packing tools serialize caller-chosen source content, a
+# different trust boundary tracked separately in E-6.
+SESSION_READ_TOOLS = frozenset({
+    "ctx/session_recall", "ctx/session_timeline", "ctx/session_decisions",
+    "ctx/why", "ctx/graph_query", "ctx/session_literals", "ctx/resume",
+})
+
+
+def scanned_session_result(name: str, result: str) -> str:
+    """Final egress scan for a session-read tool result; fail-closed —
+    a scanner failure returns the stable code, never unscanned bytes."""
+    from ..agent.egress import EGRESS_SCAN_FAILED, EgressError, scan_out
+    try:
+        return scan_out(result)
+    except EgressError:
+        return json.dumps({"error": EGRESS_SCAN_FAILED,
+                           "tool": str(name)})
+
+
 def tool_error_result(name: str, exc: object) -> str:
     """The ONLY error payload the catch-all returns into model context.
 
@@ -1195,6 +1217,8 @@ def create_server() -> "Server":
             result = handler(arguments)
         except Exception as e:
             result = tool_error_result(name, e)
+        if name in SESSION_READ_TOOLS:
+            result = scanned_session_result(name, result)
 
         return [TextContent(type="text", text=result)]
 

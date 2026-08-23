@@ -10,9 +10,10 @@ composition.
 
 Also here: the TC-3 benign bound end-to-end, TC-14's exact fenced-marker
 repro through the full pipeline, TC-16's documented tamper ceiling, the
-redaction-boundary determinism check, and two DOCUMENTED-GAP pins
-(self-identified) that keep known advisory-mode holes visible instead
-of silent."""
+redaction-boundary determinism check, and the TC-16 DOCUMENTED-GAP
+pin (self-identified) keeping a known advisory-mode hole visible. The
+former CLI-read-path gap pin closed deliberately via Finding 6 — its
+regression tests live in tests/test_read_path_egress.py."""
 
 import io
 import json
@@ -239,24 +240,8 @@ def test_tc16_hand_edited_ctx_is_undetectable_documented_gap(tmp_path):
     assert not any(m.get("degraded") for m in why["matches"])
 
 
-def test_documented_gap_cli_read_path_emits_unscanned_gist(
-        tmp_path, monkeypatch, capsys):
-    """DOCUMENTED-GAP PIN (self-identified): the egress scan runs at
-    the SessionStart boundary only (PF-14 scope) — CLI read surfaces
-    (`session resume`) print legacy gist bytes UNSCANNED, so a
-    pre-E6 ledger can emit a raw secret through them. Pinned so the
-    gap closes deliberately (extending PF-14), never silently."""
-    repo, out = _hook_repo(tmp_path, monkeypatch)
-    secret = "AKIAIOSFODNN7EXAMPLE"
-    gist = out / "latest-gist.md"
-    gist.write_text(gist.read_text(encoding="utf-8")
-                    + f"\n- legacy row with {secret} banked pre-E6\n",
-                    encoding="utf-8")
-    rc = main(["session", "resume", "--ledger", str(out)])
-    printed = capsys.readouterr().out
-    assert rc == 0
-    if secret not in printed:
-        pytest.fail(
-            "CLI read path no longer emits the raw legacy secret — "
-            "the PF-14 gap has closed; update this documented-gap pin "
-            "deliberately and record the supersession")
+# The c7f69de documented-gap pin for the CLI read path lived here. The
+# gap is CLOSED (Finding 6, 2026-08-23): every CLI/MCP session read now
+# passes the shared final-serialization egress scan, and the real
+# regression tests live in tests/test_read_path_egress.py — exactly the
+# deliberate, recorded closure the pin's docstring demanded.
