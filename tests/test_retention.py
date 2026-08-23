@@ -299,6 +299,53 @@ def test_tc19_content_swap_between_plan_and_apply_aborts(tmp_path):
         encoding="utf-8") == "swapped!"
 
 
+def test_f3_orphan_added_between_plan_and_apply_aborts(tmp_path):
+    """Finding 3 (P1): an orphan appearing after the plan leaves the
+    DELETE set unchanged but changes the plan state — the v2 hash
+    binds skipped candidate-shaped rows, so apply aborts and deletes
+    nothing. RED on 5a0d96c: ORPHAN_DRIFT_HASH_UNCHANGED=True and the
+    old candidates were deleted anyway."""
+    out = _ledger(tmp_path)
+    plan = plan_retention(str(out), keep=2)
+    (out / "session-ffffffff.ctx").write_text("orphan", encoding="utf-8")
+    with pytest.raises(RetentionError) as err:
+        apply_retention(str(out), 2, plan.plan_hash)
+    assert err.value.code == ERR_PLAN_MISMATCH
+    assert (out / "session-aaaaaaaa.ctx").exists()
+
+
+def test_f3_link_appearing_among_skipped_rows_aborts(tmp_path):
+    """Finding 3: a reparse point appearing after the plan (a skipped
+    row, not a delete row) also invalidates the confirmation."""
+    out = _ledger(tmp_path)
+    plan = plan_retention(str(out), keep=2)
+    outside = tmp_path / "elsewhere"
+    outside.mkdir()
+    _make_dir_link(out / "session-zzzzzzzz.ctx", outside)
+    with pytest.raises(RetentionError) as err:
+        apply_retention(str(out), 2, plan.plan_hash)
+    assert err.value.code == ERR_PLAN_MISMATCH
+    assert (out / "session-aaaaaaaa.ctx").exists()
+
+
+def test_f3_ledger_a_hash_cannot_authorize_ledger_b(tmp_path):
+    """Finding 3 acceptance (c): two ledgers with byte-identical
+    content produce DIFFERENT plan hashes (ledger identity is bound),
+    so a confirmation minted against A never applies to B. RED on
+    5a0d96c: identical content hashed identically across ledgers."""
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    ledger_a = _ledger(tmp_path / "a")
+    ledger_b = _ledger(tmp_path / "b")
+    plan_a = plan_retention(str(ledger_a), keep=2)
+    plan_b = plan_retention(str(ledger_b), keep=2)
+    assert plan_a.plan_hash != plan_b.plan_hash
+    with pytest.raises(RetentionError) as err:
+        apply_retention(str(ledger_b), 2, plan_a.plan_hash)
+    assert err.value.code == ERR_PLAN_MISMATCH
+    assert (ledger_b / "session-aaaaaaaa.ctx").exists()
+
+
 def test_apply_with_wrong_or_empty_hash_deletes_nothing(tmp_path):
     out = _ledger(tmp_path)
     for bad in ("0" * 64, ""):

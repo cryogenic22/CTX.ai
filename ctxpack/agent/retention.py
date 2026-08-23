@@ -55,7 +55,11 @@ import stat
 from dataclasses import dataclass, field
 
 RETENTION_LOG = "retention.jsonl"
-PLAN_SCHEMA = "ctx-retention-plan/v1"
+# v2 (Finding 3, 2026-08-23): v1 hashed only the delete entries, so an
+# added orphan, a link swap among skipped rows, or a DIFFERENT ledger
+# with the same delete set all left the confirmation valid. v2 binds
+# the full plan state — see _hash_plan.
+PLAN_SCHEMA = "ctx-retention-plan/v2"
 RECEIPT_SCHEMA = "ctx-retention/v1"
 
 CTX_PREFIX, CTX_SUFFIX = "session-", ".ctx"
@@ -239,12 +243,32 @@ def _journal_order(ledger_dir: str):
     return ordered, unattributed
 
 
-def _hash_plan(keep: int, delete: "list[PlanEntry]") -> str:
+def _hash_plan(ledger_dir: str, keep: int, ordered: "list[str]",
+               unattributed: int, delete: "list[PlanEntry]",
+               skipped: "list[tuple[str, str]]") -> str:
+    """The confirmation binds the WHOLE plan state (Finding 3), not
+    just the delete set:
+
+    - ledger identity (canonical realpath) — a hash produced against
+      ledger A can never authorize the same delete set in ledger B;
+      the path enters only this preimage, never any persisted output;
+    - the full ordered journal session list + unattributed row count —
+      any window shift or journal growth invalidates;
+    - every deletion's path + size + content sha256;
+    - every candidate-shaped SKIPPED row (path, reason) — an orphan
+      appearing, a link swap, or an ambiguity change invalidates even
+      though the delete set is unchanged.
+    """
     payload = {
         "schema": PLAN_SCHEMA,
+        "ledger": os.path.normcase(os.path.realpath(ledger_dir)),
         "keep": keep,
+        "sessions": list(ordered),
+        "rows_unattributed": unattributed,
         "delete": [{"path": e.path, "size": e.size, "sha256": e.sha256}
                    for e in sorted(delete, key=lambda e: e.path)],
+        "skipped": [{"path": p, "reason": r}
+                    for p, r in sorted(skipped)],
     }
     blob = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
@@ -299,7 +323,8 @@ def plan_retention(ledger_dir: str, keep: int) -> RetentionPlan:
         plan.delete.append(PlanEntry(
             path=name, size=len(blob),
             sha256=hashlib.sha256(blob).hexdigest()))
-    plan.plan_hash = _hash_plan(keep, plan.delete)
+    plan.plan_hash = _hash_plan(ledger_dir, keep, ordered, unattributed,
+                                plan.delete, plan.skipped)
     return plan
 
 
