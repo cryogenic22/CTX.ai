@@ -81,6 +81,8 @@ ERR_NO_JOURNAL = "no_journal"
 ERR_JOURNAL_DEGRADED = "journal_degraded"
 ERR_PLAN_MISMATCH = "plan_mismatch"
 ERR_RECEIPT_WRITE_FAILED = "receipt_write_failed"
+ERR_ROOT_LINK = "ledger_root_link"
+ERR_ROOT_INVALID = "ledger_root_invalid"
 
 UPSTREAM_NOTE = (
     "Note: this deletes artifacts inside the ledger dir ONLY. The vendor "
@@ -138,6 +140,25 @@ def _is_link(path: str) -> bool:
     attrs = getattr(st, "st_file_attributes", 0)
     reparse = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
     return bool(attrs & reparse)
+
+
+def _root_reason(ledger_dir: str):
+    """Refusal code when the ledger root itself cannot be trusted as a
+    deletion root, else ``None`` (Finding 2, 2026-08-23): a root that
+    is a symlink/junction/reparse point makes every "inside the
+    ledger" claim actually mean "inside the link's TARGET" — journal
+    reads, enumeration, and containment would all follow it. Checked
+    BEFORE the journal is read, again at apply (which replans), and
+    immediately before every unlink."""
+    try:
+        st = os.lstat(ledger_dir)
+    except OSError:
+        return ERR_ROOT_INVALID
+    if _is_link(ledger_dir):
+        return ERR_ROOT_LINK
+    if not stat.S_ISDIR(st.st_mode):
+        return ERR_ROOT_INVALID
+    return None
 
 
 def _contained(path: str, root: str) -> bool:
@@ -235,6 +256,9 @@ def plan_retention(ledger_dir: str, keep: int) -> RetentionPlan:
     wall-clock anywhere in the plan)."""
     if not isinstance(keep, int) or keep < 1:
         raise RetentionError(ERR_INVALID_KEEP, str(keep))
+    root_bad = _root_reason(ledger_dir)     # before ANY read (Finding 2)
+    if root_bad:
+        raise RetentionError(root_bad)
     ordered, unattributed = _journal_order(ledger_dir)
     kept = ordered[-keep:]
     prefix_ids: "dict[str, set[str]]" = {}
@@ -293,7 +317,15 @@ def apply_retention(ledger_dir: str, keep: int,
         raise RetentionError(ERR_PLAN_MISMATCH,
                              f"{len(plan.delete)} candidate(s) at apply time")
     result = RetentionResult(plan=plan, skipped=list(plan.skipped))
-    for entry in plan.delete:
+    for i, entry in enumerate(plan.delete):
+        # root re-validated immediately before EVERY unlink (Finding
+        # 2): a root swapped for a link mid-apply stops all remaining
+        # deletions — they would land inside the link's target
+        root_bad = _root_reason(ledger_dir)
+        if root_bad:
+            result.skipped.extend((e.path, root_bad)
+                                  for e in plan.delete[i:])
+            break
         full = os.path.join(ledger_dir, entry.path)
         reason = _unsafe_reason(full, ledger_dir)
         if reason:

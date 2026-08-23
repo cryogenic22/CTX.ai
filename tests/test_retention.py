@@ -14,6 +14,8 @@ from ctxpack.agent.retention import (
     ERR_JOURNAL_DEGRADED,
     ERR_NO_JOURNAL,
     ERR_PLAN_MISMATCH,
+    ERR_ROOT_INVALID,
+    ERR_ROOT_LINK,
     RETENTION_LOG,
     SKIP_AMBIGUOUS,
     SKIP_LINK,
@@ -198,6 +200,68 @@ def test_unlink_guard_refuses_link_as_last_line(tmp_path):
     link = out / "session-zzzzzzzz.ctx"
     _make_dir_link(link, outside)
     assert _unsafe_reason(str(link), str(out)) == SKIP_LINK
+
+
+# ── Finding 2 (2026-08-23): the ledger ROOT itself is never a link ──
+
+def test_f2_linked_ledger_root_is_refused_and_target_preserved(tmp_path):
+    """Finding 2 (P1): a ledger root that is a junction/symlink is
+    refused BEFORE the journal is read — plan and apply through the
+    link both abort and the link target's artifacts survive untouched.
+    RED on 5a0d96c: the reviewer's junction probe deleted the target's
+    old session artifact through a linked root."""
+    real = _ledger(tmp_path)
+    link = tmp_path / "ctx-link"
+    _make_dir_link(link, real)
+    before = sorted(os.listdir(real))
+    with pytest.raises(RetentionError) as err:
+        plan_retention(str(link), keep=1)
+    assert err.value.code == ERR_ROOT_LINK
+    with pytest.raises(RetentionError) as err2:
+        apply_retention(str(link), 1, "0" * 64)
+    assert err2.value.code == ERR_ROOT_LINK
+    assert sorted(os.listdir(real)) == before      # target intact
+    assert plan_retention(str(real), keep=1).delete   # real root works
+
+
+def test_f2_missing_or_nondir_root_is_refused(tmp_path):
+    """Finding 2 companion: a root that is absent or a plain file is
+    `ledger_root_invalid` — never treated as an empty ledger."""
+    with pytest.raises(RetentionError) as err:
+        plan_retention(str(tmp_path / "nowhere"), keep=1)
+    assert err.value.code == ERR_ROOT_INVALID
+    f = tmp_path / "afile"
+    f.write_text("x", encoding="utf-8")
+    with pytest.raises(RetentionError) as err2:
+        plan_retention(str(f), keep=1)
+    assert err2.value.code == ERR_ROOT_INVALID
+
+
+def test_f2_root_rechecked_immediately_before_each_unlink(
+        tmp_path, monkeypatch):
+    """Finding 2 acceptance (b), loop wiring: a root that turns bad
+    AFTER apply's replan check stops every remaining deletion with the
+    root reason. The guard is flipped by monkeypatch because the
+    public API cannot race the filesystem deterministically."""
+    import ctxpack.agent.retention as rmod
+
+    out = _ledger(tmp_path)
+    plan = plan_retention(str(out), keep=1)
+    assert len(plan.delete) >= 2
+    real = rmod._root_reason
+    calls = {"n": 0}
+
+    def flip(root):
+        calls["n"] += 1
+        # call 1 = plan-time check inside apply's replan; call 2 = the
+        # first unlink's recheck; every later unlink sees a bad root
+        return real(root) if calls["n"] <= 2 else rmod.ERR_ROOT_LINK
+
+    monkeypatch.setattr(rmod, "_root_reason", flip)
+    result = apply_retention(str(out), 1, plan.plan_hash)
+    assert len(result.deleted) == 1
+    assert len(result.skipped) == len(plan.delete) - 1
+    assert all(r == ERR_ROOT_LINK for _p, r in result.skipped)
 
 
 # ── TC-19: TOCTOU between plan and apply ──
