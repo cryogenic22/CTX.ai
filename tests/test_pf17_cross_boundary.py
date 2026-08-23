@@ -138,7 +138,10 @@ def test_tc14_fenced_marker_banks_nothing_unfenced_stays_candidate(
     key ...` in a SHORT user message and a SHORT assistant message
     banks NOTHING anywhere in the ledger; the same line unfenced in
     assistant text banks with assistant-only provenance (an agent
-    candidate, never a user directive)."""
+    candidate, never a user directive). Passes on the parent because
+    the BEHAVIOR was always correct — Finding 7 fixed the vacuous
+    ASSERTIONS, whose non-vacuity is proved by
+    test_tc14_assertions_are_not_vacuous below."""
     from ctxpack.agent.checkpoint import run_checkpoint
     from ctxpack.agent.session_reader import session_why_across
 
@@ -174,11 +177,41 @@ def test_tc14_fenced_marker_banks_nothing_unfenced_stays_candidate(
     out2 = tmp_path / "ctx-unfenced"
     run_checkpoint(str(path2), str(out2), as_of="2026-08-22")
     why = session_why_across(str(out2), "k9Xp2vQ")
-    assert why["matches"], "unfenced assistant marker must bank"
-    for m in why["matches"]:
-        roles = {occ.split("@")[0] for occ in m.get("source_roles", [])}
-        assert roles <= {"assistant"}     # candidate, never user-backed
-        assert m.get("owner_approval", "unavailable") == "unavailable"
+    matches = why["matches"]
+    assert matches, "unfenced assistant marker must bank"
+    # Finding 7: the OLD assertions were vacuous — `roles <= {...}`
+    # passed for the empty set (DECISION matches carry source_roles in
+    # `fields`, not the top-level list), and
+    # `m.get("owner_approval", "unavailable")` passed when the field
+    # was absent. Assert explicit presence and exact values on the
+    # fields the match actually carries.
+    decisions = [m for m in matches if m["kind"] == "DECISION"]
+    assert decisions, "the unfenced marker must bank a DECISION"
+    for m in decisions:
+        assert "authority" in m
+        assert m["authority"] == "agent_candidate"   # never user-backed
+        assert "owner_approval" in m
+        assert m["owner_approval"] == "unavailable"
+        source_roles = [f["value"] for f in m["fields"]
+                        if f["key"] == "SOURCE-ROLE"]
+        assert source_roles == ["assistant"]
+
+
+def test_tc14_assertions_are_not_vacuous():
+    """Finding 7 can-fail control: the strengthened TC-14 checks reject
+    exactly the shapes the OLD vacuous checks let through — an empty
+    role set and an absent owner_approval field. Proves the regression
+    pin above has teeth without depending on a behavior regression."""
+    # old: `roles <= {"assistant"}` was True for the empty set
+    empty_roles: set = set()
+    assert empty_roles <= {"assistant"}          # old check passed
+    assert not (empty_roles == {"assistant"})    # new check rejects
+
+    # old: `m.get("owner_approval", "unavailable")` was "unavailable"
+    # even when the key was absent
+    absent: dict = {}
+    assert absent.get("owner_approval", "unavailable") == "unavailable"
+    assert "owner_approval" not in absent        # new presence check rejects
 
 
 # ── determinism across the redaction boundary ──

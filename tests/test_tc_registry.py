@@ -23,13 +23,9 @@ DOC = os.path.join(REPO_ROOT, "docs", "preflight-threat-model-pf11.md")
 
 # TCs with NO test yet, each with the reason the gap is open. Entries
 # leave this map only when their test lands (this test forces that).
-KNOWN_UNCOVERED = {
-    # needs a designed docs-lint over the B6 marketing-safe verb list
-    # (guarantee/prevent/block scoped to malicious actors) — flagged to
-    # the reviewer with PF-17; a naive substring lint would drown in
-    # false positives on the threat model itself.
-    "15": "B6 claim-verb docs lint not yet designed",
-}
+# TC-15 landed 2026-08-23 (Finding 7): tests/test_claim_lint.py — the
+# map is now empty, and this test fails if any doc TC loses coverage.
+KNOWN_UNCOVERED: "dict[str, str]" = {}
 
 
 def test_every_doc_tc_is_tested_or_an_explicit_known_gap():
