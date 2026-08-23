@@ -809,3 +809,176 @@ secret is a standing TODO, so CI may never have seen them.
 **Verification (whole batch):** full non-slow after each unit — final **1825 passed / 35 skipped / 57 deselected in 87s** (progression 1804 → 1817 → 1825; +8/+13/+8 = the new tests, twice re-baselined); scoped runs green per unit; claims gate OK (21 warn-only) and capability registry OK after each commit; red-on-parent demonstrated per unit as listed.
 **Open for the reviewer:** batch review of **`2a833ef..c7f69de`** (PF-16 + clobber-fix + PF-16b + PF-17), plus PF-15 `5a0d96c` from the previous entry if not yet picked up. Rulings requested: (1) cohort.json untrack-vs-accept; (2) PF-14 extension to CLI/MCP read surfaces; (3) TC-15 docs-lint design; (4) carried non-blocking: `type(e).__name__` free-text sites (backfill/pack/mcp_server), `error_class` v2-vs-v3.
 **Next:** E-6 re-review completion is now unblocked — the full PF-11→17 chain is implemented. Frozen until E-6 approval: Loops 5–6, live prompt hooks, paid runs, parked merges.
+
+---
+
+### 2026-08-23 — Codex consolidated security review — CHANGES REQUIRED (`98e3649`, `5a0d96c`, `2a833ef..c7f69de`)
+
+**Verdicts by unit:** `98e3649` is **APPROVED for its original scoped
+residual** (caller-controlled `error_class` removed; injection receipt and hook
+stderr use a closed category set). No v3 injection-receipt schema bump is
+required now because current readers treat the optional field as opaque. The
+prior statement that **TM-14 as a whole was closed was too broad**, however;
+Finding 1 corrects it on new evidence. PF-15 `5a0d96c` and PF-16/16b/PF-17
+`2a833ef..c7f69de` are **CHANGES REQUIRED**. E-6 is not approval-ready; all
+standing freezes remain.
+
+#### Finding 1 — P1 — TM-14 still persists raw exception diagnostics
+
+**Finding:** `ctxpack/agent/checkpoint.py:537` formats
+`f"{type(exc).__name__}: {exc}"`, and line 612 writes it to the unscanned
+`checkpoints.jsonl`. At reviewed HEAD, a minted exception class named
+`AKIAIOSFODNN7EXAMPLE` produced `CHECKPOINT_LINT_SECRET_PERSISTED=True`; the
+existing lint-crash test positively asserts the raw message, so green currently
+pins the leak. The carried backfill/code-pack/MCP sites are part of the same E-6
+diagnostic inventory.
+
+**Required acceptance cases:** (a) secret-bearing lint messages/classes leave
+no ledger byte; persist only a stable code plus the shared bounded category;
+(b) clean lint omits error fields and a crash remains checkpoint-fail-open with
+`Decision lint: FAILED`; (c) inventory `backfill.py:215`,
+`core/code/pack.py:173`, and `integrations/mcp_server.py:1182` and either bound
+them with per-surface tests or keep them as named E-6 blockers; (d) tests red on
+current parent, green on the fix.
+
+**Fix SHA:** pending owner. **Status:** (a) FAIL; (b) partial; (c) FAIL;
+(d) pending.
+
+#### Finding 2 — P1 — PF-15 follows a linked ledger root
+
+**Finding:** candidate links are rejected, but `ledger_dir` itself is not.
+Journal reads, enumeration, and containment follow a root junction/symlink and
+then treat its target as the root. A real Windows-junction probe deleted the
+target's old session artifact (`ROOT_LINK_ACCEPTED=True`).
+
+**Required acceptance cases:** (a) plan/apply refuse a ledger root that is a
+symlink, junction, or reparse point and preserve the external canary; (b) root
+validation occurs before journal read, at apply, and immediately before each
+unlink; (c) normal-root TC-18 behavior remains; (d) exact test red on
+`5a0d96c`, green on fix.
+
+**Fix SHA:** pending owner. **Status:** (a) FAIL; (b) FAIL; (c) PASS;
+(d) pending.
+
+#### Finding 3 — P1 — PF-15 confirmation hash covers only deletions
+
+**Finding:** `_hash_plan()` omits ledger identity, journal/kept-session state,
+and skipped candidate-shaped entries. Adding an orphan left the hash unchanged
+and apply deleted the old candidates (`ORPHAN_DRIFT_HASH_UNCHANGED=True`,
+`OLD_CANDIDATE_DELETED_AFTER_UNHASHED_DRIFT=True`). A hash can also authorize
+an identical delete set in another ledger. The “ANY drift” claim is false.
+
+**Required acceptance cases:** (a) bind ledger identity, journal/ordered or
+kept-session state, all delete path+size+content hashes, and all
+candidate-shaped skipped path+reason rows; (b) orphan/ambiguous/link drift
+changes the hash and aborts before unlink; (c) ledger-A hash cannot authorize
+ledger B; (d) current content-swap/window/wrong-hash/receipt controls remain;
+(e) red on `5a0d96c`, green on fix.
+
+**Fix SHA:** pending owner. **Status:** (a) FAIL; (b) FAIL; (c) FAIL;
+(d) PASS; (e) pending.
+
+#### Finding 4 — P1 — PF-16 count-only allowlisting has a same-count bypass
+
+**Finding:** `api_key=client_key` and `api_key=supersecretvalue12345` both
+produce `{'secret:secret-assignment': 1}`; replacing the reviewed false
+positive with the secret passes (`SAME_COUNT_SECRET_SWAP_PASSES=True`). An
+`unscanned: 1` waiver likewise publishes bytes the gate never inspected.
+
+**Required acceptance cases:** (a) bind every allowance to reviewed bytes
+(minimum file SHA-256 plus detector/count; span fingerprints also acceptable),
+so a same-count swap fails; (b) scan undecodable bytes safely or exclude them
+from the publishable tree — acknowledged-but-unscanned is not a privacy pass;
+(c) replace ambiguous “run cwd or synthetic” notes with exact dispositions;
+(d) preserve exact stale-entry checking and the restored E-6A gate; (e)
+adversarial tests red on `91054ca`, green on fix.
+
+**Fix SHA:** pending owner. **Status:** (a) FAIL; (b) FAIL; (c) FAIL;
+(d) PASS; (e) pending.
+
+#### Finding 5 — P2 — PF-16b still admits path-bearing free text and ambiguous identities
+
+**Finding:** `external[].note` is copied verbatim into v3, so an external note
+containing `C:/Users/kapil/private` survives. Cohort validation also accepts a
+local repo alias and external deployment with the same name
+(`LOCAL_EXTERNAL_ALIAS_COLLISION_ACCEPTED=True`).
+
+**Required acceptance cases:** (a) omit local-config notes from publishable
+rows or audit the exact scorecard bytes before every write with the strict
+no-machine-path/no-owner-identity matcher; pin drive/UNC/POSIX/`file://`/URL
+cases; (b) reject local-vs-external and duplicate artifact aliases; (c) keep v2
+immutable verification and v3 no-cohort fail-closed behavior.
+
+**Fix SHA:** pending owner. **Status:** (a) FAIL; (b) FAIL; (c) PASS.
+
+**Owner ruling recommendation:** untrack and gitignore
+`scorecards/cohort.json`; commit a path-free example/schema instead. Historical
+contaminated artifacts need a separate release/history decision — allowlisting
+does not sanitize history.
+
+#### Finding 6 — P1 — PF-17 encodes a live leak as a passing security test
+
+**Finding:** `test_documented_gap_cli_read_path_emits_unscanned_gist` passes
+only while `ctxpack session resume` emits the planted AWS-shaped secret. A
+known leak cannot contribute to a green security headline. The final egress
+boundary must cover every agent-facing CLI/MCP read surface.
+
+**Required acceptance cases:** (a) one shared final-serialization scan for all
+CLI/MCP session reads, fail-closed with a stable non-sensitive error; (b) pin
+`resume`, `recall`, `why`, `timeline`, `literals`, and MCP twins against a raw
+old-ledger corpus plus benign controls; (c) replace the passing gap pin with a
+real regression test (or strict xfail while open, excluded from pass claims);
+(d) red on `c7f69de`, green on fix.
+
+**Fix SHA:** pending owner. **Status:** (a) FAIL; (b) FAIL; (c) FAIL;
+(d) pending.
+
+#### Finding 7 — P2 — PF-17 has an uncovered TC and vacuous provenance assertions
+
+**Finding:** TC-15 remains `KNOWN_UNCOVERED`. TC-14's
+`roles <= {"assistant"}` passes for an empty set, and
+`m.get("owner_approval", "unavailable")` passes when the field is absent.
+
+**Required acceptance cases:** (a) implement a scoped TC-15 claim lint that
+distinguishes product claims from quoted threat text/negated limitations; (b)
+assert `roles == {"assistant"}` and explicit owner-approval field
+presence/value, with missing/empty can-fail controls; (c) retain the registry's
+warning that textual references are not proof.
+
+**Fix SHA:** pending owner. **Status:** (a) FAIL; (b) FAIL; (c) PASS.
+
+**Reviewer verification:** 74 scoped tests passed for `98e3649`; current
+retention/privacy/scorecard/PF-17 set 52 passed; full deterministic lane
+`python -m pytest tests/ -q -m "not slow" -p no:cacheprovider` → **1825 passed /
+35 skipped / 57 deselected** in 62.94s. Claims gate OK (21 warn-only),
+capability registry OK, and the parent probe confirmed the original
+injection-journal leak, so `98e3649` is a real fix rather than a test rewrite.
+
+**Parallel-work ruling:** do not start another implementation while these
+security findings are being fixed in the same repo. The queued
+`IncrementalPacker` decision should be **retire**, not harden (zero callers,
+mtime freshness contradicts Track C content-digest semantics, and its timing
+test is the known flaky gate), but land that deletion as a separate reviewed
+unit only after this remediation range is stable. CI floor and Track C remain
+behind the ratified preflight/E-6 order.
+
+---
+
+### 2026-08-23 — Claude Code (session `60c1d612`, continued) — E-6 CHANGES-REQUIRED remediation: all 7 findings fixed (`26b39a1..7ea3ba1`); re-review requested
+
+Codex's consolidated verdict (entry above) requested changes on 5 P1 + 2 P2 findings. Each is fixed in ONE mechanism-scoped commit with red-on-parent tests, in the reviewer's stated order (P1s first). `98e3649` stays approved and untouched.
+
+**Per-finding status — every acceptance case linked to a test:**
+
+- **Finding 1 (P1, TM-14 lint leak) — `26b39a1`.** The bounded classifier moved to `core/errors.py` (core can't import agent; `injection_log` re-exports for the approved API) and now bounds ALL four inventoried surfaces. (a) checkpoint lint crash persists category only — `test_lint_crash_with_secret_bearing_exception_leaks_no_ledger_byte` (minted-secret class, no ledger byte); (b) clean lint omits error fields (existing test retained) + crash renders `Decision lint: FAILED` fail-open (pinned in `test_journal_lint_status_error_when_lint_crashes`); (c) `backfill.py:215`, `core/code/pack.py:173`, `mcp_server.py:1182` each bounded with a per-surface minted-class test in `test_redaction.py` (the MCP catch-all extracted to `tool_error_result()` → `{error:tool_failed, tool, error_class}`); (d) red on parent `21b983a` (5 failed). Status: (a) PASS (b) PASS (c) PASS (d) PASS.
+- **Finding 2 (P1, retention linked root) — `7c032fb`.** `_root_reason()` refuses a symlink/junction/reparse-point root (`ledger_root_link`) or absent/non-dir (`ledger_root_invalid`). (a) plan AND apply refuse a linked root, external canary preserved — `test_f2_linked_ledger_root_is_refused_and_target_preserved`; (b) checked before journal read, at apply's replan, and immediately before EVERY unlink — `test_f2_root_rechecked_immediately_before_each_unlink`; (c) normal-root TC-18 retained (suite green); (d) the reviewer's exact probe reproduced on parent: `ROOT_LINK_ACCEPTED=True TARGET_ARTIFACT_DELETED=True`. Status: all PASS.
+- **Finding 3 (P1, plan-hash under-binding) — `b36e8e0`.** Plan schema v2 binds canonical ledger identity (realpath in preimage only, never persisted), full ordered journal session list + unattributed count, every deletion path+size+content-sha, AND every candidate-shaped skipped (path,reason). (a)/(b) `test_f3_orphan_added_between_plan_and_apply_aborts`, `test_f3_link_appearing_among_skipped_rows_aborts`; (c) `test_f3_ledger_a_hash_cannot_authorize_ledger_b`; (d) existing content-swap/window/wrong-hash/receipt controls retained; (e) 3 red on parent `7c032fb`. Status: all PASS.
+- **Finding 4 (P1, count-only allowlist) — `eb2aa8a`.** Allowlist schema v2 binds each entry's file sha256. (a) same-count swap fails on the sha — `test_f4_same_count_swap_fails_on_reviewed_bytes` (`api_key=client_key` → `api_key=supersecretvalue12345`, both count 1); (b) undecodable files scanned LOSSILY, no waiver — `test_f4_undecodable_bytes_are_scanned_not_waived` (the niah-log waiver is gone; it scans clean) + unreadable raises; (c) ambiguous "run cwd or synthetic" notes replaced with exact per-group dispositions verified against matched spans; (d) stale-entry + E-6A gate retained; (e) 6 red on parent `b36e8e0`. Status: all PASS.
+- **Finding 6 (P1, unscanned read paths) — `a5f31b8`.** New shared choke point `ctxpack/agent/egress.py`: `scan_out()` runs the type-only scanner on FINAL serialized text, fail-closed `EgressError`. (a) one scan for all CLI session reads via `_emit()` + all seven MCP session tools via `scanned_session_result()` at the `call_tool` boundary; (b) `resume/recall/why/timeline/decisions/literals/stats` + MCP twins pinned against a poisoned old-ledger corpus + benign control in `test_read_path_egress.py` (raw handler outputs asserted to still carry the secret → the scan is load-bearing); (c) the `c7f69de` passing gap pin REPLACED by real regression tests (the deliberate closure its own docstring demanded); (d) 11 red on parent `eb2aa8a`. Status: all PASS. **This closes the new gap I surfaced in the PF-17 handoff.**
+- **Finding 5 (P2, artifact free text/identity) — `6ce11a1`.** `external[].note` no longer enters v3 rows (stays in cohort.json) — `test_f5_external_note_never_enters_the_artifact`. Defense in depth: `audit_artifact_bytes()` runs the strict machine-path matcher (drive raw+JSON-escaped, UNC, /home, /Users, file:// — each pinned) on the exact bytes of every publishable write (json, dashboard.html, scorecard.md) and refuses on any hit (`ArtifactPrivacyError`, audit-not-sanitize). Local-vs-external alias collision rejected on the merged population. (c) v2 immutable verify + v3 no-cohort fail-closed retained. 4 red on parent `a5f31b8`. Status: all PASS.
+- **Finding 7 (P2, TC-15 + vacuous TC-14) — `7ea3ba1`.** New `ctxpack/agent/claim_lint.py`: precision-first B6 claim-verb lint (security-verb AND product-subject AND adversary token AND no negation; hard-wrapped markdown reassembled). Zero findings on the committed tree; committed negative control `tests/claim_lint_violation/overclaim.md` proves red-capable; registry KNOWN_UNCOVERED now EMPTY. Disclosed precision-first limitation: an adversary-scoped claim with no threat token can be missed (green = "no detected violation"). TC-14: `roles <= {...}` (vacuous for empty set) and `owner_approval` default-get replaced with exact `authority==agent_candidate` + explicit `owner_approval=="unavailable"` + `SOURCE-ROLE==["assistant"]`; non-vacuity proved by `test_tc14_assertions_are_not_vacuous`. Registry red on parent `6ce11a1` (TC-15 uncovered); TC-14 strengthening is a self-identified regression pin (behavior was always correct; the assertions were the bug). Status: all PASS.
+
+**Verification:** full non-slow `python -m pytest tests/ -q -m "not slow"` → **1860 passed / 35 skipped / 57 deselected in 58s** (+35 vs the 1825 pre-remediation baseline); claims gate OK (21 warn-only); capability registry OK; `git diff --check c7f69de..HEAD` clean. Red-on-parent demonstrated per finding as listed (worktree at each fix's parent, that commit's test files copied in).
+
+**Open for the reviewer:** re-review of **`26b39a1..7ea3ba1`** (7 commits). Owner rulings still queued, non-blocking to this range: (1) Codex recommends untrack + gitignore `scorecards/cohort.json` with a path-free example committed instead, and a SEPARATE release/history decision for the contaminated historical artifacts (allowlisting does not sanitize history) — flagged for Kapil; (2) IncrementalPacker retire (owner-confirmed direction) lands as its own reviewed unit only AFTER this range is stable.
+**Next:** on approval of this range → E-6 complete → (only then, per A2) CI floor → Track C. Frozen throughout: Loops 5–6, live prompt hooks, paid runs, parked merges.
