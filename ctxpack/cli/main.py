@@ -1488,6 +1488,23 @@ def _cmd_scorecard(args: argparse.Namespace) -> int:
 
 
 def _cmd_session(args: argparse.Namespace) -> int:
+    """Outer bounded guard (RF2, Codex Finding 2): a session-read
+    FAILURE must emit a stable bounded code only — never exception text,
+    which for a poisoned legacy `.ctx` is a `ParseError` carrying the
+    offending ledger bytes. Any exception escaping the read path
+    (ParseError, LedgerError, OSError, a scanner failure) is caught here
+    and rendered as `session_read_failed (<category>)`; it never reaches
+    `_run`'s free-text handler."""
+    from ..core.errors import classify_exception
+    try:
+        return _cmd_session_impl(args)
+    except Exception as e:  # noqa: BLE001 — bounded diagnostic, no leak
+        print(f"Error: session_read_failed ({classify_exception(e)})",
+              file=sys.stderr)
+        return 1
+
+
+def _cmd_session_impl(args: argparse.Namespace) -> int:
     """Read path over the checkpoint ledger — the CLI twin of the MCP
     session tools, so any agent with a shell can use the ledger."""
     from ..agent.egress import EGRESS_SCAN_FAILED, EgressError, scan_out
@@ -1517,12 +1534,19 @@ def _cmd_session(args: argparse.Namespace) -> int:
         print(safe)
         return 0
 
+    from ..core.errors import classify_exception
+
+    def _read_error(exc) -> int:
+        # RF2: read failures carry no ledger bytes to stderr
+        print(f"Error: session_read_failed ({classify_exception(exc)})",
+              file=sys.stderr)
+        return 1
+
     if args.action == "stats":
         try:
             return _emit(json.dumps(session_stats(args.ledger), indent=2))
         except LedgerError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            return 1
+            return _read_error(e)
 
     if args.action == "ratify":
         # Ratification is an explicit event referencing an EXISTING
@@ -1595,8 +1619,7 @@ def _cmd_session(args: argparse.Namespace) -> int:
         try:
             result = session_resume(args.ledger, args.session_id)
         except LedgerError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            return 1
+            return _read_error(e)
         gist = result.pop("gist", "")
         out = json.dumps(result, indent=2)
         if gist:
@@ -1615,14 +1638,12 @@ def _cmd_session(args: argparse.Namespace) -> int:
         try:
             result = session_why_across(args.ledger, args.key)
         except LedgerError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            return 1
+            return _read_error(e)
     else:
         try:
             doc, sid = load_session(args.ledger, args.session_id)
         except LedgerError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            return 1
+            return _read_error(e)
 
         if args.action == "recall":
             result = session_recall(doc, sid, section=args.section,

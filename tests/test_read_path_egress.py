@@ -171,3 +171,69 @@ def test_scan_out_is_fail_closed_and_type_only(monkeypatch):
     monkeypatch.setattr("ctxpack.core.redaction.redact", boom)
     with pytest.raises(EgressError):
         scan_out("anything")
+
+
+# ── RF2 (Codex Finding 2): CLI session-read FAILURES are bounded too ──
+
+@pytest.mark.parametrize("action,target", [
+    ("stats", "session_stats"),
+    ("resume", "session_resume"),
+    ("recall", "load_session"),
+    ("timeline", "load_session"),
+    ("decisions", "load_session"),
+    ("literals", "load_session"),
+    ("graph", "load_session"),
+    ("why", "session_why_across"),
+])
+def test_rf2_cli_read_failure_emits_bounded_code_no_secret(
+        tmp_path, capsys, monkeypatch, action, target):
+    """RF2 (P1): a session-read failure whose exception text embeds a
+    secret (the reviewer's probe was a `ParseError(secret)` from a
+    poisoned legacy .ctx) emits a stable bounded code ONLY — the secret
+    reaches neither stdout nor stderr, rc=1. RED on a5f31b8: the error
+    escaped `_emit` (success-only) and `_run` printed the raw text."""
+    from ctxpack.core.errors import ParseError
+
+    def boom(*a, **k):
+        raise ParseError(SECRET)
+
+    monkeypatch.setattr(f"ctxpack.agent.session_reader.{target}", boom)
+    out = tmp_path / "ctx"
+    out.mkdir()
+    argv = ["session", action, "--ledger", str(out)]
+    if action in ("why", "graph"):
+        argv.append("somekey")
+    rc = main(argv)
+    cap = capsys.readouterr()
+    assert rc == 1
+    assert SECRET not in cap.out and SECRET not in cap.err, (action, cap.err)
+    assert "session_read_failed" in cap.err
+
+
+def test_rf2_scanner_failure_on_success_path_withholds_output(
+        tmp_path, capsys, monkeypatch):
+    """RF2 (a): a scanner failure on an otherwise-successful read emits
+    nothing but the stable code (the _emit fail-closed path)."""
+    out, _sid = _poisoned_ledger(tmp_path)
+
+    def boom(text):
+        raise RuntimeError("scanner down")
+
+    monkeypatch.setattr("ctxpack.core.redaction.redact", boom)
+    rc = main(["session", "resume", "--ledger", str(out)])
+    cap = capsys.readouterr()
+    assert rc == 1
+    assert cap.out == ""
+    assert SECRET not in cap.err
+    assert "egress_scan_failed" in cap.err
+
+
+def test_rf2_benign_success_and_exit_codes_unchanged(tmp_path, capsys):
+    """RF2 (c): the success path still returns 0 and emits benign
+    content; a usage error still returns its controlled code."""
+    out, _sid = _poisoned_ledger(tmp_path)
+    assert main(["session", "decisions", "--ledger", str(out)]) == 0
+    assert capsys.readouterr().out.strip() != ""
+    # usage error (missing key) stays a controlled nonzero, no traceback
+    assert main(["session", "why", "--ledger", str(out)]) == 1
+    assert "needs a key" in capsys.readouterr().err
