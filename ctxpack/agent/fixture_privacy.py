@@ -74,9 +74,20 @@ def scan_text(text: str) -> "dict[str, int]":
 def scan_file(path: str) -> "tuple[dict[str, int], str]":
     """``(detector counts, content sha256)`` for one committed file.
 
-    Undecodable bytes are decoded lossily and STILL scanned (Finding
-    4b) — the sha is over the raw bytes either way, so the allowance
-    binds exactly what was reviewed. An unreadable committed file
+    A publishable text fixture must be clean UTF-8 TEXT. Lossy decoding
+    (the earlier ``errors="replace"`` form) mis-read a wide-encoded
+    secret as clean — UTF-16LE ``AKIAIOSFODNN7EXAMPLE`` interleaves the
+    ASCII bytes with NULs, so the type-only regexes never match and the
+    file passed with an empty detector map (Codex Finding 1, RF1). We
+    now REFUSE rather than guess an encoding:
+
+    - a NUL byte means the file is not UTF-8 text (wide encoding or
+      binary) → detector ``non_text``;
+    - bytes that fail STRICT UTF-8 decode → detector ``non_utf8``.
+
+    Both are findings unless the allowlist carries an explicit,
+    sha-bound owner disposition — there is no lossy-clean waiver. The
+    sha is over the raw bytes either way. An unreadable committed file
     raises: the gate must never pass by being unable to look."""
     try:
         with open(path, "rb") as f:
@@ -86,7 +97,13 @@ def scan_file(path: str) -> "tuple[dict[str, int], str]":
         raise GateError(f"committed file unreadable "
                         f"({classify_exception(e)}): {path}")
     sha = hashlib.sha256(raw).hexdigest()
-    return scan_text(raw.decode("utf-8", errors="replace")), sha
+    if b"\x00" in raw:
+        return {"non_text": 1}, sha
+    try:
+        text = raw.decode("utf-8")            # STRICT — never guess
+    except UnicodeDecodeError:
+        return {"non_utf8": 1}, sha
+    return scan_text(text), sha
 
 
 def committed_files(repo_root: str,

@@ -106,18 +106,65 @@ def test_f4_same_count_swap_fails_on_reviewed_bytes(tmp_path):
     assert findings and "CHANGED BYTES" in findings[0]
 
 
-def test_f4_undecodable_bytes_are_scanned_not_waived(tmp_path):
-    """Finding 4b (P1): a file that fails strict UTF-8 decoding is
-    scanned LOSSILY — an ASCII-region secret inside binary bytes is
-    still found; there is no acknowledged-but-unscanned waiver. RED on
-    91054ca: the file reported {unscanned: 1} and its bytes were never
-    inspected."""
-    blob = tmp_path / "blob.bin"
-    blob.write_bytes(b"\xff\xfe garbage AKIAIOSFODNN7EXAMPLE tail \xff")
-    counts, sha = scan_file(str(blob))
-    assert "unscanned" not in counts
-    assert any(d.startswith("secret:") for d in counts), counts
+def test_rf1_wide_and_invalid_encodings_cannot_pass_as_clean(tmp_path):
+    """RF1 (Codex Finding 1, P1): lossy decoding read a UTF-16 secret as
+    clean ({} detector map). A publishable fixture must be clean UTF-8
+    text; wide/invalid encodings are REFUSED (non_text/non_utf8), never
+    lossy-scanned. RED on eb2aa8a: UTF-16LE returned {} and passed with
+    no allowlist entry."""
+    secret = "AKIAIOSFODNN7EXAMPLE"
+    le = tmp_path / "le.txt"
+    le.write_bytes(secret.encode("utf-16-le"))
+    be = tmp_path / "be.txt"
+    be.write_bytes(secret.encode("utf-16-be"))
+    bad = tmp_path / "bad.txt"
+    bad.write_bytes(b"prefix \xff\xfe\xfa not utf8 " + secret.encode())
+    for f in (le, be):
+        counts, sha = scan_file(str(f))
+        assert counts == {"non_text": 1}, (f.name, counts)
+        # refused files are NEW hits unless explicitly dispositioned —
+        # the encoded secret can never pass silently
+        assert gate_findings({f.name: {"detectors": counts,
+                                       "sha256": sha}}, allowed={})
+    counts, sha = scan_file(str(bad))
+    assert counts == {"non_utf8": 1}, counts
+    assert gate_findings({"bad.txt": {"detectors": counts,
+                                      "sha256": sha}}, allowed={})
+
+
+def test_rf1_valid_utf8_controls_stay_clean(tmp_path):
+    """RF1 (c): genuine UTF-8 text (incl. non-ASCII and a benign
+    binary-lookalike with high bytes that still decode) is scanned
+    normally, not refused."""
+    ok = tmp_path / "ok.md"
+    ok.write_text("# notes — café, naïve, 数据; api_key parameter\n",
+                  encoding="utf-8")
+    counts, sha = scan_file(str(ok))
+    assert "non_text" not in counts and "non_utf8" not in counts
     assert len(sha) == 64
+
+
+def test_rf1_niah_log_carries_an_explicit_sha_bound_disposition():
+    """RF1 (b): the one committed non-UTF-8 result file has an explicit
+    owner disposition in the allowlist, bound to its exact bytes — no
+    lossy-clean waiver, and a byte change breaks the sha."""
+    import json
+    rel = "ctxpack/benchmarks/agentic/results/niah_full_run.log"
+    raw = json.load(open(os.path.join(REPO_ROOT, ALLOWLIST_FILE),
+                        encoding="utf-8"))
+    entry = next((e for e in raw["entries"] if e["path"] == rel), None)
+    assert entry is not None, "niah log must be explicitly dispositioned"
+    assert entry["detector"] in ("non_utf8", "non_text")
+    assert len(entry["sha256"]) == 64
+    counts, sha = scan_file(os.path.join(REPO_ROOT, rel))
+    assert entry["sha256"] == sha              # bound to the reviewed bytes
+
+
+def test_unreadable_committed_file_raises_never_passes(tmp_path):
+    """Can-fail: a committed file the gate cannot READ is a GateError
+    — the gate never passes by being unable to look."""
+    with pytest.raises(GateError):
+        scan_file(str(tmp_path / "missing.bin"))
 
 
 def test_unreadable_committed_file_raises_never_passes(tmp_path):

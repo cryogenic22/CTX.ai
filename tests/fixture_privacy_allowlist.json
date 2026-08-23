@@ -17,6 +17,13 @@
       "why": "false positive: '/home/`' is a markdown inline-code boundary, not a user path"
     },
     {
+      "path": "ctxpack/benchmarks/agentic/results/niah_full_run.log",
+      "detector": "non_utf8",
+      "count": 1,
+      "sha256": "2b2f219f6f7987ce9be97866f828e14e4a17c7fa46c7c09a23fd3de89ecb0422",
+      "why": "immutable eval run-log written in a non-UTF-8 encoding (NIAH benchmark harness output, frozen result artifact); not a text fixture — refused-as-non-UTF-8 rather than lossy-scanned, explicit owner disposition per RF1"
+    },
+    {
       "path": "ctxpack/benchmarks/agentic/results/resume-probe-KP_SDLC-recall-dryrun-20260705T235920+0000.json",
       "detector": "user_path",
       "count": 1,
