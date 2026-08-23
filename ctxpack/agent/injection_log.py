@@ -67,40 +67,21 @@ ERROR_CODES = ("startup_read_failed", "egress_scan_failed",
 # identifier check does not bound it — "AKIAIOSFODNN7EXAMPLE" is a
 # valid identifier, and type(secret, (Exception,), {}) mints a class
 # whose __name__ IS the secret. So no class name is ever serialized:
-# the exception OBJECT is classified by isinstance against stdlib
-# bases only, and exactly one of these fixed categories can reach a
-# row — or a hook stderr line, which shares the classifier (TM-14).
-# Rows written before this rule carry raw class names; error_class is
-# opaque display text to every reader either way.
-IO_ERROR = "io_error"
-RUNTIME_ERROR = "runtime_error"
-ENCODING_ERROR = "encoding_error"
-UNKNOWN_EXCEPTION = "unknown_exception"
-ERROR_CLASSES = (IO_ERROR, RUNTIME_ERROR, ENCODING_ERROR,
-                 UNKNOWN_EXCEPTION)
-
-# UnicodeError subclasses ValueError, not OSError, so nothing overlaps
-# today — but this stays an ordered tuple, not a dict, so the first
-# match is deterministic if a future base ever does.
-_EXCEPTION_BASES = ((UnicodeError, ENCODING_ERROR),
-                    (OSError, IO_ERROR),
-                    (RuntimeError, RUNTIME_ERROR))
-
-
-def classify_exception(exc: object) -> str:
-    """Bounded diagnostic category for an exception object.
-
-    Returns one of :data:`ERROR_CLASSES` — never ``type(exc).__name__``,
-    never message text, never any caller-supplied string. Anything that
-    is not an instance of a recognized stdlib base (including a
-    non-exception handed in by mistake) maps to ``unknown_exception``.
-    The input is classified, not serialized: no byte of it can reach
-    the channel the category lands in.
-    """
-    for base, label in _EXCEPTION_BASES:
-        if isinstance(exc, base):
-            return label
-    return UNKNOWN_EXCEPTION
+# the exception OBJECT is classified into a fixed category set and
+# only the category can reach a row — or a hook stderr line, or any
+# other unscanned diagnostic channel (TM-14). The classifier lives in
+# core.errors (Finding 1, 2026-08-23) so core/agent/integrations all
+# share ONE bounded vocabulary; re-exported here for the original
+# TM-7 callers. Rows written before this rule carry raw class names;
+# error_class is opaque display text to every reader either way.
+from ..core.errors import (  # noqa: F401 — re-exported API
+    ENCODING_ERROR,
+    ERROR_CLASSES,
+    IO_ERROR,
+    RUNTIME_ERROR,
+    UNKNOWN_EXCEPTION,
+    classify_exception,
+)
 
 
 def record_injection(out_dir: str,

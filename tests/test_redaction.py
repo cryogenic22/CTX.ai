@@ -706,3 +706,87 @@ def test_tc17b_minted_class_name_with_secret_never_reaches_stderr(
     assert secret not in err
     assert "checkpoint_failed" in err
     assert "runtime_error" in err
+
+
+# ── TM-14 Finding 1 (2026-08-23): the remaining diagnostic surfaces
+# share the one bounded classifier — backfill report rows, code-pack
+# file warnings, and the MCP catch-all error payload ──
+
+def test_backfill_failed_row_note_carries_category_not_exception_text(
+        tmp_path, monkeypatch):
+    """TM-14 (Finding 1): a backfill pack crash whose exception message
+    and minted class name both embed a secret produces a report row
+    whose note is the bounded category only. RED on parent: the note
+    stored type(e).__name__ + str(e) verbatim."""
+    import os as _os
+    import time as _time
+
+    from ctxpack.agent.backfill import run_backfill
+    from ctxpack.agent.checkpoint import _claude_project_dir_name
+
+    secret = "AKIAIOSFODNN7EXAMPLE"
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    home = tmp_path / "home"
+    tdir = home / "projects" / _claude_project_dir_name(str(repo))
+    tdir.mkdir(parents=True)
+    sid = "bfleak11-0000-0000-0000-000000000000"
+    rows = [{"type": "user", "sessionId": sid, "uuid": "u1",
+             "message": {"content": "Ship it."}}]
+    path = tdir / f"{sid}.jsonl"
+    path.write_text("\n".join(json.dumps(r) for r in rows) + "\n",
+                    encoding="utf-8")
+    when = _time.time() - 86400
+    _os.utime(path, (when, when))
+
+    evil = type(secret, (RuntimeError,), {})
+
+    def boom(*a, **k):
+        raise evil(f"exploded holding {secret}")
+
+    monkeypatch.setattr("ctxpack.agent.backfill.run_checkpoint", boom)
+    report = run_backfill(str(repo), str(repo / ".claude" / "ctx"),
+                          as_of="2026-08-23", claude_home=str(home))
+    assert [r.outcome for r in report] == ["failed"]
+    assert report[0].detail == "runtime_error"
+    assert secret not in report[0].detail
+
+
+def test_code_pack_file_warning_carries_category_not_exception_text(
+        tmp_path, monkeypatch):
+    """TM-14 (Finding 1): a parser crash steered by a source file (a
+    minted exception class named with a secret) produces a FileWarning
+    whose message is the bounded category; the file field stays the
+    actionable datum. RED on parent: message was class name + text."""
+    from ctxpack.core.code.pack import pack_codebase
+
+    secret = "AKIAIOSFODNN7EXAMPLE"
+    (tmp_path / "mod.py").write_text("x = 1\n", encoding="utf-8")
+    evil = type(secret, (RuntimeError,), {})
+
+    def boom(*a, **k):
+        raise evil(f"parser held {secret}")
+
+    monkeypatch.setattr("ctxpack.core.code.pack.parse_python", boom)
+    pack = pack_codebase(tmp_path)
+    warn = next(w for w in pack.warnings if w.file == "mod.py")
+    assert warn.message == "runtime_error"
+    assert secret not in json.dumps(
+        [w.message for w in pack.warnings])
+
+
+def test_mcp_catch_all_error_payload_carries_no_exception_text():
+    """TM-14 (Finding 1): the MCP catch-all result is injected into
+    the CALLING AGENT'S CONTEXT — it carries the stable code and
+    bounded category only, never message text or a minted class name.
+    RED on parent: the payload was f"{type(e).__name__}: {str(e)}"."""
+    from ctxpack.integrations.mcp_server import tool_error_result
+
+    secret = "AKIAIOSFODNN7EXAMPLE"
+    evil = type(secret, (RuntimeError,), {})
+    payload = json.loads(tool_error_result(
+        "ctx_resume", evil(f"crashed with {secret}")))
+    assert payload["error"] == "tool_failed"
+    assert payload["tool"] == "ctx_resume"
+    assert payload["error_class"] == "runtime_error"
+    assert secret not in json.dumps(payload)

@@ -1157,6 +1157,21 @@ _HANDLERS = {
 
 # ── MCP Server setup ──
 
+def tool_error_result(name: str, exc: object) -> str:
+    """The ONLY error payload the catch-all returns into model context.
+
+    TM-14 (Finding 1, 2026-08-23): this string is injected into the
+    calling agent's context, a channel no scanner rescans — so it
+    carries the stable code and the shared bounded category only.
+    Exception text (which can embed secret bytes) and class names
+    (which a caller can mint) never leave the process through it.
+    Known error shapes with safe stable codes (e.g. ledger_not_found)
+    are handled inside the tool handlers before this catch-all."""
+    from ..core.errors import classify_exception
+    return json.dumps({"error": "tool_failed", "tool": str(name),
+                       "error_class": classify_exception(exc)})
+
+
 def create_server() -> "Server":
     """Create and configure the MCP server."""
     if not HAS_MCP:
@@ -1179,7 +1194,7 @@ def create_server() -> "Server":
         try:
             result = handler(arguments)
         except Exception as e:
-            result = json.dumps({"error": f"{type(e).__name__}: {str(e)}"})
+            result = tool_error_result(name, e)
 
         return [TextContent(type="text", text=result)]
 

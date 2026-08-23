@@ -237,7 +237,9 @@ def test_journal_lint_status_ok_on_clean_run(tmp_path):
 def test_journal_lint_status_error_when_lint_crashes(tmp_path, monkeypatch):
     # fail-open contract (review P2): the checkpoint hook still succeeds,
     # but the crash is journaled — "clean lint" and "lint crashed" must
-    # not both read lint_conflicts=0 with nothing else to tell them apart
+    # not both read lint_conflicts=0 with nothing else to tell them apart.
+    # TM-14 (Finding 1): the journal carries the stable status plus the
+    # BOUNDED category only — the message text never persists.
     import ctxpack.agent.conflict_lint as cl
 
     def boom(*args, **kwargs):
@@ -248,8 +250,41 @@ def test_journal_lint_status_error_when_lint_crashes(tmp_path, monkeypatch):
     run_checkpoint(_session_a(tmp_path), str(out), as_of="2026-07-06")
     journal = _journal_tail(out)
     assert journal["lint_status"] == "error"
-    assert "synthetic lint crash" in journal["lint_error"]
+    assert journal["lint_error"] == "runtime_error"     # category, not text
+    assert "synthetic lint crash" not in json.dumps(journal)
     assert journal["lint_conflicts"] == 0
+    # the crash is visible where a human reads: the gist says so
+    gist = next(out.glob("session-*-gist.md")).read_text(encoding="utf-8")
+    assert "Decision lint: FAILED" in gist
+
+
+def test_lint_crash_with_secret_bearing_exception_leaks_no_ledger_byte(
+        tmp_path, monkeypatch):
+    """TM-14 (Finding 1): a lint crash whose exception MESSAGE and
+    minted class NAME both embed a corpus secret leaves no secret byte
+    in checkpoints.jsonl, the .ctx, any gist, or any other ledger file
+    — only lint_status="error" plus the bounded category persist, and
+    the checkpoint stays fail-open. RED on parent: the journal stored
+    type(exc).__name__ + str(exc) verbatim."""
+    import ctxpack.agent.conflict_lint as cl
+
+    secret = "AKIAIOSFODNN7EXAMPLE"
+    evil = type(secret, (RuntimeError,), {})
+
+    def boom(*args, **kwargs):
+        raise evil(f"crashed while holding {secret}")
+
+    monkeypatch.setattr(cl, "lint_decisions", boom)
+    out = tmp_path / "ctx"
+    result = run_checkpoint(_session_a(tmp_path), str(out),
+                            as_of="2026-07-06")
+    assert result.lint_status == "error"        # fail-open, surfaced
+    journal = _journal_tail(out)
+    assert journal["lint_error"] == "runtime_error"
+    for f in out.rglob("*"):
+        if f.is_file():
+            assert secret not in f.read_text(encoding="utf-8",
+                                             errors="replace"), f.name
 
 
 def test_journal_counts_skipped_unreadable_ledgers(tmp_path):

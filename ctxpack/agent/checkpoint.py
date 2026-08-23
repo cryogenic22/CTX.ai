@@ -534,7 +534,13 @@ def run_checkpoint(
     except Exception as exc:  # noqa: BLE001
         lint_rows = []
         lint_status = "error"
-        lint_error = f"{type(exc).__name__}: {exc}"[:200]
+        # TM-14 (Finding 1, 2026-08-23): checkpoints.jsonl is a journal
+        # no scanner reads — a lint crash persists the stable status
+        # plus the shared bounded category ONLY, never message text or
+        # a class name a caller can mint. The gist renders "Decision
+        # lint: FAILED"; fail-open stands.
+        from ..core.errors import classify_exception
+        lint_error = classify_exception(exc)
 
     _emit_events(out_dir, parsed, corpus, sha, lint_rows=lint_rows)
 

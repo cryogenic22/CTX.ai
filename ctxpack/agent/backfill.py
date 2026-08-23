@@ -210,7 +210,9 @@ def run_backfill(project_dir: str = ".",
             rows.append(BackfillRow(s.session, s.status,
                                     "skipped_format", str(e)[:160]))
         except Exception as e:  # noqa: BLE001 — one bad file must not kill the sweep
+            # TM-14 (Finding 1): the report row carries the bounded
+            # category only — exception text can embed transcript bytes
+            from ..core.errors import classify_exception
             rows.append(BackfillRow(
-                s.session, s.status, "failed",
-                f"{type(e).__name__}: {e}"[:160]))
+                s.session, s.status, "failed", classify_exception(e)))
     return rows

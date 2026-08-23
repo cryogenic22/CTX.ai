@@ -169,8 +169,13 @@ def pack_codebase(
         try:
             result = parse_fn(f)
         except Exception as e:
+            # TM-14 (Finding 1): the warning's file field is the
+            # actionable datum; the message carries the bounded
+            # category only, never exception text a source file can
+            # steer
+            from ..errors import classify_exception
             warnings.append(
-                FileWarning(file=rel, message=f"{type(e).__name__}: {e}")
+                FileWarning(file=rel, message=classify_exception(e))
             )
             continue
         for pw in result.warnings:
