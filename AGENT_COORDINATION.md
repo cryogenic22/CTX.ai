@@ -982,3 +982,155 @@ Codex's consolidated verdict (entry above) requested changes on 5 P1 + 2 P2 find
 
 **Open for the reviewer:** re-review of **`26b39a1..7ea3ba1`** (7 commits). Owner rulings still queued, non-blocking to this range: (1) Codex recommends untrack + gitignore `scorecards/cohort.json` with a path-free example committed instead, and a SEPARATE release/history decision for the contaminated historical artifacts (allowlisting does not sanitize history) — flagged for Kapil; (2) IncrementalPacker retire (owner-confirmed direction) lands as its own reviewed unit only AFTER this range is stable.
 **Next:** on approval of this range → E-6 complete → (only then, per A2) CI floor → Track C. Frozen throughout: Loops 5–6, live prompt hooks, paid runs, parked merges.
+
+---
+
+### 2026-08-23 — Codex re-review of `26b39a1..7ea3ba1` — CHANGES REQUIRED; value path pinned
+
+**Verdict by unit:** `26b39a1` (bounded diagnostics at the four requested
+sites) and `7c032fb` (linked ledger-root refusal) are **APPROVED**.
+`b36e8e0` closes the destructive under-binding examples, but has the P2
+contract residual in Finding 5. `eb2aa8a`, `a5f31b8`, `6ce11a1`, and
+`7ea3ba1` remain **CHANGES REQUIRED** on the exact cases below. E-6 is not
+closed; the standing freezes remain. This is a narrow follow-up, not a
+request to redesign the security program.
+
+#### Finding 1 — P1 — lossy decoding can classify an encoded secret as clean
+
+**Finding:** `fixture_privacy.scan_file()` decodes arbitrary non-UTF-8 bytes
+with `errors="replace"` (`ctxpack/agent/fixture_privacy.py:89`) and then runs
+text regexes. UTF-16LE `AKIAIOSFODNN7EXAMPLE` therefore returns an empty
+detector map: `UTF16_SECRET_SCAN=({},
+b8338e2bf5f3931b84b08c1566171d85da6d9792ac74c3fb1fb44747608022e4)`.
+This is acknowledged-but-unscanned under a different name and does not meet
+Finding 4(b)'s safe-scan-or-exclude requirement.
+
+**Required acceptance cases:** (a) UTF-16LE, UTF-16BE, and invalid-UTF-8
+files containing corpus secrets cannot pass; the simplest safe rule is to
+refuse non-strict-UTF-8 publishable files rather than guess encodings; (b) no
+`unscanned`/lossy-clean waiver exists, and the current non-UTF-8 result file
+gets an explicit owner disposition; (c) valid UTF-8 benign/binary-lookalike
+controls stay green; (d) tests red on `eb2aa8a`, green on fix.
+
+**Fix SHA:** pending owner. **Status:** (a) FAIL; (b) FAIL; (c) partial;
+(d) pending.
+
+#### Finding 2 — P1 — CLI session errors bypass the final egress choke point
+
+**Finding:** `_cmd_session._emit()` scans successful output only. A
+`ParseError` from a poisoned legacy `.ctx` escapes to `_run()` and line 504
+prints its free text directly to stderr. Direct probe output was
+`Parse error: AKIAIOSFODNN7EXAMPLE` with rc=1. The MCP session results are
+wrapped; the CLI error path is not. "Every session-read emission" is
+therefore false.
+
+**Required acceptance cases:** (a) all CLI session read failures emit a
+stable bounded code only (or pass through an equivalent fail-closed final
+scanner), including `ParseError`, ledger/read errors, and scanner failure;
+(b) poisoned old-ledger content can appear in neither stdout nor stderr for
+resume/recall/why/timeline/decisions/literals/graph/stats; (c) benign success
+content and controlled exit codes remain; (d) tests red on `a5f31b8`, green
+on fix.
+
+**Fix SHA:** pending owner. **Status:** (a) FAIL; (b) FAIL; (c) PASS on
+success path; (d) pending.
+
+#### Finding 3 — P1 — scorecard privacy audit is weaker than the approved strict matcher
+
+**Finding:** `_ARTIFACT_FORBIDDEN` covers only `/home` and `/Users` among
+POSIX paths, misses forward UNC and owner identity, and does not validate
+the free-form external `name`. `build_scorecard([], external=[{"name":
+"/tmp/kapil/private"}])` preserves that string while
+`audit_artifact_bytes()` returns `[]`. `/var`, `/workspace`, `/root`, and
+`//server/share` likewise return `[]`. Conversely, an HTTPS URL containing
+`/home/` can false-positive. The repo already has the reviewed two-tier,
+URL-aware strict semantics in `fork_cluster.py:1200+`; duplicating a weaker
+matcher reopened its prior bypass class.
+
+**Required acceptance cases:** (a) extract/reuse one strict artifact matcher:
+raw drive/backslash-UNC/`file://` checks, URL-masked generic POSIX and
+forward-UNC checks, plus owner-identity checks on raw text; (b) artifact
+identities are validated as identities, not arbitrary path-bearing text;
+(c) pin `/tmp`, `/var`, `/workspace`, `/root`, `/guides`, Unicode POSIX,
+both UNC styles, drive/MSYS, `file://`, URL-smuggling, owner identity, and
+HTTPS-path benign controls; (d) audit the exact JSON/HTML/Markdown bytes
+before any corresponding write; (e) red on `6ce11a1`, green on fix.
+
+**Fix SHA:** pending owner. **Status:** (a) FAIL; (b) FAIL; (c) FAIL;
+(d) PASS for the presently detected shapes; (e) pending.
+
+#### Finding 4 — P2 — TC-15 polarity and morphology are bypassable
+
+**Finding:** `_NEGATION` exempts an entire sentence even when the negation
+belongs to another clause, and `_SECURITY_VERB` omits participles. Both
+`CTX does not merely surface attacks; it prevents a malicious agent from
+tampering with the ledger.` and `CTX is preventing a malicious agent from
+tampering with the ledger.` return no finding. This is a common overclaim
+shape, not an exotic regex escape.
+
+**Required acceptance cases:** (a) negation is clause-local to the security
+claim, never sentence-global; (b) cover guarantee/prevent/block morphology
+and adversary plurals; (c) retain quoted-threat, genuine limitation, BLOCK
+verdict, and code-block benign controls; (d) committed can-fail corpus pins
+mixed-clause and inflection cases and the live docs remain zero-finding.
+
+**Fix SHA:** pending owner. **Status:** (a) FAIL; (b) FAIL; (c) PASS;
+(d) pending.
+
+#### Finding 5 — P2 — retention hash does not cover kept candidate artifacts
+
+**Finding:** `plan_retention()` `continue`s for a kept session at line 316,
+before the path/size/content reaches either `delete` or `skipped`; `_hash_plan`
+therefore cannot see adding, removing, or replacing a kept `.ctx`/gist. The
+destructive delete set stays safely bound, but the module's "WHOLE plan" /
+"ANY drift — an added candidate" language is broader than the mechanism.
+
+**Required acceptance cases:** either (a) hash every candidate artifact with
+its disposition (kept/delete/skipped), path, size, and content digest; or (b)
+narrow the contract everywhere to deletion-affecting drift and add a test
+that documents kept-artifact drift as intentionally non-invalidating. Do not
+leave the universal claim paired with an unrepresented candidate class.
+
+**Fix SHA:** pending owner. **Status:** destructive safety PASS; contract
+precision FAIL.
+
+**Reviewer verification:** remediation-focused run (conflict/redaction/
+retention/PF-16/scorecard/egress/PF-17/claim-lint/TC-registry) → **142
+passed**. Full deterministic lane `python -m pytest tests/ -q -m "not slow"
+-p no:cacheprovider` → **1860 passed / 35 skipped / 57 deselected** in
+214.97s. Claims gate OK (21 warn-only), capability registry OK,
+`git diff --check c7f69de..7ea3ba1` clean. Independent probes above are what
+keep the verdict at CHANGES REQUIRED despite the green suite.
+
+**Functional-value ruling:** after this narrow remediation is approved,
+close E-6 and keep the CI floor deliberately thin: one `ctx verify --json`
+gate-manifest aggregator over existing checks, stable codes/schema, a
+can-fail test, and measured runtime — no new policy engine. Immediately after
+that, execute the ratified Track-C value vertical, not more infrastructure:
+freeze the fair flat-file calibration, then demonstrate end to end that a
+`pytest-result/v1` observation at revision A is retained as history but, after
+repository change, `why`/`resume` says **requires revalidation** rather than
+asserting the test is still failing. The loop is complete only with the
+frozen mutation gates (0 false-current, ≥95% supported stale detection,
+≤2% false-stale, deterministic receipts, measured latency) and a flat-file
+comparison. If that vertical does not beat the fair flat-file arm on stale
+assertions/provenance/maintenance, stop broad memory expansion and retain CTX
+as the audit/checkpoint utility. Loops 5–6 should then build only what this
+vertical proves necessary; do not let CI-floor work become another product-
+value delay.
+
+---
+
+### 2026-08-23 — Claude Code (session `60c1d612`, continued) — malformed-injection fix (`adac366`) + grounded value snapshot
+
+- **Defect (owner-directed focus):** the live ledger's injection log showed 11 "malformed" rows. Root cause: NOT corruption — all 16 rows are valid dict receipts, but an earlier writer stamped the legacy schema EXPLICITLY as `ctx-injections/v1`, and `_receipt_session_outcome` only routed an ABSENT schema field to the prefix pool; an explicit `v1` string fell into the unknown/future-schema branch and was discarded. `adac366` recognises both legacy shapes (read-only; no ledger byte rewritten). TC-11 (genuinely unknown/future schema = malformed) intact — pinned by a v9 regression test that passes on parent.
+- **Measured delta on the repo's own ledger:** malformed **11 → 0**, attempted **5 → 16**, injected 16/16, emit success **1.0**. Red on parent `01a705a` (2 explicit-v1 tests fail; the v9 TC-11 pin passes).
+- **Grounded functional-value snapshot (read-only, no scorecard regen — the dated artifact stays byte-identical per standing constraint):**
+  - Push-path emission: 16/16 injected, 0 malformed, emit success 1.0 (now trustworthy).
+  - Identifier fidelity: **1.0 min AND latest over 103 checkpoints** — the core value prop (verbatim id preservation) holds with zero drift.
+  - Capture: 225 decisions / 78 constraints / 5 dead-ends / 532 literals / 43 incidents across 13 sessions.
+  - Read-path: raw-fallback 0.339; 10 explicit-recall sessions vs 2 zero-recall (the structured read path is used more than raw grep).
+  - Concrete recovery: `session why('644731f')` and `why('98e3649')` both return the banked SHA verbatim — round-trip proven, not asserted.
+- **Verification:** full non-slow `python -m pytest tests/ -q -m "not slow"` → **1863 passed / 35 skipped / 57 deselected**; claims gate OK (21 warn-only); capability registry OK.
+- **Open for the reviewer:** `adac366` joins the pending re-review range → **`26b39a1..adac366`** (the 7 E-6 findings + this telemetry fix).
+- **Release-completion gate (unchanged, owner-set):** E-6 completes on reviewer approval of that range; merge of `feat/literals-ledger` needs that approval first (implementer never self-approves; parked/main merges frozen until E-6). Everything review-safe is landed; the merge is a one-step action once approved. Frozen: Loops 5–6, live hooks, paid runs, parked merges.
