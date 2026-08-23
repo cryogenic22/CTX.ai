@@ -1,336 +1,384 @@
 {
-  "schema": "ctx-fixture-privacy-allowlist/v1",
-  "note": "PF-16 committed-fixture privacy allowlist. Every entry is a reviewed false positive, synthetic plant, or frozen immutable artifact. The gate (tests/test_fixture_privacy.py) requires an EXACT two-way match: new, grown, or vanished hits all fail. Edit only by commit, with the why filled in.",
+  "schema": "ctx-fixture-privacy-allowlist/v2",
+  "note": "PF-16 committed-fixture privacy allowlist (v2: every allowance binds the reviewed file bytes by sha256 — a same-count value swap fails on the sha). Every entry is a reviewed false positive, synthetic plant, or frozen immutable artifact with its exact disposition stated. The gate (tests/test_pf16_privacy_gate.py) requires an exact match in every direction: new, grown, changed-bytes, and vanished hits all fail. Edit only by commit.",
   "entries": [
     {
       "path": "ctxpack/benchmarks/ablation_runner.py",
       "detector": "secret:secret-assignment",
       "count": 9,
-      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments / signature defaults; no secret bytes present"
+      "sha256": "8b172bab4a2555e8a1750a59cb24fe396a5f72ceb661bca2eb7ed7916a32cee4",
+      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments and api_key=None signature defaults — code, no secret bytes"
     },
     {
       "path": "ctxpack/benchmarks/agentic/PREREGISTRATION-resume-probe.md",
       "detector": "user_path",
       "count": 1,
-      "why": "false positive: '/home/`' is a markdown code-fence fragment, not a user path"
-    },
-    {
-      "path": "ctxpack/benchmarks/agentic/results/niah_full_run.log",
-      "detector": "unscanned",
-      "count": 1,
-      "why": "non-UTF8 immutable eval log; cannot be strictly decoded, explicitly acknowledged rather than silently skipped"
+      "sha256": "492ad6c7574ffe389596d01c1fbaaf7a26e1bd3a559e27539f1a4f55a7ff0465",
+      "why": "false positive: '/home/`' is a markdown inline-code boundary, not a user path"
     },
     {
       "path": "ctxpack/benchmarks/agentic/results/resume-probe-KP_SDLC-recall-dryrun-20260705T235920+0000.json",
       "detector": "user_path",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "4c12446a45b418b707f7f0e9dcf2a7da02df82e189ab8796e8061e8dc476b023",
+      "why": "immutable eval artifact: resume-probe harness metadata embeds the run's repo/ledger path (C:\\Users\\kapil\\…) recorded at generation time — owner's own machine, no third-party data"
     },
     {
       "path": "ctxpack/benchmarks/agentic/results/resume-probe-KP_SDLC-recall-full-20260705T214228+0000-regrade1.json",
       "detector": "user_path",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "6b7f45c0d01a131d2408c050d600a499e7695d0349630584d9fa28931357b0b9",
+      "why": "immutable eval artifact: resume-probe harness metadata embeds the run's repo/ledger path (C:\\Users\\kapil\\…) recorded at generation time — owner's own machine, no third-party data"
     },
     {
       "path": "ctxpack/benchmarks/agentic/results/resume-probe-KP_SDLC-recall-full-20260705T214228+0000.json",
       "detector": "user_path",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "72130cf2819f16f3e349009192f452a28c3f200ecc1b66601acd74aca0793692",
+      "why": "immutable eval artifact: resume-probe harness metadata embeds the run's repo/ledger path (C:\\Users\\kapil\\…) recorded at generation time — owner's own machine, no third-party data"
     },
     {
       "path": "ctxpack/benchmarks/agentic/results/resume-probe-KP_SDLC-recall-full-20260706T000816+0000.json",
       "detector": "user_path",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "099c06ed5209c31f8ae92ad34391cd4886cbefc434cca4afb69c156cafe8eee0",
+      "why": "immutable eval artifact: resume-probe harness metadata embeds the run's repo/ledger path (C:\\Users\\kapil\\…) recorded at generation time — owner's own machine, no third-party data"
     },
     {
       "path": "ctxpack/benchmarks/agentic/results/resume-probe-fork-fixture-drift-fork-dryrun-20260711T191016+0000.json",
       "detector": "secret:secret-assignment",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "6267f768d5c324005e00986b6d1d8384cbb2757645a445219b825255b0b3484f",
+      "why": "immutable eval artifact: synthetic probe-question text 'AUTH-TOKEN-LIFETIME=<n>' — an assignment-shaped config value from the drift-fork fixture, not a credential"
     },
     {
       "path": "ctxpack/benchmarks/agentic/results/resume-probe-fork-fixture-drift-fork-dryrun-20260711T191513+0000.json",
       "detector": "secret:secret-assignment",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "ef01d5a17425c623f3be609a304e7f680c06541f336bf847924bd8c49da2d582",
+      "why": "immutable eval artifact: synthetic probe-question text 'AUTH-TOKEN-LIFETIME=<n>' — an assignment-shaped config value from the drift-fork fixture, not a credential"
     },
     {
       "path": "ctxpack/benchmarks/agentic/results/resume-probe-fork-fixture-drift-fork-full-20260711T203437+0000.json",
       "detector": "secret:secret-assignment",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "7c188cd313a1962e772dfd917ec291af617faede0feac68154729698584a46e7",
+      "why": "immutable eval artifact: synthetic probe-question text 'AUTH-TOKEN-LIFETIME=<n>' — an assignment-shaped config value from the drift-fork fixture, not a credential"
     },
     {
       "path": "ctxpack/benchmarks/agentic/results/resume-probe-fork-fixture-drift-fork-smoke-20260711T191221+0000.json",
       "detector": "secret:secret-assignment",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "e00d7dff02687b8e058b876c68fecb50f1542078ac3acd969064a252860ea8d4",
+      "why": "immutable eval artifact: synthetic probe-question text 'AUTH-TOKEN-LIFETIME=<n>' — an assignment-shaped config value from the drift-fork fixture, not a credential"
     },
     {
       "path": "ctxpack/benchmarks/agentic/results/resume-probe-fork-fixture-drift-fork-smoke-20260711T191624+0000.json",
       "detector": "secret:secret-assignment",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "596c18a7f46e1ba9af409151b0bb5910d35fd4517876aff7858afbad29c1cb96",
+      "why": "immutable eval artifact: synthetic probe-question text 'AUTH-TOKEN-LIFETIME=<n>' — an assignment-shaped config value from the drift-fork fixture, not a credential"
     },
     {
       "path": "ctxpack/benchmarks/baselines/llm_summary.py",
       "detector": "secret:secret-assignment",
       "count": 3,
-      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments / signature defaults; no secret bytes present"
+      "sha256": "be9f08fb496008bf678541e02b2e332e84158529c10a47c6b87a524f64469848",
+      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments and api_key=None signature defaults — code, no secret bytes"
     },
     {
       "path": "ctxpack/benchmarks/baselines/rag_baseline.py",
       "detector": "secret:secret-assignment",
       "count": 2,
-      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments / signature defaults; no secret bytes present"
+      "sha256": "825f90237ac546bfe235dab8f24b91d61215d3b8f1a896a5a3a5cd451c9d75ea",
+      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments and api_key=None signature defaults — code, no secret bytes"
     },
     {
       "path": "ctxpack/benchmarks/baselines/structured_prompt.py",
       "detector": "secret:secret-assignment",
       "count": 3,
-      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments / signature defaults; no secret bytes present"
+      "sha256": "8b4e332033d2a1de5dd5bebb2fc268b58326f164afd05f31726aec9d3871a213",
+      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments and api_key=None signature defaults — code, no secret bytes"
     },
     {
       "path": "ctxpack/benchmarks/ctxpack_eval/results/logs/2026-02-23T21-04-40_claude-sonnet-4-20250514.json",
       "detector": "secret:secret-assignment",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "3376005831ba9526bd23a737b8df80b128fefd91d675d5b603a7788900767944",
+      "why": "immutable eval artifact: model answer text contains the assignment-shaped phrase 'TOKEN-COUNTING=…' describing a feature — no credential value present"
     },
     {
       "path": "ctxpack/benchmarks/ctxpack_eval/results/v0.3.0-dogfood-nofloor-claude-sonnet-4-20250514.json",
       "detector": "secret:secret-assignment",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "0f8b36f2e1334fb06f85f94446734067ff4ef987f6ee4304eb2bd6954cd45e6b",
+      "why": "immutable eval artifact: model answer text contains the assignment-shaped phrase 'TOKEN-COUNTING=…' describing a feature — no credential value present"
     },
     {
       "path": "ctxpack/benchmarks/ctxpack_eval/results/v0.3.0-dogfood-nofloor.json",
       "detector": "secret:secret-assignment",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "0f8b36f2e1334fb06f85f94446734067ff4ef987f6ee4304eb2bd6954cd45e6b",
+      "why": "immutable eval artifact: model answer text contains the assignment-shaped phrase 'TOKEN-COUNTING=…' describing a feature — no credential value present"
     },
     {
       "path": "ctxpack/benchmarks/definitive_eval.py",
       "detector": "secret:secret-assignment",
       "count": 10,
-      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments / signature defaults; no secret bytes present"
+      "sha256": "d2102cd150f4ba0ce9ca1df549cbd601e9b55f2bd34bab3725bd9c390b5f2fee",
+      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments and api_key=None signature defaults — code, no secret bytes"
     },
     {
       "path": "ctxpack/benchmarks/golden_set/results/0.3.0-alpha-real-trace.json",
       "detector": "secret:secret-assignment",
       "count": 3,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "5a4a850bb5f471eb8f9fae455c45e622a3bf6ec1d07b4efa094d941df9154b53",
+      "why": "immutable eval artifact: synthetic trace corpus config values ('TOKEN-EXPIRY=…') and pytest node-id text ('tests/test_auth.py=…') — assignment-shaped, no credential values"
     },
     {
       "path": "ctxpack/benchmarks/golden_set/results/logs/2026-02-21T22-53-12_claude-sonnet-4-6.json",
       "detector": "user_path",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "02fc2f602e045c9a724d7231bd3283de39481fa368d3ee889715c6cad74405db",
+      "why": "immutable eval artifact: runner metadata embeds the run's repo path (C:\\Users\\kapil\\…) recorded at generation time — owner's own machine, no third-party data"
     },
     {
       "path": "ctxpack/benchmarks/golden_set/results/logs/2026-02-22T15-11-29_gpt-4o.json",
       "detector": "user_path",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "1e16f728d74939bc55a2aa3e89532c2bbd885d903efc16964e0023ac02170f8d",
+      "why": "immutable eval artifact: runner metadata embeds the run's repo path (C:\\Users\\kapil\\…) recorded at generation time — owner's own machine, no third-party data"
     },
     {
       "path": "ctxpack/benchmarks/golden_set/results/logs/2026-02-22T17-25-03_claude-sonnet-4-6.json",
       "detector": "user_path",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "9959405c026cf6bd9f338daf2aaff1dc03a1b5d779bdf2b3353074d87ba5e870",
+      "why": "immutable eval artifact: runner metadata embeds the run's repo path (C:\\Users\\kapil\\…) recorded at generation time — owner's own machine, no third-party data"
     },
     {
       "path": "ctxpack/benchmarks/golden_set/results/logs/2026-02-22T17-25-05_gpt-4o.json",
       "detector": "user_path",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "11d1b2615a64064f443279affccffb03853105c581c808e725d3809525287907",
+      "why": "immutable eval artifact: runner metadata embeds the run's repo path (C:\\Users\\kapil\\…) recorded at generation time — owner's own machine, no third-party data"
     },
     {
       "path": "ctxpack/benchmarks/golden_set/results/v0.2.0-claude-sonnet-4-6.json",
       "detector": "user_path",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "5c4a5750a717e933bc1bf6a281643a6b5c18c43f5ce3ec807a2c55dd2c931757",
+      "why": "immutable eval artifact: runner metadata embeds the run's repo path (C:\\Users\\kapil\\…) recorded at generation time — owner's own machine, no third-party data"
     },
     {
       "path": "ctxpack/benchmarks/golden_set/results/v0.2.0-gpt-4o.json",
       "detector": "user_path",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "bf30b2b0faa7c67a9cc919655457387d324bb8072a8a9673a5a8427c993de9d1",
+      "why": "immutable eval artifact: runner metadata embeds the run's repo path (C:\\Users\\kapil\\…) recorded at generation time — owner's own machine, no third-party data"
     },
     {
       "path": "ctxpack/benchmarks/golden_set/results/v0.2.0.json",
       "detector": "user_path",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "bf30b2b0faa7c67a9cc919655457387d324bb8072a8a9673a5a8427c993de9d1",
+      "why": "immutable eval artifact: runner metadata embeds the run's repo path (C:\\Users\\kapil\\…) recorded at generation time — owner's own machine, no third-party data"
     },
     {
       "path": "ctxpack/benchmarks/golden_set/results/v0.2.1-claude-sonnet-4-6.json",
       "detector": "user_path",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "7fd67923d7210f21955d85b9379f6c8e81c80d2ef9093ff2afda44dc0c7b8949",
+      "why": "immutable eval artifact: runner metadata embeds the run's repo path (C:\\Users\\kapil\\…) recorded at generation time — owner's own machine, no third-party data"
     },
     {
       "path": "ctxpack/benchmarks/golden_set/results/v0.2.1-gpt-4o.json",
       "detector": "user_path",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "2ea8edce083461d3e0b522f8b71f8e769625bf2346fff146459eeb4927ed560f",
+      "why": "immutable eval artifact: runner metadata embeds the run's repo path (C:\\Users\\kapil\\…) recorded at generation time — owner's own machine, no third-party data"
     },
     {
       "path": "ctxpack/benchmarks/golden_set/results/v0.2.1.json",
       "detector": "user_path",
       "count": 1,
-      "why": "immutable eval-result artifact (results are never edited); embedded run cwd or synthetic corpus text from generation time — frozen, not edited"
+      "sha256": "7fd67923d7210f21955d85b9379f6c8e81c80d2ef9093ff2afda44dc0c7b8949",
+      "why": "immutable eval artifact: runner metadata embeds the run's repo path (C:\\Users\\kapil\\…) recorded at generation time — owner's own machine, no third-party data"
     },
     {
       "path": "ctxpack/benchmarks/hydration_eval.py",
       "detector": "secret:secret-assignment",
       "count": 7,
-      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments / signature defaults; no secret bytes present"
+      "sha256": "2c73e352140d88feb59301ba1ab9b8b104620338a887ff6ac19a5ca5cde88e3c",
+      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments and api_key=None signature defaults — code, no secret bytes"
     },
     {
       "path": "ctxpack/benchmarks/metrics/compression.py",
       "detector": "secret:secret-assignment",
       "count": 2,
-      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments / signature defaults; no secret bytes present"
+      "sha256": "a36b9e3ed60faf1c3263a83ef897cf1faf82cdff415c7d9b1a907901ac5f185c",
+      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments and api_key=None signature defaults — code, no secret bytes"
     },
     {
       "path": "ctxpack/benchmarks/metrics/fidelity.py",
       "detector": "secret:secret-assignment",
       "count": 13,
-      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments / signature defaults; no secret bytes present"
+      "sha256": "e8134f00ee232173abd12484a97d2ec79e5ded5d9073b9cf347c80d0bb5430fd",
+      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments and api_key=None signature defaults — code, no secret bytes"
     },
     {
       "path": "ctxpack/benchmarks/model_affinity_eval.py",
       "detector": "secret:secret-assignment",
       "count": 1,
-      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments / signature defaults; no secret bytes present"
+      "sha256": "ccc6a7b150df71a23aeef51a633d773027c516a4ede4069bfe8bddf26152f17e",
+      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments and api_key=None signature defaults — code, no secret bytes"
     },
     {
       "path": "ctxpack/benchmarks/rate_distortion.py",
       "detector": "secret:secret-assignment",
       "count": 2,
-      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments / signature defaults; no secret bytes present"
+      "sha256": "c3f5d9b3a3ca80ac78667def6154b699121034fc6df2c9c45f294784a9009b39",
+      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments and api_key=None signature defaults — code, no secret bytes"
     },
     {
       "path": "ctxpack/benchmarks/realworld/realworld_eval.py",
       "detector": "secret:secret-assignment",
       "count": 6,
-      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments / signature defaults; no secret bytes present"
+      "sha256": "ce774a51adc8bfbad4412fa69655b53e1058f0be4a0dbb24591f4e69b6de4347",
+      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments and api_key=None signature defaults — code, no secret bytes"
     },
     {
       "path": "ctxpack/benchmarks/reasoning_model_eval.py",
       "detector": "secret:secret-assignment",
       "count": 2,
-      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments / signature defaults; no secret bytes present"
+      "sha256": "367d1a1d803e82c7e89f7405e6c8879944e13df182174fe1e83f74f0b29d6d0e",
+      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments and api_key=None signature defaults — code, no secret bytes"
     },
     {
       "path": "ctxpack/benchmarks/runner.py",
       "detector": "secret:secret-assignment",
       "count": 6,
-      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments / signature defaults; no secret bytes present"
+      "sha256": "ccbaec9d98924fdfb979241613cac94bce2df2c75a940e6253a5df2266200d76",
+      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments and api_key=None signature defaults — code, no secret bytes"
     },
     {
       "path": "ctxpack/benchmarks/save_extension_results.py",
       "detector": "secret:secret-assignment",
       "count": 1,
-      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments / signature defaults; no secret bytes present"
+      "sha256": "601d193b4be7a2d23a28fec679e958711f691d599ec123821d68c8f505d3185f",
+      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments and api_key=None signature defaults — code, no secret bytes"
     },
     {
       "path": "ctxpack/benchmarks/scaling/controlled_scaling_runner.py",
       "detector": "secret:secret-assignment",
       "count": 5,
-      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments / signature defaults; no secret bytes present"
+      "sha256": "00f36391079c391c44dc978376d0b7245c3b7c20c2600237bfa6680ffa3048c6",
+      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments and api_key=None signature defaults — code, no secret bytes"
     },
     {
       "path": "ctxpack/benchmarks/scaling/enterprise_corpus/docs/api-integration.md",
       "detector": "secret:secret-assignment",
       "count": 1,
-      "why": "synthetic corpus document; example assignment shape with a fake value, planted by the corpus generator"
+      "sha256": "96fb30db06256efb5166fd788065aa921cbd1f3c81c2821547c4c04e0712f9da",
+      "why": "synthetic corpus document: 'X-API-Key=<fake value>' authored by the enterprise-corpus generator"
     },
     {
       "path": "ctxpack/benchmarks/scaling/multi_model_scaling.py",
       "detector": "secret:secret-assignment",
       "count": 2,
-      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments / signature defaults; no secret bytes present"
+      "sha256": "98eff7da331d0d6374b192f857ef7fc87ca1aa65cad06f1ffc90da858e7e7d52",
+      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments and api_key=None signature defaults — code, no secret bytes"
     },
     {
       "path": "ctxpack/benchmarks/scaling/scaling_runner.py",
       "detector": "secret:secret-assignment",
       "count": 5,
-      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments / signature defaults; no secret bytes present"
+      "sha256": "a4d89e0f147942fabaa4758f13e9fc5bdb1b29fb8da2e368f1ea7f8ba8d975ef",
+      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments and api_key=None signature defaults — code, no secret bytes"
     },
     {
       "path": "ctxpack/benchmarks/scaling_eval.py",
       "detector": "secret:secret-assignment",
       "count": 6,
-      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments / signature defaults; no secret bytes present"
+      "sha256": "e79d44d8134b1c02627cd9558bd8b98f5c9ce79255038ebe49bd2adc2353288b",
+      "why": "scanner false positive on eval source: api_key=<variable> keyword arguments and api_key=None signature defaults — code, no secret bytes"
     },
     {
       "path": "scorecards/cohort.json",
       "detector": "user_path",
       "count": 1,
-      "why": "local cohort configuration — the sanctioned home for machine-absolute repo paths (PF-16b); owner ruling pending on untracking the file"
+      "sha256": "1741dc206e59d2d97c0f9125a3b1cb96e9b1d70344884c2383bed0277296b873",
+      "why": "local cohort configuration listing the owner's repo checkout paths — the sanctioned home for machine paths (PF-16b); owner ruling pending on untracking the file"
     },
     {
       "path": "scorecards/scorecard-20260704T111654Z.json",
       "detector": "user_path",
       "count": 1,
-      "why": "legacy scorecard artifact written before the PF-16b alias fix; immutable by convention (dated/latest byte-identity approved) — frozen, not edited"
+      "sha256": "4b288054dec2e2f52c10f1b3c344ed8fbf938c7d997a8295dbfa175b33fe1a61",
+      "why": "legacy scorecard artifact written before the PF-16b alias fix; carries the owner's repo checkout paths in per-repo 'path' fields; immutable by convention (dated/latest byte-identity approved) — frozen, not edited; history sanitation is a separate owner release decision"
     },
     {
       "path": "scorecards/scorecard-20260807T190916Z.json",
       "detector": "user_path",
       "count": 1,
-      "why": "legacy scorecard artifact written before the PF-16b alias fix; immutable by convention (dated/latest byte-identity approved) — frozen, not edited"
+      "sha256": "62da59f2f32516a28e194ee818313602e49d54c8198073ccdcde27237fcdde97",
+      "why": "legacy scorecard artifact written before the PF-16b alias fix; carries the owner's repo checkout paths in per-repo 'path' fields; immutable by convention (dated/latest byte-identity approved) — frozen, not edited; history sanitation is a separate owner release decision"
     },
     {
       "path": "scorecards/scorecard-20260807T195126Z.json",
       "detector": "user_path",
       "count": 1,
-      "why": "legacy scorecard artifact written before the PF-16b alias fix; immutable by convention (dated/latest byte-identity approved) — frozen, not edited"
+      "sha256": "2d1c74d7a1e0e464cfc9192cf345e865f25ce0580bbeca92b0ac34d5e547687f",
+      "why": "legacy scorecard artifact written before the PF-16b alias fix; carries the owner's repo checkout paths in per-repo 'path' fields; immutable by convention (dated/latest byte-identity approved) — frozen, not edited; history sanitation is a separate owner release decision"
     },
     {
       "path": "scorecards/scorecard-20260809T183423Z.json",
       "detector": "user_path",
       "count": 1,
-      "why": "legacy scorecard artifact written before the PF-16b alias fix; immutable by convention (dated/latest byte-identity approved) — frozen, not edited"
+      "sha256": "d958db5ccef9b7ef1f1de0caac9c132d4d55e2f4f9093a28df0f7376874ee051",
+      "why": "legacy scorecard artifact written before the PF-16b alias fix; carries the owner's repo checkout paths in per-repo 'path' fields; immutable by convention (dated/latest byte-identity approved) — frozen, not edited; history sanitation is a separate owner release decision"
     },
     {
       "path": "scorecards/scorecard-latest.json",
       "detector": "user_path",
       "count": 1,
-      "why": "legacy scorecard artifact written before the PF-16b alias fix; immutable by convention (dated/latest byte-identity approved) — frozen, not edited"
+      "sha256": "d958db5ccef9b7ef1f1de0caac9c132d4d55e2f4f9093a28df0f7376874ee051",
+      "why": "legacy scorecard artifact written before the PF-16b alias fix; carries the owner's repo checkout paths in per-repo 'path' fields; immutable by convention (dated/latest byte-identity approved) — frozen, not edited; history sanitation is a separate owner release decision"
     },
     {
       "path": "tests/fixtures/token_calibration/ctx_cohort_synth_frozen.ctx",
       "detector": "user_path",
       "count": 2,
-      "why": "synthetic users (dev / Müller / zoë) planted by design in the frozen calibration fixtures"
+      "sha256": "c998b6161c1695a649a2d2c91190031bb9ceee30431b40403fa283642c6ef8a6",
+      "why": "synthetic users (dev / Müller / zoë) authored into the frozen calibration fixtures by design; also allowlisted by name in the E-6A gate"
     },
     {
       "path": "tests/fixtures/token_calibration/ctx_session_frozen.ctx",
       "detector": "user_path",
       "count": 2,
-      "why": "synthetic users (dev / Müller / zoë) planted by design in the frozen calibration fixtures"
+      "sha256": "3cff726c585d93e4156914d25d2a404ff4114031b414f2d659cc770b042380cf",
+      "why": "synthetic users (dev / Müller / zoë) authored into the frozen calibration fixtures by design; also allowlisted by name in the E-6A gate"
     },
     {
       "path": "tests/fixtures/token_calibration/gen_synth_cohort.py",
       "detector": "user_path",
       "count": 2,
-      "why": "synthetic users (dev / Müller / zoë) planted by design in the frozen calibration fixtures"
+      "sha256": "1bd7d80c418fd68c721acbf64ca4dc4ad1f6cf5fff1d644e988fb9bf0b2015ce",
+      "why": "synthetic users (dev / Müller / zoë) authored into the frozen calibration fixtures by design; also allowlisted by name in the E-6A gate"
     },
     {
       "path": "tests/fixtures/token_calibration/gen_synth_session.py",
       "detector": "user_path",
       "count": 2,
-      "why": "synthetic users (dev / Müller / zoë) planted by design in the frozen calibration fixtures"
+      "sha256": "0fdaf59273f94cac09af434f8cb55cbb6fea18217d1d60a1986f5ec4eebd2e89",
+      "why": "synthetic users (dev / Müller / zoë) authored into the frozen calibration fixtures by design; also allowlisted by name in the E-6A gate"
     },
     {
       "path": "tests/fixtures/token_calibration/prose_unicode_frozen.md",
       "detector": "user_path",
       "count": 2,
-      "why": "synthetic users (dev / Müller / zoë) planted by design in the frozen calibration fixtures"
+      "sha256": "aeb89e638cef3bdff868bb785735deb9c689645c19c658885bba85c08ffb5891",
+      "why": "synthetic users (dev / Müller / zoë) authored into the frozen calibration fixtures by design; also allowlisted by name in the E-6A gate"
     }
   ]
 }

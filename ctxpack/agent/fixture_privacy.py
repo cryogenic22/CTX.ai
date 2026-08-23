@@ -10,20 +10,19 @@ with two detectors and holds the result to a reviewed allowlist:
   ``/home/<name>``, ``/Users/<name>``), count = DISTINCT matched
   strings (occurrence counts of the same path are churn, new distinct
   paths are signal).
-- ``unscanned`` — a committed file that cannot be strictly UTF-8
-  decoded cannot be scanned; it must be explicitly allowlisted or it is
-  a finding. Unscanned is never silently treated as clean.
+Bytes that cannot be strictly UTF-8 decoded are scanned LOSSILY
+(``errors="replace"``) — acknowledged-but-unscanned is not a privacy
+pass (Finding 4b, 2026-08-23); an ASCII-region secret inside a binary
+log is still found. A committed file that cannot be READ at all raises:
+the gate never passes by being unable to look.
 
 The allowlist (``tests/fixture_privacy_allowlist.json``) is part of the
-success-definition surface: every entry carries a reviewed ``why``, and
-the gate requires an EXACT match in both directions — a new or grown
-hit fails, and an allowlist entry whose hit disappeared fails too
-(stale entries are how an allowlist rots into a blanket waiver).
-
-Known limitation, stated: entries pin (path, detector, count), not the
-matched bytes — a same-count value swap inside an already-allowlisted
-file passes this gate. Value-level pinning needs a span-reporting
-scanner API and is deliberately out of PF-16's scope.
+success-definition surface: every entry carries a reviewed ``why`` AND
+the file's content sha256 (Finding 4a) — an allowance covers the exact
+reviewed bytes, so a same-count value swap (replacing a reviewed false
+positive with a real secret) fails on the sha, not just growth on the
+count. The gate requires an EXACT match in every direction: new hits,
+grown/shrunk counts, changed bytes, and stale entries all fail.
 
 Enumeration is ``git ls-files`` (committed files only — an untracked
 scratch file is not yet published and gets caught at commit review).
@@ -38,6 +37,7 @@ the gate is observably red-capable without dirtying the live tree.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -46,7 +46,9 @@ import subprocess
 ROOTS = ("tests/fixtures", "tests/code/fixtures", "ctxpack/benchmarks",
          "scorecards")
 ALLOWLIST_FILE = os.path.join("tests", "fixture_privacy_allowlist.json")
-ALLOWLIST_SCHEMA = "ctx-fixture-privacy-allowlist/v1"
+# v2 (Finding 4): entries bind the reviewed file bytes (sha256), and
+# undecodable files are lossily scanned instead of waived.
+ALLOWLIST_SCHEMA = "ctx-fixture-privacy-allowlist/v2"
 
 _USER_PATH = re.compile(
     r"(?:[A-Za-z]:[\\/]{1,2}Users[\\/]{1,2}|/home/|/Users/)[^\\/\s\"']+")
@@ -69,15 +71,22 @@ def scan_text(text: str) -> "dict[str, int]":
     return out
 
 
-def scan_file(path: str) -> "dict[str, int]":
+def scan_file(path: str) -> "tuple[dict[str, int], str]":
+    """``(detector counts, content sha256)`` for one committed file.
+
+    Undecodable bytes are decoded lossily and STILL scanned (Finding
+    4b) — the sha is over the raw bytes either way, so the allowance
+    binds exactly what was reviewed. An unreadable committed file
+    raises: the gate must never pass by being unable to look."""
     try:
-        with open(path, encoding="utf-8") as f:
-            return scan_text(f.read())
-    except UnicodeDecodeError:
-        return {"unscanned": 1}
-    except OSError:
-        # a committed file that cannot be read is not provably clean
-        return {"unscanned": 1}
+        with open(path, "rb") as f:
+            raw = f.read()
+    except OSError as e:
+        from ..core.errors import classify_exception
+        raise GateError(f"committed file unreadable "
+                        f"({classify_exception(e)}): {path}")
+    sha = hashlib.sha256(raw).hexdigest()
+    return scan_text(raw.decode("utf-8", errors="replace")), sha
 
 
 def committed_files(repo_root: str,
@@ -99,19 +108,22 @@ def committed_files(repo_root: str,
 
 
 def scan_tree(repo_root: str,
-              roots: "tuple[str, ...]" = ROOTS) -> "dict[str, dict[str, int]]":
-    """relpath → detector counts for every committed file with hits."""
-    observed: "dict[str, dict[str, int]]" = {}
+              roots: "tuple[str, ...]" = ROOTS):
+    """relpath → ``{"detectors": {...}, "sha256": hex}`` for every
+    committed file WITH hits."""
+    observed: "dict[str, dict]" = {}
     for rel in committed_files(repo_root, roots):
-        counts = scan_file(os.path.join(repo_root, rel))
+        counts, sha = scan_file(os.path.join(repo_root, rel))
         if counts:
-            observed[rel] = counts
+            observed[rel] = {"detectors": counts, "sha256": sha}
     return observed
 
 
-def load_allowlist(path: str) -> "dict[tuple[str, str], int]":
-    """(relpath, detector) → allowed count. Malformed → GateError:
-    a gate with an unreadable bar must not run at all."""
+def load_allowlist(path: str):
+    """(relpath, detector) → ``(count, file sha256)``. Malformed →
+    GateError: a gate with an unreadable bar must not run at all.
+    Entries for the same path must agree on the sha — a split bar is a
+    malformed bar."""
     try:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
@@ -122,43 +134,64 @@ def load_allowlist(path: str) -> "dict[tuple[str, str], int]":
     entries = data.get("entries")
     if not isinstance(entries, list):
         raise GateError("allowlist 'entries' must be a list")
-    allowed: "dict[tuple[str, str], int]" = {}
+    allowed: "dict[tuple[str, str], tuple[int, str]]" = {}
+    sha_by_path: "dict[str, str]" = {}
     for e in entries:
         if (not isinstance(e, dict)
                 or not isinstance(e.get("path"), str)
                 or not isinstance(e.get("detector"), str)
                 or not isinstance(e.get("count"), int)
+                or not re.fullmatch(r"[0-9a-f]{64}",
+                                    str(e.get("sha256") or ""))
                 or not str(e.get("why") or "").strip()):
             raise GateError(f"malformed allowlist entry: {e!r}")
         key = (e["path"], e["detector"])
         if key in allowed:
             raise GateError(f"duplicate allowlist entry: {key}")
-        allowed[key] = e["count"]
+        prior = sha_by_path.setdefault(e["path"], e["sha256"])
+        if prior != e["sha256"]:
+            raise GateError(f"conflicting sha256 for {e['path']!r}")
+        allowed[key] = (e["count"], e["sha256"])
     return allowed
 
 
-def gate_findings(observed: "dict[str, dict[str, int]]",
-                  allowed: "dict[tuple[str, str], int]") -> "list[str]":
-    """Exact-match comparison, both directions. Empty list = pass."""
+def gate_findings(observed: "dict[str, dict]",
+                  allowed: "dict[tuple[str, str], tuple[int, str]]"
+                  ) -> "list[str]":
+    """Exact-match comparison, every direction. Empty list = pass.
+
+    An allowance is valid only for the exact reviewed bytes: matching
+    detector counts with a different file sha256 is a CHANGED-BYTES
+    finding (Finding 4a — the same-count swap)."""
     findings: "list[str]" = []
     seen: "set[tuple[str, str]]" = set()
     for rel in sorted(observed):
-        for detector, count in sorted(observed[rel].items()):
+        sha = observed[rel]["sha256"]
+        for detector, count in sorted(observed[rel]["detectors"].items()):
             seen.add((rel, detector))
-            want = allowed.get((rel, detector))
-            if want is None:
+            entry = allowed.get((rel, detector))
+            if entry is None:
                 findings.append(
                     f"NEW hit: {rel} [{detector}] x{count} — not in the "
                     f"reviewed allowlist")
-            elif want != count:
+                continue
+            want_count, want_sha = entry
+            if want_count != count:
                 findings.append(
                     f"CHANGED hit: {rel} [{detector}] x{count} "
-                    f"(allowlisted x{want}) — re-review required")
-    for (rel, detector), want in sorted(allowed.items()):
+                    f"(allowlisted x{want_count}) — re-review required")
+            elif want_sha != sha:
+                findings.append(
+                    f"CHANGED BYTES: {rel} [{detector}] — counts match "
+                    f"but the file is not the reviewed one "
+                    f"(sha {sha[:12]}… vs reviewed {want_sha[:12]}…); "
+                    f"re-review required")
+    for (rel, detector), (want_count, _sha) in sorted(allowed.items()):
         if (rel, detector) not in seen:
             findings.append(
-                f"STALE allowlist entry: {rel} [{detector}] x{want} — "
-                f"hit no longer observed; remove the entry")
+                f"STALE allowlist entry: {rel} [{detector}] "
+                f"x{want_count} — hit no longer observed; remove the "
+                f"entry")
     return findings
 
 

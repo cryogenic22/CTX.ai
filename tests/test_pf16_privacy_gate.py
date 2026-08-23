@@ -56,36 +56,75 @@ def test_gate_rejects_the_committed_violation_fixture():
     """Can-fail proof: the planted fixture (outside the scanned roots)
     trips BOTH detector families and would fail the gate if it ever
     entered a scanned tree with no allowlist entry."""
-    counts = scan_file(VIOLATION)
+    counts, sha = scan_file(VIOLATION)
     assert any(d.startswith("secret:") for d in counts)
     assert counts.get("user_path", 0) >= 1
-    findings = gate_findings({"tests/privacy_gate_violation/planted.txt":
-                              counts}, allowed={})
+    findings = gate_findings(
+        {"tests/privacy_gate_violation/planted.txt":
+         {"detectors": counts, "sha256": sha}}, allowed={})
     assert findings and all("NEW hit" in f for f in findings)
 
 
 # ── exact-match semantics, both directions ──
 
-def test_new_grown_and_stale_hits_all_fail():
-    observed = {"a.txt": {"secret:secret-assignment": 2}}
-    ok = {("a.txt", "secret:secret-assignment"): 2}
+def test_new_grown_stale_and_changed_bytes_all_fail():
+    sha = "a" * 64
+    observed = {"a.txt": {"detectors": {"secret:secret-assignment": 2},
+                          "sha256": sha}}
+    ok = {("a.txt", "secret:secret-assignment"): (2, sha)}
     assert gate_findings(observed, ok) == []
     assert any("NEW hit" in f for f in gate_findings(observed, {}))
-    grown = {("a.txt", "secret:secret-assignment"): 1}
+    grown = {("a.txt", "secret:secret-assignment"): (1, sha)}
     assert any("CHANGED hit" in f for f in gate_findings(observed, grown))
-    stale = {**ok, ("gone.txt", "user_path"): 3}
+    stale = {**ok, ("gone.txt", "user_path"): (3, sha)}
     assert any("STALE allowlist entry" in f
                for f in gate_findings(observed, stale))
 
 
-def test_unscanned_file_is_a_finding_not_a_silent_skip(tmp_path):
-    """Can-fail: undecodable bytes cannot be proven clean — they must
-    be explicitly allowlisted or they fail."""
-    bad = tmp_path / "blob.bin"
-    bad.write_bytes(b"\xff\xfe\x00garbage")
-    assert scan_file(str(bad)) == {"unscanned": 1}
-    findings = gate_findings({"blob.bin": {"unscanned": 1}}, allowed={})
-    assert findings and "unscanned" in findings[0]
+def test_f4_same_count_swap_fails_on_reviewed_bytes(tmp_path):
+    """Finding 4a (P1): replacing a reviewed false positive with a real
+    secret of the SAME detector count must fail — the allowance binds
+    the reviewed bytes, not the count. RED on 91054ca: both variants
+    produced {secret-assignment: 1} and the swap passed."""
+    benign = tmp_path / "f.py"
+    benign.write_text("resp = ask(model, api_key=client_key)\n",
+                      encoding="utf-8")
+    counts_b, sha_b = scan_file(str(benign))
+    assert counts_b == {"secret:secret-assignment": 1}
+    allowed = {("f.py", "secret:secret-assignment"): (1, sha_b)}
+    ok = gate_findings({"f.py": {"detectors": counts_b,
+                                 "sha256": sha_b}}, allowed)
+    assert ok == []
+
+    benign.write_text(
+        "resp = ask(model, api_key=supersecretvalue12345)\n",
+        encoding="utf-8")
+    counts_s, sha_s = scan_file(str(benign))
+    assert counts_s == counts_b            # the same-count swap
+    findings = gate_findings({"f.py": {"detectors": counts_s,
+                                       "sha256": sha_s}}, allowed)
+    assert findings and "CHANGED BYTES" in findings[0]
+
+
+def test_f4_undecodable_bytes_are_scanned_not_waived(tmp_path):
+    """Finding 4b (P1): a file that fails strict UTF-8 decoding is
+    scanned LOSSILY — an ASCII-region secret inside binary bytes is
+    still found; there is no acknowledged-but-unscanned waiver. RED on
+    91054ca: the file reported {unscanned: 1} and its bytes were never
+    inspected."""
+    blob = tmp_path / "blob.bin"
+    blob.write_bytes(b"\xff\xfe garbage AKIAIOSFODNN7EXAMPLE tail \xff")
+    counts, sha = scan_file(str(blob))
+    assert "unscanned" not in counts
+    assert any(d.startswith("secret:") for d in counts), counts
+    assert len(sha) == 64
+
+
+def test_unreadable_committed_file_raises_never_passes(tmp_path):
+    """Can-fail: a committed file the gate cannot READ is a GateError
+    — the gate never passes by being unable to look."""
+    with pytest.raises(GateError):
+        scan_file(str(tmp_path / "missing.bin"))
 
 
 def test_user_path_detector_counts_distinct_paths():
@@ -123,5 +162,8 @@ def test_allowlist_entries_all_carry_a_review_note():
     raw = json.load(open(os.path.join(REPO_ROOT, ALLOWLIST_FILE),
                          encoding="utf-8"))
     assert raw["schema"] == ALLOWLIST_SCHEMA
-    assert all(str(e["why"]).strip() for e in raw["entries"])
+    for e in raw["entries"]:
+        assert str(e["why"]).strip()
+        assert len(e["sha256"]) == 64          # byte-bound (Finding 4a)
+        assert " or synthetic" not in e["why"]  # exact dispositions only
     assert not any("privacy_gate_violation" in p for p, _ in allowed)
