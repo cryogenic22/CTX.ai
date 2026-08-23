@@ -9,6 +9,8 @@ an old population as current. All fixtures synthetic.
 
 import json
 
+import pytest
+
 from ctxpack.agent.checkpoint import run_checkpoint
 from ctxpack.agent.scorecard import (
     build_scorecard,
@@ -283,6 +285,72 @@ def test_v3_without_cohort_config_is_unverifiable_not_fresh(tmp_path):
     ok, findings = verify_latest(str(out))
     assert not ok
     assert any("cannot be re-derived" in f for f in findings)
+
+
+def test_f5_external_note_never_enters_the_artifact(tmp_path):
+    """Finding 5 (P2): external[].note is local-config free text — it
+    stays in cohort.json and never reaches a publishable row. RED on
+    parent: the note (here carrying a machine path) was copied
+    verbatim into the v3 artifact."""
+    repo = _repo(tmp_path, "repo_a", "aaaaaaaa-1")
+    card = build_scorecard(
+        [str(repo)],
+        external=[{"name": "OntoWiz",
+                   "note": "lives at C:/Users/kapil/private"}])
+    rows = {r["repo"]: r for r in card["repos"]}
+    assert "note" not in rows["OntoWiz"]
+    assert "kapil" not in json.dumps(card)
+
+
+def test_f5_audit_matcher_pins_every_path_shape():
+    """Finding 5 acceptance (a): drive-letter (raw and JSON-escaped),
+    UNC, POSIX /home, /Users, and file:// all flagged; benign shapes
+    (https URLs, ISO timestamps, hashes) stay clean."""
+    from ctxpack.agent.scorecard import audit_artifact_bytes
+    assert "drive-path" in audit_artifact_bytes("C:/Users/x/repo")
+    assert "drive-path" in audit_artifact_bytes("C:\\\\Users\\\\x")
+    assert "unc-path" in audit_artifact_bytes("\\\\fileserver\\share\\x")
+    assert audit_artifact_bytes("/home/someone/repo") == ["posix-home"]
+    assert audit_artifact_bytes("/Users/someone/repo") == ["posix-users"]
+    assert audit_artifact_bytes("file:///tmp/x") == ["file-url"]
+    for benign in ("https://example.com/artifact",
+                   "generated_at 2026-08-23T05:00:00+00:00",
+                   "sha256 8f3a2b sessions 12", "repo_a: active"):
+        assert audit_artifact_bytes(benign) == [], benign
+
+
+def test_f5_poisoned_artifact_write_is_refused(tmp_path):
+    """Finding 5 defense-in-depth: if a machine path DOES reach the
+    serialized card, the write refuses — controlled, nothing written."""
+    from ctxpack.agent.scorecard import (
+        ArtifactPrivacyError,
+        write_scorecard,
+    )
+    card = {"schema": "ctxpack-scorecard/v3",
+            "generated_at": "2026-08-23T00:00:00+00:00",
+            "cohort": {}, "repos": [
+                {"repo": "x", "status": "active",
+                 "stray": "C:/Users/leaked/path"}]}
+    out = tmp_path / "cards"
+    with pytest.raises(ArtifactPrivacyError):
+        write_scorecard(card, str(out))
+    assert not list(out.glob("scorecard-*.json"))
+
+
+def test_f5_local_vs_external_alias_collision_is_rejected(
+        tmp_path, capsys):
+    """Finding 5 acceptance (b): an external deployment named like a
+    local repo alias shadows it — generation refuses. RED on parent:
+    LOCAL_EXTERNAL_ALIAS_COLLISION_ACCEPTED=True."""
+    repo = _repo(tmp_path, "repo_a", "aaaaaaaa-1")
+    out = tmp_path / "cards"
+    out.mkdir()
+    (out / "cohort.json").write_text(json.dumps(
+        {"repos": [str(repo)],
+         "external": [{"name": "repo_a"}]}) + "\n", encoding="utf-8")
+    assert main(["scorecard", "--out", str(out)]) == 1
+    err = capsys.readouterr().err
+    assert "alias collision" in err and "shadows" in err
 
 
 def test_verify_latest_covers_regenerated_cohort_flow(tmp_path):

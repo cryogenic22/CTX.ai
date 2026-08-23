@@ -16,6 +16,7 @@ import datetime
 import hashlib
 import json
 import os
+import re
 from typing import Any, Optional
 
 from .session_reader import LedgerError, session_stats
@@ -36,6 +37,34 @@ def repo_alias(repo_path: str) -> str:
     Cohort validation refuses basename collisions, so within a valid
     cohort the alias joins artifact rows to configured paths uniquely."""
     return os.path.basename(os.path.normpath(repo_path))
+
+
+class ArtifactPrivacyError(ValueError):
+    """A publishable artifact byte failed the privacy audit — the write
+    is refused (controlled), nothing is written."""
+
+
+# Finding 5 (2026-08-23): the strict machine-path matcher run on the
+# EXACT bytes about to become a publishable artifact. With external
+# notes omitted, no freeform local text enters an artifact — this
+# audit is the defense-in-depth floor under that rule. Shapes covered:
+# drive-letter paths (raw and JSON-escaped), UNC paths, POSIX /home
+# and /Users, and file:// URLs.
+_ARTIFACT_FORBIDDEN = (
+    ("drive-path", re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:[\\/]{1,2}\w")),
+    ("unc-path", re.compile(r"[\\]{2,}[A-Za-z0-9_.$-]+[\\]")),
+    ("posix-home", re.compile(r"/home/[^\s\"'/]+")),
+    ("posix-users", re.compile(r"/Users/[^\s\"'/]+")),
+    ("file-url", re.compile(r"file://\S")),
+)
+
+
+def audit_artifact_bytes(body: str) -> "list[str]":
+    """Labels of machine-path shapes present in ``body``; empty = clean.
+    A content AUDIT, never sanitization — callers refuse the write on
+    any hit rather than rewriting bytes silently."""
+    return sorted(label for label, pat in _ARTIFACT_FORBIDDEN
+                  if pat.search(body))
 
 # statuses folded into each denominator; every status appears in
 # exactly one bucket so measured + unmeasured + excluded == total
@@ -153,6 +182,13 @@ def validate_cohort_config(cfg) -> "list[str]":
         name = str(e["name"]).strip()
         if name in seen_names:
             errors.append(f"duplicate external deployment id: {name!r}")
+        # Finding 5: local and external rows share one artifact
+        # identity space — a shadowing name makes rows unjoinable
+        if name in seen_alias:
+            errors.append(
+                f"alias collision: external deployment {name!r} shadows "
+                f"local repo {seen_alias[name]!r} — artifact rows would "
+                f"be ambiguous")
         seen_names.add(name)
     return errors
 
@@ -215,11 +251,13 @@ def build_scorecard(repo_paths: list[str],
     """
     repos = [repo_scorecard(p) for p in repo_paths]
     for e in external or []:
-        row: dict[str, Any] = {"repo": str(e.get("name") or "unnamed"),
-                               "status": "external_unmeasured"}
-        if e.get("note"):
-            row["note"] = str(e["note"])
-        repos.append(row)
+        # Finding 5 (2026-08-23): external[].note is LOCAL-CONFIG free
+        # text — copied verbatim it carried machine paths into the
+        # publishable artifact. Notes stay in cohort.json; only the
+        # name (an artifact identity, validated against repo aliases)
+        # is published.
+        repos.append({"repo": str(e.get("name") or "unnamed"),
+                      "status": "external_unmeasured"})
     active = [r for r in repos if r.get("status") == "active"]
 
     def _count(statuses) -> int:
@@ -321,6 +359,12 @@ def write_scorecard(scorecard: dict[str, Any],
         n += 1
         path = os.path.join(out_dir, f"scorecard-{stamp}-{n}.json")
     body = json.dumps(scorecard, indent=2)
+    # Finding 5: audit the exact publishable bytes before EVERY write
+    bad = audit_artifact_bytes(body)
+    if bad:
+        raise ArtifactPrivacyError(
+            f"refusing to write a publishable artifact carrying "
+            f"machine-path shapes: {bad}")
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write(body + "\n")
     latest = os.path.join(out_dir, "scorecard-latest.json")

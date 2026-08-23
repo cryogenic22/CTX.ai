@@ -1399,7 +1399,12 @@ def _cmd_scorecard(args: argparse.Namespace) -> int:
 
     repos = args.repos
     if repos:
-        errors = validate_cohort_config({"repos": repos})
+        # validate against the MERGED population: a --repos entry can
+        # collide with a saved external deployment name (Finding 5)
+        saved_ext = (load_cohort_config(args.out) or {}).get(
+            "external") or []
+        errors = validate_cohort_config({"repos": repos,
+                                         "external": saved_ext})
         if errors:
             for err in errors:
                 print(f"Error: {err}", file=sys.stderr)
@@ -1428,7 +1433,12 @@ def _cmd_scorecard(args: argparse.Namespace) -> int:
     scorecard = build_scorecard(
         repos, external=external,
         cohort_config_sha=cohort_config_sha256(args.out))
-    json_path, latest = write_scorecard(scorecard, args.out)
+    from ..agent.scorecard import ArtifactPrivacyError, audit_artifact_bytes
+    try:
+        json_path, latest = write_scorecard(scorecard, args.out)
+    except ArtifactPrivacyError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
     print(f"Scorecard: {json_path}")
 
     cohort = scorecard["cohort"]
@@ -1451,16 +1461,28 @@ def _cmd_scorecard(args: argparse.Namespace) -> int:
     if args.html:
         from ..agent.dashboard import render_dashboard
 
+        html = render_dashboard(scorecard)
+        bad = audit_artifact_bytes(html)      # Finding 5: renders too
+        if bad:
+            print(f"Error: dashboard bytes carry machine-path shapes "
+                  f"{bad} — write refused", file=sys.stderr)
+            return 1
         html_path = os.path.join(args.out, "dashboard.html")
         with open(html_path, "w", encoding="utf-8", newline="\n") as f:
-            f.write(render_dashboard(scorecard))
+            f.write(html)
         print(f"Dashboard: {html_path}")
     if args.md:
         from ..agent.dashboard import render_markdown
 
+        md = render_markdown(scorecard)
+        bad = audit_artifact_bytes(md)        # Finding 5: renders too
+        if bad:
+            print(f"Error: scorecard.md bytes carry machine-path "
+                  f"shapes {bad} — write refused", file=sys.stderr)
+            return 1
         md_path = os.path.join(args.out, "scorecard.md")
         with open(md_path, "w", encoding="utf-8", newline="\n") as f:
-            f.write(render_markdown(scorecard))
+            f.write(md)
         print(f"Exec-summary: {md_path}")
     return 0
 
