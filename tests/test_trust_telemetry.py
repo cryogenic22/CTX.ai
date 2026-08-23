@@ -568,6 +568,66 @@ def test_injection_stats_absent_log_is_unmeasured_not_zero(tmp_path):
     assert injection_stats(str(tmp_path)) == {}
 
 
+def _write_rows(out_dir, rows):
+    import os
+    os.makedirs(out_dir, exist_ok=True)
+    with open(os.path.join(out_dir, INJECTION_LOG), "w",
+              encoding="utf-8") as f:
+        for r in rows:
+            f.write(json.dumps(r) + "\n")
+
+
+def test_explicit_v1_schema_receipt_is_counted_not_malformed(tmp_path):
+    """An earlier writer stamped the legacy schema EXPLICITLY as
+    ctx-injections/v1 (found 2026-08-23: 11 such rows in this repo's own
+    ledger). Those are KNOWN legacy prefix receipts and must be counted,
+    not discarded. RED on parent: the router treated an explicit v1
+    string as an unknown/future schema and dropped it as malformed."""
+    out = tmp_path / "ctx"
+    _write_rows(str(out), [
+        {"schema": "ctx-injections/v1", "session": "b5cf1e90",
+         "outcome": "injected", "bytes": 42,
+         "sha256": "a" * 64, "source": "session-start"},
+        {"schema": "ctx-injections/v1", "session": "fb94cd9f",
+         "outcome": "injected", "bytes": 10, "sha256": "b" * 64},
+    ])
+    stats = injection_stats(str(out))
+    assert stats["attempted"] == 2
+    assert stats["injected"] == 2
+    assert stats["malformed_rows"] == 0
+
+
+def test_both_legacy_shapes_fold_under_by_prefix(tmp_path):
+    """Absent schema field AND explicit v1 both fold as prefix-pool
+    receipts (v1 stored 8-char prefixes); neither joins by_full."""
+    from ctxpack.agent.injection_log import fold_emission_receipts
+    out = tmp_path / "ctx"
+    _write_rows(str(out), [
+        {"session": "aaaaaaaa", "outcome": "injected"},          # no schema
+        {"schema": "ctx-injections/v1", "session": "bbbbbbbb",
+         "outcome": "empty"},                                     # explicit v1
+    ])
+    fold = fold_emission_receipts(str(out))
+    assert fold["by_prefix"] == {"aaaaaaaa": "injected",
+                                 "bbbbbbbb": "empty"}
+    assert fold["by_full"] == {}
+    assert fold["malformed_rows"] == 0
+
+
+def test_unknown_future_schema_still_malformed(tmp_path):
+    """TC-11 regression pin: recognising v1 must NOT relax the rule for
+    a genuinely unknown/future schema — a v9 row stays malformed,
+    counted, confers nothing."""
+    out = tmp_path / "ctx"
+    _write_rows(str(out), [
+        {"schema": "ctx-injections/v9", "session": "cccccccc",
+         "outcome": "injected"},
+    ])
+    stats = injection_stats(str(out))
+    assert stats["injected"] == 0
+    assert stats["malformed_rows"] == 1
+
+
 def test_injection_outcomes_and_hash(tmp_path):
     out = tmp_path / "ctx"
     record_injection(str(out), session_id="aaaaaaaa-1", context="hello memory")

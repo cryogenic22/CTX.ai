@@ -50,6 +50,16 @@ INJECTION_LOG = "injections.jsonl"
 # read, but they join to a session only when the prefix is unambiguous
 # among the sessions being classified (see classify_read_path).
 SCHEMA = "ctx-injections/v2"
+# Legacy prefix-pool receipts come in TWO on-disk shapes: rows with no
+# schema field at all (the earliest writer) AND rows that stamped the
+# schema string explicitly as v1 (a later pre-v2 writer). Both store an
+# 8-char session prefix and fold under by_prefix. Recognising ONLY the
+# absent-field form silently rejected every explicit-v1 row as
+# "unknown/future schema" — 11 real emission receipts in this repo's
+# own ledger were discarded as malformed (found 2026-08-23). v1 is a
+# KNOWN PAST schema; TC-11's rule that a genuinely unknown/future
+# schema is malformed still holds.
+LEGACY_SCHEMA = "ctx-injections/v1"
 
 # outcome values
 INJECTED = "injected"   # non-empty context handed to the agent
@@ -194,7 +204,9 @@ def _receipt_session_outcome(row: dict):
     schema = str(row.get("schema") or "")
     if schema == SCHEMA:
         kind = "full"
-    elif not schema:                   # legacy v1: predates the field
+    elif not schema or schema == LEGACY_SCHEMA:
+        # legacy v1 in either on-disk shape: no schema field, OR the
+        # field stamped explicitly as v1. Both are prefix-pool rows.
         kind = "prefix"
     else:                              # unknown/future schema (TC-11)
         return None
@@ -220,9 +232,10 @@ def fold_emission_receipts(ledger_dir: str):
     ``ctx-injections/v2`` row folds under ``by_full`` no matter how
     short its id — an exactly-8-char v2 session must join exactly, not
     fall into the prefix pool where an unlucky collision makes it
-    unmeasured. Rows with no schema field are legacy v1 receipts: they
-    stored only an 8-char prefix, which can collide, so they fold
-    separately under ``by_prefix``; the join to a session is the
+    unmeasured. Rows with no schema field OR an explicit
+    ``ctx-injections/v1`` schema are legacy v1 receipts: they stored
+    only an 8-char prefix, which can collide, so they fold separately
+    under ``by_prefix``; the join to a session is the
     CALLER's decision and must require the prefix to map to exactly
     one session — an ambiguous prefix is unmeasured, never split or
     duplicated (see ``classify_read_path``). A row declaring any OTHER
