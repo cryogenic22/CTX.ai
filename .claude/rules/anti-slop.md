@@ -6,6 +6,7 @@ alwaysApply: true
 
 Before writing new helpers, check these existing utilities:
 
+- `ctxpack/core/artifact_privacy.py`: scan_artifact_string, artifact_categories, is_safe_identity (THE strict machine-path/owner-identity matcher — do NOT write a second one; scorecard + fork_cluster both use this)
 - `ctxpack/core/confidence.py`: ConfidenceRecord, ConfidenceTracker
 - `ctxpack/core/diff.py`: DiffEntry, DiffResult, diff_documents, format_diff
 - `ctxpack/core/entity_graph.py`: EntityGraph

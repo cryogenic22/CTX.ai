@@ -1211,44 +1211,15 @@ def answer_sha256(text: str) -> str:
 # owner-identity substrings are still checked on the RAW string, URLs
 # included.
 
-FORBIDDEN_ARTIFACT_SUBSTRINGS = (
-    "kapil", "c--users-kapil",
-    "appdata\\local\\temp", "appdata/local/temp",
-)
-# http(s) spans are excluded from the POSIX/forward-UNC scan only
-# (never from the forbidden-substring scan, and never from the raw
-# checks below — round-4 residual: masking must not swallow a
-# drive-letter, backslash-UNC, or file:// path smuggled inside a URL,
-# e.g. https://host/upload?path=C:\tmp\work).
-_HTTP_URL_SPAN_RE = re.compile(r"https?://[^\s\"'`<>)\]]+", re.IGNORECASE)
-# Checked on the RAW string: these forms are never legitimate inside
-# an http(s) URL on this artifact surface.
-_RAW_PATH_RES = (
-    # C:\..., d:/... — any drive letter, either slash
-    ("drive-letter path", re.compile(r"\b[a-z]:[\\/]", re.IGNORECASE)),
-    # \\host\share UNC
-    ("UNC path", re.compile(r"\\\\[a-z0-9._$-]+\\", re.IGNORECASE)),
-    # file:///tmp/run — a filesystem path wearing a scheme
-    ("file:// URI path", re.compile(r"\bfile://", re.IGNORECASE)),
-)
-# Checked AFTER http(s) URL spans are masked out (a URL's own path
-# segments are not filesystem paths — the one documented allowance).
-# Token boundary is a generic NEGATIVE class (any char that is not a
-# word char or slash — so ':', ',', '{', '-' all delimit), never a
-# delimiter allowlist; the path start is any non-whitespace,
-# non-slash char, so Unicode paths like /数据/private match too
-# (round-4 residual).
-_MASKED_PATH_RES = (
-    # //host/share forward-slash UNC
-    ("UNC path", re.compile(
-        r"(?:^|(?<=[^\w\\/]))//[^\s/\\]+[\\/]", re.IGNORECASE)),
-    # ANY token-leading POSIX absolute path: /etc/passwd,
-    # /usr/local/bin, /workspace/run, /guides/x, /c/users/x alike
-    ("POSIX absolute path", re.compile(
-        r"(?:^|(?<=[^\w\\/]))/(?=[^\s/])")),
-    # backstop: a home-directory segment ANYWHERE in a path is a leak
-    ("home-directory segment", re.compile(
-        r"[\\/](?:users|home)[\\/]", re.IGNORECASE)),
+# RF3 (2026-08-24): the reviewed strict matcher now lives in
+# ctxpack.core.artifact_privacy so this gate and the scorecard share
+# ONE implementation (a divergent weaker copy in scorecard had reopened
+# the bypass class). The strict semantics — raw drive/backslash-UNC/
+# file:// checks, URL-masked POSIX + forward-UNC checks, owner-identity
+# on the raw string — are unchanged; see that module's docstring.
+from ...core.artifact_privacy import (  # noqa: E402
+    IDENTITY,
+    scan_artifact_string,
 )
 
 
@@ -1296,25 +1267,14 @@ def validate_report_evidence(report: "dict",
     and owner-identity substrings are checked on the raw string too,
     URLs included (round-4 residual)."""
     for s in _iter_strings(report):
-        low = s.lower()
-        for pat in FORBIDDEN_ARTIFACT_SUBSTRINGS:
-            if pat in low:
+        for kind, detail in scan_artifact_string(s):
+            if kind == IDENTITY:
                 raise RuntimeError(
                     f"report-evidence gate: forbidden machine-local "
-                    f"pattern {pat!r} in the artifact")
-        for kind, rx in _RAW_PATH_RES:
-            m = rx.search(s)
-            if m:
-                raise RuntimeError(
-                    f"report-evidence gate: {kind} in the artifact "
-                    f"({s[max(0, m.start() - 20):m.end() + 30]!r})")
-        scan = _HTTP_URL_SPAN_RE.sub(" ", s)
-        for kind, rx in _MASKED_PATH_RES:
-            m = rx.search(scan)
-            if m:
-                raise RuntimeError(
-                    f"report-evidence gate: {kind} in the artifact "
-                    f"({scan[max(0, m.start() - 20):m.end() + 30]!r})")
+                    f"pattern {detail!r} in the artifact")
+            raise RuntimeError(
+                f"report-evidence gate: {kind} in the artifact "
+                f"({detail!r})")
 
     # ── ledger row self-consistency: answer BYTES, not declared shas ──
     invocations = list(report.get("invocations", ()))

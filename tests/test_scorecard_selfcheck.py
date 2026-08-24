@@ -302,21 +302,59 @@ def test_f5_external_note_never_enters_the_artifact(tmp_path):
     assert "kapil" not in json.dumps(card)
 
 
-def test_f5_audit_matcher_pins_every_path_shape():
-    """Finding 5 acceptance (a): drive-letter (raw and JSON-escaped),
-    UNC, POSIX /home, /Users, and file:// all flagged; benign shapes
-    (https URLs, ISO timestamps, hashes) stay clean."""
-    from ctxpack.agent.scorecard import audit_artifact_bytes
-    assert "drive-path" in audit_artifact_bytes("C:/Users/x/repo")
-    assert "drive-path" in audit_artifact_bytes("C:\\\\Users\\\\x")
-    assert "unc-path" in audit_artifact_bytes("\\\\fileserver\\share\\x")
-    assert audit_artifact_bytes("/home/someone/repo") == ["posix-home"]
-    assert audit_artifact_bytes("/Users/someone/repo") == ["posix-users"]
-    assert audit_artifact_bytes("file:///tmp/x") == ["file-url"]
-    for benign in ("https://example.com/artifact",
-                   "generated_at 2026-08-23T05:00:00+00:00",
-                   "sha256 8f3a2b sessions 12", "repo_a: active"):
-        assert audit_artifact_bytes(benign) == [], benign
+def test_rf3_audit_reuses_the_one_strict_matcher():
+    """RF3 (Codex Finding 3, P1): the scorecard audit now delegates to
+    the SAME strict matcher as the eval-report gate — the weak
+    /home+/Users-only copy is gone. Pins the full reviewer control
+    corpus: /tmp, /var, /workspace, /root, /guides, Unicode POSIX, both
+    UNC styles, drive/MSYS, file://, URL-smuggling, and owner identity
+    are all caught; HTTPS paths and benign scorecard content stay
+    clean. RED on 6ce11a1: /tmp, /var, /root, /workspace, forward-UNC,
+    and owner identity returned []."""
+    from ctxpack.agent.scorecard import audit_artifact_bytes as a
+    # POSIX roots the weak matcher missed
+    for p in ("/tmp/run", "/var/tmp/x", "/workspace/run", "/root/.ssh",
+              "/guides/section-1/", "/etc/passwd", "/usr/local/bin"):
+        assert "POSIX absolute path" in a(p), p
+    assert "POSIX absolute path" in a("/" + "\u6570\u636e" + "/private")
+    # both UNC styles, drive (both slashes / MSYS), file://
+    assert "UNC path" in a("//server/share/evals")
+    assert "UNC path" in a("\\\\fileserver\\share\\x")
+    assert "drive-letter path" in a("C:\\Users\\x")
+    assert "drive-letter path" in a("d:/scratch/run7")
+    assert "file:// URI path" in a("file:///tmp/run")
+    # owner identity, even inside an otherwise-URL string
+    assert "identity" in a("logged by kapil")
+    assert "identity" in a("https://h.example/x?u=kapil")
+    # URL-smuggled raw path is caught on the raw string
+    assert a(r"https://host.example/upload?path=C:\tmp\work")
+    # benign controls stay clean (no over-redaction)
+    for ok in ("https://example.com/artifact",
+               "https://h.example/home/page", "https://x/tmp/y",
+               "generated_at 2026-08-24T05:00:00+00:00",
+               "accuracy/quality claims", "sha256 8f3a2b", "repo_a"):
+        assert a(ok) == [], ok
+
+
+def test_rf3_external_name_validated_as_identity(tmp_path, capsys):
+    """RF3 (Finding 3b): a path-bearing external name is rejected as an
+    identity — build_scorecard refuses at the source and cohort
+    validation refuses at the CLI. RED on 6ce11a1: `/tmp/kapil/private`
+    persisted into a row and audited clean."""
+    from ctxpack.agent.scorecard import ArtifactPrivacyError, build_scorecard
+    with pytest.raises(ArtifactPrivacyError):
+        build_scorecard([], external=[{"name": "/tmp/kapil/private"}])
+    # a plain identity is fine
+    card = build_scorecard([], external=[{"name": "OntoWiz"}])
+    assert card["repos"][0]["repo"] == "OntoWiz"
+    # CLI cohort validation rejects it too
+    out = tmp_path / "cards"
+    out.mkdir()
+    (out / "cohort.json").write_text(json.dumps(
+        {"repos": [], "external": [{"name": "//server/share"}]}) + "\n",
+        encoding="utf-8")
+    assert main(["scorecard", "--out", str(out)]) == 1
+    assert "not a plain identity" in capsys.readouterr().err
 
 
 def test_f5_poisoned_artifact_write_is_refused(tmp_path):

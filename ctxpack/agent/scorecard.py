@@ -16,7 +16,6 @@ import datetime
 import hashlib
 import json
 import os
-import re
 from typing import Any, Optional
 
 from .session_reader import LedgerError, session_stats
@@ -44,27 +43,23 @@ class ArtifactPrivacyError(ValueError):
     is refused (controlled), nothing is written."""
 
 
-# Finding 5 (2026-08-23): the strict machine-path matcher run on the
-# EXACT bytes about to become a publishable artifact. With external
-# notes omitted, no freeform local text enters an artifact — this
-# audit is the defense-in-depth floor under that rule. Shapes covered:
-# drive-letter paths (raw and JSON-escaped), UNC paths, POSIX /home
-# and /Users, and file:// URLs.
-_ARTIFACT_FORBIDDEN = (
-    ("drive-path", re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:[\\/]{1,2}\w")),
-    ("unc-path", re.compile(r"[\\]{2,}[A-Za-z0-9_.$-]+[\\]")),
-    ("posix-home", re.compile(r"/home/[^\s\"'/]+")),
-    ("posix-users", re.compile(r"/Users/[^\s\"'/]+")),
-    ("file-url", re.compile(r"file://\S")),
-)
+def is_safe_identity(name: str) -> bool:
+    """Re-export of the core identity check (RF3), so scorecard callers
+    and tests share one import site."""
+    from ..core.artifact_privacy import is_safe_identity as _core
+    return _core(name)
 
 
 def audit_artifact_bytes(body: str) -> "list[str]":
-    """Labels of machine-path shapes present in ``body``; empty = clean.
-    A content AUDIT, never sanitization — callers refuse the write on
-    any hit rather than rewriting bytes silently."""
-    return sorted(label for label, pat in _ARTIFACT_FORBIDDEN
-                  if pat.search(body))
+    """Labels of machine-path/owner-identity shapes present in ``body``;
+    empty = clean. RF3 (2026-08-23→24): this now delegates to the ONE
+    reviewed strict matcher (`core.artifact_privacy`) instead of a weak
+    `/home`+`/Users` copy — forward-UNC, `/tmp`, `/var`, `/root`,
+    `file://`, owner identity, and URL-smuggled paths are all covered,
+    and http(s) URLs no longer false-positive. A content AUDIT, never
+    sanitization — callers refuse the write on any hit."""
+    from ..core.artifact_privacy import artifact_categories
+    return artifact_categories(body)
 
 # statuses folded into each denominator; every status appears in
 # exactly one bucket so measured + unmeasured + excluded == total
@@ -180,6 +175,14 @@ def validate_cohort_config(cfg) -> "list[str]":
                           f"non-empty 'name': {e!r}")
             continue
         name = str(e["name"]).strip()
+        # RF3 (Finding 3b): an artifact identity is validated AS an
+        # identity, not accepted as arbitrary path-bearing text — a
+        # name like "/tmp/kapil/private" must be rejected, never
+        # published.
+        if not is_safe_identity(name):
+            errors.append(
+                f"external deployment name is not a plain identity "
+                f"(path-bearing or reserved chars): {name!r}")
         if name in seen_names:
             errors.append(f"duplicate external deployment id: {name!r}")
         # Finding 5: local and external rows share one artifact
@@ -256,8 +259,16 @@ def build_scorecard(repo_paths: list[str],
         # publishable artifact. Notes stay in cohort.json; only the
         # name (an artifact identity, validated against repo aliases)
         # is published.
-        repos.append({"repo": str(e.get("name") or "unnamed"),
-                      "status": "external_unmeasured"})
+        name = str(e.get("name") or "unnamed")
+        # RF3 (Finding 3b): validate the identity AS an identity here
+        # too — build_scorecard is called directly (not only via the
+        # CLI's cohort validation), so a path-bearing external name
+        # must be refused at the source, not just audited at write.
+        if not is_safe_identity(name):
+            raise ArtifactPrivacyError(
+                f"external deployment name is not a plain identity: "
+                f"{name!r}")
+        repos.append({"repo": name, "status": "external_unmeasured"})
     active = [r for r in repos if r.get("status") == "active"]
 
     def _count(statuses) -> int:
