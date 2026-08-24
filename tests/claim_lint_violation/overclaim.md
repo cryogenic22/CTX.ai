@@ -9,3 +9,11 @@ adversary-scoped product claim while CTX is advisory-mode only.
 CTX guarantees that redaction prevents a malicious agent from ever
 reading a banked secret, and the ledger blocks a same-privilege
 attacker from rewriting a decision.
+
+RF4 mixed-clause overclaim (the negation belongs to another clause):
+CTX does not merely surface attacks; it prevents a malicious agent
+from tampering with the ledger.
+
+RF4 participle overclaim (inflected verb): CTX is preventing a
+malicious agent from exfiltrating the banked secret, and it is
+blocking attackers from rewriting decisions.

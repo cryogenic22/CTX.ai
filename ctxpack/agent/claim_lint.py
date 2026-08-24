@@ -52,12 +52,17 @@ import subprocess
 # as identifiers and test strings).
 DOC_ROOTS = ("README.md", "docs", "paper")
 
+# Full guarantee/prevent/block morphology incl. participles (RF4:
+# "preventing" slipped through) — a claim inflection is still a claim.
 _SECURITY_VERB = re.compile(
-    r"\b(guarantee|guarantees|guaranteed|prevent|prevents|prevented|"
-    r"block|blocks|blocked)\b", re.IGNORECASE)
+    r"\b(guarantee|guarantees|guaranteed|guaranteeing|"
+    r"prevent|prevents|prevented|preventing|"
+    r"block|blocks|blocked|blocking)\b", re.IGNORECASE)
 
 # The system asserting the capability — without this the verbs fire on
 # prose that merely mentions them ("a BLOCK verdict", "injected blocks").
+# Checked at SENTENCE level (the subject may be "CTX" in one clause and
+# "it" in the claim clause).
 _PRODUCT = re.compile(
     r"\b(ctx|ctxpack|redaction|redact|the scanner|the gate|the ledger|"
     r"the checkpoint|the packer|hydration|the receipt|the memory)\b",
@@ -65,23 +70,40 @@ _PRODUCT = re.compile(
 
 # "block" also has innocent noun senses (code block, key block,
 # conventions block); the adversary + product tokens filter those out
-# without POS tagging.
+# without POS tagging. Adversary plurals covered (RF4).
 _ADVERSARY = re.compile(
-    r"\b(malicious|attacker|adversar(?:y|ial)|same-privilege|"
-    r"prompt-inject(?:ed|ion)|tamper(?:ing|ed)?|exfiltrat(?:e|ion)|"
-    r"threat actor|hostile)\b", re.IGNORECASE)
+    r"\b(malicious|attackers?|adversar(?:y|ies|ial)|same-privilege|"
+    r"prompt-inject(?:ed|ion)|tamper(?:ing|ed|s)?|exfiltrat(?:e|es|ion)|"
+    r"threat actors?|hostile)\b", re.IGNORECASE)
 
 _NEGATION = re.compile(
     r"\b(no|not|never|cannot|can't|without|neither|nor|none)\b"
     r"|\bmust not\b|\bdo(?:es)? not\b|\bmakes no\b|\bclaims no\b"
     r"|\bno longer\b", re.IGNORECASE)
 
+# Clause boundaries: `;` `:` and contrastive / coordinating
+# conjunctions — deliberately NOT bare commas. Negation is evaluated
+# per-CLAUSE (RF4: `_NEGATION` was sentence-global, so a "not" in one
+# clause exempted a claim in another — "CTX does not merely surface
+# attacks; it prevents a malicious agent ..."). Commas are excluded
+# because a coordinated verb LIST shares one head negation ("CTX must
+# not claim it can guarantee, prevent, or block malicious-agent
+# actions") — splitting on the commas there would strand "or block
+# <adversary>" from its governing "must not".
+_CLAUSE_SPLIT = re.compile(
+    r"[;:]|\b(?:but|however|yet|whereas|while|although|though)\b",
+    re.IGNORECASE)
+
+_FENCED_CODE = re.compile(r"```.*?```|~~~.*?~~~", re.DOTALL)
+
 
 def _sentences(text: str):
     """Sentence/segment split over hard-wrapped markdown: single
     newlines become spaces (so a wrapped sentence stays one window),
     splitting on blank lines, sentence punctuation, and markdown table
-    cell borders."""
+    cell borders. Fenced code blocks are removed first — a code example
+    is not a product claim (RF4 benign control)."""
+    text = _FENCED_CODE.sub(" ", text)
     for para in re.split(r"\n\s*\n", text):
         joined = re.sub(r"\s*\n\s*", " ", para)
         for seg in re.split(r"(?<=[.!?])\s+|\s\|\s", joined):
@@ -91,16 +113,24 @@ def _sentences(text: str):
 
 
 def lint_text(text: str) -> "list[str]":
-    """Offending sentences in one document's text; empty = clean."""
+    """Offending sentences in one document's text; empty = clean.
+
+    A sentence is flagged when it (1) names the product AND (2) contains
+    a CLAUSE with a security verb + an adversary token + NO clause-local
+    negation. Product is sentence-scoped (the subject can be a pronoun
+    in the claim clause); negation is clause-scoped (RF4)."""
     hits: "list[str]" = []
     for seg in _sentences(text):
-        if not _SECURITY_VERB.search(seg):
+        if not _PRODUCT.search(seg):
             continue
-        if not (_PRODUCT.search(seg) and _ADVERSARY.search(seg)):
-            continue
-        if _NEGATION.search(seg):
-            continue
-        hits.append(seg)
+        for clause in _CLAUSE_SPLIT.split(seg):
+            if not clause:
+                continue
+            if (_SECURITY_VERB.search(clause)
+                    and _ADVERSARY.search(clause)
+                    and not _NEGATION.search(clause)):
+                hits.append(seg)
+                break
     return hits
 
 
