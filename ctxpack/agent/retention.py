@@ -59,7 +59,10 @@ RETENTION_LOG = "retention.jsonl"
 # added orphan, a link swap among skipped rows, or a DIFFERENT ledger
 # with the same delete set all left the confirmation valid. v2 binds
 # the full plan state — see _hash_plan.
-PLAN_SCHEMA = "ctx-retention-plan/v2"
+# v3 (RF5, 2026-08-24): kept-session artifacts were skipped BEFORE they
+# reached the hash, so kept `.ctx`/gist drift was invisible; v3 binds
+# every candidate by disposition (delete/kept/skipped).
+PLAN_SCHEMA = "ctx-retention-plan/v3"
 RECEIPT_SCHEMA = "ctx-retention/v1"
 
 CTX_PREFIX, CTX_SUFFIX = "session-", ".ctx"
@@ -119,6 +122,10 @@ class RetentionPlan:
     kept_sessions: "list[str]"               # full ids, newest last
     delete: "list[PlanEntry]" = field(default_factory=list)
     skipped: "list[tuple[str, str]]" = field(default_factory=list)
+    # kept-session artifacts (RF5): recorded with their content digest
+    # so adding/removing/replacing a kept .ctx/gist invalidates the
+    # confirmation too — the "WHOLE plan" contract, not just deletions.
+    kept: "list[PlanEntry]" = field(default_factory=list)
     rows_unattributed: int = 0               # journal rows with no session id
     plan_hash: str = ""
 
@@ -245,28 +252,37 @@ def _journal_order(ledger_dir: str):
 
 def _hash_plan(ledger_dir: str, keep: int, ordered: "list[str]",
                unattributed: int, delete: "list[PlanEntry]",
-               skipped: "list[tuple[str, str]]") -> str:
-    """The confirmation binds the WHOLE plan state (Finding 3), not
-    just the delete set:
+               skipped: "list[tuple[str, str]]",
+               kept: "list[PlanEntry]") -> str:
+    """The confirmation binds the WHOLE plan state (Findings 3 + 5),
+    every candidate artifact by disposition — not just the delete set:
 
     - ledger identity (canonical realpath) — a hash produced against
       ledger A can never authorize the same delete set in ledger B;
       the path enters only this preimage, never any persisted output;
     - the full ordered journal session list + unattributed row count —
       any window shift or journal growth invalidates;
-    - every deletion's path + size + content sha256;
+    - every DELETE artifact's path + size + content sha256;
+    - every KEPT artifact's path + size + content sha256 (RF5) — adding,
+      removing, or replacing a kept `.ctx`/gist between plan and apply
+      invalidates the confirmation, so the "WHOLE plan" contract is real
+      and not just deletion-affecting drift;
     - every candidate-shaped SKIPPED row (path, reason) — an orphan
       appearing, a link swap, or an ambiguity change invalidates even
       though the delete set is unchanged.
     """
+    def _entries(es):
+        return [{"path": e.path, "size": e.size, "sha256": e.sha256}
+                for e in sorted(es, key=lambda e: e.path)]
+
     payload = {
         "schema": PLAN_SCHEMA,
         "ledger": os.path.normcase(os.path.realpath(ledger_dir)),
         "keep": keep,
         "sessions": list(ordered),
         "rows_unattributed": unattributed,
-        "delete": [{"path": e.path, "size": e.size, "sha256": e.sha256}
-                   for e in sorted(delete, key=lambda e: e.path)],
+        "delete": _entries(delete),
+        "kept": _entries(kept),
         "skipped": [{"path": p, "reason": r}
                     for p, r in sorted(skipped)],
     }
@@ -312,19 +328,24 @@ def plan_retention(ledger_dir: str, keep: int) -> RetentionPlan:
         if len(ids) > 1:
             plan.skipped.append((name, SKIP_AMBIGUOUS))
             continue
-        if next(iter(ids)) in kept:
-            continue
         try:
             with open(full, "rb") as f:
                 blob = f.read()
         except OSError:
             plan.skipped.append((name, SKIP_UNREADABLE))
             continue
-        plan.delete.append(PlanEntry(
-            path=name, size=len(blob),
-            sha256=hashlib.sha256(blob).hexdigest()))
+        entry = PlanEntry(path=name, size=len(blob),
+                          sha256=hashlib.sha256(blob).hexdigest())
+        if next(iter(ids)) in kept:
+            # RF5: a kept artifact is not deleted, but it IS bound into
+            # the hash — its drift (add/remove/replace) invalidates the
+            # confirmation, so the plan the caller confirmed is the
+            # ledger state apply acts on.
+            plan.kept.append(entry)
+        else:
+            plan.delete.append(entry)
     plan.plan_hash = _hash_plan(ledger_dir, keep, ordered, unattributed,
-                                plan.delete, plan.skipped)
+                                plan.delete, plan.skipped, plan.kept)
     return plan
 
 

@@ -346,6 +346,54 @@ def test_f3_ledger_a_hash_cannot_authorize_ledger_b(tmp_path):
     assert (ledger_b / "session-aaaaaaaa.ctx").exists()
 
 
+def test_rf5_kept_artifact_drift_between_plan_and_apply_aborts(tmp_path):
+    """RF5 (Codex Finding 5, P2): a KEPT session's .ctx replaced,
+    removed, or a new kept artifact added after the plan invalidates the
+    confirmation — the hash binds every candidate by disposition, so the
+    "WHOLE plan" contract holds for kept artifacts, not just deletions.
+    RED on 5a0d96c/b36e8e0: kept artifacts were skipped before the hash,
+    so kept-drift left plan_hash unchanged and apply proceeded."""
+    out = _ledger(tmp_path)
+    plan = plan_retention(str(out), keep=2)      # S2,S3 kept; S1 deleted
+    assert plan.kept, "kept artifacts must be recorded in the plan"
+    # replace a KEPT artifact's bytes after planning
+    kept_ctx = out / "session-cccccccc.ctx"      # S3, kept
+    assert kept_ctx.exists()
+    kept_ctx.write_text("rewritten kept content", encoding="utf-8")
+    with pytest.raises(RetentionError) as err:
+        apply_retention(str(out), 2, plan.plan_hash)
+    assert err.value.code == ERR_PLAN_MISMATCH
+    assert (out / "session-aaaaaaaa.ctx").exists()   # nothing deleted
+
+
+def test_rf5_kept_artifact_removed_aborts(tmp_path):
+    """RF5: removing a kept artifact between plan and apply also
+    invalidates (the kept set no longer matches)."""
+    out = _ledger(tmp_path)
+    plan = plan_retention(str(out), keep=2)
+    (out / "session-bbbbbbbb-gist.md").unlink()   # a kept artifact
+    with pytest.raises(RetentionError) as err:
+        apply_retention(str(out), 2, plan.plan_hash)
+    assert err.value.code == ERR_PLAN_MISMATCH
+    assert (out / "session-aaaaaaaa.ctx").exists()
+
+
+def test_rf5_kept_artifacts_recorded_with_content_digest(tmp_path):
+    """RF5: the plan records kept artifacts with path+size+sha, and the
+    clean apply (no drift) still succeeds and deletes only the delete
+    set."""
+    out = _ledger(tmp_path)
+    plan = plan_retention(str(out), keep=2)
+    kept_paths = {e.path for e in plan.kept}
+    assert "session-bbbbbbbb.ctx" in kept_paths
+    assert "session-cccccccc.ctx" in kept_paths
+    assert all(len(e.sha256) == 64 for e in plan.kept)
+    result = apply_retention(str(out), 2, plan.plan_hash)   # no drift
+    assert result.deleted == ["session-aaaaaaaa-gist.md",
+                              "session-aaaaaaaa.ctx"]
+    assert (out / "session-bbbbbbbb.ctx").exists()
+
+
 def test_apply_with_wrong_or_empty_hash_deletes_nothing(tmp_path):
     out = _ledger(tmp_path)
     for bad in ("0" * 64, ""):
