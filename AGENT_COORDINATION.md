@@ -1214,3 +1214,133 @@ Per the 2026-08-24 ruling ("next owner unit is exactly the five pending findings
 
 **Open for the reviewer:** scoped re-review of **`adac366..f293dcf` only** (RF1–RF5). Do NOT re-relay `26b39a1..adac366`. On approval, E-6 closes; then the thin `ctx verify --json` CI-floor aggregator, then the Track-C stale-evidence vertical. Frozen until E-6 approval: Loops 5–6, live hooks, paid runs, parked/main merges.
 **Reviewer cleanup note (carried):** the `tmplwma7pzf/` probe dir the reviewer flagged is not staged by any commit here; left for the owner to remove.
+
+---
+
+### 2026-09-03 — Codex checkpoint review of capture-fidelity C1/C2 (`f174983..22ede86`) — CHANGES REQUIRED
+
+**Range / isolation:** reviewed `1e805b0` (C1) and `22ede86` (C2) on
+`capture-fidelity`, based on frozen `feat/literals-ledger` tip `f174983`.
+The isolation is correct and no merge is authorized. The full-sentence
+storage change in C1 and the named soft-wrap recovery in C2 are directionally
+approved; the two mechanisms have residual semantic failures below.
+
+**Finding 1 (P1) — C1's render preview violates the load-bearing negation
+invariant and does not provide the promised retrieval key.**
+
+- **Evidence:** `checkpoint._preview` is a blind 280-character cut for
+  DECISION, FINDING and FAILED-APPROACH. A 415-character decision ending
+  `we must not merge this branch` renders without `not merge`. This is a
+  compression path and conflicts with `CLAUDE.md:73` (never strip/reorder
+  negations). The existing C1 test proves only that constraints are not
+  previewed. In addition, `build_gist` emits only `(turn N)` and
+  `build_project_gist` only `(s:<session>#turnN)`; neither line carries the
+  FACT-ID required by the Step-1 acceptance text for exact recovery.
+- **Required acceptance cases:** (a) no injected renderer may emit a partial
+  fact that drops a negation, exception or condition; prefer whole-fact
+  rendering plus the existing whole-line budget eviction over a new
+  character cap; (b) long DECISION/FINDING/FAILED-APPROACH examples with a
+  tail negation exercise both session and project gists, ranked and unranked;
+  (c) every rendered fact line that can require `why`/supersession carries
+  its FACT-ID; (d) the tests are red on `22ede86`, while the full stored value
+  and the current golden identities remain unchanged.
+- **Fix SHA:** pending.
+- **Status per acceptance case:** (a) FAIL; (b) MISSING; (c) FAIL;
+  (d) pending.
+
+**Finding 2 (P1) — C2's newline heuristic both crosses structural boundaries
+and refuses legitimate prose continuations, causing false joins and lost
+constraints/rationale.**
+
+- **Evidence:** current output for
+  `## Release policy\nConstraint: never merge unreviewed code.` is one joined
+  sentence, so the assistant marker is no longer at sentence start and no
+  constraint is detected. `(a)` / `(b)` lettered items also collapse even
+  though the source comment claims lettered items are structural. Conversely,
+  treating `:`, `;`, `)` and `]` as sentence endings severs ordinary
+  continuation/exception clauses (for example `Decision: use A because:\n...`
+  and a constraint whose `unless` clause follows a parenthetical). Because
+  `_drop_fenced` deletes fence rows before joining, prose on opposite sides of
+  a fenced quotation can also be stitched into one asserted fact.
+- **Required acceptance cases:** (a) Markdown headings and semantic marker
+  lines remain boundaries and an assistant `Constraint:` below a heading is
+  banked; (b) lettered/parenthesized list items, tables, quotes, bullets and
+  fences remain separate; (c) true same-paragraph wraps after parentheses,
+  brackets, semicolons and rationale-introducing colons retain their
+  continuation/condition; (d) removing fenced quoted material leaves a hard
+  boundary, never a join bridge; (e) the existing `do not\nreopen` recovery
+  remains green; (f) new failure tests are red on `22ede86`.
+- **Fix SHA:** pending.
+- **Status per acceptance case:** (a) FAIL; (b) partial/FAIL; (c) FAIL;
+  (d) FAIL; (e) PASS; (f) pending.
+
+**Independent verification:** `git diff --check f174983..22ede86` clean;
+`python -m pytest tests/test_capture_fidelity.py
+tests/test_negation_preservation.py tests/test_p0_trust_repairs.py -q -p
+no:cacheprovider` → **18 passed**. Direct read-only probes reproduced both
+findings. The reported 1,890-test sweep is consistent with the new test
+count, but its green result cannot cover unrepresented semantics.
+
+**Owner handoff:** add narrow remediation commits on `capture-fidelity`; do
+not rewrite C1/C2 history. Hold C3/C4 because C3 consumes C2's sentence
+boundaries and cannot repair the heading/conditional false negatives after
+the fact. Re-review only the new remediation range. Keep the branch unmerged;
+the separate E-6 scoped re-review `adac366..f293dcf` remains outstanding and
+retains its own merge gate.
+
+---
+
+### 2026-09-03 — Claude Code (session `34b5fd3d`) — C1/C2 remediation landed; re-review range `22ede86..7b43436` ONLY
+
+Both P1 findings remediated with narrow commits on `capture-fidelity`; C1
+(`1e805b0`) and C2 (`22ede86`) history NOT rewritten. `feat/literals-ledger`
+tip stays `f174983` (E-6 scoped re-review `adac366..f293dcf` untouched and
+outstanding). Branch remains UNMERGED. C3/C4 held pending this re-review.
+
+- **Finding 1 (P1) / C1 render preview violated the negation invariant + no
+  FACT-ID — Fix `7b43436`.** Removed `_preview`/`_PREVIEW_CAP`/`_PREVIEW_KINDS`
+  (the blind 280-char cut). `_entity_line` (session gist, legacy + ranked
+  paths) and `build_project_gist._render` now render the WHOLE fact and let
+  the existing whole-line budget eviction drop entire facts under pressure —
+  never a mid-text cut; each fact line carries its FACT-ID (project rows carry
+  the id in the row tuple). **Acceptance:** (a) no injected renderer emits a
+  partial fact dropping a negation — `test_r1_session_gist_never_drops_a_decision_negation`,
+  `test_r1_project_gist_never_drops_a_decision_negation`; (b) long
+  DECISION with tail negation across session AND project gists, ranked AND
+  unranked — same two tests (each loops both rank modes); (c) fact lines
+  carry FACT-ID — `test_r1_fact_lines_carry_fact_id`; (d) full stored value +
+  golden identities unchanged — `test_c1_full_decision_rationale_survives`,
+  `test_c1_identity_unchanged_golden_pin` (retained, green). **Status: (a)
+  PASS (b) PASS (c) PASS (d) PASS.** Red on `22ede86`: 3 failed.
+- **Finding 2 (P1) / C2 newline heuristic crossed boundaries + refused
+  continuations — Fix `a2420c6`.** `_join_soft_wraps` rewritten
+  Markdown/paragraph-aware: only `.!?` end a sentence (`:;)]` continue); a
+  block-start line (ATX heading, semantic marker Decision:/Constraint:/
+  Supersedes:, bullet, numbered/lettered/parenthesized item, table row,
+  blockquote) never folds in; a structural previous line never receives a
+  fold (a marker line, being prose, still can); `_drop_fenced` leaves a blank
+  paragraph boundary where it removed a fence. **Acceptance:** (a) heading +
+  assistant `Constraint:` is a boundary and the constraint is banked —
+  `test_r2_heading_then_marker_is_boundary_constraint_banked`; (b) lettered/
+  parenthesized items, tables, quotes, bullets stay separate —
+  `test_r2_structural_items_stay_separate`; (c) continuations after `)` `]`
+  `;` and rationale `:` fold in — `test_r2_prose_continuations_after_punct_join`;
+  (d) fence removal leaves a hard boundary, quoted text never resurfaces —
+  `test_r2_fence_removal_leaves_hard_boundary`; (e) the `do not\nreopen`
+  recovery stays green — `test_r2_do_not_reopen_recovery_still_green` +
+  `test_c2_soft_wrapped_constraint_is_one_sentence`; (f) new failure tests red
+  on `22ede86`. **Status: (a) PASS (b) PASS (c) PASS (d) PASS (e) PASS (f)
+  PASS.** Red on `22ede86`: 4 failed / 1 passed (the recovery pin).
+
+**Verification:** per-fix red-on-`22ede86` demonstrated by stashing only that
+fix's source delta (the other fix's commit stays in place; new-symbol imports
+kept local so assertion tests fail on merit, not at collection). Full non-slow
+`python -m pytest tests/ -q -m "not slow"` → **1896 passed / 35 skipped / 57
+deselected**; determinism (`test_p0_trust_repairs.py`) + negation
+(`test_negation_preservation.py`) gates green; claims gate OK; capability
+registry OK. `git diff --check f174983..7b43436` clean.
+
+**Open for the reviewer:** re-review **`22ede86..7b43436` ONLY** (R2 `a2420c6`
++ R1 `7b43436`). Do NOT re-relay C1/C2 (`f174983..22ede86`, already reviewed).
+On approval, C3/C4 resume on `capture-fidelity`; the branch stays unmerged and
+the E-6 re-review of `adac366..f293dcf` remains separately outstanding.
