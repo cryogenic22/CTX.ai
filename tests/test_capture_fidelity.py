@@ -18,8 +18,13 @@ below as a regression pin / forward guard (they pass on the parent)."""
 import json
 
 from ctxpack.agent.transcript_parser import parse_transcript
-from ctxpack.agent.checkpoint import build_gist, _preview, _PREVIEW_CAP
+from ctxpack.agent.checkpoint import build_gist
 from ctxpack.core import factid
+
+# New-symbol imports (_preview, _PREVIEW_CAP, _join_soft_wraps) are made
+# LOCAL inside their guard tests, not module-top, so stashing a source
+# delta to demonstrate red-on-parent leaves the assertion tests collectable
+# and failing on their merits rather than erroring at import.
 
 # One sentence each, no internal ". " (which would split it). The DECISION
 # and FINDING are marker-led (admitted up to 900 chars); the FAILED-APPROACH
@@ -151,6 +156,58 @@ def test_c1_preview_helper_is_bounded_and_lossless_below_cap():
     the cap with an ellipsis. It is only ever applied to non-constraint
     kinds (see _entity_line / build_project_gist), so it never severs a
     constraint's negation."""
+    from ctxpack.agent.checkpoint import _preview, _PREVIEW_CAP
     assert _preview("keep this whole") == "keep this whole"
     out = _preview("x" * (_PREVIEW_CAP + 50))
     assert out.endswith("…") and len(out) <= _PREVIEW_CAP + 1
+
+
+# ── C2: join soft line-wraps before sentence splitting ──
+
+
+def _constraint_rule(parsed):
+    ent = next(e for e in parsed.corpus.entities
+               if e.name.startswith("CONSTRAINT"))
+    return next(f.value for f in ent.fields if f.key == "RULE")
+
+
+def test_c2_soft_wrapped_constraint_is_one_sentence(tmp_path):
+    """RED on parent: a user constraint wrapped mid-sentence is banked
+    severed at the wrap ('...approved; do not'); the reopen/refactor tail
+    and its object are lost. The dogfood fixture (session 60c1d612, turn 1).
+    """
+    msg = ("31fc0ad, ca3fa13, and 174555d are approved; do not\n"
+           "reopen or refactor them.")
+    path = tmp_path / "s.jsonl"
+    path.write_text(json.dumps(_entry("user", msg)), encoding="utf-8")
+    rule = _constraint_rule(parse_transcript(str(path)))
+    assert "reopen or refactor them" in rule
+    assert not rule.rstrip().endswith("do not")
+
+
+def test_c2_structural_next_line_is_not_joined(tmp_path):
+    """Forward guard: a non-terminal line followed by a STRUCTURAL line
+    (bullet/number/table/quote) is a real break — the join must not swallow
+    the list into the sentence. Passes on parent (which splits on the
+    newline anyway); bounds the new join so it does not over-reach."""
+    msg = "Never merge on a red suite\n- item one\n- item two"
+    path = tmp_path / "s.jsonl"
+    path.write_text(json.dumps(_entry("user", msg)), encoding="utf-8")
+    rule = _constraint_rule(parse_transcript(str(path)))
+    assert "item one" not in rule
+    assert "Never merge on a red suite" in rule
+
+
+def test_c2_join_helper_semantics():
+    """Forward guard on the helper: a soft wrap joins with a space; a
+    terminal line, a blank line, and a structural next line each block the
+    join."""
+    from ctxpack.agent.transcript_parser import _join_soft_wraps
+    assert _join_soft_wraps("approved; do not\nreopen them.") == (
+        "approved; do not reopen them.")
+    assert _join_soft_wraps("done here.\nNew sentence.") == (
+        "done here.\nNew sentence.")               # terminal → not joined
+    assert _join_soft_wraps("a heading\n- a bullet") == (
+        "a heading\n- a bullet")                    # structural → not joined
+    assert _join_soft_wraps("lead in\n\ntrailer") == (
+        "lead in\n\ntrailer")                       # blank → not joined

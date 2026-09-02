@@ -190,6 +190,29 @@ _HARNESS_BLOCK_RE = re.compile(
 
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+|\n+")
 
+# C2 — soft-wrap join. A message wrapped mid-sentence yields a row that ends
+# at the wrap (dogfood: a user constraint stored as "...; do not"). A line
+# that does not end a sentence and is followed by a non-structural
+# continuation is a wrap: join it before _SENTENCE_SPLIT_RE runs, so a
+# wrapped constraint/decision is one sentence, not two. A structural next
+# line (bullet, numbered/lettered item, table row, quote) is a real break
+# and is never joined; neither is a blank line.
+_ENDS_SENTENCE_RE = re.compile(r"""[.!?:;)\]]["']?$""")
+_STRUCT_PREFIX_RE = re.compile(r"^(?:[-*•>]|\d+[.)]|\|)\s")
+
+
+def _join_soft_wraps(text: str) -> str:
+    out: "list[str]" = []
+    for line in text.split("\n"):
+        s = line.strip()
+        if (out and out[-1]
+                and not _ENDS_SENTENCE_RE.search(out[-1])
+                and s and not _STRUCT_PREFIX_RE.match(s)):
+            out[-1] = f"{out[-1]} {s}"
+        else:
+            out.append(s)
+    return "\n".join(out)
+
 # Tools whose invocations mutate state and deserve per-file tracking
 _WRITE_TOOLS = {"Edit", "Write", "NotebookEdit", "MultiEdit"}
 
@@ -373,7 +396,7 @@ _MARKER_SENTENCE_CAP = 900
 
 def _sentences(text: str) -> list[str]:
     out: list[str] = []
-    for raw in _SENTENCE_SPLIT_RE.split(text):
+    for raw in _SENTENCE_SPLIT_RE.split(_join_soft_wraps(text)):   # C2
         s = raw.strip()
         if len(s) < 15:
             continue
