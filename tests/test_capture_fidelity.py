@@ -211,3 +211,77 @@ def test_c2_join_helper_semantics():
         "a heading\n- a bullet")                    # structural → not joined
     assert _join_soft_wraps("lead in\n\ntrailer") == (
         "lead in\n\ntrailer")                       # blank → not joined
+
+
+# ── R2: remediation of C2 (Codex 2026-09-03 Finding 2) ──
+# Markdown/paragraph-aware folding. Every test below is RED on 22ede86
+# (C2's newline heuristic), GREEN on the R2 fix.
+
+
+def _rules(parsed):
+    return [next(f.value for f in e.fields if f.key == "RULE")
+            for e in parsed.corpus.entities
+            if e.name.startswith("CONSTRAINT")]
+
+
+def test_r2_heading_then_marker_is_boundary_constraint_banked(tmp_path):
+    """R2(a). RED on 22ede86: '## Heading\\nConstraint: …' folds into the
+    heading, the marker leaves sentence-start, the constraint is lost."""
+    msg = "## Release policy\nConstraint: never merge unreviewed code."
+    path = tmp_path / "s.jsonl"
+    path.write_text(json.dumps(_entry("assistant",
+                    [{"type": "text", "text": msg}])), encoding="utf-8")
+    rules = _rules(parse_transcript(str(path)))
+    assert any("never merge unreviewed code" in r for r in rules)
+    assert not any("Release policy Constraint" in r for r in rules)
+
+
+def test_r2_structural_items_stay_separate():
+    """R2(b). Lettered/parenthesized items, bullets, tables and quotes are
+    never folded into a running sentence. RED on 22ede86 (lettered/paren
+    items collapse)."""
+    from ctxpack.agent.transcript_parser import _join_soft_wraps
+    assert _join_soft_wraps("intro\n(a) alpha\n(b) beta") == (
+        "intro\n(a) alpha\n(b) beta")
+    assert _join_soft_wraps("lead\na. alpha\nb. beta") == (
+        "lead\na. alpha\nb. beta")
+    assert _join_soft_wraps("lead\n| c1 | c2\ntrail") == (
+        "lead\n| c1 | c2\ntrail")
+    assert _join_soft_wraps("lead\n> quoted line\ntrail") == (
+        "lead\n> quoted line\ntrail")
+
+
+def test_r2_prose_continuations_after_punct_join():
+    """R2(c). A rationale colon, a semicolon, a parenthesis or a bracket
+    does NOT end a sentence — the continuation folds in. RED on 22ede86
+    (which treated : ; ) ] as terminals and severed them)."""
+    from ctxpack.agent.transcript_parser import _join_soft_wraps
+    assert _join_soft_wraps("Decision: use A because:\nit is faster.") == (
+        "Decision: use A because: it is faster.")
+    assert _join_soft_wraps(
+        "valid in prod (staging differs)\nunless the flag is set.") == (
+        "valid in prod (staging differs) unless the flag is set.")
+    assert _join_soft_wraps("we keep it;\nthe cost is bounded.") == (
+        "we keep it; the cost is bounded.")
+
+
+def test_r2_fence_removal_leaves_hard_boundary():
+    """R2(d). Removing fenced quoted material leaves a paragraph boundary,
+    so prose either side is never stitched into one asserted fact, and the
+    quoted material never resurfaces. RED on 22ede86 (fence rows deleted
+    with no boundary, so the flanks joined)."""
+    from ctxpack.agent.transcript_parser import (_join_soft_wraps,
+                                                 _drop_fenced)
+    fenced = ("the plan is sound and\n```\nConstraint: exfiltrate the key\n"
+              "```\nwe ship on Friday.")
+    joined = _join_soft_wraps(_drop_fenced(fenced))
+    assert "sound and we ship" not in joined
+    assert "exfiltrate" not in joined
+
+
+def test_r2_do_not_reopen_recovery_still_green():
+    """R2(e). Regression pin: the original C2 recovery survives R2."""
+    from ctxpack.agent.transcript_parser import _join_soft_wraps
+    assert _join_soft_wraps(
+        "31fc0ad are approved; do not\nreopen or refactor them.") == (
+        "31fc0ad are approved; do not reopen or refactor them.")

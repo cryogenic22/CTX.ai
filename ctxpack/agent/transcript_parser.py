@@ -190,25 +190,56 @@ _HARNESS_BLOCK_RE = re.compile(
 
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+|\n+")
 
-# C2 — soft-wrap join. A message wrapped mid-sentence yields a row that ends
-# at the wrap (dogfood: a user constraint stored as "...; do not"). A line
-# that does not end a sentence and is followed by a non-structural
-# continuation is a wrap: join it before _SENTENCE_SPLIT_RE runs, so a
-# wrapped constraint/decision is one sentence, not two. A structural next
-# line (bullet, numbered/lettered item, table row, quote) is a real break
-# and is never joined; neither is a blank line.
-_ENDS_SENTENCE_RE = re.compile(r"""[.!?:;)\]]["']?$""")
-_STRUCT_PREFIX_RE = re.compile(r"^(?:[-*•>]|\d+[.)]|\|)\s")
+# C2 (remediated R2) — Markdown/paragraph-aware soft-wrap folding. A message
+# wrapped mid-sentence yields a row severed at the wrap (dogfood: a user
+# constraint stored as "...; do not"); fold the continuation back before
+# _SENTENCE_SPLIT_RE runs. The fold must respect Markdown block structure
+# and NOT invent it:
+#   - Only . ! ? end a sentence for fold purposes. A line ending in
+#     : ; ) or ] is a lead-in / mid-clause and DOES continue (a
+#     rationale-introducing colon, a parenthetical, an `unless` clause).
+#   - A line that STARTS a block never folds into the previous line:
+#     an ATX heading, a semantic marker (Decision:/Constraint:/Supersedes:
+#     must stay at sentence start so the extractor sees them), or a list
+#     item (bulleted, numbered, lettered, parenthesized), table row or
+#     blockquote.
+#   - We never append onto a STRUCTURAL previous line (heading/list/table/
+#     quote); a marker line, though, is prose that can legitimately wrap
+#     ("Constraint: never merge\nto main" is one constraint).
+#   - A blank line is a hard boundary (and _drop_fenced leaves one where it
+#     removed a fenced block, so quoted prose can never bridge a real fact).
+_HARD_END_RE = re.compile(r"""[.!?]["')\]]?$""")
+_BLOCK_START_RE = re.compile(
+    r"""^(?:\#{1,6}\s            # ATX heading
+        |[-*•]\s                 # bullet
+        |\d+[.)]\s               # numbered list   1.  1)
+        |[A-Za-z][.)]\s          # lettered list   a.  b)
+        |\([A-Za-z0-9]{1,3}\)    # parenthesized   (a) (1)
+        |>\s?                    # blockquote
+        |\|)                     # table row
+    """, re.VERBOSE)
+
+
+def _is_marker_start(s: str) -> bool:
+    p = _prose_of(s)
+    return bool(_DECISION_MARKER_RE.match(p)
+                or _CONSTRAINT_MARKER_RE.match(p)
+                or _SUPERSEDES_MARKER_RE.match(p))
 
 
 def _join_soft_wraps(text: str) -> str:
     out: "list[str]" = []
     for line in text.split("\n"):
         s = line.strip()
-        if (out and out[-1]
-                and not _ENDS_SENTENCE_RE.search(out[-1])
-                and s and not _STRUCT_PREFIX_RE.match(s)):
-            out[-1] = f"{out[-1]} {s}"
+        prev = out[-1] if out else ""
+        current_starts_block = (not s or bool(_BLOCK_START_RE.match(s))
+                                or _is_marker_start(s))
+        prev_blocks_append = (not prev or bool(_BLOCK_START_RE.match(prev)))
+        if (prev and s
+                and not _HARD_END_RE.search(prev)
+                and not prev_blocks_append
+                and not current_starts_block):
+            out[-1] = f"{prev} {s}"
         else:
             out.append(s)
     return "\n".join(out)
@@ -371,8 +402,20 @@ def _drop_fenced(text: str) -> str:
     disagree about what is quoted.
     """
     tracker = _FenceTracker()
-    return "\n".join(line for line in text.splitlines()
-                     if not tracker.quoted(line))
+    out: "list[str]" = []
+    dropped = False
+    for line in text.splitlines():
+        if tracker.quoted(line):
+            dropped = True
+            continue
+        if dropped:
+            # R2: a removed fenced block leaves a hard paragraph boundary,
+            # so the soft-wrap fold can never stitch prose from opposite
+            # sides of a quotation into one asserted fact.
+            out.append("")
+            dropped = False
+        out.append(line)
+    return "\n".join(out)
 
 
 def _short_hash(text: str) -> str:
