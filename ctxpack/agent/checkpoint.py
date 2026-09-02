@@ -130,25 +130,16 @@ def _count_bpe(text: str) -> int:
         return max(1, len(text) // 4)
 
 
-# C1b — gist preview cap. The .ctx stores the full admitted sentence and
-# `session why`/`decisions` return it verbatim; the INJECTED gist bounds
-# decision/finding/failed-approach lines so full rationale does not blow the
-# budget. NEVER applied to a constraint: truncating one could drop a
-# trailing negation — the D2 severing failure at the render layer.
-_PREVIEW_CAP = 280
-_PREVIEW_KINDS = frozenset({"DECISION", "FINDING", "FAILED-APPROACH"})
-
-
-def _preview(text: str, cap: int = _PREVIEW_CAP) -> str:
-    text = text.strip()
-    return text if len(text) <= cap else text[:cap].rstrip() + "…"
-
-
+# R1 (remediation of C1 Finding 1): the injected gist renders WHOLE facts
+# and lets the existing whole-line budget eviction drop entire facts under
+# pressure — it never truncates a fact mid-text. A character cap could sever
+# a trailing negation, exception or condition ("...we must not merge"),
+# which is a compression path banned by CLAUDE.md (never strip/reorder
+# negations); the invariant is not constraint-only. Every fact line that a
+# reader might need to recover via `why`/supersession carries its FACT-ID.
 def _entity_line(prefix: str, e, primary_key: str) -> str:
     value = next((f.value for f in e.fields if f.key == primary_key),
                  e.fields[0].value if e.fields else "")
-    if prefix in _PREVIEW_KINDS:
-        value = _preview(value)
     turn = e.sources[0].turn if e.sources else "?"
     extra = ""
     if prefix == "FILE":
@@ -160,7 +151,9 @@ def _entity_line(prefix: str, e, primary_key: str) -> str:
     elif prefix == "LITERAL":
         kind = next((f.value for f in e.fields if f.key == "KIND"), "")
         extra = f" [{kind}]" if kind else ""
-    return f"- {value}{extra} (turn {turn})"
+    fid = next((f.value for f in e.fields if f.key == "FACT-ID"), "")
+    tail = f" (turn {turn}, fact {fid})" if fid else f" (turn {turn})"
+    return f"- {value}{extra}{tail}"
 
 
 def _entity_rank(e, ranks: "dict[str, float]") -> float:
@@ -848,15 +841,15 @@ def build_project_gist(out_dir: str = ".claude/ctx",
                 continue
             seen_hashes.add(fingerprint)
             score = 0.0
+            fid = _kv(section, "FACT-ID")   # R1: carried for exact recovery
             if ranks:
-                fid = _kv(section, "FACT-ID")
                 if fid and fid in ranks:
                     score = ranks[fid]
                 else:  # pre-event-log ledgers: score from static priors
                     score = rank.prior_for(
                         kind, basis=_kv(section, "BASIS"),
                         marker=decision_marker(text))
-            rows[kind].append((sid, _turn_of(section), text, score))
+            rows[kind].append((sid, _turn_of(section), text, score, fid))
 
     if not any(rows.values()):
         return ""
@@ -876,9 +869,12 @@ def build_project_gist(out_dir: str = ".claude/ctx",
                 continue
             lines.append("")
             lines.append(f"## {title}")
-            for sid, turn, text, _score in rows[kind]:
-                shown = text if kind == "CONSTRAINT" else _preview(text)
-                lines.append(f"- {shown} (s:{sid}#turn{turn})")
+            for sid, turn, text, _score, fid in rows[kind]:
+                # R1: whole fact, never a mid-text cut; FACT-ID for recovery.
+                # Budget pressure evicts whole facts (below), not fragments.
+                tail = (f" (s:{sid}#turn{turn}, fact {fid})" if fid
+                        else f" (s:{sid}#turn{turn})")
+                lines.append(f"- {text}{tail}")
         return "\n".join(lines), lines
 
     text_out, lines = _render()

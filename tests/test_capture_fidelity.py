@@ -140,26 +140,77 @@ def test_c1_identity_unchanged_golden_pin(tmp_path):
         assert fid == gold, f"{prefix} identity changed: {fid} != {gold}"
 
 
-def test_c1_gist_preview_bounds_decision_but_never_constraint(tmp_path):
-    """RED on parent (via storage): with the full sentence stored, the
-    injected gist caps the decision with an ellipsis (so full rationale
-    cannot blow the budget) while the constraint renders whole with its
-    trailing negation intact."""
-    gist = build_gist(parse_transcript(_transcript(tmp_path)))
-    assert "…" in gist                         # decision preview is bounded
-    assert "SENTINEL_TAIL_TOKEN" not in gist    # its tail is not injected
-    assert "must not self-ratify" in gist       # constraint whole, negation kept
+# ── R1: remediation of C1 Finding 1 (whole-fact render + FACT-ID) ──
+# C1's _preview blindly cut DECISION/FINDING/FAILED-APPROACH at 280 chars,
+# which drops a decision's trailing negation ("we must not merge") — a
+# compression path banned by CLAUDE.md. R1 renders whole facts and lets the
+# existing whole-line budget eviction drop entire facts under pressure, and
+# stamps each fact line with its FACT-ID. RED on 22ede86.
+
+_NEG_DECISION = (
+    "Decision: adopt the staged rollout HEADMARK_ROLL for the payments "
+    "migration because the vendor sandbox lags production by roughly a day "
+    "and a direct cutover would risk double-charging live customers during "
+    "the reconciliation window, so until that job is verified end to end we "
+    "must not merge this branch.")
 
 
-def test_c1_preview_helper_is_bounded_and_lossless_below_cap():
-    """Forward guard on the helper: short text untouched; long text cut at
-    the cap with an ellipsis. It is only ever applied to non-constraint
-    kinds (see _entity_line / build_project_gist), so it never severs a
-    constraint's negation."""
-    from ctxpack.agent.checkpoint import _preview, _PREVIEW_CAP
-    assert _preview("keep this whole") == "keep this whole"
-    out = _preview("x" * (_PREVIEW_CAP + 50))
-    assert out.endswith("…") and len(out) <= _PREVIEW_CAP + 1
+def _neg_parsed(tmp_path):
+    path = tmp_path / "neg.jsonl"
+    path.write_text(json.dumps(_entry("assistant",
+                    [{"type": "text", "text": _NEG_DECISION},
+                     {"type": "text", "text": _CONSTRAINT}])),
+                    encoding="utf-8")
+    return parse_transcript(str(path))
+
+
+def test_r1_session_gist_never_drops_a_decision_negation(tmp_path):
+    """R1(a,b). A long decision ending 'we must not merge this branch'
+    renders WHOLE in the session gist, ranked and unranked — never a partial
+    that keeps the head but drops the negation. The constraint also renders
+    whole. RED on 22ede86 (the ellipsis cut)."""
+    parsed = _neg_parsed(tmp_path)
+    for gist in (build_gist(parsed), build_gist(parsed, ranks={"x": 1.0})):
+        assert "HEADMARK_ROLL" in gist
+        assert "we must not merge this branch" in gist
+        assert "must not self-ratify" in gist
+        assert "…" not in gist
+
+
+def test_r1_project_gist_never_drops_a_decision_negation(tmp_path):
+    """R1(a,b) for the project gist (ranked + unranked)."""
+    from ctxpack.agent.checkpoint import build_project_gist, run_checkpoint
+    path = tmp_path / "one.jsonl"
+    path.write_text(json.dumps(_entry("assistant",
+                    [{"type": "text", "text": _NEG_DECISION}])),
+                    encoding="utf-8")
+    out = tmp_path / "ctx"
+    out.mkdir()
+    run_checkpoint(str(path), str(out), as_of="2026-07-04")
+    for pg in (build_project_gist(str(out)),
+               build_project_gist(str(out), ranks={"x": 1.0})):
+        assert "HEADMARK_ROLL" in pg
+        assert "we must not merge this branch" in pg
+        assert "…" not in pg
+
+
+def test_r1_fact_lines_carry_fact_id(tmp_path):
+    """R1(c). Every rendered fact line that can require why/supersession
+    carries its FACT-ID. RED on 22ede86 (lines emitted only turn/session)."""
+    from ctxpack.agent.checkpoint import build_project_gist, run_checkpoint
+    parsed = _neg_parsed(tmp_path)
+    dec = next(e for e in parsed.corpus.entities
+               if e.name.startswith("DECISION"))
+    fid = next(f.value for f in dec.fields if f.key == "FACT-ID")
+    assert f"fact {fid}" in build_gist(parsed)
+    path = tmp_path / "one.jsonl"
+    path.write_text(json.dumps(_entry("assistant",
+                    [{"type": "text", "text": _NEG_DECISION}])),
+                    encoding="utf-8")
+    out = tmp_path / "ctx"
+    out.mkdir()
+    run_checkpoint(str(path), str(out), as_of="2026-07-04")
+    assert "fact " in build_project_gist(str(out))
 
 
 # ── C2: join soft line-wraps before sentence splitting ──
