@@ -900,7 +900,7 @@ def parse_transcript(
                         elif _FAILED_RE.search(_prose_of(sentence)):
                             stats.failed_approaches += 1
                             _add(f"FAILED-APPROACH-{_short_hash(sentence)}",
-                                 {"note": sentence[:280], "turn": str(turn)},
+                                 {"note": sentence, "turn": str(turn)},
                                  turn=turn, ts=ts, salience=2.2,
                                  fact=("FAILED-APPROACH", "", sentence),
                                  basis=factid.FactBasis.INFERRED.value,
@@ -918,7 +918,7 @@ def parse_transcript(
                                 else factid.FactBasis.INFERRED.value)
                             dname = f"DECISION-{_short_hash(sentence)}"
                             _add(dname,
-                                 {"decision": sentence[:280], "turn": str(turn)},
+                                 {"decision": sentence, "turn": str(turn)},
                                  turn=turn, ts=ts, salience=2.5,
                                  fact=("DECISION", "", sentence),
                                  basis=d_basis,
@@ -1029,7 +1029,7 @@ def parse_transcript(
                     continue
                 stats.findings += 1
                 _add(f"FINDING-{_short_hash(sentence)}",
-                     {"finding": sentence[:280], "source": "subagent",
+                     {"finding": sentence, "source": "subagent",
                       "marker": marker, "turn": str(verdict_turn)},
                      turn=verdict_turn, ts=ts, salience=2.3,
                      fact=("FINDING", "", sentence),

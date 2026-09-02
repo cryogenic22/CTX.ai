@@ -130,9 +130,25 @@ def _count_bpe(text: str) -> int:
         return max(1, len(text) // 4)
 
 
+# C1b — gist preview cap. The .ctx stores the full admitted sentence and
+# `session why`/`decisions` return it verbatim; the INJECTED gist bounds
+# decision/finding/failed-approach lines so full rationale does not blow the
+# budget. NEVER applied to a constraint: truncating one could drop a
+# trailing negation — the D2 severing failure at the render layer.
+_PREVIEW_CAP = 280
+_PREVIEW_KINDS = frozenset({"DECISION", "FINDING", "FAILED-APPROACH"})
+
+
+def _preview(text: str, cap: int = _PREVIEW_CAP) -> str:
+    text = text.strip()
+    return text if len(text) <= cap else text[:cap].rstrip() + "…"
+
+
 def _entity_line(prefix: str, e, primary_key: str) -> str:
     value = next((f.value for f in e.fields if f.key == primary_key),
                  e.fields[0].value if e.fields else "")
+    if prefix in _PREVIEW_KINDS:
+        value = _preview(value)
     turn = e.sources[0].turn if e.sources else "?"
     extra = ""
     if prefix == "FILE":
@@ -861,7 +877,8 @@ def build_project_gist(out_dir: str = ".claude/ctx",
             lines.append("")
             lines.append(f"## {title}")
             for sid, turn, text, _score in rows[kind]:
-                lines.append(f"- {text} (s:{sid}#turn{turn})")
+                shown = text if kind == "CONSTRAINT" else _preview(text)
+                lines.append(f"- {shown} (s:{sid}#turn{turn})")
         return "\n".join(lines), lines
 
     text_out, lines = _render()
