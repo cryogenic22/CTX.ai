@@ -227,21 +227,37 @@ def _is_marker_start(s: str) -> bool:
                 or _SUPERSEDES_MARKER_RE.match(p))
 
 
+# A list item: the block-start set MINUS heading/quote/table. A wrapped list
+# item's indented continuation folds back into it (R4); a heading/table/quote
+# never receives a fold.
+_LIST_ITEM_RE = re.compile(
+    r"""^(?:[-*•]|\d+[.)]|[A-Za-z][.)]|\([A-Za-z0-9]{1,3}\))\s""",
+    re.VERBOSE)
+
+
 def _join_soft_wraps(text: str) -> str:
     out: "list[str]" = []
-    for line in text.split("\n"):
-        s = line.strip()
+    for raw in text.split("\n"):
+        s = raw.strip()
+        indent = len(raw) - len(raw.lstrip())
         prev = out[-1] if out else ""
-        current_starts_block = (not s or bool(_BLOCK_START_RE.match(s))
-                                or _is_marker_start(s))
-        prev_blocks_append = (not prev or bool(_BLOCK_START_RE.match(prev)))
-        if (prev and s
-                and not _HARD_END_RE.search(prev)
-                and not prev_blocks_append
-                and not current_starts_block):
-            out[-1] = f"{prev} {s}"
-        else:
+        # boundaries: no prev, blank line, prev already ends a sentence, or
+        # the current line starts a new block (heading / semantic marker /
+        # list item / table / quote).
+        if (not prev or not s
+                or _HARD_END_RE.search(prev)
+                or bool(_BLOCK_START_RE.match(s))
+                or _is_marker_start(s)):
             out.append(s)
+            continue
+        prev_is_list = bool(_LIST_ITEM_RE.match(prev))
+        prev_is_struct = bool(_BLOCK_START_RE.match(prev))
+        if prev_is_struct and not prev_is_list:
+            out.append(s)          # never fold onto a heading/table/quote
+        elif prev_is_list and indent == 0:
+            out.append(s)          # unindented line after an item = new block
+        else:
+            out[-1] = f"{prev} {s}"   # prose wrap, or indented item continuation
     return "\n".join(out)
 
 # Tools whose invocations mutate state and deserve per-file tracking
@@ -339,14 +355,30 @@ def _clean(text: str, limit: int = 300) -> str:
 
 
 def _clean_multiline(text: str, limit: int = 100_000) -> str:
-    """Like _clean but preserves line breaks — used before sentence
-    splitting so bullet-list items stay separate sentences instead of
-    merging into one over-length (and therefore dropped) blob."""
+    """Like _clean but preserves line STRUCTURE — used before sentence
+    splitting. Collapses whitespace WITHIN a line but keeps two signals the
+    soft-wrap fold needs (Codex 2026-09-03 F2): blank lines (paragraph
+    boundaries — without them a blank-separated paragraph merges into the
+    previous fact) and leading indentation (a wrapped list item's
+    continuation — without it '- Constraint: do not\\n  merge …' is banked
+    severed). Runs of blank lines collapse to one; leading blanks are
+    dropped."""
     text = _SYS_REMINDER_RE.sub("", text)
     text = _TAGGED_META_RE.sub("", text)
     text = _HARNESS_BLOCK_RE.sub("", text)
-    lines = [" ".join(line.split()) for line in text.splitlines()]
-    return "\n".join(line for line in lines if line)[:limit]
+    out: "list[str]" = []
+    prev_blank = False
+    for raw in text.splitlines():
+        m = re.match(r"^(\s*)(.*)$", raw)
+        lead, body = m.group(1), " ".join(m.group(2).split())
+        if not body:
+            if out and not prev_blank:   # keep one boundary; no leading blank
+                out.append("")
+            prev_blank = True
+            continue
+        prev_blank = False
+        out.append(f"{lead}{body}")
+    return "\n".join(out)[:limit]
 
 
 _FENCE_MARK = re.compile(r"(`{3,}|~{3,})(.*)$")

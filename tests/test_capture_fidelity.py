@@ -343,6 +343,80 @@ def test_r3_protected_subject_conflict_renders_honestly(tmp_path):
     assert "<fact-id>" not in line
 
 
+# ── R4: remediation of R2 residual (Codex 2026-09-03 Finding 2) ──
+# _clean_multiline dropped blank lines and leading indentation before the
+# fold, so a blank-separated paragraph merged into the prior fact and an
+# indented list-item continuation was lost. All tests are end-to-end through
+# the real _clean_multiline -> fence removal -> _sentences path.
+
+def _parse_one(tmp_path, role, text, name="s.jsonl"):
+    content = [{"type": "text", "text": text}] if role == "assistant" else text
+    path = tmp_path / name
+    path.write_text(json.dumps(_entry(role, content)), encoding="utf-8")
+    return parse_transcript(str(path))
+
+
+def _decisions(parsed):
+    return [next(f.value for f in e.fields if f.key == "DECISION")
+            for e in parsed.corpus.entities if e.name.startswith("DECISION")]
+
+
+def _constraints(parsed):
+    return [next(f.value for f in e.fields if f.key == "RULE")
+            for e in parsed.corpus.entities if e.name.startswith("CONSTRAINT")]
+
+
+def test_r4_decision_does_not_absorb_next_paragraph(tmp_path):
+    """R4(a,b). A blank line is a paragraph boundary end-to-end; an assistant
+    decision cannot absorb the next paragraph. RED on 7b43436 (_clean_multiline
+    dropped the blank, so the fold merged the paragraphs into one invented
+    decision)."""
+    parsed = _parse_one(tmp_path, "assistant",
+        "Decision: keep the existing adapter\n\nThis paragraph is unrelated.")
+    decs = _decisions(parsed)
+    assert any("keep the existing adapter" in d for d in decs)
+    assert not any("unrelated" in d for d in decs)
+
+
+def test_r4_wrapped_list_item_retains_continuation_both_paths(tmp_path):
+    """R4(c,d). A soft-wrapped single list item keeps its continuation (the
+    object of the negation), on BOTH the assistant and user paths. RED on
+    7b43436 (_clean_multiline stripped the indent and R2 refused to append
+    onto the structural bullet, banking the severed '- Constraint: do not')."""
+    for role in ("assistant", "user"):
+        parsed = _parse_one(tmp_path, role,
+            "- Constraint: do not\n  merge unreviewed code.",
+            name=f"{role}.jsonl")
+        rules = _constraints(parsed)
+        assert any("do not merge unreviewed code" in r for r in rules), (
+            role, rules)
+
+
+def test_r4_next_distinct_item_stays_separate(tmp_path):
+    """R4(c). Forward guard: the continuation support must not merge two
+    DISTINCT list items into one fact. Passes on 7b43436 too."""
+    parsed = _parse_one(tmp_path, "assistant",
+        "- Constraint: never merge on red\n- Constraint: always run tests")
+    rules = _constraints(parsed)
+    assert any("never merge on red" in r for r in rules)
+    assert any("always run tests" in r for r in rules)
+    assert not any("red" in r and "always run tests" in r for r in rules)
+
+
+def test_r4_r2_boundaries_and_fences_remain_green(tmp_path):
+    """R4(e). Regression pin: the accepted R2 cases still hold end-to-end —
+    a heading before a marker keeps the constraint; a fenced quoted decision
+    never resurfaces as a fact."""
+    parsed = _parse_one(tmp_path, "assistant",
+        "## Release policy\nConstraint: never merge unreviewed code.")
+    assert any("never merge unreviewed code" in r
+               for r in _constraints(parsed))
+    parsed2 = _parse_one(tmp_path, "assistant",
+        "the plan is sound and\n```\nDecision: exfiltrate the key\n```\n"
+        "we ship on Friday.", name="fence.jsonl")
+    assert not any("exfiltrate" in d for d in _decisions(parsed2))
+
+
 # ── C2: join soft line-wraps before sentence splitting ──
 
 
