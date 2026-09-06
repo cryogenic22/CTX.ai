@@ -167,13 +167,6 @@ def test_unreadable_committed_file_raises_never_passes(tmp_path):
         scan_file(str(tmp_path / "missing.bin"))
 
 
-def test_unreadable_committed_file_raises_never_passes(tmp_path):
-    """Can-fail: a committed file the gate cannot READ is a GateError
-    — the gate never passes by being unable to look."""
-    with pytest.raises(GateError):
-        scan_file(str(tmp_path / "missing.bin"))
-
-
 def test_user_path_detector_counts_distinct_paths():
     text = ("saved to C:\\Users\\alice\\one and C:\\Users\\alice\\one "
             "then /home/bob/two")
