@@ -30,7 +30,14 @@ _EDGE_PUNCT = " \t\r\n.,:;!?\"'`*_-—"
 # tp/1.3 (2026-08-09): CommonMark fence state (type+length match,
 # tilde fences) and every-occurrence role evidence — extraction output
 # changed, so the provenance version moves with it.
-EXTRACTOR_VERSION = "tp/1.3"
+# tp/1.4 (2026-09-03): capture fidelity — the full admitted sentence is
+# stored (C1), soft line-wraps fold Markdown/paragraph-aware (C2/R2/R4)
+# and _clean_multiline preserves paragraph + list-item structure. Stored
+# fact TEXT changes, so the provenance version moves; identities are
+# unchanged by construction (identity is content-addressed on the full
+# admitted sentence, which these changes do not alter — golden-pinned in
+# tests/test_capture_fidelity.py).
+EXTRACTOR_VERSION = "tp/1.4"
 
 # rank = fold(events, policy); v0 is today's behavior — static
 # extraction-time priors, no updates. Recorded in every checkpoint
