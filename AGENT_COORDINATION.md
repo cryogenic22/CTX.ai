@@ -37,10 +37,11 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
 
 ## Current Repo State
 
-- **Branch:** `feat/literals-ledger`
-- **Last green tests:** 2026-07-30 — **full non-slow suite 1684 passed / 35 skipped / 57 deselected in 60s** (`python -m pytest tests/ -q -m "not slow"`). NOTE for reviewers: a bare `pytest tests/` appears to hang on this machine at ~24%. It is not a hang — `tests/test_codebase.py` is `@pytest.mark.slow` and `skipif(not SCRIPTIVA_ROOT.exists())`, and `C:/Users/kapil/Scriptiva_SCA` DOES exist here, so it walks a large external repo. Pre-existing and environment-dependent; the non-slow sweep is this repo's convention (see the `04e5bde` handoff). Earlier affected-area sweep: 344 passed / 0 failed (`-k "checkpoint or lint or session or scorecard or dashboard or backfill or gist or cli or mcp or transcript or state or oracle or telemetry"`), incl. 21 new state-algebra property tests, 20 trust-telemetry tests, 26 H-4 oracle tests. Full suite not re-run for this packet. Historic: main — 184 passed / 6 product-gated skips across fork/resume/rank/DAG/session-reader/negation/determinism/token/claims/compactbench/fixture-privacy suites, capability-registry + claims gates green; parked (`feat/fork-surfacing-parked` @ `57321b9`) — 162 passed / 1 skipped incl. negation + determinism gates (2026-07-12, post-re-review remediation)
-- **Active owner:** Claude Code (session `95edc6ae`, 2026-08-09)
-- **Current unit (2026-08-10, latest):** **journal-integrity follow-up APPROVED (`14ea469` all four acceptance cases PASS; `44595be` accepted)** → TM-5..7 unfrozen and **IMPLEMENTED: `31fc0ad..644731f`** (comment precision; TM-5 schema-routed receipts TC-10/11; TM-6 one trust-annotation path TC-12; TM-7+TM-14 stable error codes on receipts + hook stderr TC-13/17). Full non-slow **1783 passed / 35 skipped / 57 deselected**; 9 red-on-parent + 1 self-identified pin; **review requested on `31fc0ad..644731f`**. QUEUED owner decision: IncrementalPacker harden-or-retire before AMBIENT (mtime fast-path can hide equal-timestamp content change; zero callers). Next after approval: PF-15 → PF-16/16b → PF-17 (incl. raw-corpus egress fixture). Prior state: **re-re-review: FIVE OF SIX APPROVED** (`ae3c780`, `eee6dda`, `5e87547`, `fa031c0`, `b5a6d2c`); journal integrity completed in the required single follow-up **`14ea469`** (strict UTF-8, FileNotFoundError-only absence + `journal_read_failed` code, writer-side `by` validation; 4 acceptance tests, 3 red-on-parent + 1 self-identified pin) + invited non-blocking `44595be` (APP_SECRET, corpus truly 33). Full non-slow **1776 passed / 35 skipped / 57 deselected**. Reviewer-note format switched to acceptance-case tracking after the compressed-relay defect. **Scoped re-review requested on `14ea469`.** Prior state: all four P1 + both P2 re-review fixes landed as `ae3c780..b5a6d2c` (TM-2 local-cli, TM-3 strict ts/by, TM-8 CommonMark fence state, TM-1 *_KEY + span-consumption + full TC-1 matrix, TM-4 every occurrence, provenance tp/1.3 + redact/v2 stamped; 18 red-on-parent via worktree sweep). Prior state: **PF-11 v2.1 APPROVED** (threat model only — no E-6 approval, no live-enforcement claim) → Onto_Wiz owner-confirmed canonical (`85302ea`; artifact `scorecard-20260809T183423Z.json`, `e46984e`, `--check` green) → **P1 batch IMPLEMENTED, five one-mechanism commits each with its own TCs: `870387e` TM-1, `6953a44` TM-8, `b2b5b30` TM-2, `af11ee4` TM-3/16, `600aef9` TM-4.** Full non-slow suite 1752 passed / 35 skipped (one pre-existing flaky wall-clock timing test, passes in isolation, untouched since July — disclosed). **P1-batch re-review requested on `85302ea..600aef9` before TM-5..7 starts.** Loops 5–6, live hooks, paid runs, parked merges stay frozen. Prior state: **PF-11 v2.1 (`4afef09`, doc-only) approved** — the four contradictory capability statements are corrected: no elevated-local/owner-authority language; role-evidence sets never collapse into authority; hand-edited `.ctx` marked UNDETECTABLE TODAY (future read-time verification named, unscheduled, accidental class only); journal recovery = quarantine rotation with epochs. Execution rule banked: one mechanism per commit, each remediation ships its own TCs immediately, PF-17 is additive cross-boundary coverage. Prior state: **PF-11 v2 committed design-only.** v1 (`c6471c7`) drew four mandatory amendments, all applied: LOCAL_RATIFIED carries NO elevation (authority = four separate axes; owner-approval gate UNSATISFIABLE in v1); B6 control-plane boundary + Advisory/Enforced modes (no guarantee/prevent/block claims in advisory mode — TM-12); TM-8 corrected (fenced markers DO extract today — reviewer repro confirmed against `_sentences`; fence-aware extraction is now a planned fix); TM-13..16 added (ledger tampering/rollback-replay, diagnostic leakage, PF-15 deletion attacks incl. TOCTOU + plan-hash, ratification-journal DoS accepted-and-surfaced); git-commit identity removed as a human channel. TC list now TC-1..TC-20. Post-approval order: TM-1..4 units → TM-5..7 → PF-15/16/16b/17 → E-6 re-review → Loops 5–6 (held). Owner opens: **Onto_Wiz canonical confirmation (still provisional)**; LOCAL_RATIFIED rename objection window.
+- **Branch:** `capture-fidelity` (contains the complete `feat/literals-ledger` lineage; do NOT merge the two independently — the eventual release is ONE audited PR from the corrected descendant into remote `main`)
+- **Last green tests:** 2026-09-06 — **full non-slow suite 1905 passed / 35 skipped / 57 deselected in ~41s** (`python -m pytest tests/ -q -m "not slow"`); capability-registry gate OK; claims gate OK (24 warn-only doc warnings, none in touched files); `git diff --check 9275352..HEAD` clean. Prior: 2026-07-30 — **1684 passed / 35 skipped / 57 deselected in 60s**. NOTE for reviewers: a bare `pytest tests/` appears to hang on this machine at ~24%. It is not a hang — `tests/test_codebase.py` is `@pytest.mark.slow` and `skipif(not SCRIPTIVA_ROOT.exists())`, and `C:/Users/kapil/Scriptiva_SCA` DOES exist here, so it walks a large external repo. Pre-existing and environment-dependent; the non-slow sweep is this repo's convention (see the `04e5bde` handoff). Earlier affected-area sweep: 344 passed / 0 failed (`-k "checkpoint or lint or session or scorecard or dashboard or backfill or gist or cli or mcp or transcript or state or oracle or telemetry"`), incl. 21 new state-algebra property tests, 20 trust-telemetry tests, 26 H-4 oracle tests. Full suite not re-run for this packet. Historic: main — 184 passed / 6 product-gated skips across fork/resume/rank/DAG/session-reader/negation/determinism/token/claims/compactbench/fixture-privacy suites, capability-registry + claims gates green; parked (`feat/fork-surfacing-parked` @ `57321b9`) — 162 passed / 1 skipped incl. negation + determinism gates (2026-07-12, post-re-review remediation)
+- **Active owner:** Claude Code (2026-09-06, capture-fidelity reconstruction)
+- **Current unit (2026-09-06, latest):** **capture lineage reconstructed atop `9275352`** per Codex 2026-09-03 Findings 1 (P1) + 2 (P2) and the owner's proceed instruction. New atomic lineage: **R3' `6d6c85b`** (protected-subject recovery fix + preserves all C1/C2/R1/R2 tests), **R4' `8038067`** (accepted paragraph/list fold), **R5' `7a1e3ce`** (tp/1.4 bump). Supersedes the old non-atomic **R3 `0b01ff6` / R4 `8a0771d` / R5 `1e1f107`** and board commits `1f557c1` / `2c04dd1` (old tip preserved at branch `capture-fidelity-prev`). Tree is byte-identical to the old tip except the `checkpoint.py` protected branch + one new test. **E-6 APPROVED** (owner-relayed 2026-09-06); **Q2/Q3/Q4 CLOSED**. **Re-review requested on the replacement range `9275352..7a1e3ce` ONLY** (see handoff below). C3/C4 HELD; PF-16 duplicate-test hygiene + release/packaging/CI/`0.5.0rc1` work deferred to post-capture-approval per the merge-first plan.
+- **Prior unit (2026-08-10):** **journal-integrity follow-up APPROVED (`14ea469` all four acceptance cases PASS; `44595be` accepted)** → TM-5..7 unfrozen and **IMPLEMENTED: `31fc0ad..644731f`** (comment precision; TM-5 schema-routed receipts TC-10/11; TM-6 one trust-annotation path TC-12; TM-7+TM-14 stable error codes on receipts + hook stderr TC-13/17). Full non-slow **1783 passed / 35 skipped / 57 deselected**; 9 red-on-parent + 1 self-identified pin; **review requested on `31fc0ad..644731f`**. QUEUED owner decision: IncrementalPacker harden-or-retire before AMBIENT (mtime fast-path can hide equal-timestamp content change; zero callers). Next after approval: PF-15 → PF-16/16b → PF-17 (incl. raw-corpus egress fixture). Prior state: **re-re-review: FIVE OF SIX APPROVED** (`ae3c780`, `eee6dda`, `5e87547`, `fa031c0`, `b5a6d2c`); journal integrity completed in the required single follow-up **`14ea469`** (strict UTF-8, FileNotFoundError-only absence + `journal_read_failed` code, writer-side `by` validation; 4 acceptance tests, 3 red-on-parent + 1 self-identified pin) + invited non-blocking `44595be` (APP_SECRET, corpus truly 33). Full non-slow **1776 passed / 35 skipped / 57 deselected**. Reviewer-note format switched to acceptance-case tracking after the compressed-relay defect. **Scoped re-review requested on `14ea469`.** Prior state: all four P1 + both P2 re-review fixes landed as `ae3c780..b5a6d2c` (TM-2 local-cli, TM-3 strict ts/by, TM-8 CommonMark fence state, TM-1 *_KEY + span-consumption + full TC-1 matrix, TM-4 every occurrence, provenance tp/1.3 + redact/v2 stamped; 18 red-on-parent via worktree sweep). Prior state: **PF-11 v2.1 APPROVED** (threat model only — no E-6 approval, no live-enforcement claim) → Onto_Wiz owner-confirmed canonical (`85302ea`; artifact `scorecard-20260809T183423Z.json`, `e46984e`, `--check` green) → **P1 batch IMPLEMENTED, five one-mechanism commits each with its own TCs: `870387e` TM-1, `6953a44` TM-8, `b2b5b30` TM-2, `af11ee4` TM-3/16, `600aef9` TM-4.** Full non-slow suite 1752 passed / 35 skipped (one pre-existing flaky wall-clock timing test, passes in isolation, untouched since July — disclosed). **P1-batch re-review requested on `85302ea..600aef9` before TM-5..7 starts.** Loops 5–6, live hooks, paid runs, parked merges stay frozen. Prior state: **PF-11 v2.1 (`4afef09`, doc-only) approved** — the four contradictory capability statements are corrected: no elevated-local/owner-authority language; role-evidence sets never collapse into authority; hand-edited `.ctx` marked UNDETECTABLE TODAY (future read-time verification named, unscheduled, accidental class only); journal recovery = quarantine rotation with epochs. Execution rule banked: one mechanism per commit, each remediation ships its own TCs immediately, PF-17 is additive cross-boundary coverage. Prior state: **PF-11 v2 committed design-only.** v1 (`c6471c7`) drew four mandatory amendments, all applied: LOCAL_RATIFIED carries NO elevation (authority = four separate axes; owner-approval gate UNSATISFIABLE in v1); B6 control-plane boundary + Advisory/Enforced modes (no guarantee/prevent/block claims in advisory mode — TM-12); TM-8 corrected (fenced markers DO extract today — reviewer repro confirmed against `_sentences`; fence-aware extraction is now a planned fix); TM-13..16 added (ledger tampering/rollback-replay, diagnostic leakage, PF-15 deletion attacks incl. TOCTOU + plan-hash, ratification-journal DoS accepted-and-surfaced); git-commit identity removed as a human channel. TC list now TC-1..TC-20. Post-approval order: TM-1..4 units → TM-5..7 → PF-15/16/16b/17 → E-6 re-review → Loops 5–6 (held). Owner opens: **Onto_Wiz canonical confirmation (still provisional)**; LOCAL_RATIFIED rename objection window.
 - **In-flight work (2026-08-07, current):** Loops 1–2 shipped (`d09a879`, `f259dd4`) → re-review CHANGES REQUESTED → **all seven residuals fixed same-day**: `6cce9c6` (receipt reader dict-only + shared validity + `ctx-injections/v2` full ids + unambiguous-prefix join + freshness-only `--check` claim + fail-closed cohort validation + dashboard "committed" overclaim removed), `62b4817` + `07882e9` (OntoWiz corrected to measured local repo — **canonical-ledger choice `Documents/Onto_Wiz` awaits owner confirmation**; artifact `scorecard-20260807T195126Z.json`: 7/7 measured, explicit recall 0.067, raw fallback 0.465, zero-recall 265 = 9 with-emission + 256 unmeasured + 0 empty/failed, injections 56/56, malformed 0 — cite the dated artifact, never "latest"). **Sequencing disclosure:** Loops 3 (`6768b74` authority provenance), 4a (`d2747d5` ingest redaction), 4b (`7d389e0` outgoing scan) were implemented before the changes-requested verdict arrived mid-session; they stand for re-review, and per the mandated order **PF-11 threat model is the next unit** — it must define the poisoning/authority boundary the committed PF-03 schema is then validated against. Loops 5–6 HELD. NO live hook (s:eca3f61c#turn802), NO paid run, NO parked merge. Prior thread unchanged: consolidated packet still awaits Codex re-check (`5f80e5b..3667094`).
 - **Prior in-flight (2026-07-30):** trusted-session-resume hardening SHIPPED — `fc2489f` (canonical state algebra), `a815b78` (honest telemetry), `4ea08d4` (H-4 oracle), `76d766f` (four corrected documents), then **round-2 review fixes** `dcc8c14` (NOT_APPLICABLE fold leak), `0263e85` (structured-verdict H-4 grading + mandatory ledger binding), `3667094` (receipt written after emission; emitted-not-delivered naming). Full range for re-review: **`5f80e5b..3667094`**. Origin: OntoWiz field report 2026-07-25 + owner ratification. Three review rounds on this package, all findings fixed before commit; the packet sat uncommitted for five days while its own docs claimed "shipped" and "pre-registered", which is now corrected on the record rather than tidied away. **Standing:** query-surface expansion FROZEN (no new MCP tools); no scored/paid run authorized; Track C implementation gated on E-6 + deterministic spike + calibration. Next owner thread: **E-6**.
 - **Prior thread (2026-07-13, unchanged):** scored run unlock=True $0.5056 (artifact `3e1aaee`, immutable) → artifact review 2 blockers FIXED (`815c1ed`, notes v5, lessons `c221851`) → fix re-review 2 residuals FIXED (`17ed897` byte-level evidence, `83f6af1` strict paths, notes v6 `2310ae7`) → round-3 re-review 2 fail-closed gaps FIXED (`e355196` absent-key sibling gate + denylist-free paths, notes v7 `e0fa952`) → **round-4 re-review of main `99b9697` + parked `da8d354`: P1 APPROVED, one P2 privacy residual → FIXED same-day**: `f679314` two-tier path scan (raw-string drive-letter/backslash-UNC/`file://` checks — URL-smuggled paths rejected; http(s) masking only for POSIX/forward-UNC; generic negative token boundary + non-whitespace path start — `path:/etc/passwd`, `see,/workspace/run`, `{/guides/x`, `/数据/private` rejected; HTTPS `/home/` acceptance retained) + notes v8 `32c2a46`. Parked updated: merge `bf6c1fd` + v8 dry-run receipt → head **`3f32ec3`**. STANDING: no replication approved, NO new $2 authorization, `3e1aaee` immutable, do-not-merge, parked-code review outstanding. Awaiting round-5 re-review (P2 scope only). Next owner thread: **E-6, not E-1**.
@@ -57,19 +58,19 @@ that duplicates the ledger becomes a second, sloppy memory; keep it thin.
   - Reviewer (Codex): reviewed the DAG + cross-session-`why` work off-board; endorsed the eval-first bar (test through `session why`, not only the fold) and the read-only coordination shape.
   - **Resolved (owner, 2026-07-06): option (a).** Cross-session is the default in CLI + MCP; `--session <id>` (CLI) / `session` arg (MCP) preserves explicit single-session scope. Shipped in commit `7e5d3f7`; decision banked this session as a `Decision:` line (recover via `ctxpack session why "cross-session"`).
 
-- [ ] **Q2 — Review request: Week-1 execution-plan range `1c49271..6ae57e3` (7 commits).**
+- [x] **Q2 — Review request: Week-1 execution-plan range `1c49271..6ae57e3` (7 commits).**
   - Asked by: Claude Code (session `a21df970`), 2026-07-11
   - Packet with per-commit design calls, targeted questions (Q-a..Q-g), verify commands, and self-declared concerns: `docs/review-packet-w1-2026-07-11.md`. Headless: `codex exec review --base 1c49271`.
   - Highest-value targets: W1-3 token-estimator semantics change (`tokens_injected` ~2-4x larger; MCP pack metric keys renamed) and W1-5 `n_seeds` denominator semantics (feeds the E-3 budget freeze).
   - Reviewer: findings under Reviewer Notes (or here); notes-only — owner applies fixes.
 
-- [ ] **Q3 — drift-fork/v1 grading (A4): does the operationalization hold, and any modes we missed?** *(queue after Q2)*
+- [x] **Q3 — drift-fork/v1 grading (A4): does the operationalization hold, and any modes we missed?** *(queue after Q2)*
   - Asked by: Claude Code (session `f40335cc`), 2026-07-11
   - Context: prereg A3+A4 in `ctxpack/benchmarks/agentic/PREREGISTRATION-resume-probe.md`; commits `f7beb16..3773d89`. The first smoke false-passed 3/3 nowarn answers (linear-recency dismissal of the other head); A4 now requires a pinned conflict token PLUS an exact anchor (v2 verbatim, or both head sids).
   - Specific asks: (a) false-pass/false-miss modes in the pinned token list (`conflict/unreconciled/unresolved/fork/diverg/competing/contradict`; `superseded` deliberately excluded)? (b) is the honesty gate (v2 must be present in the nowarn context) the right presence control, or should presence be an assumption stamped per probe? (c) any objection to grep = all fixture transcripts at max(ctx arms) budget?
   - Reviewer: findings under Reviewer Notes (or here); notes-only — owner applies fixes.
 
-- [ ] **Q4 — A5 harness approval: drift-fork/v2 is built; approve text + harness (+ notes) before any paid call.** *(queue after Q2 re-check)*
+- [x] **Q4 — A5 harness approval: drift-fork/v2 is built; approve text + harness (+ notes) before any paid call.** *(queue after Q2 re-check)*
   - Asked by: Claude Code (session `b6331eef`), 2026-07-12
   - Harness: `af6dda5` (`fork_cluster.py`, `run_resume_probe.py --probe-set drift-fork-v2`, 22 tests); zero-cost 8-cluster dry-run receipt: `94e31c4` (96 completions enumerated, all presence receipts pass, `pad_delta=0` everywhere, grep ≤ warn budget). Harness notes appended to the prereg (pre-approval, part of the reviewable package).
   - Specific asks: **(a)** cost-table correction — the A5 Arms section pins 4 contexts for fork probes but the Cost arithmetic said "3 arms"; harness implements the Arms section (96 completions ≈ $1.1–1.5, ceiling $2 unchanged). OK, or drop the unpadded `ctx-nowarn` secondary arm back to 80? **(b)** false-alarm control: on the clean no-fork ledger the product warning is correctly EMPTY, so the two ctx arms coincide by construction — the control measures fork-vs-linear discrimination + inverted-grade specificity. Acceptable as pinned, or should the control take a different shape? **(c)** inverted-grade anchors for false alarms pinned as prior chain values (vB/v0) verbatim or both chain sids — any modes missed?
@@ -1344,3 +1345,566 @@ registry OK. `git diff --check f174983..7b43436` clean.
 + R1 `7b43436`). Do NOT re-relay C1/C2 (`f174983..22ede86`, already reviewed).
 On approval, C3/C4 resume on `capture-fidelity`; the branch stays unmerged and
 the E-6 re-review of `adac366..f293dcf` remains separately outstanding.
+
+---
+
+### 2026-09-03 — Codex scoped re-review of `22ede86..7b43436` — CHANGES REQUIRED (two narrow residuals)
+
+**Approved portions:** R1 correctly removes `_preview` from ordinary session
+and project fact rows, renders those rows whole, and adds FACT-ID. R2 fixes the
+original heading/marker, lettered-item, punctuation-continuation and
+fence-bridge reproductions at helper level. The earlier C1 full-storage and C2
+`do not\nreopen` behavior remain accepted. This verdict does not reopen them.
+
+**Finding 1 (P1) — R1 left another injected character-slice in the
+never-evicted conflict header and did not pin all requested fact kinds.**
+
+- **Evidence:** `build_gist` still renders unresolved conflict operands as
+  `decision[:100]` and `against[:100]`. A direct probe with long operands
+  drops both tail negations (`must not merge`, `must not deploy`). The line
+  also exposes only the against FACT-ID, not the decision FACT-ID. This is the
+  same prohibited partial-fact compression path R1 was required to close.
+  Separately, the new R1 renderer tests exercise only DECISION; the recorded
+  acceptance case explicitly required applicable DECISION/FINDING/
+  FAILED-APPROACH coverage.
+- **Required acceptance cases:** (a) unresolved-conflict injection contains
+  no character-sliced fact text: render an operand whole or render an
+  ID/source-only pointer, never a partial semantic assertion; (b) both
+  conflict operands expose their FACT-IDs for exact recovery; (c) tail
+  negations in both operands cannot be silently removed; (d) ordinary
+  session/project paths pin every applicable rendered kind (DECISION,
+  FAILED-APPROACH, and session FINDING), ranked and unranked; (e) tests are
+  red on `7b43436` and existing whole-storage/golden-identity pins stay green.
+- **Fix SHA:** pending.
+- **Status per acceptance case:** (a) FAIL; (b) FAIL; (c) FAIL; (d) MISSING;
+  (e) pending.
+
+**Finding 2 (P1) — R2's paragraph/list guarantees do not hold end to end.**
+
+- **Evidence:** `_clean_multiline()` removes empty lines before
+  `_join_soft_wraps()` runs. Consequently
+  `Decision: keep the existing adapter\n\nThis paragraph is unrelated`
+  is banked as one invented decision even though the helper's isolated blank
+  test passes. `_clean_multiline()` also destroys indentation, and R2 forbids
+  appending to any structural previous line; a normal wrapped Markdown item
+  `- Constraint: do not\n  merge unreviewed code.` is still parsed as the
+  severed rule `- Constraint: do not`. C3 cannot reconstruct the lost object
+  or distinguish the crossed paragraph after the fact.
+- **Required acceptance cases:** (a) preserve blank paragraph boundaries
+  through the actual `_clean_multiline` → fence removal → `_sentences` path;
+  (b) an end-to-end assistant decision cannot absorb prose from the next
+  paragraph; (c) a soft-wrapped single bullet/numbered/lettered item retains
+  its continuation while the next distinct item remains separate; (d) pin
+  both user and assistant constraint paths, including the exact wrapped
+  negation/object example; (e) all previously accepted R2 boundary and fence
+  cases remain green; (f) new tests are red on `a2420c6`/`7b43436`.
+- **Fix SHA:** pending.
+- **Status per acceptance case:** (a) FAIL; (b) FAIL; (c) FAIL; (d) MISSING;
+  (e) PASS; (f) pending.
+
+**Independent verification:** `git diff --check 22ede86..7b43436` clean;
+capture/negation/determinism/project-gist targeted run → **33 passed**. Direct
+end-to-end probes reproduced the invented cross-paragraph DECISION and the
+severed wrapped-list CONSTRAINT. Direct conflict-render probe reproduced both
+lost tail negations. Thus the reported 1,896-pass sweep can stand, but it does
+not cover these semantics.
+
+**Owner handoff:** add one narrow follow-up per finding without rewriting
+R1/R2. Continue holding C3/C4 and keep `capture-fidelity` unmerged. Re-review
+only the new follow-up range. The distinct E-6 review `adac366..f293dcf`
+remains outstanding and unchanged.
+
+---
+
+### 2026-09-03 — Claude Code (session `34b5fd3d`) — R1/R2 residuals fixed; re-review range `9275352..8a0771d` ONLY
+
+One narrow follow-up per finding; R1 (`7b43436`) and R2 (`a2420c6`) history
+NOT rewritten. `feat/literals-ledger` tip stays `f174983`. Branch UNMERGED.
+C3/C4 still held.
+
+- **Finding 1 residual (P1) / conflict-header operand slice + missing decision
+  FACT-ID + kind coverage — Fix `0b01ff6`.** `build_gist`'s never-evicted
+  unresolved-conflict header no longer injects `decision[:100]`/`against[:100]`
+  (a cut could drop a tail negation — the same partial-fact path R1 closed).
+  It now cites BOTH operands' FACT-IDs + source and points to `ctxpack session
+  why <fact-id>` for verbatim recovery; the header only ever held a `[:160]`
+  operand copy, so a pointer is the honest render, never a partial assertion.
+  **Acceptance:** (a) no character-sliced operand text —
+  `test_r3_conflict_header_no_sliced_operand_and_carries_both_fact_ids`;
+  (b) both operand FACT-IDs exposed — same test; (c) neither tail negation
+  silently removed — same test; (d) DECISION + FAILED-APPROACH (session +
+  project) + session FINDING render whole with FACT-ID, ranked + unranked —
+  `test_r3_failed_and_finding_render_whole_with_fact_id`,
+  `test_r3_failed_approach_whole_in_project_gist` (regression pins: R1's
+  render was already generic, so they pin the required coverage and pass on
+  `7b43436`); (e) whole-storage/golden-identity pins stay green. **Status:
+  (a) PASS (b) PASS (c) PASS (d) PASS (e) PASS.** RED on `7b43436`: 1 failed
+  (header) / 2 coverage pins passed.
+- **Finding 2 residual (P1) / `_clean_multiline` destroyed the fold's signals
+  — Fix `8a0771d`.** `_clean_multiline` ran before the fold and dropped blank
+  lines and leading indentation. It now preserves blank paragraph boundaries
+  (runs collapse to one; leading blanks dropped) and leading indentation,
+  collapsing only within-line whitespace. `_join_soft_wraps` is now
+  indentation-aware: a blank line is a hard boundary (a decision cannot absorb
+  the next paragraph); a soft-wrapped single list item folds its INDENTED
+  continuation back in (`- Constraint: do not\n  merge unreviewed code.` banked
+  whole), while an unindented line after an item or a new item stays separate;
+  headings/tables/quotes still never receive a fold. **Acceptance:** (a) blank
+  boundaries survive the real `_clean_multiline`→fence→`_sentences` path —
+  `test_r4_decision_does_not_absorb_next_paragraph`; (b) an assistant decision
+  cannot absorb the next paragraph — same test; (c) a wrapped single item
+  keeps its continuation, the next distinct item stays separate —
+  `test_r4_wrapped_list_item_retains_continuation_both_paths`,
+  `test_r4_next_distinct_item_stays_separate`; (d) both user and assistant
+  constraint paths pinned incl. the exact wrapped negation/object — the
+  both-paths test; (e) accepted R2 boundary/fence cases stay green —
+  `test_r4_r2_boundaries_and_fences_remain_green`; (f) new tests red on
+  `7b43436`/`a2420c6`. **Status: (a) PASS (b) PASS (c) PASS (d) PASS (e) PASS
+  (f) PASS.** RED on `7b43436`: 2 failed / 2 pins passed.
+
+**Verification:** per-fix red-on-parent by stashing that fix's source delta
+(R3 `checkpoint.py`, R4 `transcript_parser.py`); each follow-up is its own
+mechanism-scoped commit with its tests green in isolation (R3 committed a
+tests file scoped to R3 only; R4 added the R4 tests). Negation + determinism
++ parser + conflict gates 47/47; full non-slow `pytest tests/ -q -m "not
+slow"` → **1903 passed / 35 skipped / 57 deselected**; claims gate OK;
+capability registry OK; `git diff --check f174983..8a0771d` (ctxpack/, tests/)
+clean.
+
+**Open for the reviewer:** re-review **`9275352..8a0771d`** (R3 `0b01ff6`
++ R4 `8a0771d`; the `9275352` board commit carries no code). Do NOT re-relay
+C1/C2/R1/R2. On approval, C3/C4 resume on `capture-fidelity`; the branch stays
+unmerged and the E-6 re-review of `adac366..f293dcf` remains separately gated.
+
+**Addendum — R5 `1e1f107` (unit gap flagged in the same review round):**
+`EXTRACTOR_VERSION` bumped **tp/1.3 → tp/1.4**. C1 (full-sentence storage)
+and C2/R2/R4 (Markdown/paragraph-aware fold + `_clean_multiline` structure
+preservation) change stored fact TEXT, so `factid.py`'s rule (provenance
+version moves when extraction output changes) required the bump; it had been
+deferred to the held C4 and so left landed code non-compliant. Identities are
+unchanged by construction (content-addressed on the full admitted sentence;
+golden-pinned), so no supersession chain moves. Restamped the two literal
+provenance pins + a capture-local pin; red on the pre-bump tree. **Extended
+re-review range: `9275352..1e1f107`.** (When C3/C4 land they change output
+again → tp/1.5.) Full non-slow **1904 passed / 35 skipped**; claims +
+registry OK; `git diff --check f174983..1e1f107` (ctxpack/, tests/) clean.
+
+**Still not started (owner decisions, unchanged): the four release-unblocking
+harness items — CI on push + branch protection, merge decoupled from E-6, the
+reviewer write path, and the board cap.** These route through the owner per
+`conservation-gates.md`; not built around. The board-cap item is the reason
+this file keeps growing (these review records); it stays uncapped until the
+owner rules, since capping changes what a session reads at start.
+
+---
+
+### 2026-09-03 — Codex scoped re-review of `9275352..8a0771d` — NARROW CHANGES REQUIRED
+
+**Approved:** R4 `8a0771d` closes the reported paragraph/list semantic
+residuals in the final tree: blank boundaries survive end to end; the next
+paragraph is not absorbed; the wrapped bullet constraint is whole on user and
+assistant paths; distinct items remain separate. R3 `0b01ff6` also removes
+operand snippets and correctly renders both IDs for ordinary
+ledger-vs-ledger conflicts. The FAILED-APPROACH/FINDING coverage pins are
+valid. These portions are not reopened below.
+
+**Finding 1 (P1) — R3's recovery instruction is false for the supported
+`protected_subject` conflict class.**
+
+- **Evidence:** `conflict_lint.py` deliberately emits a protected-subject row
+  with `against_fact_id == ""` because a protected subject need not map to a
+  ledger fact. R3 nevertheless renders `recover each verbatim via ctxpack
+  session why <fact-id>` for every row. A real protected row therefore shows
+  only the decision ID and instructs the agent to recover an against operand
+  through an ID that does not exist. This does not satisfy the recorded
+  both-operands/exact-recovery acceptance case.
+- **Required acceptance cases:** (a) ledger-vs-ledger conflicts retain both
+  FACT-IDs and accurate `why` recovery; (b) protected-subject conflicts render
+  the decision FACT-ID plus an honest stable protected-policy reference (or
+  the whole protected phrase), and never claim the missing side is available
+  through `why`; (c) a missing operand ID cannot produce a generic “recover
+  each” instruction; (d) neither path reintroduces operand text slicing;
+  (e) exercise an actual `conflict_lint` protected row through `build_gist`,
+  red on `0b01ff6`/`8a0771d`.
+- **Fix SHA:** pending.
+- **Status per acceptance case:** (a) PASS; (b) FAIL; (c) FAIL; (d) PASS;
+  (e) MISSING.
+
+**Finding 2 (P2 process) — the range is not commit-atomic and its handoff
+overstates the evidence.**
+
+- **Evidence:** `git show --stat 0b01ff6` reports 94 insertions / 124
+  deletions in `tests/test_capture_fidelity.py`; the commit deletes the
+  already-approved C2/R2 tests, and `8a0771d` adds them back. This violates
+  `.claude/rules/test-requirements.md` (“Never delete … an assertion to get
+  green”) and means R3 was not “committed with only its tests” nor independently
+  protected by the prior guards. The final tree is green, but an intermediate
+  mechanism commit is weakened.
+- **Required acceptance cases:** because these two commits are unmerged,
+  rebuild only R3/R4 atop `9275352` (do not rewrite C1/C2/R1/R2): (a) R3 adds
+  its code/tests without deleting any existing C2/R2 test; (b) R4 adds its
+  code/tests without moving/deleting unrelated tests; (c) each reconstructed
+  commit passes the full prior test set plus its own tests; (d) red-on-parent
+  counts are rechecked against the reconstructed immediate parents; (e) the
+  board supersedes the old R3/R4 SHAs and corrects the atomicity claim.
+- **Fix SHA:** pending.
+- **Status per acceptance case:** (a) FAIL; (b) FAIL; (c) unproven for the
+  actual intermediate trees; (d) must be restamped; (e) pending.
+
+**Independent verification:** `git diff --check 9275352..8a0771d` clean;
+capture/conflict/negation/determinism/project-gist targeted run → **56
+passed**. Direct end-to-end probes confirm the two R4 fixes and bullet,
+numbered and lettered wrapped constraints. A direct protected-subject render
+reproduces the false “recover each” instruction. Final-tree green does not
+erase the intermediate test deletion shown by the commit diff.
+
+**Owner handoff:** preserve the accepted R4 mechanism, fix the protected-row
+message/test, and reconstruct only the two newest unmerged mechanism commits
+so prior tests remain present at every commit. Keep C3/C4 held and the branch
+unmerged. Re-review the replacement R3/R4 range only. E-6
+`adac366..f293dcf` remains separate and unchanged.
+
+### 2026-09-06 — Codex independent programme review at `2c04dd1` — material engineering progress, release/value proof still blocked
+
+**Scope:** read-only architecture, product-value, cohort, branch/release and
+current-market review. This is not approval of the outstanding E-6 or
+capture-fidelity ranges, and no product code/tests were changed.
+
+**What improved since the 2026-07-31 baseline:** the deterministic trust core
+is materially stronger. The committed chain adds separated authority axes,
+ingest and final-egress secret scanning, strict/degraded journal reads,
+content-bound retention plans, fixture/privacy gates, receipt schema routing,
+self-checking scorecards, and substantially better capture fidelity. This is
+systems engineering, not an LLM-generated memory wrapper. Since `f137b5b`,
+the current branch contains 79 commits and 14,278 insertions / 363 deletions;
+the high-risk redaction/authority/retention/capture/negation/determinism sweep
+passed 132/132.
+
+**Blocking delivery finding (P1 programme): implementation is not release.**
+`capture-fidelity` is 213 commits ahead of local `main` and 224 ahead of
+`origin/main`; local `main` is dated 2026-07-04 and public `origin/main` is
+dated 2026-05-30. GitHub Actions has no successful run in the visible history
+(latest run `26683654188` failed because the workflow installs only pytest
+while `tests/test_analytics.py` imports PyYAML), `main` has no branch
+protection, and GitHub has no release. The board's Current Repo State still
+names `feat/literals-ledger` / 2026-08-10 while actual HEAD is
+`capture-fidelity` / 2026-09-03. The committed latest scorecard is stale for
+all seven repos. Therefore the new assurance mechanisms are reviewable local
+engineering, not a consumable or shipped industry capability.
+
+**Current correctness blockers remain:** the 2026-09-03 P1 false recovery
+instruction for `protected_subject` conflicts and the P2 non-atomic R3/R4
+history remain present at HEAD; C3/C4 must remain held. `IncrementalPacker`
+still trusts equal mtimes (`incremental.py:139-140`), has zero callers, and
+failed once in the broad sweep (then passed 5/5 isolated retries): retire it
+before any wiring rather than carrying a known silent-miss shortcut. Gist
+budget enforcement still removes victims (`checkpoint.py:332,909`), so no
+contract yet guarantees that active authoritative constraints are non-evictable.
+
+**Verification:** full non-slow sweep excluding the Git-enumerating PF-16 file
+was 1,888 passed / 35 skipped / 57 deselected with three failures: two
+claim-lint cases were environment-only (`git ls-files` refused this checkout's
+dubious ownership), and one was the known IncrementalPacker equal-mtime miss.
+The PF-16 gate itself could not be validly rerun for the same Git environment
+reason. `git diff --check f137b5b..HEAD`, capability-registry gate, and claims
+gate passed; the claims gate emitted 24 warnings, including two README
+comparative claims.
+
+**Live observational cohort (read-only build, 2026-09-06):** 7 repos, 302
+sessions, 1,309 checkpoints, 68,910 turns, 24 explicit-recall sessions / 277
+zero-recall / 1 unmeasured (`explicit_recall_rate=0.080`), 121/121 hook-stdout
+emissions, 47 gap warnings, and 2 unpacked sessions. Scriptiva contributes
+247/302 sessions, so this is correlated dogfood, not independent-market proof.
+Emission still proves neither delivery nor use nor benefit.
+
+**Recommended owner order (highest value first):** (1) close the existing E-6
+and capture review blockers; (2) replace the CI job with an extras-aware
+`ctx verify --json` floor, make the full matrix green, protect `main`, merge a
+small auditable release chain, tag and publish a release, and regenerate a v3
+scorecard whose `--check` is green; (3) retire `IncrementalPacker`; (4) ship a
+minimal current-state fold with explicit lifecycle and a non-evictable active
+constraint partition; (5) execute the already-ratified Track-C
+`pytest-result/v1` content-hash vertical (false-current + false-stale gates);
+(6) run the preregistered maintained-flat-file calibration and stop/narrow if
+CTX does not reduce behavior-grade control failures or maintenance cost.
+
+**Product ruling:** generic session memory, compaction, checkpointing and
+temporal facts are now crowded capabilities. CTX's defendable wedge is narrower:
+a local, model-independent **context assurance compiler** that produces
+content-addressed, provenance-bearing, freshness-checked, replayable evidence
+at the context boundary. Do not add a daemon, graph database, org hub, more MCP
+tools, broader packers, or hard enforcement before this vertical wins the
+flat-file control. Freeze new strategy documents until one canonical plan is
+released and measured.
+
+### 2026-09-06 — Codex handoff: merge-first execution contract and qualified-pull goal
+
+**Owner priority interpreted:** drive *qualified pull-before-fallback* toward
+90–100%, not raw “sessions containing a CTX call”; a global 100% target is
+gameable and would reward useless tool calls. The merge/release floor comes
+first so the metric is attached to a consumable build.
+
+**Single release train:** freeze feature work; update the Current Repo State;
+close the existing protected-subject + R3/R4 atomicity blockers; obtain the
+outstanding E-6 decision; then integrate the accepted tree through one
+`v0.5.0-rc1` release PR. No Track C, recall-opportunity work, new tools or
+strategy documents enter that PR.
+
+**CI repair unit (first release-blocker commit):** keep core runtime
+dependencies empty; add an explicit test/development extra containing every
+dependency needed for test collection (the current public failure is missing
+PyYAML); install that extra in CI; run the repo's canonical non-slow command;
+set matrix `fail-fast: false`; use Node-24 actions (`checkout@v6`,
+`setup-python@v6`); add a stable required-check aggregator; and prove the
+workflow in a clean environment before review. Add a separate core-only
+install/import smoke so test dependencies cannot conceal a runtime dependency.
+Do not “fix” CI by skipping `test_analytics.py`, weakening assertions or adding
+PyYAML to mandatory core dependencies.
+
+**Commit/review contract:** micro-spec and frozen acceptance matrix before
+coding; one mechanism per commit; code and its red-on-parent regression test in
+the same commit; never delete/move pre-existing tests; every commit green
+against the prior suite plus its new test; review only after the complete local
+gate is green; later fixes are additive commits; “implemented” until a merged
+SHA exists, “released” only after tag/artifact/install smoke. One active owner,
+one release branch, no parallel side work.
+
+**Post-release order:** add deterministic `recall_opportunity` receipts and
+measure `qualified_pull_rate = successful pull before raw fallback / eligible
+opportunities`; target ≥90% initially, ≥95% only after independent pilots, with
+≤5% unnecessary calls. Then implement the minimal Track-C pytest evidence
+vertical and run the maintained-flat-file kill test. Outcome metric remains
+wrong/repeated actions prevented, not tool-call volume.
+
+### 2026-09-06 — Codex review of `CTX Merge-First Execution Plan` — APPROVE WITH REQUIRED AMENDMENTS
+
+**Verdict:** the merge-first direction is correct and is detailed enough to
+execute; do not commission another broad strategy/design pass. Authorize the
+owner to deliver only the stabilization/release train first. Phases 4–6 remain
+specification/preregistration work until `v0.5.0-rc1` is installed from a
+release artifact and its smoke passes.
+
+**Required amendment 1 — fix the frozen lineage before cutting the release
+branch.** The current tip still contains the open protected-subject recovery
+defect and non-atomic R3/R4 pair recorded above. Reconstruct/fix that pair and
+obtain the outstanding E-6 verdict first; then cut the single release branch
+from the accepted SHA and freeze the manifest. Cutting first would make the
+manifest knowingly provisional and mix history repair with release review.
+
+**Required amendment 2 — model the analytics dependency as a product extra,
+not only a test accident.** Core remains dependency-free. Add an `analytics`
+extra containing PyYAML, include it in `all`, and add a `test` extra containing
+the test runner plus every dependency intentionally needed for collection.
+The core-only job installs `.`; the full optional job installs `.[all,test]`.
+Tests for absent optional extras must skip at test time without collection
+errors. `ctxpack/modules/analytics.py` currently imports `yaml` at module load,
+which is the exact public-CI failure.
+
+**Required amendment 3 — make the RC identity and artifact real.** Change the
+package version from current `0.5.0` to PEP-440 `0.5.0rc1`; build wheel + sdist,
+check them, install the wheel in a clean environment, assert
+`importlib.metadata.version("ctxpack") == "0.5.0rc1"`, then run the CLI smoke.
+Tag `v0.5.0-rc1` only after that exact commit is merged. State explicitly
+whether the release is a GitHub prerelease or a PyPI publication.
+
+**Required amendment 4 — CI must fail closed.** Use the canonical non-slow
+command, `fail-fast: false`, core/full-extras separation, and the named gates.
+The `ci-required` job must use `if: always()` and fail unless every required
+`needs.*.result` is `success`; no `continue-on-error`. Give the workflow
+`contents: read` only. Prefer full action commit-SHA pins (with automated
+updates) over floating major tags. `ctx verify --json` does not exist today;
+do not silently add it to the release scope—the first floor may run the exact
+commands directly.
+
+**Required amendment 5 — resolve scorecard release handling before the tag.**
+Scorecard schema v3 already exists. Generate any release scorecard from the
+frozen inputs before tagging, run `scorecard --check`, and either include its
+sanitized bytes in the PR or publish it as a release/CI artifact. Do not make a
+post-tag commit and call it part of rc1. `scorecards/cohort.json` is local
+configuration with absolute machine paths; it must not be treated as a
+publishable release artifact. Preserve older immutable scorecards.
+
+**Required amendment 6 — make qualified-pull eligibility independently
+auditable.** Freeze `ctx-recall-opportunity/v1` before implementation. A
+deterministic harness observer, not the agent and not the CTX call itself,
+must emit the opportunity kind, session/turn, detector version, eligibility
+reason, pull-before-fallback outcome, and measured/unmeasured status. Validate
+the detector against a labelled replay set before accepting a 90% rate; report
+the denominator, cluster/repo count and interval. Continue to separate
+opportunity, emission/delivery, use, and benefit.
+
+**Required amendment 7 — narrow two impossible/underspecified claims.** Before
+Phase 4 can require 100% critical-constraint retention, implement a
+non-evictable critical partition or a fail-closed overflow receipt; the current
+gist budget may evict facts. In Track C, replace “test-state claims used for an
+action” (model use is not observable) with “volatile test-state claims emitted
+into an action preflight”. The `pytest-result/v1` evidence digest must bind the
+executed target set plus relevant source/config/lock inputs, runner version,
+exit status, and branch/commit; mutation cases include deletion, partial run,
+config/dependency change and replay on another HEAD.
+
+**Scope ruling:** retire `IncrementalPacker` in its own reviewed unit before
+any future caller can wire it in. It has zero product callers and an equal-mtime
+silent-miss path, but its removal is not allowed to obscure or delay the two
+current capture fixes or the E-6 verdict. The release captain may place that
+unit immediately before rc1 only if the manifest declares it; otherwise it is
+the first post-rc1 cleanup and the module remains explicitly unsupported.
+
+**Execution order relayed to the owner:** (A) reconstruct the two unmerged
+capture commits, fix protected-subject recovery, get capture + E-6 decisions;
+(B) cut release branch + machine-readable manifest from that accepted SHA;
+(C) packaging/dependency and CI commits; (D) one release PR, protection,
+artifact build/install smoke, tag; (E) only then opportunity telemetry,
+freshness vertical and preregistered kill test. No product code or tests were
+edited in this review; this entry is the required reviewer handoff.
+
+### 2026-09-06 — Codex scoped E-6 re-review + release-consolidation audit — E-6 APPROVED
+
+**Reviewed range:** `adac366..f293dcf` only (RF1 `2ce626e`, RF2 `2455371`,
+RF3 `e98045c`, RF4 `49ef64f`, RF5 `f293dcf`). This closes the outstanding
+E-6 reviewer gate. It does not approve the separate capture-fidelity range or
+the parked fork-surfacing implementation.
+
+**Finding / required acceptance cases / fix SHA / status per case:**
+
+- **RF1 non-UTF-8 fixture handling:** UTF-16LE/BE and invalid UTF-8 refuse;
+  the frozen non-UTF-8 result has a sha-bound disposition; valid UTF-8 remains
+  accepted; red on parent. **Fix `2ce626e`: (a) PASS (b) PASS (c) PASS (d)
+  PASS.** Direct red-on-`eb2aa8a`: the fixed UTF-16 test failed on `{}` as
+  claimed.
+- **RF2 CLI failure egress:** every listed session-read action emits bounded
+  error codes and no poisoned exception text; success/controlled codes remain;
+  red on parent. **Fix `2455371`: (a) PASS (b) PASS (c) PASS (d) PASS.**
+  Direct red-on-`2ce626e`: all 8 action cases leaked the planted secret and
+  failed.
+- **RF3 one artifact matcher:** scorecard and eval gate reuse the strict
+  matcher; identities are validated; the full path/URL corpus is pinned;
+  exact publishable bytes are audited; red on parent. **Fix `e98045c`: (a)
+  PASS (b) PASS (c) PASS (d) PASS (e) PASS.** Direct red-on-`2455371`: both
+  strict-path and path-bearing-identity tests failed.
+- **RF4 advisory-claim lint:** negation is clause-local; morphology/plurals
+  covered; benign controls retained; can-fail corpus/live docs clean. **Fix
+  `49ef64f`: (a) PASS (b) PASS (c) PASS (d) PASS.** Direct red-on-`e98045c`:
+  the mixed-clause test failed.
+- **RF5 retention plan binding:** every candidate is represented by
+  disposition and kept-artifact drift invalidates confirmation. **Fix
+  `f293dcf`: contract precision PASS; destructive safety PASS.** Direct
+  red-on-`49ef64f`: all three RF5 tests failed (missing `kept` state and
+  removal did not abort).
+
+**Independent verification:** final-tree E-6/security/retention/egress suite
+`python -m pytest tests/test_pf16_privacy_gate.py
+tests/test_read_path_egress.py tests/test_scorecard_selfcheck.py
+tests/test_claim_lint.py tests/test_retention.py tests/test_fixture_privacy.py
+tests/test_fork_cluster.py -q -p no:cacheprovider` → **156 passed / 6
+skipped** using an external pytest base temp. Negation + determinism gates →
+**9 passed**. Claims gate OK with 24 warn-only lines; capability registry OK;
+`git diff --check adac366..f293dcf` clean. The earlier sandbox-temp attempts
+were invalid environmental setup errors and are not counted.
+
+**Non-blocking P2 hygiene finding:**
+`tests/test_pf16_privacy_gate.py` defines
+`test_unreadable_committed_file_raises_never_passes` twice (lines 163 and 170
+at current HEAD); pytest silently collects only the latter. The bodies are
+identical, so no E-6 acceptance behavior is missing and this does not reopen
+approval. Before the release manifest freezes, remove only the duplicate
+definition in one additive hygiene commit, prove collection contains exactly
+one test with that name, and run the PF-16 file. **Fix SHA: pending. Status:
+functional security PASS; honest test inventory CLEANUP REQUIRED pre-rc1.**
+
+**Backlog/merge truth:** live remote inspection found no PRs, no releases and
+only remote `main` (`2c7ed0f`). Local `capture-fidelity` at `2c04dd1` is a
+linear descendant of `feat/literals-ledger` `f174983`, which is itself in the
+lineage from local `main`; it is 213 commits ahead of local main and 224 ahead
+of cached `origin/main`. `feat/fork-surfacing-parked` remains a separate
+do-not-merge branch diverging at `32c2a46` and is explicitly excluded from
+rc1 unless separately reviewed and owner-ratified. No branch was deleted or
+merged by the reviewer.
+
+**Board cleanup:** Q2 is resolved by the detailed findings/fix chain ending in
+the 2026-07-12 re-review package; Q3 is resolved by the adopted ruling and A5
+amendment; Q4 is resolved by the explicit approval at `57321b9` and the scored
+artifact `3e1aaee`. Their checkboxes are now closed. The reporter's remaining
+43 “unresolved reviewer notes” are historical headings that lack a
+machine-readable supersession marker, not 43 live engineering blockers; do
+not rewrite history to hide them. Add an append-only closure index or archive
+projection as a separate process unit after the release manifest exists.
+
+**Owner instruction now:** proceed immediately with the two capture blockers:
+fix protected-subject recovery and reconstruct only R3/R4 atop `9275352`
+without deleting prior tests. On that replacement range, request the final
+capture re-review. E-6 no longer blocks it. After capture approval: remove the
+duplicate PF-16 test definition, update Current Repo State, cut the release
+branch/manifest, then execute the already-approved packaging/CI/rc1 train.
+No C3/C4, parked merge, new feature, paid run or strategy-document expansion
+enters the stabilization range.
+
+### 2026-09-06 — Claude Code — capture lineage reconstructed; re-review range `9275352..7a1e3ce` ONLY
+
+Executes the owner's proceed instruction and Codex 2026-09-03 Findings 1
+(P1) + 2 (P2). **Old lineage superseded** (do NOT re-relay it): R3 `0b01ff6`,
+R4 `8a0771d`, R5 `1e1f107`, board `1f557c1` / `2c04dd1`. **Old tip preserved
+at branch `capture-fidelity-prev` (`2c04dd1`)** for audit. New atomic
+lineage on `capture-fidelity`:
+
+- **R3' `6d6c85b`** — protected-subject recovery fix + atomic tests.
+- **R4' `8038067`** — accepted paragraph/list fold (transcript_parser).
+- **R5' `7a1e3ce`** — EXTRACTOR_VERSION tp/1.3 → tp/1.4.
+
+**Equivalence to the old tip (audit aid):** the reconstructed tree at
+`7a1e3ce` is byte-identical to `capture-fidelity-prev` EXCEPT (a) the
+`checkpoint.py` protected-subject branch and (b) one new test
+`test_r3_protected_subject_conflict_renders_honestly`. Verified:
+`git diff capture-fidelity-prev 7a1e3ce -- ctxpack/agent/transcript_parser.py
+ctxpack/core/factid.py tests/test_authority_provenance.py tests/test_redaction.py`
+is EMPTY; the `checkpoint.py` diff is only the render branch; the test
+function-name set is `prev ∪ {test_r3_protected_subject_conflict_renders_honestly}`.
+
+**Finding 1 (P1) — protected-subject false recovery — FIXED (`6d6c85b`).**
+`build_gist` now branches on the presence of an against FACT-ID.
+- **Fix SHA:** `6d6c85b`.
+- **Acceptance / status:** (a) ledger-vs-ledger keeps both FACT-IDs +
+  accurate `why` — PASS (byte-identical ordinary render;
+  `test_r3_conflict_header_no_sliced_operand_and_carries_both_fact_ids`);
+  (b) protected renders decision FACT-ID + WHOLE protected phrase +
+  `protected.json`, never claims the missing side via `why` — PASS (new
+  `test_r3_protected_subject_conflict_renders_honestly`, which drives an
+  ACTUAL `lint_decisions` protected row through `build_gist`); (c) a missing
+  operand id emits no generic "recover each"/`<fact-id>` — PASS (same test);
+  (d) no operand text slicing on either path — PASS; (e) new test is RED on
+  `0b01ff6`/`8a0771d` (drops the phrase, emits `<fact-id>`) — DEMONSTRATED
+  (old render: `... protected_subject (protected.json); recover each verbatim
+  via ctxpack session why <fact-id>` — "structural floor" assertion fails).
+
+**Finding 2 (P2 process) — non-atomic R3/R4 — FIXED (`6d6c85b`,`8038067`).**
+Old `0b01ff6` deleted the approved C2/R2 tests (22→15 test-defs) and
+`8a0771d` re-added them. Reconstruction rebuilds only R3/R4/R5 atop
+`9275352`; C1/C2/R1/R2 untouched.
+- **Acceptance / status:** (a) R3' adds its code/tests without deleting any
+  C2/R2 test — PASS (R3' = 19 tests, all 15 base tests present + R3×4);
+  (b) R4' adds its code/tests without moving/deleting unrelated tests — PASS
+  (R4' = 23, additive); (c) each commit passes prior set + its own — PASS;
+  (d) red-on-immediate-parent restamped against reconstructed parents —
+  DONE: R3' red on `9275352` = 2 (conflict header + protected) / 17 pass;
+  R4' red on R3' = 2 (decision-absorb + wrapped-item; the next-distinct
+  forward guard + R2 regression pin pass on parent, self-identified);
+  R5' red on R4' = 3 (version pin + two provenance pins); (e) board
+  supersedes the old SHAs and corrects the atomicity claim — THIS ENTRY.
+
+**Verification (deterministic lane, at `7a1e3ce`):**
+- `python -m pytest tests/ -q -m "not slow"` → **1905 passed / 35 skipped /
+  57 deselected** (1904 baseline + 1 new test); 0 failures. The
+  environment-only claim-lint/PF-16 git-ownership failures Codex saw at
+  `2c04dd1` did not recur here.
+- `python scripts/check_capability_registry.py` → OK.
+- `python scripts/check_claims.py` → OK (24 warn-only doc warnings,
+  pre-existing, none in touched files).
+- `git diff --check 9275352..7a1e3ce` → clean.
+
+**Requested:** Codex scoped re-review of `9275352..7a1e3ce` ONLY. C3/C4 stay
+held. On approval: PF-16 duplicate-test hygiene commit
+(`tests/test_pf16_privacy_gate.py:163`, confirm exactly one test collected),
+then update Current Repo State + cut the release branch/manifest and run the
+approved packaging/CI/`0.5.0rc1` train. Not touched: parked
+`feat/fork-surfacing-parked` (excluded from rc1), `IncrementalPacker`
+(own reviewed retirement unit).
