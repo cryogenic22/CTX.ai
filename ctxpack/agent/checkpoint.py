@@ -201,12 +201,42 @@ def build_gist(parsed: ParsedTranscript,
         header.append("## Decision conflicts (UNRESOLVED — comply, or "
                       "restate with `Supersedes: <fact_id> — <reason>`)")
         for c in shown:
-            against = c["against_src"]
-            if c.get("against_fact_id"):
-                against += f", fact {c['against_fact_id']}"
-            header.append(
-                f"- turn {c['decision_turn']}: \"{c['decision'][:100]}\" vs "
-                f"{c['case']} ({against}): \"{c['against'][:100]}\"")
+            # R3: never inject sliced operand text — a character cut can drop
+            # a tail negation (the same partial-fact compression path R1
+            # closed for ordinary rows). The two conflict classes render
+            # differently because their operands differ. An ordinary
+            # ledger-vs-ledger conflict has a real against FACT-ID, so both
+            # operands are whole in the ledger and `ctxpack session why`
+            # recovers each. A protected_subject conflict has NO against fact
+            # (the subject is a repo-declared policy phrase in protected.json,
+            # not a ledger fact); claiming `why <fact-id>` for it would point
+            # the agent at an id that does not exist, so the whole protected
+            # phrase is rendered inline and only the decision is recovered via
+            # `why`. (The header only ever held a truncated operand copy, so a
+            # pointer — or, for the protected side, the whole phrase — is the
+            # honest render.)
+            d_fid = c.get("decision_fact_id") or ""
+            d_ref = f", fact {d_fid}" if d_fid else ""
+            a_fid = c.get("against_fact_id") or ""
+            if a_fid:
+                header.append(
+                    f"- turn {c['decision_turn']} decision{d_ref} conflicts "
+                    f"with {c['case']} ({c['against_src']}, fact {a_fid}); "
+                    f"recover each verbatim via `ctxpack session why "
+                    f"<fact-id>`")
+            else:
+                # No against FACT-ID (protected subject): render the WHOLE
+                # protected phrase (never sliced) and recover only the
+                # decision via `why`. Never emit the generic "recover each
+                # via why <fact-id>" — the missing side has no fact to recover.
+                phrase = c.get("against") or ""
+                recover = (
+                    f"recover the decision via `ctxpack session why {d_fid}`"
+                    if d_fid else "recover the decision from the ledger")
+                header.append(
+                    f"- turn {c['decision_turn']} decision{d_ref} conflicts "
+                    f"with {c['case']} ({c['against_src']}): \"{phrase}\"; "
+                    f"{recover}")
         if len(unresolved) > len(shown):
             header.append(f"- ... {len(unresolved) - len(shown)} more in "
                           f"the ledger (events.jsonl)")

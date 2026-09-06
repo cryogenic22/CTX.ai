@@ -213,6 +213,136 @@ def test_r1_fact_lines_carry_fact_id(tmp_path):
     assert "fact " in build_project_gist(str(out))
 
 
+# ── R3: remediation of R1 residual (Codex 2026-09-03 Finding 1) ──
+# The never-evicted unresolved-conflict header still character-sliced its
+# operands ([:100]) and exposed only the against FACT-ID. RED on 7b43436.
+
+def test_r3_conflict_header_no_sliced_operand_and_carries_both_fact_ids(
+        tmp_path):
+    """R3(a,b,c). The conflict header injects no sliced operand text (a cut
+    could drop a tail negation) and cites BOTH operands' FACT-IDs. RED on
+    7b43436 (rendered decision[:100]/against[:100], only the against id)."""
+    trivial = tmp_path / "t.jsonl"
+    trivial.write_text(json.dumps(_entry("user", "hello there friend")),
+                       encoding="utf-8")
+    parsed = parse_transcript(str(trivial))
+    conflict = {
+        "resolved": False,
+        "decision_turn": 90,
+        "decision_fact_id": "d" * 16,
+        "decision": ("Decision: HEADDEC roll the migration forward " +
+                     "x " * 60 + "so we must not merge this branch"),
+        "case": "reverses",
+        "against_src": "s:abcd1234#turn12",
+        "against_fact_id": "a" * 16,
+        "against": ("Decision: HEADAGA keep the legacy adapter " +
+                    "y " * 60 + "so we must not deploy on Friday"),
+    }
+    gist = build_gist(parsed, conflicts=[conflict])
+    assert "UNRESOLVED" in gist
+    assert ("d" * 16) in gist and ("a" * 16) in gist   # both FACT-IDs
+    assert "HEADDEC" not in gist and "HEADAGA" not in gist  # no sliced text
+    assert "must not merge" not in gist                 # no partial negation
+
+
+_FAIL_NEG = (
+    "Conclusion: the shared-cache prototype HEADFAIL didn't work because two "
+    "workers raced on the same key and corrupted the counter under sustained "
+    "load, a data race we reproduced a dozen times over an afternoon, so on "
+    "the evidence we must not reuse that design.")
+_FIND_NEG = (
+    "Verdict: the egress scan HEADFIND covers the CLI reads but the MCP "
+    "resource path is left unscanned, a real gap a prompt-injected agent "
+    "could use to smuggle a banked secret out, so we must not claim full "
+    "coverage yet.")
+
+
+def test_r3_failed_and_finding_render_whole_with_fact_id(tmp_path):
+    """R3(d). Regression pin / coverage: R1's whole-fact render already
+    generalizes to FAILED-APPROACH and session FINDING (not only DECISION);
+    each renders whole with its FACT-ID in the session gist, ranked and
+    unranked. Passes on 7b43436 (R1 generic); freezes the coverage the
+    acceptance required."""
+    path = tmp_path / "kinds.jsonl"
+    path.write_text("\n".join(json.dumps(e) for e in [
+        _entry("assistant", [{"type": "text", "text": _FAIL_NEG}]),
+        _entry("assistant", [{"type": "text", "text": _FIND_NEG}],
+               sidechain=True),
+    ]), encoding="utf-8")
+    parsed = parse_transcript(str(path))
+    fa = next(e for e in parsed.corpus.entities
+              if e.name.startswith("FAILED-APPROACH"))
+    fi = next(e for e in parsed.corpus.entities
+              if e.name.startswith("FINDING"))
+    fa_id = next(f.value for f in fa.fields if f.key == "FACT-ID")
+    fi_id = next(f.value for f in fi.fields if f.key == "FACT-ID")
+    for gist in (build_gist(parsed), build_gist(parsed, ranks={"x": 1.0})):
+        assert "we must not reuse that design" in gist
+        assert "we must not claim full" in gist
+        assert f"fact {fa_id}" in gist and f"fact {fi_id}" in gist
+
+
+def test_r3_failed_approach_whole_in_project_gist(tmp_path):
+    """R3(d) for the project gist (FAILED-APPROACH is a project kind;
+    FINDING is not). Regression pin on 7b43436."""
+    from ctxpack.agent.checkpoint import build_project_gist, run_checkpoint
+    path = tmp_path / "fa.jsonl"
+    path.write_text(json.dumps(_entry("assistant",
+                    [{"type": "text", "text": _FAIL_NEG}])),
+                    encoding="utf-8")
+    out = tmp_path / "ctx"
+    out.mkdir()
+    run_checkpoint(str(path), str(out), as_of="2026-07-04")
+    for pg in (build_project_gist(str(out)),
+               build_project_gist(str(out), ranks={"x": 1.0})):
+        assert "we must not reuse that design" in pg
+        assert "fact " in pg
+
+
+def test_r3_protected_subject_conflict_renders_honestly(tmp_path):
+    """R3 Finding 1 (Codex 2026-09-03 re-review, P1). A protected_subject
+    conflict carries NO against FACT-ID — the subject is a repo-declared
+    policy phrase in protected.json, not a ledger fact. The never-evicted
+    unresolved-conflict header must render the decision FACT-ID plus the WHOLE
+    protected phrase and cite protected.json, and must NEVER tell the agent to
+    `ctxpack session why <fact-id>` the missing side (that id does not exist).
+    Exercised through the ACTUAL lint_decisions row, not a hand-built dict.
+    RED on 0b01ff6/8a0771d, which rendered the generic 'recover each verbatim
+    via ctxpack session why <fact-id>' for every row, dropping the phrase."""
+    from ctxpack.agent.conflict_lint import lint_decisions
+    out = tmp_path / "ctx"
+    out.mkdir()
+    (out / "protected.json").write_text(json.dumps({
+        "subjects": [{"phrase": "structural floor",
+                      "reason": "protected surface changes need review"}],
+    }), encoding="utf-8")
+    path = tmp_path / "s.jsonl"
+    path.write_text(json.dumps(_entry("assistant", [{"type": "text", "text":
+        "Decision: move CLAUDE.md into the structural floor so the release "
+        "gate must not be bypassed."}])), encoding="utf-8")
+    parsed = parse_transcript(str(path))
+
+    rows = lint_decisions(parsed.corpus.entities, str(out), parsed.session_id)
+    prot = [r for r in rows if r["case"] == "protected_subject"]
+    assert len(prot) == 1, rows                       # a real lint row
+    assert prot[0]["against_fact_id"] == ""           # no ledger fact behind it
+    d_fid = prot[0]["decision_fact_id"]
+    assert d_fid                                       # a real decision fact id
+
+    gist = build_gist(parsed, conflicts=rows)
+    line = next(ln for ln in gist.splitlines()
+                if ln.startswith("- ") and "protected_subject" in ln)
+    # (b) decision FACT-ID + whole protected phrase + honest source reference
+    assert f"fact {d_fid}" in line
+    assert "structural floor" in line                  # whole phrase, unsliced
+    assert "protected.json" in line
+    # (c) never claim the missing side is recoverable via `why`, and never
+    # emit the generic <fact-id> placeholder for a row with no against id
+    assert "recover each verbatim via `ctxpack session why <fact-id>`" \
+        not in line
+    assert "<fact-id>" not in line
+
+
 # ── C2: join soft line-wraps before sentence splitting ──
 
 
