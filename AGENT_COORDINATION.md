@@ -1908,3 +1908,116 @@ then update Current Repo State + cut the release branch/manifest and run the
 approved packaging/CI/`0.5.0rc1` train. Not touched: parked
 `feat/fork-surfacing-parked` (excluded from rc1), `IncrementalPacker`
 (own reviewed retirement unit).
+
+### 2026-09-06 - Codex scoped capture re-review + merge-readiness audit - APPROVE
+
+**Reviewed range:** `9275352..7a1e3ce` only (R3' `6d6c85b`, R4'
+`8038067`, R5' `7a1e3ce`). **Verdict: APPROVE.** No P1/P2 finding remains
+in this scoped range. This approval does not merge a branch, approve the
+parked fork-surfacing code, or authorize post-rc1 feature work.
+
+**Finding / required acceptance cases / fix SHA / status per case:**
+
+- **Protected-subject recovery:** ordinary ledger conflicts retain both real
+  FACT-IDs; protected-subject conflicts render the whole protected phrase and
+  its `protected.json` source, recover only the real decision FACT-ID, and do
+  not invent an against FACT-ID. **Fix `6d6c85b`: (a) PASS (b) PASS (c) PASS
+  (d) PASS (e) PASS.** Direct red-on-`9275352`: the ordinary-header and real
+  protected-row tests both failed (2/2) as claimed.
+- **Atomic reconstruction:** R3' and R4' are additive over the accepted base;
+  prior C1/C2/R1/R2 tests are present at every reconstructed commit, and the
+  version bump is isolated in R5'. **Fixes `6d6c85b`, `8038067`, `7a1e3ce`:
+  all cases PASS.** Direct red-on-immediate-parent reproduced R4' 2/2 failures
+  on `6d6c85b` and R5' 3/3 failures on `8038067`. `git diff --check
+  9275352..7a1e3ce` is clean.
+
+**Independent final-tree verification:**
+`python -m pytest tests/test_capture_fidelity.py tests/test_conflict_lint.py
+tests/test_negation_preservation.py tests/test_p0_trust_repairs.py
+tests/test_authority_provenance.py tests/test_redaction.py -q` -> **117
+passed**. Claims gate -> OK with the existing 24 warn-only documentation
+warnings; capability registry gate -> OK. The owner-reported full non-slow
+result remains **1905 passed / 35 skipped / 57 deselected**. Temporary review
+worktrees were removed; product code and tests were not edited by the reviewer.
+
+**Merge truth:** local `capture-fidelity` is a linear descendant of local
+`main` and already contains `feat/literals-ledger`; it is 212 commits ahead of
+local main and 223 ahead of public `origin/main`. Therefore there is only one
+release-line merge, not a separate literals-ledger merge. `capture-fidelity-prev`
+is a superseded audit backup and must not merge. `feat/fork-surfacing-parked`
+remains do-not-merge and excluded from rc1 pending its separate code review.
+
+**Release blockers (not capture findings):** there is no open PR or published
+release; public CI is red and fail-fast cancels most of its matrix; current
+`pyproject.toml` is still `0.5.0` with no analytics/test extras while
+`ctxpack/modules/analytics.py` imports `yaml`; current CI still installs only
+`pytest`, uses `-x`, and floating `checkout@v4`/`setup-python@v5`; public main
+has no branch protection. The public diff is large (223 commits, 234 files,
+73,406 insertions), so a machine-readable accepted-range/file manifest is a
+release gate. The live worktree also contains tracked `.claude/ctx` churn and
+untracked review/docs artifacts; cut the release branch in a fresh worktree,
+not from this dirty checkout.
+
+**Owner instruction:** the capture and E-6 review freezes are now closed.
+Proceed in this order only: (1) one additive PF-16 duplicate-test cleanup and
+collection proof; (2) cut `release/v0.5.0-rc1` from accepted tip `dbde76c` in
+a fresh worktree and commit the machine-readable release manifest; (3) ship
+the declared packaging dependency model (`analytics`, `test`, `all`) and
+PEP-440 `0.5.0rc1`; (4) land fail-closed CI plus build/wheel/install smokes;
+(5) push one release PR, enable the stable `ci-required` protection check,
+obtain approval, merge, tag and smoke the tag. Retire `IncrementalPacker` in
+its own reviewed unit only if declared in the manifest; otherwise it remains
+unsupported and is the first post-rc1 cleanup. Do not merge/archive/delete
+branches until the rc1 tag makes their disposition auditable.
+
+### 2026-09-06 - Release train gate (1) PF-16 dedup - DONE (Claude, branch capture-fidelity)
+
+Gate (1) of the owner-instructed release order is complete.
+
+**Change:** `bb47c52` `fix(pf16): drop duplicate test def; exactly one collected`.
+`test_unreadable_committed_file_raises_never_passes` was defined twice in
+`tests/test_pf16_privacy_gate.py` (byte-identical, lines 163 and 170); the
+second shadowed the first. Removed the redundant copy — additive hygiene, no
+guard weakened (surviving copy still feeds `scan_file` on a missing path and
+requires `GateError`).
+
+**Proof (deterministic lane, at `bb47c52`):**
+- `pytest tests/test_pf16_privacy_gate.py --collect-only` -> exactly **1**
+  `test_unreadable_committed_file_raises_never_passes` collected.
+- `pytest tests/test_pf16_privacy_gate.py -q` -> **13 passed**.
+
+Committed as a single-file commit; `.claude/ctx` churn and untracked
+`.review_tmp_*/`/`docs/*`/`_to_delete/` artifacts NOT staged.
+
+**PAUSED before gates (2)-(5).** Those are outward-facing / owner-gated: fresh
+worktree + `release/v0.5.0-rc1` branch cut + manifest (2); packaging model +
+PEP-440 `0.5.0rc1` (3); fail-closed CI + build/install smokes (4); remote PR,
+`ci-required` branch protection, approval, merge, tag, tag-smoke (5). Awaiting
+owner go-ahead on scope — specifically whether to prepare (2)-(4) locally in a
+ fresh worktree stopping before anything hits `origin`, since (5) needs owner
+ GitHub actions regardless.
+
+### 2026-09-06 - Codex handoff - proceed with local release preparation only
+
+**Recommended next action:** choose the local-preparation path for Gates 2-4
+and stop before any remote mutation. The branch point in the proposed option
+needs one correction: Gate 1 is commit `bb47c52`, so
+`release/v0.5.0-rc1` must start from `bb47c52` (or a later board-only commit
+that descends from it), **not** from earlier `dbde76c`. Otherwise the release
+line silently loses the approved PF-16 deduplication.
+
+**Authorized local scope:** in a fresh worktree, commit (a) the
+machine-readable release manifest and branch-disposition table, (b) the
+`analytics`/`test`/`all` optional-dependency model plus lazy/guarded PyYAML
+behavior and PEP-440 version `0.5.0rc1`, and (c) fail-closed CI with core,
+test, extras/gates, and `ci-required` aggregation. Build wheel + sdist, inspect
+them, install the wheel in a clean environment, assert installed metadata is
+`0.5.0rc1`, and run CLI/onboard/checkpoint/resume/recall/why/gate smokes.
+Return exact SHAs, artifact hashes, and commands for review.
+
+**Stop boundary:** no push, PR, branch-protection change, merge, tag, release,
+PyPI publication, branch deletion, parked-branch merge, Track C/C3/C4, or new
+feature work in this unit. Gate 5 remains an explicit owner/reviewer action
+after the local release range is reviewed. The dirty live checkout is not the
+release worktree and none of its `.claude/ctx`, `.review_tmp_*`, `_to_delete`,
+or untracked document state belongs in the release manifest by implication.
