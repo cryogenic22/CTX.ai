@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ctxpack"
-version = "0.5.0"
+version = "0.5.0rc1"
 description = "Deterministic session memory for long-running agents — pack-on-compact ledger for Claude Code ('compaction is a commit, not a loss event') + zero-dependency domain-knowledge packer with progressive hydration"
 readme = "README.md"
 license = "Apache-2.0"
@@ -51,8 +51,25 @@ code = [
 mcp = [
     "mcp>=1.0",
 ]
+# Analytics domain-pack compiler (ctxpack.modules.analytics): PyYAML for
+# full YAML domain packs (folded scalars/anchors). Optional so the prose
+# packer stays zero-dep — install with `pip install ctxpack[analytics]`.
+analytics = [
+    "PyYAML>=6.0",
+]
+# All optional runtime features (code + mcp + analytics).
 all = [
-    "ctxpack[code,mcp]",
+    "ctxpack[code,mcp,analytics]",
+]
+# Test runner + the direct deps the ordinary (non-integration) test lane
+# needs to collect and run non-vacuously: pytest, plus PyYAML for the
+# hermetic analytics tests. It deliberately does NOT pull `all` — the
+# code/MCP integration lanes install `.[all,test]` in the separate CI
+# `extras` job, keeping the ordinary and optional-integration test lanes
+# distinct (Codex Finding 2).
+test = [
+    "pytest>=7.0",
+    "PyYAML>=6.0",
 ]
 
 [project.urls]
