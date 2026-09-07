@@ -758,6 +758,9 @@ def test_code_pack_file_warning_carries_category_not_exception_text(
     minted exception class named with a secret) produces a FileWarning
     whose message is the bounded category; the file field stays the
     actionable datum. RED on parent: message was class name + text."""
+    # Exercises the code-packer, which needs the `code` extra (tree-sitter);
+    # skip cleanly in the ordinary CI lane, runs in the `extras` lane.
+    pytest.importorskip("tree_sitter")
     from ctxpack.core.code.pack import pack_codebase
 
     secret = "AKIAIOSFODNN7EXAMPLE"

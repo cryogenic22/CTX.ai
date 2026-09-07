@@ -6,37 +6,171 @@ on:
   pull_request:
     branches: [main]
 
+# Least privilege: CI only needs to read the checkout.
+permissions:
+  contents: read
+
+# Fail-closed: do NOT cancel in-progress matrix cells. A superseded run
+# finishing is fine; silently dropping half the matrix is not.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+# Official actions are pinned to full 40-char commit SHAs (v6 generation,
+# Node 24). The trailing comment records the tag and the date the tag
+# resolved to, so the pin stays auditable.
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
+  # ── core: the built package must import and expose its console script
+  #    with ZERO optional dependencies, PROVEN from OUTSIDE the checkout so
+  #    the INSTALLED artifact (not the source tree) is exercised. Never
+  #    invokes pytest — pytest is not a core dependency (Codex Finding 1).
+  core:
+    name: core (zero-dep, py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.13"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6 (2026-07-16)
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6 (2026-06-23)
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install package
-        run: pip install -e .
-      - name: Install test dependencies
-        run: pip install pytest
-      - name: Run tests
-        run: python -m pytest tests/ -x -q
+      - name: Install core only (no extras, no test runner)
+        run: pip install .
+      - name: Import + console-script smoke OUTSIDE the checkout
+        # cd out of the repo so `import ctxpack` resolves to the INSTALLED
+        # package, not the source tree (py3.10 has no `python -P`).
+        run: |
+          cd "${RUNNER_TEMP}"
+          python -c "import ctxpack; print('import OK from', ctxpack.__file__)"
+          python -c "import importlib.metadata as m; print('version', m.version('ctxpack'))"
+          ctxpack --help
+      - name: Assert no optional deps leaked into the core install
+        run: |
+          cd "${RUNNER_TEMP}"
+          python - <<'PY'
+          import importlib.util as u
+          leaked = [m for m in ("yaml", "tiktoken", "tree_sitter", "mcp")
+                    if u.find_spec(m) is not None]
+          assert not leaked, f"optional deps present in the core env: {leaked}"
+          print("core env is dep-free")
+          PY
 
-  # Dedicated tokenizer job (reviewer finding Q2-4): the calibration
-  # KILL gate runs everywhere via committed cl100k counts; this job
-  # additionally installs tiktoken so the frozen counts are re-verified
-  # against the live encoding on every push.
-  tokenizer-calibration:
+  # ── test: the ORDINARY (non-integration) lane — full non-slow suite MINUS
+  #    the code/MCP integration tree (tests/code), with only the `test`
+  #    extra (pytest + PyYAML, never `all`). Broad OS/Python matrix per the
+  #    owner (reviewer minimum): 3.10-3.13 on Ubuntu, endpoints elsewhere.
+  test:
+    name: test (${{ matrix.os }} py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-latest,  python-version: "3.10"}
+          - {os: ubuntu-latest,  python-version: "3.11"}
+          - {os: ubuntu-latest,  python-version: "3.12"}
+          - {os: ubuntu-latest,  python-version: "3.13"}
+          - {os: windows-latest, python-version: "3.10"}
+          - {os: windows-latest, python-version: "3.13"}
+          - {os: macos-latest,   python-version: "3.10"}
+          - {os: macos-latest,   python-version: "3.13"}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6 (2026-07-16)
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6 (2026-06-23)
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package + test extra (pytest + PyYAML; NOT all)
+        run: pip install ".[test]"
+      - name: Run ordinary lane (no -x; report every failure)
+        run: python -m pytest tests/ -q -m "not slow" --ignore=tests/code
+
+  # ── extras: the OPTIONAL-INTEGRATION lane — install every runtime extra
+  #    and run the FULL non-slow suite (incl. tests/code code-packer + MCP,
+  #    and the analytics hermetic lane) on one Ubuntu/3.12 cell.
+  extras:
+    name: extras (ubuntu py3.12, .[all,test])
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6 (2026-07-16)
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6 (2026-06-23)
         with:
           python-version: "3.12"
-      - name: Install package + tokenizer
-        run: pip install -e . pytest tiktoken
-      - name: Run token-accounting gate (with live tokenizer)
+      - name: Install package + ALL runtime extras + test runner
+        run: pip install ".[all,test]"
+      - name: Run full non-slow suite (code / MCP / analytics integrations)
+        run: python -m pytest tests/ -q -m "not slow"
+
+  # ── gates: the non-suite guards the deterministic lane depends on, plus
+  #    the tokenizer calibration re-verified against the live encoding
+  #    (needs the [code] extra's tiktoken, hence .[all,test]).
+  gates:
+    name: gates (claims + registry + tokenizer)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6 (2026-07-16)
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6 (2026-06-23)
+        with:
+          python-version: "3.12"
+      - name: Install package + all runtime extras + test runner
+        run: pip install ".[all,test]"
+      - name: Claims gate
+        run: python scripts/check_claims.py
+      - name: Capability registry gate
+        run: python scripts/check_capability_registry.py
+      - name: Token-accounting gate (live tokenizer via [code] extra)
         run: python -m pytest tests/test_token_accounting.py -q
+
+  # ── artifact: build wheel + sdist, check BOTH, install the wheel into a
+  #    CLEAN venv, assert the metadata version, smoke the console script.
+  artifact:
+    name: artifact (build + clean-install)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6 (2026-07-16)
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6 (2026-06-23)
+        with:
+          python-version: "3.12"
+      - name: Build wheel + sdist
+        run: |
+          pip install build twine
+          python -m build
+      - name: Check both distributions
+        run: twine check dist/*
+      - name: Clean-venv install of the WHEEL + metadata + CLI smoke
+        run: |
+          python -m venv "${RUNNER_TEMP}/clean"
+          "${RUNNER_TEMP}/clean/bin/pip" install --upgrade pip
+          "${RUNNER_TEMP}/clean/bin/pip" install dist/*.whl
+          cd "${RUNNER_TEMP}"
+          "${RUNNER_TEMP}/clean/bin/python" - <<'PY'
+          import importlib.metadata as m
+          v = m.version("ctxpack")
+          assert v == "0.5.0rc1", f"unexpected installed version {v!r}"
+          import ctxpack  # noqa: F401 — dep-free import from the clean env
+          print("clean wheel install OK, version", v)
+          PY
+          "${RUNNER_TEMP}/clean/bin/ctxpack" --help
+
+  # ── ci-required: the single stable check for branch protection. Fail-
+  #    closed aggregator — passes only if EVERY upstream job succeeded.
+  #    `if: always()` so it still runs (and fails) when an upstream job
+  #    fails, is cancelled, or is skipped.
+  ci-required:
+    name: ci-required
+    needs: [core, test, extras, gates, artifact]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all upstream jobs to have succeeded
+        run: |
+          results="${{ join(needs.*.result, ' ') }}"
+          echo "upstream job results: ${results}"
+          for r in ${results}; do
+            if [ "${r}" != "success" ]; then
+              echo "::error::a required job did not succeed (saw '${r}')"
+              exit 1
+            fi
+          done
+          echo "all required jobs succeeded"

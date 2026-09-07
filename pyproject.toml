@@ -61,15 +61,19 @@ analytics = [
 all = [
     "ctxpack[code,mcp,analytics]",
 ]
-# Test runner + the direct deps the ordinary (non-integration) test lane
-# needs to collect and run non-vacuously: pytest, plus PyYAML for the
-# hermetic analytics tests. It deliberately does NOT pull `all` — the
-# code/MCP integration lanes install `.[all,test]` in the separate CI
-# `extras` job, keeping the ordinary and optional-integration test lanes
-# distinct (Codex Finding 2).
+# Test runner + the DIRECT deps the ordinary (non-integration) test lane
+# needs to COLLECT and run non-vacuously: pytest, PyYAML (hermetic
+# analytics lane), tiktoken (token-accounting), and mcp (MCP handler tests
+# plus the module-level collection dependency of test_mcp_tool_budget.py).
+# These are listed directly, NOT via `ctxpack[all]` — tree-sitter (the
+# code-packer) is deliberately excluded, so the ordinary lane and the
+# `.[all,test]` integration lane stay distinct (Codex Finding 2). The CI
+# `extras` job installs `.[all,test]` to exercise the code-packer.
 test = [
     "pytest>=7.0",
     "PyYAML>=6.0",
+    "tiktoken>=0.7",
+    "mcp>=1.0",
 ]
 
 [project.urls]
