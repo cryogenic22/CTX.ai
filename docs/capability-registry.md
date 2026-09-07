@@ -45,7 +45,6 @@ a function), so importing the product never executes non-product code.
 | `ctxpack/core/` | core | — | .ctx model, parser/serializer/validator, packer pipeline, hydrator, entity graph, fact IDs, supersession DAG, rank, telemetry |
 | `ctxpack/core/code/` | core | — | code packer (`[code]` extra: tree-sitter, tiktoken) |
 | `ctxpack/core/confidence.py` | experimental | ConfidenceTracker | prototype confidence learning; only consumer is `modules/dream.py`; banked "prototype evidence, never revive as-is" |
-| `ctxpack/core/incremental.py` | legacy-deprecation-candidate | IncrementalPacker | zero callers |
 | `ctxpack/__init__.py` | core | — | package root |
 | `ctxpack/agent/` | core | — | session-memory substrate: transcript parser, checkpoint engine, read path, conflict lint, scorecard |
 | `ctxpack/agent/__init__.py` | core | — | package init; exports `compress_state` (eval-tier trace-compression API) via **lazy** import of `state_parser` — core imports must never execute eval code (reviewer finding Q2-5) |
