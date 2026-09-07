@@ -1,0 +1,208 @@
+{
+  "schema": "ctxpack/release-manifest/v2",
+  "release": "v0.5.0-rc1",
+  "version": "0.5.0rc1",
+  "generated": {
+    "date": "2026-09-07",
+    "by": "release-train R2 reconstruction (local prep; no remote mutation)"
+  },
+  "authorization": "AGENT_COORDINATION.md Codex verdict 2026-09-07 (CHANGES REQUIRED on 762c8ae..ac4dd9a) + owner instruction to rebuild a replacement local lineage satisfying Findings 1-5 and request one scoped re-review. Local prep only; stop before any remote mutation.",
+  "supersedes": {
+    "rejected_range": "762c8ae..ac4dd9a",
+    "rejected_tip": "ac4dd9aa09eed3dfa6dfc0230496beb4dc410846",
+    "verdict": "Codex CHANGES REQUIRED 2026-09-07 (Findings 1-5)",
+    "note": "Replaced by this R2 lineage per owner instruction. The rejected tip is preserved as branch audit/release-v0.5.0-rc1-ac4dd9a and must NEVER be merged; no force-push, no branch reset."
+  },
+  "lineage": {
+    "release_branch": "release/v0.5.0-rc1-r2",
+    "branch_point": {
+      "sha": "762c8ae038904166426dfa41a7cce321200b6aa6",
+      "short": "762c8ae",
+      "note": "board-only descendant of gate-1 bb47c52 (owner correction: NOT dbde76c) so the approved PF-16 dedup stays in the release line."
+    },
+    "contains_gate1": {
+      "sha": "bb47c520ee870036cd139636e88555849ba85bd9",
+      "short": "bb47c52",
+      "subject": "fix(pf16): drop duplicate test def; exactly one collected"
+    },
+    "target_base": {
+      "ref": "origin/main",
+      "sha": "2c7ed0f14d0a6d200fec9cb824e7c653440cdf3f",
+      "note": "EXACT SHA the eventual gate-5 release PR targets, pinned per Finding 5c (not an unanchored ahead-count). Verify origin/main still resolves to this SHA before opening the PR."
+    },
+    "ahead_of_target_base": {
+      "count": 230,
+      "anchored_to": "2c7ed0f14d0a6d200fec9cb824e7c653440cdf3f",
+      "note": "commit count of release/v0.5.0-rc1-r2 over the pinned origin/main SHA (includes this manifest commit)."
+    },
+    "ahead_of_local_main": 219,
+    "audit_backup": {
+      "branch": "audit/release-v0.5.0-rc1-ac4dd9a",
+      "sha": "ac4dd9aa09eed3dfa6dfc0230496beb4dc410846",
+      "note": "the rejected tip, preserved read-only for audit; NEVER merge."
+    }
+  },
+  "content_commits": [
+    {
+      "sha": "99cc95225cae7727d2536594b92efe7babf9e062",
+      "short": "99cc952",
+      "role": "retire-incrementalpacker",
+      "subject": "fix: retire zero-caller IncrementalPacker (atomic)",
+      "atomic": "module + test + generated ref + registry row + live status-doc claims in ONE commit; registry/import green at this commit (Finding 4a)."
+    },
+    {
+      "sha": "6523b0c4a2dcc92d839d5aaaf903cb550c065ede",
+      "short": "6523b0c",
+      "role": "packaging-analytics",
+      "subject": "fix(packaging): lazy PyYAML + extras + hermetic analytics tests (atomic)",
+      "atomic": "lazy PyYAML + analytics/test/all extras + 0.5.0rc1 + hermetic tests in ONE commit; advertised `pip install ctxpack[analytics]` valid at this commit (Finding 4b, 2a, 2b)."
+    },
+    {
+      "sha": "7e0742dd921e1660010d0c2a7d3d741a4e3e6d41",
+      "short": "7e0742d",
+      "role": "byte-portability",
+      "subject": "fix(ci): make byte gates checkout-portable (eol=lf + SHA re-baseline)",
+      "note": "Finding 3: .gitattributes over the whole hash-bound surface + LF SHA re-baseline (references only) + portability guard."
+    },
+    {
+      "sha": "781a81ac29c6a74d2915d807ff187e9ad0d495f8",
+      "short": "781a81a",
+      "role": "ci-fail-closed",
+      "subject": "fix(ci): fail-closed CI with honest core/test/extras/gates/artifact jobs",
+      "note": "Findings 1 & 2: five jobs + fail-closed aggregator; full-SHA v6 action pins."
+    }
+  ],
+  "manifest_commit": {
+    "note": "THIS commit (the release-truth + manifest commit; its SHA is the branch tip, see git log) is distinct from the four content commits above. It carries: the release manifest (this file + the companion .md), the paper/status-and-value-v0.5.md v0.5.0-rc1 candidate/not-released correction (Finding 5a), and the ctxpack/agent/fixture_privacy.py PF-16 strict-refusal doc correction (Finding 5b)."
+  },
+  "findings_remediated": {
+    "F1_core_ci_cannot_run": {
+      "commit": "781a81a",
+      "how": "core job installs only the built package and runs import + console-script smoke OUTSIDE the checkout with no optional deps; never invokes pytest; determinism/negation run in the test job; new artifact job builds/checks/clean-installs the wheel and asserts metadata; ci-required needs artifact+extras.",
+      "acceptance": "clean-venv reproduction passed (a-e)."
+    },
+    "F2_vacuous_integration_and_hardening": {
+      "commit": "6523b0c + 781a81a",
+      "how": "hermetic inline-YAML analytics tests + PyYAML-absence tests run without Bright_Light; external-pack skip scoped per integration class; `test` extra = direct deps (pytest, PyYAML, tiktoken, mcp), NOT `all`; separate `extras` job installs `.[all,test]`; matrix 3.10-3.13 on Ubuntu + endpoints on Windows/macOS; actions pinned to full v6 SHAs; ci-required includes extras.",
+      "acceptance": "hermetic lane 8 pass / integration skip; ordinary lane green in clean .[test] venv (a-f)."
+    },
+    "F3_byte_gates_checkout_dependent": {
+      "commit": "7e0742d",
+      "how": ".gitattributes `ctxpack/benchmarks/** text eol=lf` + `scorecards/** text eol=lf` (+ niah log `-text`); proven-safe (0 CR bytes in 1130+8+9 blobs, renormalize a no-op); re-baseline recorded SHAs to LF blob bytes ONLY (PF-16 33 entries / claims-ledger 6 rows), detector/count/why identical; new byte-portability guard.",
+      "acceptance": "3 disclosed gates RED on LF checkout -> GREEN; pass on a fresh core.autocrlf=true clone; count-stability 0 changes; gates still read working-copy bytes."
+    },
+    "F4_non_atomic_commits": {
+      "commit": "99cc952 + 6523b0c",
+      "how": "reconstructed the range from 762c8ae as atomic commits: one retirement commit (registry green at it), one packaging/analytics commit (install instruction valid at it). No rewrite of the accepted base; rejected tip preserved as audit backup; no force-push.",
+      "acceptance": "each commit independently green."
+    },
+    "F5_release_truth_and_manifest": {
+      "commit": "<manifest commit — this commit>",
+      "how": "status-and-value v0.5.0 'shipped/tagged' -> 'candidate, not yet tagged or published'; IncrementalPacker live claims removed in 99cc952 (historical marked retired); PF-16 module doc corrected to strict refusal; this manifest regenerated last, pins the exact target-base SHA, distinguishes content vs manifest commit, states GitHub-prerelease-only/no-PyPI, records final artifacts.",
+      "acceptance": "full non-slow suite with NO deselected gates + standing gates + git diff --check + clean-checkout smoke (see verification)."
+    }
+  },
+  "packaging": {
+    "version": "0.5.0rc1",
+    "core_dependencies": [],
+    "core_stays_zero_dep": true,
+    "optional_extras": {
+      "code": ["tree-sitter>=0.21", "tree-sitter-python>=0.21", "tree-sitter-typescript>=0.21", "tiktoken>=0.7"],
+      "mcp": ["mcp>=1.0"],
+      "analytics": ["PyYAML>=6.0"],
+      "all": ["ctxpack[code,mcp,analytics]"],
+      "test": ["pytest>=7.0", "PyYAML>=6.0", "tiktoken>=0.7", "mcp>=1.0"]
+    },
+    "test_extra_note": "DIRECT deps for the ordinary CI lane (collection + non-vacuous run), NOT `ctxpack[all]`; tree-sitter (code-packer) is excluded so the ordinary and `.[all,test]` integration lanes stay distinct (Finding 2)."
+  },
+  "ci": {
+    "file": ".github/workflows/ci.yml",
+    "model": "fail-closed",
+    "jobs": {
+      "core": "zero-dep py3.10/3.13; installs `.`, import+CLI smoke OUTSIDE the checkout, asserts no optional dep leaked, NEVER runs pytest",
+      "test": "ordinary lane, `.[test]`, `pytest tests/ -m 'not slow' --ignore=tests/code`, 8 cells (ubuntu 3.10-3.13 + win/mac 3.10,3.13)",
+      "extras": "ubuntu/3.12, `.[all,test]`, FULL non-slow suite incl. tests/code (code-packer + MCP)",
+      "gates": "ubuntu/3.12, claims + capability-registry + token-accounting",
+      "artifact": "ubuntu/3.12, build wheel+sdist, twine check both, clean-venv install wheel, assert metadata 0.5.0rc1, CLI smoke",
+      "ci-required": "needs [core,test,extras,gates,artifact]; if: always(); fails unless every upstream result == success"
+    },
+    "required_check": "ci-required",
+    "action_pins": {
+      "actions/checkout": "d23441a48e516b6c34aea4fa41551a30e30af803 (v6, tag resolved 2026-07-16)",
+      "actions/setup-python": "ece7cb06caefa5fff74198d8649806c4678c61a1 (v6, tag resolved 2026-06-23)"
+    },
+    "hardening": "permissions contents:read; concurrency cancel-in-progress:false; official actions pinned to full 40-char v6 SHAs.",
+    "runs_now": false,
+    "runs_when": "on push/PR to main once the release branch reaches the remote (gate 5)."
+  },
+  "retirements": [
+    {
+      "name": "IncrementalPacker",
+      "path_removed": "ctxpack/core/incremental.py",
+      "test_removed": "tests/test_incremental_packer.py",
+      "registry_row_removed": "docs/capability-registry.md",
+      "generated_ref_removed": ".claude/rules/anti-slop.md",
+      "reason": "zero product callers; stale-mtime fast-path contradicts Track C.",
+      "commit": "99cc952"
+    }
+  ],
+  "byte_portability": {
+    "gitattributes_added": ["ctxpack/benchmarks/** text eol=lf", "scorecards/** text eol=lf", "ctxpack/benchmarks/agentic/results/niah_full_run.log -text"],
+    "safety_proof": "0 of 1130 benchmark + 8 scorecard + 9 token-calibration blobs contain a CR byte; `git add --renormalize .` changed ZERO artifact blobs (eol=lf is a content no-op). The one non-UTF-8 artifact (niah_full_run.log) is `-text`.",
+    "rebaseline": {
+      "pf16_allowlist_entries_changed": 33,
+      "pf16_unique_sha_remaps": 30,
+      "claims_ledger_rows_changed": 6,
+      "claims_ledger_artifacts": 4,
+      "count_changes": 0,
+      "new_hits": 0,
+      "stale_entries": 0,
+      "note": "recorded SHA references re-baselined to the existing LF blob bytes ONLY; no artifact bytes altered; detector/count/why identical."
+    },
+    "portability_guard": "tests/test_byte_portability.py (forward guard + can-fail control)."
+  },
+  "publication": {
+    "channel": "GitHub prerelease ONLY",
+    "pypi": false,
+    "note": "Owner decision 2026-09-07: prepare v0.5.0-rc1 as a GitHub prerelease; do NOT publish to PyPI yet. Tag `v0.5.0-rc1` at gate 5."
+  },
+  "verification": {
+    "environment": "Windows worktree C:/Users/kapil/Documents/CTX_mod_r2, core.autocrlf=false (working copy == committed LF blobs).",
+    "full_non_slow_suite_NO_deselected_gates": {
+      "command": "python -m pytest tests/ -q -m 'not slow'  (env .[all,test]; NO --deselect of any release gate; includes tests/code)",
+      "passed": 1900,
+      "skipped": 33,
+      "deselected": 57,
+      "exit": 0
+    },
+    "standing_gates": {
+      "claims_gate": "OK",
+      "capability_registry_gate": "OK",
+      "byte_gates_on_faithful_LF": "the 3 disclosed gates GREEN (were RED pre-fix); also GREEN on a fresh core.autocrlf=true clone",
+      "git_diff_check": "clean"
+    },
+    "build": {
+      "command": "python -m build (from the final tree)",
+      "note": "build-instance hashes: zip mtimes are not reproducible, and the sdist contains this manifest, so byte hashes are informational. Definitive checks are twine check + wheel metadata + contents + clean-venv install (all deterministic).",
+      "wheel": {"name": "ctxpack-0.5.0rc1-py3-none-any.whl", "sha256": "ee408f8611135fb700064901a9793b115fd26693b30c8ddd07f50ddedb8f867b"},
+      "sdist": {"name": "ctxpack-0.5.0rc1.tar.gz", "sha256": "8cf2e404228c3de8acf428360df1a9ce1b20aba4b51ec285fa0bcb37db8b046c"},
+      "twine_check": "PASSED (wheel + sdist)",
+      "wheel_contents": {"metadata_version": "0.5.0rc1", "provides_extra": ["all", "analytics", "code", "mcp", "test"], "tests_files": 0, "incremental_py_present": false, "entry_point": "ctxpack = ctxpack.cli.main:main"}
+    },
+    "install_smoke": {
+      "core_env": "pip install . (no extras) -> import + `ctxpack --help` from OUTSIDE the checkout OK; 0 optional deps leaked; version 0.5.0rc1",
+      "clean_wheel": "pip install <wheel> in a fresh venv -> version 0.5.0rc1, import OK, `ctxpack --help` OK"
+    }
+  },
+  "branch_dispositions": {
+    "release/v0.5.0-rc1-r2": "THIS release lineage (local only; not pushed). Becomes the canonical release branch on R2 approval (owner).",
+    "release/v0.5.0-rc1": "the SUPERSEDED first attempt (tip ac4dd9a); left untouched (not reset/force-moved).",
+    "audit/release-v0.5.0-rc1-ac4dd9a": "audit backup of the rejected tip ac4dd9a; NEVER merge.",
+    "capture-fidelity": "the accepted capture lineage; 762c8ae descends from its gate-1 + board tip.",
+    "feat/literals-ledger": "already CONTAINED in capture-fidelity - do NOT merge separately.",
+    "capture-fidelity-prev": "superseded audit backup - NEVER merge.",
+    "feat/fork-surfacing-parked": "do-not-merge; EXCLUDED from rc1 pending its own separate code review.",
+    "main / origin/main": "public target for the single gate-5 release PR (pinned SHA 2c7ed0f)."
+  },
+  "stop_boundary": "R2 local prep + one scoped re-review only. NOT done: git push, PR, branch-protection change, merge, tag, GitHub release, PyPI publish, branch delete/archive, parked-branch merge, Track C / C3 / C4, new feature work. Gate 5 is an explicit owner/reviewer action after this R2 range is reviewed."
+}

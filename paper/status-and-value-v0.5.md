@@ -23,7 +23,7 @@ length: 1-page status with claim grades
 
 | Layer | Status | Where |
 |---|---|---|
-| **v0.5.0 release** | shipped | `main`, tagged |
+| **v0.5.0-rc1 release** | candidate — prepared locally, NOT yet tagged or published | `release/v0.5.0-rc1-r2` (local); GitHub prerelease pending owner/reviewer sign-off, no PyPI |
 | **Whitepaper v3 eval** | ✅ measured on a synthetic corpus | `paper/ctxpack-whitepaper-v3.md` |
 | **Phase 1 — Four-Layer typing** | shipped (`151956a`) | `ctxpack/core/layers.py`, `ir.py`, `model.py` |
 | **Phase 2 — Layer-aware consumers** | shipped (`246f435`) | `compressor.py`, `hydrator.py`, `modules/grounding.py` |

@@ -10,10 +10,12 @@ with two detectors and holds the result to a reviewed allowlist:
   ``/home/<name>``, ``/Users/<name>``), count = DISTINCT matched
   strings (occurrence counts of the same path are churn, new distinct
   paths are signal).
-Bytes that cannot be strictly UTF-8 decoded are scanned LOSSILY
-(``errors="replace"``) — acknowledged-but-unscanned is not a privacy
-pass (Finding 4b, 2026-08-23); an ASCII-region secret inside a binary
-log is still found. A committed file that cannot be READ at all raises:
+Bytes that cannot be strictly UTF-8 decoded are REFUSED, never lossily
+scanned (RF1, Codex Finding 1): a NUL byte yields detector ``non_text``
+and a strict-UTF-8 decode failure yields ``non_utf8``. Both are findings
+unless the allowlist carries an explicit, sha-bound owner disposition —
+there is no lossy-clean waiver, so a wide/invalid-encoded secret can
+never pass silently. A committed file that cannot be READ at all raises:
 the gate never passes by being unable to look.
 
 The allowlist (``tests/fixture_privacy_allowlist.json``) is part of the
