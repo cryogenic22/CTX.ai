@@ -3,8 +3,8 @@
   "release": "v0.5.0-rc1",
   "version": "0.5.0rc1",
   "generated": {
-    "date": "2026-09-07",
-    "by": "release-train R2 reconstruction (local prep; no remote mutation)"
+    "date": "2026-09-11",
+    "by": "release-train R2 reconstruction 2026-09-07 + R2b release-truth correction 2026-09-11 (local prep; no remote mutation)"
   },
   "authorization": "AGENT_COORDINATION.md Codex verdict 2026-09-07 (CHANGES REQUIRED on 762c8ae..ac4dd9a) + owner instruction to rebuild a replacement local lineage satisfying Findings 1-5 and request one scoped re-review. Local prep only; stop before any remote mutation.",
   "supersedes": {
@@ -73,7 +73,64 @@
     }
   ],
   "manifest_commit": {
-    "note": "THIS commit (the release-truth + manifest commit; its SHA is the branch tip, see git log) is distinct from the four content commits above. It carries: the release manifest (this file + the companion .md), the paper/status-and-value-v0.5.md v0.5.0-rc1 candidate/not-released correction (Finding 5a), and the ctxpack/agent/fixture_privacy.py PF-16 strict-refusal doc correction (Finding 5b)."
+    "note": "The R2 release-truth + manifest commit (f246940), distinct from the four content commits above. It carried the release manifest (this file + the companion .md), the paper/status-and-value-v0.5.md v0.5.0-rc1 candidate/not-released correction (Finding 5a), and the ctxpack/agent/fixture_privacy.py PF-16 strict-refusal doc correction (Finding 5b). NOTE: f246940 is NO LONGER the branch tip — the R2b follow-up truth corrections (see followup_truth_corrections) are layered on top of it, superseding without rewriting it."
+  },
+  "followup_truth_corrections": {
+    "date": "2026-09-11",
+    "authorization": "Owner instruction 2026-09-11 relaying Codex's 2026-09-11 scoped-R2 verdict (Findings 1-4 APPROVED; Finding 1 NARROW CHANGES on one release-truth mechanism). Finding 1 acceptance cases: (a) correct the stale inline privacy-policy comment (fixture_privacy.py:52), no behavior change; (b) make paper/status-and-value-v0.5.md honestly dated, drop/point the stale test-count sentence, distinguish the five-operation default agent surface from the 20-tool server without a new duplicated count; (c) update this manifest + companion note LAST, disclosing the additive correction and superseding f246940 without rewriting history; (d) re-run status/claims/capability/privacy gates + final non-slow suite and keep release artifacts/manifest receipts truthful for the resulting tip. No push/PR/merge/tag.",
+    "relationship_to_f246940": "THREE new commits layered on top of f246940 (which stays intact in history). f246940 was the R2 branch tip; it no longer is. Nothing was rebased, amended, reset, or force-pushed on the reviewed lineage. (Two earlier local-only R2b commits were reset before ANY relay/review to fold in the initially-missed case (a); they were never pushed or shown to the reviewer.)",
+    "commits": [
+      {
+        "sha": "3de38bdcd826687d0d9e288da8d673be973a7e24",
+        "short": "3de38bd",
+        "role": "privacy-comment-truth (Finding 1a)",
+        "subject": "fix(pf16): strict-refusal comment in fixture_privacy.py (Codex F1a)",
+        "changes": "ctxpack/agent/fixture_privacy.py ONLY: the inline v2 ALLOWLIST_SCHEMA comment read 'undecodable files are lossily scanned instead of waived' — contradicting this module's docstring and the RF1 behavior (undecodable bytes strictly REFUSED as non_text/non_utf8; no lossy-clean waiver). Corrected the comment to match. COMMENT-ONLY; no behavior change (privacy tests 14 passed). Packaged source, so the wheel is rebuilt below."
+      },
+      {
+        "sha": "591e119b03e1fb79de0299ef70fd66f3b3c86d50",
+        "short": "591e119",
+        "role": "status-doc-truth (Finding 1b)",
+        "subject": "docs(status): honest date + drop stale 943/753 counts + MCP 5-of-20",
+        "changes": "paper/status-and-value-v0.5.md ONLY (4 lines): frontmatter date + 'Code state (as of ...)' 2026-05-01 -> 2026-09-11; removed the stale '943 tests collected / 753 fast-suite pass post-Phase-3' counts (replaced by a pointer to this manifest so no number re-stales in the one-pager); MCP line rewritten to '20-tool surface; five = the default agent-facing operation set' (20 verified: 20 Tool(name=...) registrations ctx/pack..ctx/checkpoint in ctxpack/integrations/mcp_server.py). Docs-only."
+      },
+      {
+        "sha": "<this commit — the R2b manifest/note tip; see git log>",
+        "role": "manifest-note-truth (Finding 1c/1d)",
+        "subject": "Release: v0.5.0-rc1 manifest + note R2b truth correction",
+        "changes": "docs/releases/v0.5.0-rc1.md + docs/releases/v0.5.0-rc1.manifest.json ONLY; regenerated LAST per owner instruction; discloses this additive correction, records the rebuilt artifacts, and corrects the now-stale 'its SHA is the branch tip' claims for f246940."
+      }
+    ],
+    "review_range": "f246940..<R2b tip> — the NEW correction range ONLY (3 commits: 3de38bd, 591e119, this). The R2 range 762c8ae..f246940 stays under its own separate re-review; do not re-relay it.",
+    "verification": {
+      "environment": "Windows worktree C:/Users/kapil/Documents/CTX_mod_r2, py3.13, .[all,test] (tree-sitter, mcp, PyYAML, tiktoken present), core.autocrlf=false (working copy == committed LF blobs).",
+      "full_non_slow_suite_NO_deselected_gates": {
+        "command": "python -m pytest tests/ -q -m 'not slow'  (env .[all,test]; includes tests/code)",
+        "passed": 1900,
+        "skipped": 33,
+        "deselected": 57,
+        "exit": 0,
+        "note": "IDENTICAL to the R2/f246940 result — the comment-only (1a) + docs-only (1b) change is inert to the suite."
+      },
+      "gates": {
+        "claims_gate": "OK (16 warnings; unchanged from the pre-edit baseline — the removed 943/753 integers never matched a numeric-claim pattern, and papers are warn-only)",
+        "capability_registry_gate": "OK",
+        "token_accounting_gate": "8 passed",
+        "privacy_tests": "14 passed (-k 'fixture_privacy or pf16 or privacy_gate') — confirms Finding 1a is comment-only, behavior unchanged",
+        "git_diff_check": "clean"
+      },
+      "artifacts": {
+        "rebuilt": true,
+        "why_rebuilt": "Finding 1a changed a PACKAGED file (ctxpack/agent/fixture_privacy.py ships in the wheel), so the f246940 wheel sha256 (ee408f86...) is no longer truthful for the resulting tip. Rebuilt from the tree at 591e119 (the docs/releases changes in the manifest commit are not in the wheel).",
+        "build_command": "python -m build --outdir dist_r2b .",
+        "wheel": {"name": "ctxpack-0.5.0rc1-py3-none-any.whl", "sha256": "93f794e6b1f27d4bbba47875839e48dcfc46d82c325b05745c2ac6cf89aa320d", "supersedes_hash": "ee408f8611135fb700064901a9793b115fd26693b30c8ddd07f50ddedb8f867b (the f246940 wheel)"},
+        "sdist": {"name": "ctxpack-0.5.0rc1.tar.gz", "sha256": "970e8c194948c31a35e7e77732a769e50ef693c6ec8f7f3f6d410c6b1d9dee90", "note": "informational — zip mtimes non-reproducible and the sdist contains this manifest."},
+        "wheel_contents": {"file_count": 144, "metadata_version": "0.5.0rc1", "provides_extra": ["all", "analytics", "code", "mcp", "test"], "tests_files": 0, "incremental_py_present": false, "fixture_privacy_carries_fixed_comment": true, "stale_lossy_comment_absent": true},
+        "clean_venv_install": "pip install <wheel> in a fresh venv -> version 0.5.0rc1, import OK, 0 optional deps leaked, console script `ctxpack --help` OK.",
+        "twine_check": "NOT RUN (twine not installed in this worktree env). Metadata validated via the wheel METADATA (Version 0.5.0rc1, 5 Provides-Extra) + the clean-venv install; the gate-5 tag build re-runs twine check.",
+        "dist_location": "dist_r2b/ in the r2 worktree (working artifact; not committed)."
+      }
+    }
   },
   "findings_remediated": {
     "F1_core_ci_cannot_run": {
