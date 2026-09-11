@@ -48,8 +48,10 @@ import subprocess
 ROOTS = ("tests/fixtures", "tests/code/fixtures", "ctxpack/benchmarks",
          "scorecards")
 ALLOWLIST_FILE = os.path.join("tests", "fixture_privacy_allowlist.json")
-# v2 (Finding 4): entries bind the reviewed file bytes (sha256), and
-# undecodable files are lossily scanned instead of waived.
+# v2 (Finding 4): entries bind the reviewed file bytes (sha256).
+# Undecodable bytes are strictly REFUSED (detector non_text / non_utf8),
+# never lossily scanned and never waived (RF1, Codex Finding 1 — see the
+# module docstring above).
 ALLOWLIST_SCHEMA = "ctx-fixture-privacy-allowlist/v2"
 
 _USER_PATH = re.compile(
