@@ -1,6 +1,6 @@
 ---
 title: CtxPack — current capabilities and AI-app value (audited)
-date: 2026-05-01
+date: 2026-09-11
 audience: engineering leads, AI product owners
 length: 1-page status with claim grades
 ---
@@ -19,7 +19,7 @@ length: 1-page status with claim grades
 
 ---
 
-## Code state (as of 2026-05-01)
+## Code state (as of 2026-09-11)
 
 | Layer | Status | Where |
 |---|---|---|
@@ -31,7 +31,7 @@ length: 1-page status with claim grades
 | Real-world dream pass on Market Zero / Intelligent Enterprise telemetry | not yet run | (code ready, awaiting telemetry export) |
 | AMBIENT producer that actually pulls live state | not built — the `IncrementalPacker` foundation was **retired in v0.5.0rc1** (zero product callers; stale-mtime hazard) | — |
 
-943 tests collected. 753 fast-suite tests pass post-Phase-3. Zero-dep packing. Apache-2.0.
+Full non-slow suite green (exact counts recorded in the v0.5.0-rc1 release manifest). Zero-dep packing. Apache-2.0.
 
 ---
 
@@ -71,7 +71,7 @@ length: 1-page status with claim grades
 
 ### 7. Telemetry & integrations
 - ⚙️ Privacy-preserving `HydrationEvent` log (SHA-256 question hash, no raw text).
-- ⚙️ MCP server (5 tools, prose-default hydration after a real production hallucination incident in the pharma deployment).
+- ⚙️ MCP server exposes a 20-tool surface; five of these are the default agent-facing operation set (prose-default hydration after a real production hallucination incident in the pharma deployment).
 - ⚙️ CLI: `pack`, `hydrate`, `harness`, `telemetry`, `dream`, `elicit`.
 
 ---
