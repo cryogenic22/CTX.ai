@@ -371,10 +371,18 @@ def test_onboard_check_fails_on_split_mcp_resolver(tmp_path, monkeypatch):
 
 
 def test_runtime_version_is_rc1_and_matches_pyproject():
-    # Finding 1(e): runtime __version__, distribution metadata, and the release
-    # target must all be 0.5.0rc1. Runtime is pinned to the pyproject version
-    # (the source of the built wheel's metadata) so they cannot drift.
+    # Regression pin (source __version__ == rc1) + forward guard (installed
+    # distribution metadata bound to source + target — catches a source bump
+    # never rebuilt/reinstalled). The metadata binding was demonstrated RED
+    # before the candidate was installed (dist 0.5.0 != source 0.5.0rc1).
+    # Finding 1(e) + Finding 2(b): runtime __version__, the INSTALLED
+    # distribution metadata, and the pyproject release target must ALL be
+    # 0.5.0rc1. Runtime is pinned to the pyproject version, and the installed
+    # metadata is bound to both — so a source bump that was never rebuilt /
+    # reinstalled (stale wheel metadata) or a release-target drift is caught,
+    # not just a source/pyproject mismatch.
     import re
+    from importlib import metadata
     from pathlib import Path
 
     import ctxpack
@@ -385,6 +393,18 @@ def test_runtime_version_is_rc1_and_matches_pyproject():
     assert m is not None, "pyproject [project] version not found"
     assert m.group(1) == ctxpack.__version__, (
         f"pyproject version {m.group(1)} != runtime {ctxpack.__version__}")
+    # installed distribution metadata must equal the running source AND the
+    # release target (the wheel's own recorded version). Absent install =>
+    # fail loud (install the candidate), never skip — this is the guard that
+    # the shipped artifact carries the version it claims.
+    try:
+        dist = metadata.version("ctxpack")
+    except metadata.PackageNotFoundError:
+        pytest.fail("ctxpack is not installed — install the candidate "
+                    "(`pip install -e .`) so installed metadata is pinned")
+    assert dist == ctxpack.__version__ == m.group(1), (
+        f"installed metadata {dist} != runtime {ctxpack.__version__} "
+        f"!= pyproject {m.group(1)} — rebuild/reinstall the candidate")
 
 
 def test_onboard_output_is_honest_about_shadow_proofing_below_311(
@@ -397,6 +417,43 @@ def test_onboard_output_is_honest_about_shadow_proofing_below_311(
     out = capsys.readouterr().out
     assert "NOT shadow-proof" in out
     assert "3.11" in out
+
+
+def test_real_python_310_onboarding_is_not_shadow_proof(tmp_path, capsys):
+    # Regression pin (freezes existing correct behavior): on real Python < 3.11
+    # onboarding stays non-shadow-proof and --check catches it. Passes on the
+    # parent under a 3.10 interpreter; it exists so a future change cannot
+    # silently start certifying plain 3.10 `python -m` as shadow-proof.
+    # Finding 2(a): a repo actually ONBOARDED under Python < 3.11 stores plain,
+    # cwd-shadowable `python -m` (the interpreter has no -P flag at all — this
+    # cannot be faked by monkeypatching a frozen module constant, which is why
+    # the honest-output test above does not, on its own, pin 3.10 behavior).
+    # This test EXECUTES (never skips) in the Python 3.10 CI cells: it performs
+    # real onboarding, asserts the stored hook + MCP commands carry no -P, and
+    # asserts a real `onboard --check` fails loud, naming the 3.11 requirement.
+    if sys.version_info >= (3, 11):
+        pytest.skip("pins Python < 3.11 onboarding (no -P flag on the runtime)")
+    assert _onboard(tmp_path) == 0
+    # (i) the stored write/read commands are plain `python -m`, no -P
+    settings = json.loads(
+        (tmp_path / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    hook_cmds = [h["command"]
+                 for entries in settings["hooks"].values()
+                 for e in entries for h in e.get("hooks", [])]
+    assert hook_cmds, "onboarding wrote no hook commands"
+    for c in hook_cmds:
+        assert " -P " not in f" {c} ", f"3.10 hook unexpectedly carries -P: {c}"
+    mcp_args = json.loads(
+        (tmp_path / ".mcp.json").read_text(encoding="utf-8")
+    )["mcpServers"]["ctxpack"]["args"]
+    assert mcp_args == ["-m", "ctxpack.integrations.mcp_server"], (
+        f"3.10 MCP args unexpectedly carry -P: {mcp_args}")
+    # (ii) a real --check must refuse to certify plain `python -m` as
+    #      shadow-proof and must name the 3.11 requirement (fail-loud).
+    rc = main(["onboard", "--project-dir", str(tmp_path), "--check"])
+    assert rc == 1, "plain 3.10 `python -m` must not pass --check as shadow-proof"
+    err = capsys.readouterr().err
+    assert "shadow-proof" in err.lower() and "3.11" in err
 
 
 def test_identity_subcommand_reports_running_ctxpack(capsys):
