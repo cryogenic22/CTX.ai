@@ -17,9 +17,12 @@ def test_onboard_fresh_repo(tmp_path):
     assert set(settings["hooks"]) >= {"PreCompact", "SessionStart",
                                       "SessionEnd", "Stop"}
 
+    import sys as _sys
     mcp = json.loads((tmp_path / ".mcp.json").read_text(encoding="utf-8"))
-    assert mcp["mcpServers"]["ctxpack"]["args"] == [
-        "-m", "ctxpack.integrations.mcp_server"]
+    expected_args = (["-P", "-m", "ctxpack.integrations.mcp_server"]
+                     if _sys.version_info >= (3, 11)
+                     else ["-m", "ctxpack.integrations.mcp_server"])
+    assert mcp["mcpServers"]["ctxpack"]["args"] == expected_args
 
     claude_md = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
     assert _CLAUDE_MD_MARKER in claude_md
@@ -198,3 +201,56 @@ def test_onboard_refreshes_v5_trust_block_to_verify_live(tmp_path):
     assert _CLAUDE_MD_MARKER in md
     assert "prior state, not verified truth" in md
     assert md.count("## Session memory") == 1, "block duplicated"
+
+
+# ── Disposition 2 (rc1 product review): unified, fail-loud hook/MCP runtime
+#    identity — the read path (MCP) uses the SAME shadow-proof resolver as the
+#    write path (hooks); onboard refreshes a legacy split; `onboard --check`
+#    fails loud. Red-on-ee7b1e1 (MCP lacked -P; legacy entry left untouched;
+#    no --check subcommand).
+
+
+def test_mcp_entry_uses_safe_path_on_modern_python():
+    import sys as _sys
+
+    from ctxpack.cli.main import _MCP_SERVER_ENTRY
+    if _sys.version_info >= (3, 11):
+        assert _MCP_SERVER_ENTRY["args"][0] == "-P", (
+            "the MCP read path must be shadow-proof like the hook write path — "
+            "a split lets read and write resolve to different ctxpack copies")
+
+
+def test_onboard_refreshes_legacy_mcp_entry(tmp_path):
+    import sys as _sys
+    if _sys.version_info < (3, 11):
+        return
+    (tmp_path / ".mcp.json").write_text(json.dumps({
+        "mcpServers": {"ctxpack": {
+            "command": "python",
+            "args": ["-m", "ctxpack.integrations.mcp_server"]}}
+    }), encoding="utf-8")
+    assert _onboard(tmp_path) == 0
+    mcp = json.loads((tmp_path / ".mcp.json").read_text(encoding="utf-8"))
+    assert mcp["mcpServers"]["ctxpack"]["args"] == [
+        "-P", "-m", "ctxpack.integrations.mcp_server"], "legacy MCP entry not refreshed"
+
+
+def test_onboard_check_passes_after_onboard(tmp_path):
+    assert _onboard(tmp_path) == 0
+    assert main(["onboard", "--project-dir", str(tmp_path), "--check"]) == 0
+
+
+def test_onboard_check_fails_when_not_onboarded(tmp_path):
+    assert main(["onboard", "--project-dir", str(tmp_path), "--check"]) == 1
+
+
+def test_onboard_check_fails_on_split_mcp_resolver(tmp_path):
+    import sys as _sys
+    if _sys.version_info < (3, 11):
+        return
+    assert _onboard(tmp_path) == 0
+    mcp_path = tmp_path / ".mcp.json"
+    mcp = json.loads(mcp_path.read_text(encoding="utf-8"))
+    mcp["mcpServers"]["ctxpack"]["args"] = ["-m", "ctxpack.integrations.mcp_server"]
+    mcp_path.write_text(json.dumps(mcp), encoding="utf-8")
+    assert main(["onboard", "--project-dir", str(tmp_path), "--check"]) == 1

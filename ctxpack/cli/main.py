@@ -332,6 +332,10 @@ def _run(argv: list[str]) -> int:
              "CLAUDE.md conventions, ledger dir (idempotent)")
     p_onboard.add_argument("--project-dir", default=".",
                            help="Repo root (default: current directory)")
+    p_onboard.add_argument("--check", action="store_true",
+                           help="Read-only: verify hooks + MCP resolve to ONE "
+                                "shadow-proof ctxpack and the CLAUDE.md block "
+                                "is current; exit 1 (fail-loud) on any mismatch")
 
     # lessons — curated cross-repo lessons registry (distributed to
     # cohort repos via the onboard CLAUDE.md block)
@@ -1690,10 +1694,21 @@ def _cmd_session_impl(args: argparse.Namespace) -> int:
 # -P (safe path, Python 3.11+): without it, `python -m` prepends the
 # project cwd to sys.path, so a repo carrying a vendored/stale ctxpack
 # copy shadows the installed one — observed in the wild as an OLD ctxpack
-# rejecting the `hook` subcommand and BLOCKING compaction.
-_HOOK_CMD = ("python -P -m ctxpack.cli.main hook"
-             if sys.version_info >= (3, 11)
-             else "python -m ctxpack.cli.main hook")
+# rejecting the `hook` subcommand and BLOCKING compaction. The SAME policy
+# must govern BOTH the write path (hooks) and the read path (the MCP
+# server): a split — one with -P, one without — lets write and read resolve
+# to DIFFERENT ctxpack implementations in a repo with a vendored copy, so
+# both derive from the ONE resolver below.
+_SAFE_PATH_ARGS = ["-P"] if sys.version_info >= (3, 11) else []
+
+
+def _py_module_argv(*module_args: str) -> "list[str]":
+    """`python [-P] -m <module> <args...>` — the one shadow-proof invocation
+    shared by the hook (write path) and the MCP server (read path)."""
+    return ["python", *_SAFE_PATH_ARGS, "-m", *module_args]
+
+
+_HOOK_CMD = " ".join(_py_module_argv("ctxpack.cli.main", "hook"))
 _CTXPACK_HOOK_MARKERS = ("ctxpack hook", "ctxpack.cli.main hook")
 
 _HOOK_SETTINGS = {
@@ -1786,7 +1801,9 @@ def _cmd_install_hooks(args: argparse.Namespace) -> int:
 
 _MCP_SERVER_ENTRY = {
     "command": "python",
-    "args": ["-m", "ctxpack.integrations.mcp_server"],
+    # SAME shadow-proof resolver as the hooks (see _SAFE_PATH_ARGS): the read
+    # path must not resolve to a different ctxpack than the write path.
+    "args": [*_SAFE_PATH_ARGS, "-m", "ctxpack.integrations.mcp_server"],
 }
 
 # Version the conventions block so a re-onboard after upgrading ctxpack
@@ -1916,12 +1933,102 @@ def _cmd_lessons(args: argparse.Namespace) -> int:
     return 0
 
 
+def _runtime_identity() -> "tuple[str, str]":
+    """(version, package-root) of the ctxpack imported right now — the
+    fail-loud identity `--check` surfaces so a version/root mismatch against
+    a vendored/shadowed copy is visible instead of silent."""
+    import ctxpack as _c
+    return (getattr(_c, "__version__", "?"),
+            os.path.dirname(os.path.abspath(_c.__file__)))
+
+
+def _onboard_check(project: str) -> int:
+    """Read-only integrity check: hooks + MCP resolve to ONE shadow-proof
+    ctxpack and the CLAUDE.md conventions block is current. Fail-loud
+    (exit 1) on any missing/stale/split piece."""
+    import json as _json
+    problems: list[str] = []
+
+    ver, root = _runtime_identity()
+    print(f"  ctxpack runtime : version {ver}, root {root}")
+
+    canonical_hook = " ".join(_py_module_argv("ctxpack.cli.main"))
+
+    settings_path = os.path.join(project, ".claude", "settings.json")
+    if not os.path.exists(settings_path):
+        problems.append(f"{settings_path} missing — hooks not installed")
+    else:
+        settings = None
+        try:
+            with open(settings_path, encoding="utf-8-sig") as f:
+                settings = _json.load(f)
+        except (_json.JSONDecodeError, OSError):
+            problems.append(f"{settings_path} unparseable")
+        if settings is not None:
+            hook_cmds = [str(h.get("command", ""))
+                         for entries in settings.get("hooks", {}).values()
+                         for e in entries for h in e.get("hooks", [])
+                         if _is_ctxpack_hook(h)]
+            if not hook_cmds:
+                problems.append("no ctxpack hooks installed")
+            for c in hook_cmds:
+                if not c.startswith(canonical_hook + " "):
+                    problems.append(f"hook resolver not shadow-proof/current: "
+                                    f"{c!r} (expected prefix {canonical_hook!r})")
+
+    mcp_path = os.path.join(project, ".mcp.json")
+    if not os.path.exists(mcp_path):
+        problems.append(f"{mcp_path} missing — MCP server not installed")
+    else:
+        mcp_config = None
+        try:
+            with open(mcp_path, encoding="utf-8-sig") as f:
+                mcp_config = _json.load(f)
+        except (_json.JSONDecodeError, OSError):
+            problems.append(f"{mcp_path} unparseable")
+        if mcp_config is not None:
+            entry = (mcp_config.get("mcpServers") or {}).get("ctxpack")
+            if entry is None:
+                problems.append("no ctxpack MCP server entry")
+            elif entry != dict(_MCP_SERVER_ENTRY):
+                problems.append("MCP resolver differs from the canonical "
+                                "shadow-proof entry (read/write split risk): "
+                                f"got {entry}, expected {dict(_MCP_SERVER_ENTRY)}"
+                                " — re-run `ctxpack onboard`")
+
+    claude_md = os.path.join(project, "CLAUDE.md")
+    if not os.path.exists(claude_md):
+        problems.append("CLAUDE.md missing — conventions not installed")
+    else:
+        with open(claude_md, encoding="utf-8-sig") as f:
+            md = f.read()
+        if _CLAUDE_MD_MARKER not in md:
+            if _CLAUDE_MD_MARKER_PREFIX in md:
+                problems.append(f"CLAUDE.md conventions block is STALE (expected "
+                                f"{_CLAUDE_MD_MARKER.strip()}) — re-run onboard")
+            else:
+                problems.append("CLAUDE.md has no ctxpack conventions block")
+
+    if problems:
+        for p in problems:
+            print(f"onboard --check FAIL: {p}", file=sys.stderr)
+        print(f"onboard --check: {len(problems)} problem(s) — hooks/MCP/"
+              f"conventions are not one consistent, current ctxpack",
+              file=sys.stderr)
+        return 1
+    print("onboard --check: OK — hooks + MCP resolve to one shadow-proof "
+          "ctxpack; CLAUDE.md conventions current.")
+    return 0
+
+
 def _cmd_onboard(args: argparse.Namespace) -> int:
     """Set up session memory in a repo: hooks + MCP + CLAUDE.md + ledger
     dir. Idempotent — safe to re-run after upgrades."""
     import json as _json
 
     project = os.path.abspath(args.project_dir)
+    if getattr(args, "check", False):
+        return _onboard_check(project)
     done: list[str] = []
 
     # 1. Hooks (write path)
@@ -1944,14 +2051,19 @@ def _cmd_onboard(args: argparse.Namespace) -> int:
                       file=sys.stderr)
                 return 1
     servers = mcp_config.setdefault("mcpServers", {})
-    if "ctxpack" not in servers:
-        servers["ctxpack"] = dict(_MCP_SERVER_ENTRY)
+    canonical = dict(_MCP_SERVER_ENTRY)
+    if servers.get("ctxpack") != canonical:
+        # install OR refresh: a legacy entry (e.g. a non-`-P` resolver that
+        # could run a vendored/shadowed ctxpack) is updated to the ONE
+        # shadow-proof resolver so read and write can't diverge.
+        was = "refreshed" if "ctxpack" in servers else "installed"
+        servers["ctxpack"] = canonical
         with open(mcp_path, "w", encoding="utf-8", newline="\n") as f:
             _json.dump(mcp_config, f, indent=2)
             f.write("\n")
-        done.append(f"mcp server  -> {mcp_path}")
+        done.append(f"mcp server  -> {mcp_path} ({was}: shadow-proof resolver)")
     else:
-        done.append(f"mcp server  -> {mcp_path} (already present)")
+        done.append(f"mcp server  -> {mcp_path} (already current)")
 
     # 3. CLAUDE.md conventions — marker-guarded, append-only
     claude_md = os.path.join(project, "CLAUDE.md")
