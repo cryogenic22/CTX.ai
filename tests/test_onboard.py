@@ -175,7 +175,7 @@ def test_onboard_block_drops_unconditional_trust(tmp_path):
         "the unconditional-trust wording must be gone")
     assert "prior state, not verified truth" in md
     assert "VERIFY it against the live tree" in md
-    assert "Active vs superseded" in md
+    assert "Standing vs superseded or retracted" in md
 
 
 def test_onboard_block_marker_bumped_to_v6(tmp_path):
@@ -201,6 +201,34 @@ def test_onboard_refreshes_v5_trust_block_to_verify_live(tmp_path):
     assert _CLAUDE_MD_MARKER in md
     assert "prior state, not verified truth" in md
     assert md.count("## Session memory") == 1, "block duplicated"
+
+
+# ── rc1 combined-review correction (Finding 2): the generated block must
+#    describe a banked fact with the CANONICAL lifecycle vocabulary — standing
+#    until SUPERSEDED or RETRACTED — not "stays active until something
+#    supersedes it" (a retracted fact is not active), and must not conflate
+#    standing (lifecycle) with CURRENT (freshness). Red-on-285032c.
+
+
+def test_onboard_block_names_both_terminal_lifecycle_states(tmp_path):
+    assert _onboard(tmp_path) == 0
+    md = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "stays active until something supersedes it" not in md, (
+        "retracted-blind wording must be gone (a retracted fact is not active)")
+    lower = md.lower()
+    assert "superseded" in lower and "retracted" in lower, (
+        "both canonical terminal lifecycle states must be named")
+
+
+def test_onboard_block_separates_standing_from_current(tmp_path):
+    # standing (a lifecycle statement) must not imply freshness/CURRENT
+    # (a verification statement) — the two-axis rule from core/states.py.
+    assert _onboard(tmp_path) == 0
+    md = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "forward-only" in md, "lifecycle must be described as forward-only"
+    assert "CURRENT" in md, (
+        "the block must distinguish standing (lifecycle) from CURRENT "
+        "(freshness/verification)")
 
 
 # ── Disposition 2 (rc1 product review): unified, fail-loud hook/MCP runtime

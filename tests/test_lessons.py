@@ -74,6 +74,31 @@ def test_cli_listing_and_json(capsys):
     assert len(data["lessons"]) == len(L.LESSONS)
 
 
+# ── rc1 combined-review correction (Finding 2c/2d): the user-facing lessons
+#    footer advertised v5 after the marker bumped to v6; marker and footer now
+#    derive from one constant, and no stale v5 lives in production CLI source.
+
+
+def test_lessons_footer_advertises_current_marker_version(capsys):
+    from ctxpack.cli.main import _CLAUDE_MD_VERSION
+    assert _CLAUDE_MD_VERSION.startswith("v6."), "marker version must be v6.x"
+    assert main(["lessons"]) == 0
+    out = capsys.readouterr().out
+    assert _CLAUDE_MD_VERSION in out, (
+        "footer must advertise the current block version, not a stale one")
+    assert "v5.L" not in out, "stale v5 marker still advertised in the footer"
+
+
+def test_no_stale_v5_block_version_in_cli_source():
+    # migration fixtures/tests legitimately carry old versions (v1/v3/v4/v5);
+    # the production CLI source must hard-code no v5 block version.
+    from pathlib import Path
+
+    import ctxpack.cli.main as m
+    src = Path(m.__file__).read_text(encoding="utf-8")
+    assert "v5.L" not in src, "stale v5.L block-version reference in CLI source"
+
+
 def test_onboard_refreshes_older_block_with_lessons(tmp_path):
     # a cohort repo with the previous (v4) block picks up the lessons
     # section on re-onboard — this is exactly how KP_SDLC stays aware
