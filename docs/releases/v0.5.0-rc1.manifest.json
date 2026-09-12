@@ -31,11 +31,11 @@
       "note": "EXACT SHA the eventual gate-5 release PR targets, pinned per Finding 5c (not an unanchored ahead-count). Verify origin/main still resolves to this SHA before opening the PR."
     },
     "ahead_of_target_base": {
-      "count": 230,
+      "count": 234,
       "anchored_to": "2c7ed0f14d0a6d200fec9cb824e7c653440cdf3f",
-      "note": "commit count of release/v0.5.0-rc1-r2 over the pinned origin/main SHA (includes this manifest commit)."
+      "note": "git rev-list --count 2c7ed0f..HEAD at the R2b-correction tip. Verified mechanically; scripts/check_release_manifest.py re-checks it against live git. Canonical receipt: current_verification."
     },
-    "ahead_of_local_main": 219,
+    "ahead_of_local_main": 223,
     "audit_backup": {
       "branch": "audit/release-v0.5.0-rc1-ac4dd9a",
       "sha": "ac4dd9aa09eed3dfa6dfc0230496beb4dc410846",
@@ -95,42 +95,15 @@
         "changes": "paper/status-and-value-v0.5.md ONLY (4 lines): frontmatter date + 'Code state (as of ...)' 2026-05-01 -> 2026-09-11; removed the stale '943 tests collected / 753 fast-suite pass post-Phase-3' counts (replaced by a pointer to this manifest so no number re-stales in the one-pager); MCP line rewritten to '20-tool surface; five = the default agent-facing operation set' (20 verified: 20 Tool(name=...) registrations ctx/pack..ctx/checkpoint in ctxpack/integrations/mcp_server.py). Docs-only."
       },
       {
-        "sha": "<this commit — the R2b manifest/note tip; see git log>",
+        "sha": "973426580e823babf57f91ae90c07cec331698d7",
+        "short": "9734265",
         "role": "manifest-note-truth (Finding 1c/1d)",
         "subject": "Release: v0.5.0-rc1 manifest + note R2b truth correction",
         "changes": "docs/releases/v0.5.0-rc1.md + docs/releases/v0.5.0-rc1.manifest.json ONLY; regenerated LAST per owner instruction; discloses this additive correction, records the rebuilt artifacts, and corrects the now-stale 'its SHA is the branch tip' claims for f246940."
       }
     ],
-    "review_range": "f246940..<R2b tip> — the NEW correction range ONLY (3 commits: 3de38bd, 591e119, this). The R2 range 762c8ae..f246940 stays under its own separate re-review; do not re-relay it.",
-    "verification": {
-      "environment": "Windows worktree C:/Users/kapil/Documents/CTX_mod_r2, py3.13, .[all,test] (tree-sitter, mcp, PyYAML, tiktoken present), core.autocrlf=false (working copy == committed LF blobs).",
-      "full_non_slow_suite_NO_deselected_gates": {
-        "command": "python -m pytest tests/ -q -m 'not slow'  (env .[all,test]; includes tests/code)",
-        "passed": 1900,
-        "skipped": 33,
-        "deselected": 57,
-        "exit": 0,
-        "note": "IDENTICAL to the R2/f246940 result — the comment-only (1a) + docs-only (1b) change is inert to the suite."
-      },
-      "gates": {
-        "claims_gate": "OK (16 warnings; unchanged from the pre-edit baseline — the removed 943/753 integers never matched a numeric-claim pattern, and papers are warn-only)",
-        "capability_registry_gate": "OK",
-        "token_accounting_gate": "8 passed",
-        "privacy_tests": "14 passed (-k 'fixture_privacy or pf16 or privacy_gate') — confirms Finding 1a is comment-only, behavior unchanged",
-        "git_diff_check": "clean"
-      },
-      "artifacts": {
-        "rebuilt": true,
-        "why_rebuilt": "Finding 1a changed a PACKAGED file (ctxpack/agent/fixture_privacy.py ships in the wheel), so the f246940 wheel sha256 (ee408f86...) is no longer truthful for the resulting tip. Rebuilt from the tree at 591e119 (the docs/releases changes in the manifest commit are not in the wheel).",
-        "build_command": "python -m build --outdir dist_r2b .",
-        "wheel": {"name": "ctxpack-0.5.0rc1-py3-none-any.whl", "sha256": "93f794e6b1f27d4bbba47875839e48dcfc46d82c325b05745c2ac6cf89aa320d", "supersedes_hash": "ee408f8611135fb700064901a9793b115fd26693b30c8ddd07f50ddedb8f867b (the f246940 wheel)"},
-        "sdist": {"name": "ctxpack-0.5.0rc1.tar.gz", "sha256": "970e8c194948c31a35e7e77732a769e50ef693c6ec8f7f3f6d410c6b1d9dee90", "note": "informational — zip mtimes non-reproducible and the sdist contains this manifest."},
-        "wheel_contents": {"file_count": 144, "metadata_version": "0.5.0rc1", "provides_extra": ["all", "analytics", "code", "mcp", "test"], "tests_files": 0, "incremental_py_present": false, "fixture_privacy_carries_fixed_comment": true, "stale_lossy_comment_absent": true},
-        "clean_venv_install": "pip install <wheel> in a fresh venv -> version 0.5.0rc1, import OK, 0 optional deps leaked, console script `ctxpack --help` OK.",
-        "twine_check": "NOT RUN (twine not installed in this worktree env). Metadata validated via the wheel METADATA (Version 0.5.0rc1, 5 Provides-Extra) + the clean-venv install; the gate-5 tag build re-runs twine check.",
-        "dist_location": "dist_r2b/ in the r2 worktree (working artifact; not committed)."
-      }
-    }
+    "review_range": "f246940..9734265 — the R2b implementation range (3 commits: 3de38bd, 591e119, 9734265), APPROVED by Codex 2026-09-12. The current metadata-correction range is 9734265..HEAD (one commit); see current_verification.review_range.",
+    "verification_pointer": "SUPERSEDED as a location: the canonical resulting-tip receipt is now top-level `current_verification`, and the R2 receipt is `historical_verifications[0]`. This R2b block documents the implementation commits only (Codex APPROVED them 2026-09-12)."
   },
   "findings_remediated": {
     "F1_core_ci_cannot_run": {
@@ -154,8 +127,8 @@
       "acceptance": "each commit independently green."
     },
     "F5_release_truth_and_manifest": {
-      "commit": "<manifest commit — this commit>",
-      "how": "status-and-value v0.5.0 'shipped/tagged' -> 'candidate, not yet tagged or published'; IncrementalPacker live claims removed in 99cc952 (historical marked retired); PF-16 module doc corrected to strict refusal; this manifest regenerated last, pins the exact target-base SHA, distinguishes content vs manifest commit, states GitHub-prerelease-only/no-PyPI, records final artifacts.",
+      "commit": "f246940589c18eb64abcb566f4dcec1e988d3654",
+      "how": "status-and-value v0.5.0 'shipped/tagged' -> 'candidate, not yet tagged or published'; IncrementalPacker live claims removed in 99cc952 (historical marked retired); PF-16 module doc corrected to strict refusal; the R2 manifest (f246940) regenerated last, pins the exact target-base SHA, distinguishes content vs manifest commit, states GitHub-prerelease-only/no-PyPI, records final artifacts. Residual R2b truth-fixes (stale comment, status-doc, canonical verification) landed in the 2026-09-12 correction; see current_verification.",
       "acceptance": "full non-slow suite with NO deselected gates + standing gates + git diff --check + clean-checkout smoke (see verification)."
     }
   },
@@ -223,34 +196,57 @@
     "pypi": false,
     "note": "Owner decision 2026-09-07: prepare v0.5.0-rc1 as a GitHub prerelease; do NOT publish to PyPI yet. Tag `v0.5.0-rc1` at gate 5."
   },
-  "verification": {
-    "environment": "Windows worktree C:/Users/kapil/Documents/CTX_mod_r2, core.autocrlf=false (working copy == committed LF blobs).",
+  "current_verification": {
+    "note": "The ONE canonical resulting-tip receipt (owner 'better shape', 2026-09-12). The superseded R2 receipt is under historical_verifications.",
+    "correction_context": "Codex's 2026-09-12 R2b re-review of f246940..9734265 APPROVED the implementation but returned NARROW CHANGES: the manifest still reported stale R2 state (ahead 230/219 vs git 233/222) and its top-level verification named the old wheel + 'twine PASSED' while the R2b receipt named the replacement wheel + twine NOT RUN, and the status page hard-coded a 20 MCP count. This one additive commit makes a single canonical record, moves the R2 receipt to historical, fixes the companion note, removes the hard-coded MCP count, and adds scripts/check_release_manifest.py (wired into ci-required) so a green suite can no longer sit beside a false manifest.",
+    "source_commit": "591e119b03e1fb79de0299ef70fd66f3b3c86d50",
+    "resulting_tip": "the tip of release/v0.5.0-rc1-r2 after this correction commit — resolve via git log; a manifest cannot contain its own commit hash, so no SHA placeholder is stored here.",
+    "target_base_sha": "2c7ed0f14d0a6d200fec9cb824e7c653440cdf3f",
+    "ahead_of_target_base": 234,
+    "ahead_of_local_main": 223,
+    "count_semantics": "git rev-list --count 2c7ed0f..HEAD and main..HEAD at this tip. scripts/check_release_manifest.py re-checks both against live git; authoritative at the release tip (see that script's NOTE on branch semantics for a permanent gate).",
+    "review_range": "9734265..HEAD — the metadata-correction range ONLY (this one commit). Do NOT re-relay f246940..9734265 (approved implementation) or 762c8ae..f246940 (R2).",
+    "environment": "Windows worktree C:/Users/kapil/Documents/CTX_mod_r2, py3.13, .[all,test], core.autocrlf=false (working copy == committed LF blobs).",
     "full_non_slow_suite_NO_deselected_gates": {
-      "command": "python -m pytest tests/ -q -m 'not slow'  (env .[all,test]; NO --deselect of any release gate; includes tests/code)",
-      "passed": 1900,
+      "command": "python -m pytest tests/ -q -m 'not slow'  (env .[all,test]; includes tests/code + the new release-manifest gate test)",
+      "passed": 1916,
       "skipped": 33,
       "deselected": 57,
-      "exit": 0
+      "exit": 0,
+      "note": "1900 (R2b) + 16 for tests/test_check_release_manifest.py; docs/comment changes are inert to the rest of the suite."
     },
-    "standing_gates": {
-      "claims_gate": "OK",
+    "gates": {
+      "claims_gate": "OK (16 warnings)",
       "capability_registry_gate": "OK",
-      "byte_gates_on_faithful_LF": "the 3 disclosed gates GREEN (were RED pre-fix); also GREEN on a fresh core.autocrlf=true clone",
+      "token_accounting_gate": "8 passed",
+      "release_manifest_gate": "OK — this file checked against live git rev-list, artifacts, the companion note, and the status doc",
+      "privacy_tests": "14 passed (fixture_privacy / pf16 / privacy_gate)",
       "git_diff_check": "clean"
     },
-    "build": {
-      "command": "python -m build (from the final tree)",
-      "note": "build-instance hashes: zip mtimes are not reproducible, and the sdist contains this manifest, so byte hashes are informational. Definitive checks are twine check + wheel metadata + contents + clean-venv install (all deterministic).",
-      "wheel": {"name": "ctxpack-0.5.0rc1-py3-none-any.whl", "sha256": "ee408f8611135fb700064901a9793b115fd26693b30c8ddd07f50ddedb8f867b"},
-      "sdist": {"name": "ctxpack-0.5.0rc1.tar.gz", "sha256": "8cf2e404228c3de8acf428360df1a9ce1b20aba4b51ec285fa0bcb37db8b046c"},
-      "twine_check": "PASSED (wheel + sdist)",
-      "wheel_contents": {"metadata_version": "0.5.0rc1", "provides_extra": ["all", "analytics", "code", "mcp", "test"], "tests_files": 0, "incremental_py_present": false, "entry_point": "ctxpack = ctxpack.cli.main:main"}
-    },
-    "install_smoke": {
-      "core_env": "pip install . (no extras) -> import + `ctxpack --help` from OUTSIDE the checkout OK; 0 optional deps leaked; version 0.5.0rc1",
-      "clean_wheel": "pip install <wheel> in a fresh venv -> version 0.5.0rc1, import OK, `ctxpack --help` OK"
+    "artifacts": {
+      "retained": false,
+      "receipt_status": "UNVERIFIED build receipt pending the Gate-5 rebuild. dist_r2b/ was NOT retained after review, so these hashes cannot be independently re-hashed from this tree; the Gate-5 tag build rebuilds and re-checks (incl. twine).",
+      "built_from_commit": "591e119 (the last packaged-source commit; the note/manifest changes are not in the wheel)",
+      "wheel": {"name": "ctxpack-0.5.0rc1-py3-none-any.whl", "sha256": "93f794e6b1f27d4bbba47875839e48dcfc46d82c325b05745c2ac6cf89aa320d", "supersedes": "the f246940 wheel ee408f8611135fb700064901a9793b115fd26693b30c8ddd07f50ddedb8f867b"},
+      "sdist": {"name": "ctxpack-0.5.0rc1.tar.gz", "sha256": "970e8c194948c31a35e7e77732a769e50ef693c6ec8f7f3f6d410c6b1d9dee90", "note": "informational (non-reproducible zip mtimes; contains this manifest)"},
+      "wheel_contents": {"file_count": 144, "metadata_version": "0.5.0rc1", "provides_extra": ["all", "analytics", "code", "mcp", "test"], "tests_files": 0, "incremental_py_present": false, "fixture_privacy_carries_fixed_comment": true},
+      "clean_venv_install": "the built wheel installs in a fresh venv -> version 0.5.0rc1, import OK, 0 optional deps leaked, console script OK",
+      "twine_check": "not_run",
+      "twine_note": "twine is not installed in this worktree; the Gate-5 tag build runs twine check against the rebuilt artifacts."
     }
   },
+  "historical_verifications": [
+    {
+      "source_commit": "f246940589c18eb64abcb566f4dcec1e988d3654",
+      "status": "superseded",
+      "note": "R2 receipts at f246940 — SUPERSEDED by current_verification (the R2b-correction tip). Retained for audit (git history also preserves it). The wheel ee408f86... and 'twine PASSED' below pertain to the R2 artifact, NOT the current tip.",
+      "environment": "Windows worktree C:/Users/kapil/Documents/CTX_mod_r2, core.autocrlf=false (working copy == committed LF blobs).",
+      "full_non_slow_suite_NO_deselected_gates": {"command": "python -m pytest tests/ -q -m 'not slow' (env .[all,test]; includes tests/code)", "passed": 1900, "skipped": 33, "deselected": 57, "exit": 0},
+      "standing_gates": {"claims_gate": "OK", "capability_registry_gate": "OK", "byte_gates_on_faithful_LF": "the 3 disclosed gates GREEN (were RED pre-fix); also GREEN on a fresh core.autocrlf=true clone", "git_diff_check": "clean"},
+      "build": {"command": "python -m build (from the final tree)", "note": "build-instance hashes informational (R2 artifact)", "wheel": {"name": "ctxpack-0.5.0rc1-py3-none-any.whl", "sha256": "ee408f8611135fb700064901a9793b115fd26693b30c8ddd07f50ddedb8f867b"}, "sdist": {"name": "ctxpack-0.5.0rc1.tar.gz", "sha256": "8cf2e404228c3de8acf428360df1a9ce1b20aba4b51ec285fa0bcb37db8b046c"}, "twine_check": "R2 historical: PASSED (wheel + sdist) for the ee408f86 artifact", "wheel_contents": {"metadata_version": "0.5.0rc1", "provides_extra": ["all", "analytics", "code", "mcp", "test"], "tests_files": 0, "incremental_py_present": false, "entry_point": "ctxpack = ctxpack.cli.main:main"}},
+      "install_smoke": {"core_env": "pip install . (no extras) -> import + ctxpack --help from OUTSIDE the checkout OK; 0 optional deps leaked; version 0.5.0rc1", "clean_wheel": "the R2 wheel installs in a fresh venv -> version 0.5.0rc1, import OK, ctxpack --help OK"}
+    }
+  ],
   "branch_dispositions": {
     "release/v0.5.0-rc1-r2": "THIS release lineage (local only; not pushed). Becomes the canonical release branch on R2 approval (owner).",
     "release/v0.5.0-rc1": "the SUPERSEDED first attempt (tip ac4dd9a); left untouched (not reset/force-moved).",

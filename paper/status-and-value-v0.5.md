@@ -71,7 +71,7 @@ Full non-slow suite green (exact counts recorded in the v0.5.0-rc1 release manif
 
 ### 7. Telemetry & integrations
 - ⚙️ Privacy-preserving `HydrationEvent` log (SHA-256 question hash, no raw text).
-- ⚙️ MCP server exposes a 20-tool surface; five of these are the default agent-facing operation set (prose-default hydration after a real production hallucination incident in the pharma deployment).
+- ⚙️ MCP server exposes the full ctxpack tool surface (enumerated in `ctxpack/integrations/mcp_server.py` and mirrored by the capability registry — the count is not duplicated here); five of these are the default agent-facing operation set (the README's default surface; prose-default hydration after a real production hallucination incident in the pharma deployment).
 - ⚙️ CLI: `pack`, `hydrate`, `harness`, `telemetry`, `dream`, `elicit`.
 
 ---
