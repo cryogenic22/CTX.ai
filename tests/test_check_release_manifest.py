@@ -272,8 +272,10 @@ def test_anchored_count_stable_as_head_advances_and_pr_merge(tmp_path):
     (tmp_path / "f.txt").write_text("f\n")
     _git(tmp_path, "add", "-A"); _git(tmp_path, "commit", "-qm", "feat")
     _git(tmp_path, "checkout", "-q", "main")
-    subprocess.run(["git", "merge", "--no-ff", "-m", "merge", "feature"],
-                   cwd=str(tmp_path), capture_output=True, text=True)
+    _git(tmp_path, "merge", "--no-ff", "-m", "merge", "feature")  # check=True: proves the merge occurred
+    parents = subprocess.run(["git", "rev-list", "--parents", "-n", "1", "HEAD"],
+                             cwd=str(tmp_path), capture_output=True, text=True).stdout.split()
+    assert len(parents) == 3, f"expected a real 2-parent merge commit, got {parents}"
     assert crm.check(root=tmp_path) == [], crm.check(root=tmp_path)
 
 
@@ -294,3 +296,47 @@ def test_stale_count_after_manifest_edit_fails(tmp_path):
     rel.write_text(json.dumps(m, indent=2))
     _git(tmp_path, "add", "-A"); _git(tmp_path, "commit", "-qm", "stale")
     assert any("ahead_of_target_base" in e for e in crm.check(root=tmp_path))
+
+
+# ── round-4 gate-hardening: red-on-2cc3d40 regressions ───────────────────────
+
+def test_absent_releases_dir_fails(tmp_path):
+    # no docs/releases/ at all — a deleted release tree looks exactly like this
+    # (Git does not track empty dirs), so absence must FAIL, not pass.
+    assert any("absent" in e for e in crm.check(root=tmp_path))
+
+
+def test_absent_releases_dir_opt_out_passes(tmp_path):
+    # explicit opt-out for a genuinely no-release repo (not silent-green)
+    assert crm.check(root=tmp_path, allow_no_release=True) == []
+
+
+def test_status_doc_mcp_server_5_tools_fails():
+    # "MCP server (5 tools)" claims the SERVER has five — false; five is only
+    # the default subset. Must fail even though 5 == the default size.
+    bad = "- MCP server (5 tools), prose-default hydration after an incident.\n"
+    assert any("MCP tool count" in e and "5" in e for e in _errs(status=bad)), _errs(status=bad)
+
+
+def test_status_doc_numeric_five_on_default_line_ok():
+    ok = "- MCP: 5 tools are the default agent-facing operation set.\n"
+    assert not any("MCP tool count" in e for e in _errs(status=ok)), _errs(status=ok)
+
+
+def test_retained_true_no_byte_verifier_fails(tmp_path):
+    (tmp_path / "w.whl").write_bytes(b"wheel")
+    (tmp_path / "s.tar.gz").write_bytes(b"sdist")
+    m = good_manifest()
+    m["current_verification"]["artifacts"] = {
+        "retained": True, "twine_check": "not_run",
+        "wheel": {"path": "w.whl", "sha256": W},   # deliberately false full digest
+        "sdist": {"path": "s.tar.gz", "sha256": S}}
+    # existing files + false 64-hex digests + NO verifier must NOT pass
+    errs = _errs(m, sha256_of=None, root=tmp_path)
+    assert sum("unverified hash" in e for e in errs) == 2, errs
+
+
+def test_md_current_r2b_twine_passed_fails():
+    # bare "r2" is no longer a historical qualifier (R2b IS the current lineage)
+    md = "Current R2b verification: twine check PASSED.\n"
+    assert any("twine" in e.lower() for e in _errs(md=md)), _errs(md=md)

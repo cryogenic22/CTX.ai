@@ -29,12 +29,15 @@ checkout and false-green on four evidence invariants). It scans every
      current (interim enforcement of "generated from the JSON": see NOTE);
   7. no angle-bracket placeholder (``<this commit>`` / ``<R2b tip>`` / ...)
      survives in any commit / sha / range field;
-  8. a current-value document does not hard-code a full MCP tool-count at all
-     (the count must live in source, not be independently maintained) — the
-     only tolerated literal is the default agent-facing operation set (five).
+  8. a current-value document does not hard-code a full MCP tool-count (the
+     count must live in source, not be independently maintained) — the only
+     tolerated literal is the number five on a line that EXPLICITLY qualifies
+     it as the default agent-facing operation set/subset.
 
-  A ``docs/releases/`` directory that exists but holds NO manifest FAILS
-  (release evidence missing) rather than passing vacuously.
+  An ABSENT or EMPTY ``docs/releases/`` FAILS (release evidence deleted or
+  missing — in Git an empty dir is untracked, so a deleted release tree looks
+  exactly like an absent one) rather than passing vacuously, unless
+  CTXPACK_ALLOW_NO_RELEASE_MANIFEST=1 explicitly opts out for a no-release repo.
 
 NOTE (condition 6): full "md is generated from the json" is a follow-up; this
 gate enforces json↔md *consistency* for the drift-prone fields, which catches
@@ -53,6 +56,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -160,7 +164,11 @@ def check_manifest(manifest, md_text, status_doc_text, live_mcp_count,
             if not p.exists():
                 errors.append(f"artifacts.{name}: retained=true but path does "
                               f"not exist: {path}")
-            elif sha256_of is not None:
+            elif sha256_of is None:
+                errors.append(f"artifacts.{name}: retained=true declares a "
+                              f"sha256 but no byte verifier was supplied — "
+                              f"refusing to accept an unverified hash")
+            else:
                 actual = sha256_of(str(p))
                 if actual != sha:
                     errors.append(f"artifacts.{name}: sha256 mismatch — "
@@ -207,7 +215,7 @@ def check_manifest(manifest, md_text, status_doc_text, live_mcp_count,
         for para in re.split(r"\n\s*\n", md_text):
             low = para.lower()
             if "twine" in low and "passed" in low and not any(
-                    q in low for q in ("historical", "r2", "superseded",
+                    q in low for q in ("historical", "superseded",
                                        "not run", "not_run")):
                 first = (para.strip().splitlines() or [para])[0]
                 errors.append(f"companion note has an unqualified twine "
@@ -219,7 +227,7 @@ def check_manifest(manifest, md_text, status_doc_text, live_mcp_count,
                 for ln in md_text.splitlines():
                     if old[:12] in ln and not any(
                             q in ln.lower() for q in
-                            ("historical", "r2", "superseded", "old")):
+                            ("historical", "superseded", "old")):
                         errors.append(f"companion note cites a superseded wheel "
                                       f"hash {old[:12]} as current: "
                                       f"{ln.strip()[:80]!r}")
@@ -227,15 +235,21 @@ def check_manifest(manifest, md_text, status_doc_text, live_mcp_count,
     # 8 — no independently-maintained full MCP tool count in a current doc
     if status_doc_text:
         for ln in status_doc_text.splitlines():
-            if "mcp" not in ln.lower():
+            low = ln.lower()
+            if "mcp" not in low:
                 continue
+            is_default_line = "default" in low and any(
+                q in low for q in ("operation set", "agent-facing", "subset"))
             for m in _MCP_COUNT.finditer(ln):
                 n = int(m.group(1))
-                if n != _DEFAULT_SURFACE_SIZE:
-                    errors.append(f"status doc hard-codes a full MCP tool count "
-                                  f"{n} (live source has {live_mcp_count}) — "
-                                  f"point to the source/registry instead of "
-                                  f"duplicating it: {ln.strip()[:80]!r}")
+                if n == _DEFAULT_SURFACE_SIZE and is_default_line:
+                    continue  # numeric five, explicitly the default subset, is OK
+                errors.append(f"status doc hard-codes an MCP tool count {n} on an "
+                              f"MCP line without qualifying it as the default "
+                              f"agent-facing operation set (live source has "
+                              f"{live_mcp_count}) — the full-surface count must "
+                              f"live in source/registry, not the doc: "
+                              f"{ln.strip()[:80]!r}")
     return errors
 
 
@@ -279,13 +293,21 @@ def _companion_md(manifest_path):
     return md.read_text(encoding="utf-8") if md.is_file() else ""
 
 
-def check(root=ROOT):
+def check(root=ROOT, allow_no_release=None):
     root = Path(root)
+    if allow_no_release is None:
+        allow_no_release = os.environ.get("CTXPACK_ALLOW_NO_RELEASE_MANIFEST") == "1"
     releases_dir = root / "docs" / "releases"
     mcp_server = root / "ctxpack" / "integrations" / "mcp_server.py"
     status_doc = root / "paper" / "status-and-value-v0.5.md"
     if not releases_dir.exists():
-        return []  # repo has no releases concept
+        if allow_no_release:
+            return []
+        return ["docs/releases/ directory is absent — release evidence was "
+                "deleted or is missing (in Git an empty dir is untracked, so a "
+                "deleted release tree looks exactly like this). Set "
+                "CTXPACK_ALLOW_NO_RELEASE_MANIFEST=1 to opt out for a genuinely "
+                "no-release repository."]
     releases = sorted(releases_dir.glob("*.manifest.json"))
     if not releases:
         return ["docs/releases/ exists but contains no *.manifest.json — "
