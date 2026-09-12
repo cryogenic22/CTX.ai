@@ -31,11 +31,10 @@
       "note": "EXACT SHA the eventual gate-5 release PR targets, pinned per Finding 5c (not an unanchored ahead-count). Verify origin/main still resolves to this SHA before opening the PR."
     },
     "ahead_of_target_base": {
-      "count": 234,
+      "count": 235,
       "anchored_to": "2c7ed0f14d0a6d200fec9cb824e7c653440cdf3f",
-      "note": "git rev-list --count 2c7ed0f..HEAD at the R2b-correction tip. Verified mechanically; scripts/check_release_manifest.py re-checks it against live git. Canonical receipt: current_verification."
+      "note": "git rev-list --count from 2c7ed0f to the commit that contains this manifest (the immutable anchor, NOT moving HEAD). scripts/check_release_manifest.py re-derives and enforces it. Canonical receipt: current_verification. (ahead_of_local_main removed per the 2026-09-12 gate-hardening verdict: a local main branch is not a stable anchor.)"
     },
-    "ahead_of_local_main": 223,
     "audit_backup": {
       "branch": "audit/release-v0.5.0-rc1-ac4dd9a",
       "sha": "ac4dd9aa09eed3dfa6dfc0230496beb4dc410846",
@@ -202,18 +201,17 @@
     "source_commit": "591e119b03e1fb79de0299ef70fd66f3b3c86d50",
     "resulting_tip": "the tip of release/v0.5.0-rc1-r2 after this correction commit — resolve via git log; a manifest cannot contain its own commit hash, so no SHA placeholder is stored here.",
     "target_base_sha": "2c7ed0f14d0a6d200fec9cb824e7c653440cdf3f",
-    "ahead_of_target_base": 234,
-    "ahead_of_local_main": 223,
-    "count_semantics": "git rev-list --count 2c7ed0f..HEAD and main..HEAD at this tip. scripts/check_release_manifest.py re-checks both against live git; authoritative at the release tip (see that script's NOTE on branch semantics for a permanent gate).",
-    "review_range": "9734265..HEAD — the metadata-correction range ONLY (this one commit). Do NOT re-relay f246940..9734265 (approved implementation) or 762c8ae..f246940 (R2).",
+    "ahead_of_target_base": 235,
+    "count_semantics": "git rev-list --count from 2c7ed0f to the commit that contains this manifest — anchored to the manifest's own commit (git log -1 --format=%H HEAD -- the manifest path), NOT moving HEAD, so it stays valid as HEAD advances, on a PR-merge descendant, and in a clean detached clone with NO local main branch. The anchor must descend from the pinned target base. scripts/check_release_manifest.py re-derives and enforces this; ahead_of_local_main removed per the 2026-09-12 gate-hardening verdict.",
+    "review_range": "17e6446..HEAD — the gate-hardening range ONLY (this one commit). Do NOT re-relay 9734265..17e6446 (approved metadata correction), f246940..9734265 (approved implementation), or 762c8ae..f246940 (R2).",
     "environment": "Windows worktree C:/Users/kapil/Documents/CTX_mod_r2, py3.13, .[all,test], core.autocrlf=false (working copy == committed LF blobs).",
     "full_non_slow_suite_NO_deselected_gates": {
       "command": "python -m pytest tests/ -q -m 'not slow'  (env .[all,test]; includes tests/code + the new release-manifest gate test)",
-      "passed": 1916,
+      "passed": 1928,
       "skipped": 33,
       "deselected": 57,
       "exit": 0,
-      "note": "1900 (R2b) + 16 for tests/test_check_release_manifest.py; docs/comment changes are inert to the rest of the suite."
+      "note": "1900 (R2b) + 28 for tests/test_check_release_manifest.py (16 -> 28 in the gate-hardening commit); docs/comment changes are inert to the rest of the suite."
     },
     "gates": {
       "claims_gate": "OK (16 warnings)",
