@@ -337,6 +337,17 @@ def _run(argv: list[str]) -> int:
                                 "shadow-proof ctxpack and the CLAUDE.md block "
                                 "is current; exit 1 (fail-loud) on any mismatch")
 
+    # identity — print the running ctxpack's version + package root. This is
+    # the probe target `onboard --check` launches through each stored hook/MCP
+    # command to VERIFY (not merely string-compare) that both resolve to the
+    # same approved ctxpack.
+    p_identity = sub.add_parser(
+        "identity",
+        help="Print the running ctxpack version + package root (the runtime "
+             "identity `onboard --check` probes through each launch path)")
+    p_identity.add_argument("--json", action="store_true",
+                            help="Emit the identity as a single JSON object")
+
     # lessons — curated cross-repo lessons registry (distributed to
     # cohort repos via the onboard CLAUDE.md block)
     p_lessons = sub.add_parser(
@@ -494,6 +505,8 @@ def _run(argv: list[str]) -> int:
             return _cmd_install_hooks(args)
         elif args.command == "onboard":
             return _cmd_onboard(args)
+        elif args.command == "identity":
+            return _cmd_identity(args)
         elif args.command == "lessons":
             return _cmd_lessons(args)
         elif args.command == "backfill":
@@ -1954,18 +1967,125 @@ def _runtime_identity() -> "tuple[str, str]":
             os.path.dirname(os.path.abspath(_c.__file__)))
 
 
-def _onboard_check(project: str) -> int:
-    """Read-only integrity check: hooks + MCP resolve to ONE shadow-proof
-    ctxpack and the CLAUDE.md conventions block is current. Fail-loud
-    (exit 1) on any missing/stale/split piece."""
+def _cmd_identity(args: argparse.Namespace) -> int:
+    """Print the running ctxpack's identity — the probe target
+    `onboard --check` launches through each stored hook/MCP command. Read-only:
+    it imports ctxpack and prints, nothing else."""
+    ver, root = _runtime_identity()
+    safe_path = bool(getattr(sys.flags, "safe_path", False))
+    if getattr(args, "json", False):
+        print(json.dumps({"version": ver, "root": root,
+                          "executable": sys.executable,
+                          "safe_path": safe_path}))
+    else:
+        print(f"ctxpack {ver}")
+        print(f"  root       : {root}")
+        print(f"  executable : {sys.executable}")
+        print(f"  safe_path  : {safe_path}  (True = cwd excluded from sys.path)")
+    return 0
+
+
+def _norm_root(p: str) -> str:
+    """Case/sep-normalized absolute path, so two spellings of the same
+    package root compare equal on Windows and POSIX alike."""
+    return os.path.normcase(os.path.abspath(str(p)))
+
+
+def _launch_prefix(tokens: "list[str]") -> "list[str] | None":
+    """The executable + interpreter flags of a launch argv — everything
+    before ``-m``. Returns None when there is no ``-m`` module launch."""
+    if "-m" not in tokens:
+        return None
+    return tokens[:tokens.index("-m")]
+
+
+def _probe_runtime_identity(argv_prefix: "list[str]", cwd: str):
+    """LAUNCH ``<argv_prefix> -m ctxpack.cli.main identity --json`` from
+    ``cwd`` and return ``(identity_dict, None)`` or ``(None, error)``.
+
+    This is what makes ``onboard --check`` verify runtime identity rather than
+    string shape: it runs the actual configured interpreter (from ``cwd``, so a
+    vendored ``./ctxpack`` shadows exactly as it would for a real hook/MCP
+    launch) and reports the version + package root that interpreter imports.
+    Read-only — the ``identity`` subcommand only imports and prints."""
+    import subprocess
+    if not argv_prefix:
+        return None, "empty launch command (no executable)"
+    cmd = [*argv_prefix, "-m", "ctxpack.cli.main", "identity", "--json"]
+    try:
+        proc = subprocess.run(cmd, cwd=cwd, capture_output=True,
+                              text=True, timeout=60)
+    except FileNotFoundError:
+        return None, (f"configured executable {argv_prefix[0]!r} not found — "
+                      f"the launch command cannot start")
+    except OSError as e:
+        return None, f"cannot launch {argv_prefix[0]!r}: {e}"
+    except subprocess.TimeoutExpired:
+        return None, "runtime probe timed out"
+    if proc.returncode != 0:
+        detail = (proc.stderr or proc.stdout or "").strip().splitlines()
+        tail = detail[-1] if detail else "(no output)"
+        return None, (f"launch exited {proc.returncode} — cannot start / not "
+                      f"the approved package: {tail}")
+    try:
+        data = json.loads(proc.stdout)
+    except (ValueError, TypeError):
+        return None, "probe did not emit a JSON identity"
+    if (not isinstance(data, dict)
+            or "version" not in data or "root" not in data):
+        return None, "probe identity missing version/root"
+    return data, None
+
+
+def _onboard_check(project: str, *, probe=None) -> int:
+    """Read-only integrity check: the stored hook (write) and MCP (read)
+    commands both LAUNCH and resolve to the SAME shadow-proof ctxpack — the
+    one running this check — and the CLAUDE.md block is current. Fail-loud
+    (exit 1) on any missing/stale/split/unresolvable piece.
+
+    The check does not merely compare command strings: it runs each stored
+    launch (`... -m ctxpack.cli.main identity --json`) and compares the
+    imported version + package root, so an empty PATH, a vendored/shadow copy,
+    a `-P`-on-3.10 breakage, or a version split is caught at its true cause.
+    `probe` is injectable for tests; the default is a real subprocess launch
+    and is read-only."""
     import json as _json
+    if probe is None:
+        probe = _probe_runtime_identity
     problems: list[str] = []
 
-    ver, root = _runtime_identity()
-    print(f"  ctxpack runtime : version {ver}, root {root}")
+    approved = _runtime_identity()  # (version, root) of THIS ctxpack
+    print(f"  ctxpack runtime : version {approved[0]}, root {approved[1]}")
 
     canonical_hook = " ".join(_py_module_argv("ctxpack.cli.main"))
 
+    def _verify_path(label: str, prefix: "list[str]") -> None:
+        # (1) shadow-hardening is absolute, independent of the interpreter
+        #     running this check: `-P` (PYTHONSAFEPATH, Python >= 3.11) must be
+        #     in the STORED command. Without it `python -m` prepends cwd, so a
+        #     repo's own ctxpack/ shadows the installed copy. A config
+        #     onboarded under 3.10 is plain `python -m` and is NOT shadow-proof
+        #     — say so; never green-light plain `python -m` as shadow-proof.
+        if "-P" not in prefix:
+            problems.append(
+                f"{label}: NOT shadow-proof — stored command is plain "
+                f"`{' '.join(prefix)} -m ...` (cwd-shadowable). Shadow-proof "
+                f"onboarding requires Python >= 3.11 (emits -P); re-onboard "
+                f"under 3.11+.")
+        # (2) actually launch it and compare the IMPORTED identity.
+        identity, err = probe(prefix, project)
+        if err is not None:
+            problems.append(f"{label}: runtime probe failed — {err}")
+            return
+        pv, pr = identity.get("version"), identity.get("root")
+        if (pv != approved[0]
+                or _norm_root(pr or "") != _norm_root(approved[1])):
+            problems.append(
+                f"{label}: launch resolves to a DIFFERENT ctxpack than this "
+                f"check (shadow / version split) — probe {pv} @ {pr}, "
+                f"approved {approved[0]} @ {approved[1]}")
+
+    # ── hooks (write path) ──
     settings_path = os.path.join(project, ".claude", "settings.json")
     if not os.path.exists(settings_path):
         problems.append(f"{settings_path} missing — hooks not installed")
@@ -1987,7 +2107,20 @@ def _onboard_check(project: str) -> int:
                 if not c.startswith(canonical_hook + " "):
                     problems.append(f"hook resolver not shadow-proof/current: "
                                     f"{c!r} (expected prefix {canonical_hook!r})")
+            # Probe each DISTINCT launch prefix once (all hooks share one).
+            seen: set = set()
+            for c in hook_cmds:
+                prefix = _launch_prefix(c.split())
+                if prefix is None:
+                    problems.append(f"hook command has no `-m` launch: {c!r}")
+                    continue
+                key = tuple(prefix)
+                if key in seen:
+                    continue
+                seen.add(key)
+                _verify_path("hooks", prefix)
 
+    # ── MCP (read path) ──
     mcp_path = os.path.join(project, ".mcp.json")
     if not os.path.exists(mcp_path):
         problems.append(f"{mcp_path} missing — MCP server not installed")
@@ -2002,12 +2135,21 @@ def _onboard_check(project: str) -> int:
             entry = (mcp_config.get("mcpServers") or {}).get("ctxpack")
             if entry is None:
                 problems.append("no ctxpack MCP server entry")
-            elif entry != dict(_MCP_SERVER_ENTRY):
-                problems.append("MCP resolver differs from the canonical "
-                                "shadow-proof entry (read/write split risk): "
-                                f"got {entry}, expected {dict(_MCP_SERVER_ENTRY)}"
-                                " — re-run `ctxpack onboard`")
+            else:
+                if entry != dict(_MCP_SERVER_ENTRY):
+                    problems.append("MCP resolver differs from the canonical "
+                                    "shadow-proof entry (read/write split risk): "
+                                    f"got {entry}, expected {dict(_MCP_SERVER_ENTRY)}"
+                                    " — re-run `ctxpack onboard`")
+                mcp_tokens = ([str(entry.get("command", ""))]
+                              + [str(a) for a in entry.get("args", [])])
+                prefix = _launch_prefix(mcp_tokens)
+                if prefix is None:
+                    problems.append(f"MCP entry has no `-m` launch: {entry}")
+                else:
+                    _verify_path("MCP", prefix)
 
+    # ── CLAUDE.md conventions block ──
     claude_md = os.path.join(project, "CLAUDE.md")
     if not os.path.exists(claude_md):
         problems.append("CLAUDE.md missing — conventions not installed")
@@ -2025,11 +2167,12 @@ def _onboard_check(project: str) -> int:
         for p in problems:
             print(f"onboard --check FAIL: {p}", file=sys.stderr)
         print(f"onboard --check: {len(problems)} problem(s) — hooks/MCP/"
-              f"conventions are not one consistent, current ctxpack",
-              file=sys.stderr)
+              f"conventions are not one consistent, current, shadow-proof "
+              f"ctxpack", file=sys.stderr)
         return 1
-    print("onboard --check: OK — hooks + MCP resolve to one shadow-proof "
-          "ctxpack; CLAUDE.md conventions current.")
+    print(f"onboard --check: OK — hooks + MCP both launch and resolve to the "
+          f"same shadow-proof ctxpack ({approved[0]} @ {approved[1]}); "
+          f"CLAUDE.md conventions current.")
     return 0
 
 
@@ -2073,7 +2216,11 @@ def _cmd_onboard(args: argparse.Namespace) -> int:
         with open(mcp_path, "w", encoding="utf-8", newline="\n") as f:
             _json.dump(mcp_config, f, indent=2)
             f.write("\n")
-        done.append(f"mcp server  -> {mcp_path} ({was}: shadow-proof resolver)")
+        # Honest claim: the resolver is only shadow-proof when it carries -P
+        # (Python >= 3.11). On 3.10 it is plain `python -m` and cwd-shadowable.
+        note = ("shadow-proof resolver" if _SAFE_PATH_ARGS
+                else "resolver — NOT shadow-proof (Python < 3.11 has no -P)")
+        done.append(f"mcp server  -> {mcp_path} ({was}: {note})")
     else:
         done.append(f"mcp server  -> {mcp_path} (already current)")
 
@@ -2116,7 +2263,14 @@ def _cmd_onboard(args: argparse.Namespace) -> int:
     for line in done:
         print(f"  {line}")
     print()
+    if not _SAFE_PATH_ARGS:
+        print("NOTE: this Python is < 3.11, so hook/MCP commands are plain "
+              "`python -m` (no -P) and are NOT shadow-proof — a vendored "
+              "ctxpack/ in the repo root can hijack them. Onboard under "
+              "Python >= 3.11 for shadow-proof commands.")
+        print()
     print("Measure adoption anytime:  ctxpack session stats")
+    print("Verify the wiring anytime: ctxpack onboard --check")
     print()
     _print_restart_warning()
     return 0

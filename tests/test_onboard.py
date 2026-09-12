@@ -1,12 +1,84 @@
 """ctxpack onboard — one-command session-memory setup for any repo."""
 
+import hashlib
 import json
+import os
+import sys
+
+import pytest
 
 from ctxpack.cli.main import _CLAUDE_MD_MARKER, main
 
 
 def _onboard(project_dir):
     return main(["onboard", "--project-dir", str(project_dir)])
+
+
+# ── helpers for the runtime-identity probe tests (rc1 review Finding 1) ──
+
+def _pkg_parent():
+    """Directory that must be on sys.path for a -P subprocess to import the
+    SAME ctxpack this test process imported (pins the probe to the approved
+    copy regardless of any stale site-packages install)."""
+    import ctxpack
+    return os.path.dirname(os.path.dirname(os.path.abspath(ctxpack.__file__)))
+
+
+def _write_shadow(project_dir, version):
+    """Plant a vendored ./ctxpack that a plain `python -m` (cwd on sys.path)
+    would import instead of the approved copy; its cli.main prints identity."""
+    pkg = project_dir / "ctxpack"
+    (pkg / "cli").mkdir(parents=True, exist_ok=True)
+    (pkg / "__init__.py").write_text(
+        f'__version__ = "{version}"\n', encoding="utf-8")
+    (pkg / "cli" / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "cli" / "main.py").write_text(
+        "import json, os, sys\n"
+        "def main(argv=None):\n"
+        "    import ctxpack\n"
+        "    print(json.dumps({'version': ctxpack.__version__, 'root':\n"
+        "        os.path.dirname(os.path.abspath(ctxpack.__file__))}))\n"
+        "    return 0\n"
+        "if __name__ == '__main__':\n"
+        "    raise SystemExit(main(sys.argv[1:]))\n",
+        encoding="utf-8")
+
+
+def _strip_safe_path(project_dir):
+    """Drop -P from every stored hook + MCP launch (simulate a repo onboarded
+    under Python 3.10, where the command is plain, cwd-shadowable `python -m`)."""
+    sp = project_dir / ".claude" / "settings.json"
+    s = json.loads(sp.read_text(encoding="utf-8"))
+    for entries in s.get("hooks", {}).values():
+        for e in entries:
+            for h in e.get("hooks", []):
+                h["command"] = h["command"].replace("python -P -m", "python -m")
+    sp.write_text(json.dumps(s, indent=2), encoding="utf-8")
+    mp = project_dir / ".mcp.json"
+    m = json.loads(mp.read_text(encoding="utf-8"))
+    m["mcpServers"]["ctxpack"]["args"] = [
+        a for a in m["mcpServers"]["ctxpack"]["args"] if a != "-P"]
+    mp.write_text(json.dumps(m), encoding="utf-8")
+
+
+def _set_executable(project_dir, exe):
+    """Point the stored hook + MCP launches at a specific interpreter name."""
+    sp = project_dir / ".claude" / "settings.json"
+    s = json.loads(sp.read_text(encoding="utf-8"))
+    for entries in s.get("hooks", {}).values():
+        for e in entries:
+            for h in e.get("hooks", []):
+                h["command"] = h["command"].replace("python ", exe + " ", 1)
+    sp.write_text(json.dumps(s, indent=2), encoding="utf-8")
+    mp = project_dir / ".mcp.json"
+    m = json.loads(mp.read_text(encoding="utf-8"))
+    m["mcpServers"]["ctxpack"]["command"] = exe
+    mp.write_text(json.dumps(m), encoding="utf-8")
+
+
+def _snapshot(root):
+    return {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in sorted(root.rglob("*")) if p.is_file()}
 
 
 def test_onboard_fresh_repo(tmp_path):
@@ -263,8 +335,14 @@ def test_onboard_refreshes_legacy_mcp_entry(tmp_path):
         "-P", "-m", "ctxpack.integrations.mcp_server"], "legacy MCP entry not refreshed"
 
 
-def test_onboard_check_passes_after_onboard(tmp_path):
+def test_onboard_check_passes_after_onboard(tmp_path, monkeypatch):
+    if sys.version_info < (3, 11):
+        pytest.skip("plain `python -m` is not shadow-proof below 3.11")
     assert _onboard(tmp_path) == 0
+    # Pin the -P subprocess probe to the SAME ctxpack this process imported,
+    # so a stale site-packages install can't make the identity comparison
+    # spuriously differ.
+    monkeypatch.setenv("PYTHONPATH", _pkg_parent())
     assert main(["onboard", "--project-dir", str(tmp_path), "--check"]) == 0
 
 
@@ -272,13 +350,175 @@ def test_onboard_check_fails_when_not_onboarded(tmp_path):
     assert main(["onboard", "--project-dir", str(tmp_path), "--check"]) == 1
 
 
-def test_onboard_check_fails_on_split_mcp_resolver(tmp_path):
-    import sys as _sys
-    if _sys.version_info < (3, 11):
-        return
+def test_onboard_check_fails_on_split_mcp_resolver(tmp_path, monkeypatch):
+    if sys.version_info < (3, 11):
+        pytest.skip("split requires the 3.11 -P baseline")
     assert _onboard(tmp_path) == 0
     mcp_path = tmp_path / ".mcp.json"
     mcp = json.loads(mcp_path.read_text(encoding="utf-8"))
     mcp["mcpServers"]["ctxpack"]["args"] = ["-m", "ctxpack.integrations.mcp_server"]
     mcp_path.write_text(json.dumps(mcp), encoding="utf-8")
+    # hooks probe cleanly (PYTHONPATH pins them); the MCP split is the failure.
+    monkeypatch.setenv("PYTHONPATH", _pkg_parent())
     assert main(["onboard", "--project-dir", str(tmp_path), "--check"]) == 1
+
+
+# ── rc1 combined-review correction (Finding 1): `onboard --check` must PROBE
+#    the configured runtime identity, not compare command strings. It runs each
+#    stored launch and verifies the imported version + package root; it fails
+#    on an unavailable runtime, a vendored shadow, a 3.10 plain `python -m`, or
+#    a version split, while staying read-only. Runtime __version__ == rc1.
+
+
+def test_runtime_version_is_rc1_and_matches_pyproject():
+    # Finding 1(e): runtime __version__, distribution metadata, and the release
+    # target must all be 0.5.0rc1. Runtime is pinned to the pyproject version
+    # (the source of the built wheel's metadata) so they cannot drift.
+    import re
+    from pathlib import Path
+
+    import ctxpack
+    assert ctxpack.__version__ == "0.5.0rc1"
+    pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
+    m = re.search(r'(?m)^version\s*=\s*"([^"]+)"',
+                  pyproject.read_text(encoding="utf-8"))
+    assert m is not None, "pyproject [project] version not found"
+    assert m.group(1) == ctxpack.__version__, (
+        f"pyproject version {m.group(1)} != runtime {ctxpack.__version__}")
+
+
+def test_onboard_output_is_honest_about_shadow_proofing_below_311(
+        tmp_path, monkeypatch, capsys):
+    # Finding 1(d) narrowing: on Python < 3.11 the stored commands are plain
+    # `python -m` (no -P); onboard must NOT advertise them as shadow-proof.
+    import ctxpack.cli.main as m
+    monkeypatch.setattr(m, "_SAFE_PATH_ARGS", [])
+    assert _onboard(tmp_path) == 0
+    out = capsys.readouterr().out
+    assert "NOT shadow-proof" in out
+    assert "3.11" in out
+
+
+def test_identity_subcommand_reports_running_ctxpack(capsys):
+    import ctxpack
+    from ctxpack.cli.main import _norm_root
+    assert main(["identity", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["version"] == ctxpack.__version__
+    assert _norm_root(data["root"]) == _norm_root(
+        os.path.dirname(os.path.abspath(ctxpack.__file__)))
+
+
+def _approving_probe():
+    from ctxpack.cli.main import _runtime_identity
+    ver, root = _runtime_identity()
+    return lambda prefix, cwd: ({"version": ver, "root": root}, None)
+
+
+def test_onboard_check_passes_when_probe_matches_approved(tmp_path):
+    if sys.version_info < (3, 11):
+        pytest.skip("needs the 3.11 -P baseline")
+    from ctxpack.cli.main import _onboard_check
+    assert _onboard(tmp_path) == 0
+    assert _onboard_check(str(tmp_path), probe=_approving_probe()) == 0
+
+
+def test_onboard_check_fails_when_runtime_unavailable(tmp_path):
+    # Finding 1(b): the configured executable cannot start -> nonzero.
+    if sys.version_info < (3, 11):
+        pytest.skip("needs the 3.11 -P baseline")
+    from ctxpack.cli.main import _onboard_check
+    assert _onboard(tmp_path) == 0
+    unavailable = lambda prefix, cwd: (None, "configured executable not found")
+    assert _onboard_check(str(tmp_path), probe=unavailable) == 1
+
+
+def test_onboard_check_fails_on_version_or_root_skew(tmp_path):
+    # Finding 1(c): the launch resolves a DIFFERENT ctxpack (shadow / split).
+    if sys.version_info < (3, 11):
+        pytest.skip("needs the 3.11 -P baseline")
+    from ctxpack.cli.main import _onboard_check, _runtime_identity
+    assert _onboard(tmp_path) == 0
+    ver, root = _runtime_identity()
+    ver_skew = lambda prefix, cwd: ({"version": "9.9.9-shadow", "root": root}, None)
+    root_skew = lambda prefix, cwd: ({"version": ver, "root": root + "_vendored"}, None)
+    assert _onboard_check(str(tmp_path), probe=ver_skew) == 1
+    assert _onboard_check(str(tmp_path), probe=root_skew) == 1
+
+
+def test_onboard_check_rejects_plain_python_m_as_not_shadow_proof(tmp_path, capsys):
+    # Finding 1(d): a repo onboarded under Python 3.10 stores plain `python -m`
+    # (cwd-shadowable). Even when the runtime probe resolves fine, --check must
+    # NOT call it shadow-proof: it fails and names the 3.11 requirement.
+    if sys.version_info < (3, 11):
+        pytest.skip("this env must emit -P so the strip is meaningful")
+    from ctxpack.cli.main import _onboard_check
+    assert _onboard(tmp_path) == 0
+    _strip_safe_path(tmp_path)
+    rc = _onboard_check(str(tmp_path), probe=_approving_probe())
+    assert rc == 1, "plain `python -m` must not pass as shadow-proof"
+    err = capsys.readouterr().err
+    assert "shadow-proof" in err.lower() and "3.11" in err
+
+
+def test_onboard_check_is_read_only(tmp_path):
+    # Finding 1(f): --check never mutates the project.
+    if sys.version_info < (3, 11):
+        pytest.skip("needs the 3.11 -P baseline")
+    from ctxpack.cli.main import _onboard_check
+    assert _onboard(tmp_path) == 0
+    before = _snapshot(tmp_path)
+    assert _onboard_check(str(tmp_path), probe=_approving_probe()) == 0
+    assert _snapshot(tmp_path) == before, "onboard --check modified the project"
+
+
+def test_onboard_check_real_probe_catches_split_a_string_check_misses(
+        tmp_path, monkeypatch):
+    # Finding 1(a)+(c), the DISCRIMINATING case (RED on the string-only parent):
+    # a canonical, -P, correctly-SHAPED config — one a string check accepts —
+    # whose runtime nonetheless resolves to a DIFFERENT ctxpack. A fake
+    # approved-shaped package with a different version is put on PYTHONPATH;
+    # -P imports it (cwd ignored), so the real probe sees the version split the
+    # string check cannot. On the parent (no probe) this config passes (rc 0).
+    if sys.version_info < (3, 11):
+        pytest.skip("-P shadow-proofing requires 3.11+")
+    assert _onboard(tmp_path) == 0                     # canonical -P config
+    fakeenv = tmp_path / "fakeenv"
+    _write_shadow(fakeenv, "7.7.7-split")              # different-version ctxpack
+    monkeypatch.setenv("PYTHONPATH", str(fakeenv))
+    rc = main(["onboard", "--project-dir", str(tmp_path), "--check"])
+    assert rc == 1, ("a -P launch that imports a different ctxpack version must "
+                     "be caught by the runtime probe (a string check cannot)")
+
+
+def test_onboard_check_real_probe_ignores_vendored_shadow_under_safe_path(
+        tmp_path, monkeypatch):
+    # Forward guard (passes on the parent too): Finding 1(c) positive proof — a
+    # consumer repo carrying a vendored ./ctxpack. With -P the real probe still
+    # imports the APPROVED root/version (cwd excluded); downgraded to plain
+    # `python -m`, cwd wins and the vendored shadow is imported -> caught.
+    if sys.version_info < (3, 11):
+        pytest.skip("-P shadow-proofing requires 3.11+")
+    proj = tmp_path / "consumer"
+    proj.mkdir()
+    _write_shadow(proj, "0.0.0-shadow")
+    assert _onboard(proj) == 0
+    monkeypatch.setenv("PYTHONPATH", _pkg_parent())
+    assert main(["onboard", "--project-dir", str(proj), "--check"]) == 0, (
+        "-P must ignore the vendored copy and resolve the approved ctxpack")
+    _strip_safe_path(proj)
+    assert main(["onboard", "--project-dir", str(proj), "--check"]) == 1, (
+        "plain `python -m` imports the vendored shadow — must be caught")
+
+
+def test_onboard_check_real_probe_fails_on_missing_executable(tmp_path, capsys):
+    # Finding 1(b), end-to-end: the configured interpreter does not exist, so
+    # neither launch can start. (Equivalent to the empty-PATH reproduction, but
+    # deterministic across platforms.)
+    if sys.version_info < (3, 11):
+        pytest.skip("needs the 3.11 -P baseline")
+    assert _onboard(tmp_path) == 0
+    _set_executable(tmp_path, "ctxpack-no-such-python-xyz")
+    rc = main(["onboard", "--project-dir", str(tmp_path), "--check"])
+    assert rc == 1
+    assert "not found" in capsys.readouterr().err.lower()

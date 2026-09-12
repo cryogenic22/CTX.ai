@@ -33,13 +33,20 @@ Run this in the same terminal/venv you launch Claude Code from.
 2. In your repo: `ctxpack onboard` — **re-run it even if you onboarded
    before.** It's idempotent and picks up two fixes you need: the Stop
    hook (crash protection) and shadow-proof `python -P` hook commands
-   (your vendored copy can no longer hijack hook execution).
+   (your vendored copy can no longer hijack hook execution). The `-P`
+   flag needs **Python >= 3.11**; on 3.10 onboarding emits plain
+   `python -m`, which is *not* shadow-proof (onboard says so, and
+   `ctxpack onboard --check` fails loud) — use 3.11+ for shadow-proof
+   commands.
 3. Restart Claude Code in the repo; approve hooks + MCP server.
-4. Sanity check: `ctxpack session stats` after your next session.
+4. Sanity check: `ctxpack onboard --check` (verifies hooks + MCP both
+   resolve to one shadow-proof ctxpack), then `ctxpack session stats`
+   after your next session.
 
 **Note for vendored-copy repos:** you do NOT need to delete your
-`ctxpack/` folder for session memory to work — the `-P` flag makes hooks
-ignore it. Your code keeps importing your copy exactly as before.
+`ctxpack/` folder for session memory to work — the `-P` flag (Python
+3.11+) makes hooks ignore it. Your code keeps importing your copy
+exactly as before.
 
 ## Track B — your code that imports ctxpack (when convenient)
 
