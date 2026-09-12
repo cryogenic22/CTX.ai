@@ -37,7 +37,8 @@ def test_distributed_text_carries_no_owner_identity():
 
 def test_onboard_block_embeds_lessons_and_versioned_marker():
     # the onboard block is what cohort repos (KP_SDLC) actually receive
-    assert f"v5.L{L.LESSONS_VERSION} -->" in _CLAUDE_MD_MARKER
+    # (marker bumped v5 -> v6 with the honest prior-state/verify-live wording)
+    assert f"v6.L{L.LESSONS_VERSION} -->" in _CLAUDE_MD_MARKER
     assert _CLAUDE_MD_MARKER in _CLAUDE_MD_BLOCK
     for row in L.active_lessons():
         assert row["id"] in _CLAUDE_MD_BLOCK

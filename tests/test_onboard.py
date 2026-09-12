@@ -158,3 +158,43 @@ def test_onboard_refreshes_v3_block_with_v4_conventions(tmp_path):
     assert _CLAUDE_MD_MARKER in claude_md
     assert "turn-FINAL" in claude_md
     assert "Supersedes: <fact_id>" in claude_md
+
+
+# ── Disposition 1 (rc1 product review): honest prior-state/verify-live memory
+#    semantics — the generated block must NOT tell agents to unconditionally
+#    trust the gist. Red-on-ee7b1e1 (that block says "Trust the gist ...").
+
+
+def test_onboard_block_drops_unconditional_trust(tmp_path):
+    assert _onboard(tmp_path) == 0
+    md = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "Trust the gist's constraints and decisions" not in md, (
+        "the unconditional-trust wording must be gone")
+    assert "prior state, not verified truth" in md
+    assert "VERIFY it against the live tree" in md
+    assert "Active vs superseded" in md
+
+
+def test_onboard_block_marker_bumped_to_v6(tmp_path):
+    # the wording change bumps the marker so re-onboard refreshes v5 blocks
+    from ctxpack.cli.main import _CLAUDE_MD_MARKER_PREFIX
+    assert _CLAUDE_MD_MARKER.startswith(_CLAUDE_MD_MARKER_PREFIX + "v6.")
+
+
+def test_onboard_refreshes_v5_trust_block_to_verify_live(tmp_path):
+    # a repo onboarded at v5 carries the retracted "Trust the gist" wording;
+    # re-onboard must refresh it in place to the verify-live semantics.
+    v5 = (
+        "# Repo\n\n"
+        "<!-- ctxpack:session-memory:v5.L1 -->\n"
+        "## Session memory (ctxpack ledger)\n"
+        "...previous session's gist. Trust the gist's constraints and decisions.\n"
+        "<!-- /ctxpack:session-memory -->\n"
+    )
+    (tmp_path / "CLAUDE.md").write_text(v5, encoding="utf-8")
+    assert _onboard(tmp_path) == 0
+    md = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "Trust the gist's constraints and decisions" not in md, "stale trust wording kept"
+    assert _CLAUDE_MD_MARKER in md
+    assert "prior state, not verified truth" in md
+    assert md.count("## Session memory") == 1, "block duplicated"
