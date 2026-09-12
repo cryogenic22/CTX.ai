@@ -106,7 +106,7 @@ jobs:
   #    the tokenizer calibration re-verified against the live encoding
   #    (needs the [code] extra's tiktoken, hence .[all,test]).
   gates:
-    name: gates (claims + registry + tokenizer + release-manifest)
+    name: gates (claims + registry + tokenizer + release-manifest + doc-privacy)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6 (2026-07-16)
@@ -126,6 +126,8 @@ jobs:
         run: python -m pytest tests/test_token_accounting.py -q
       - name: Release-manifest gate (audit record vs git/artifacts/note)
         run: python scripts/check_release_manifest.py
+      - name: Doc-privacy gate (no machine-specific owner path in shipped docs)
+        run: python scripts/check_doc_privacy.py
 
   # ── artifact: build wheel + sdist, check BOTH, install the wheel into a
   #    CLEAN venv, assert the metadata version, smoke the console script.

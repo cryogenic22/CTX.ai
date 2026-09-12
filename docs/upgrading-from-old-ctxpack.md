@@ -13,19 +13,24 @@ python -c "import ctxpack; print(ctxpack.__version__, ctxpack.__file__)"
 
 Run this in the same terminal/venv you launch Claude Code from.
 
-- **`0.5.0` + a path into `CTX_mod`** → you're current; just run Track A
-  step 2 onward.
-- **`0.3.x`/`0.4.x`, or a path inside YOUR repo or YOUR venv** → you
-  have an old copy; follow both tracks.
+- **`0.5.0rc1` (the current pre-release), or a later 0.5.x, + a path into
+  a `CTX_mod` checkout** → you're on the candidate; just run Track A step 2
+  onward.
+- **`0.3.x`/`0.4.x` (anything older than `0.5.0rc1`), or a path inside YOUR
+  repo or YOUR venv** → you have an old copy; follow both tracks.
 
 ## Track A — session memory on your repo (do now, 5 min)
 
 1. **Make sure the `python` that launches your Claude Code sessions has
-   ctxpack ≥ 0.5.0.** If your venv has an old ctxpack, upgrade it *in
-   the venv*:
+   ctxpack ≥ 0.5.0rc1** — note that `0.5.0rc1` *precedes* the final
+   `0.5.0` under PEP 440, so pin the `rc1` explicitly (a bare `>=0.5.0`
+   would exclude the current pre-release). If your venv has an old
+   ctxpack, upgrade it *in the venv*:
    ```bash
-   pip install -e C:\Users\kapil\Documents\CTX_mod
-   # (or, once published: pip install "git+https://github.com/cryogenic22/CTX.ai")
+   # from a local checkout of CTX_mod (substitute your own path):
+   pip install -e /path/to/CTX_mod
+   # or install the tagged pre-release directly:
+   pip install "ctxpack @ git+https://github.com/cryogenic22/CTX.ai@v0.5.0-rc1"
    ```
    This matters because hooks run whatever `python` is on PATH: an old
    ctxpack there means no `hook` command, and (before v0.5) that could
