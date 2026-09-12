@@ -2,7 +2,7 @@
   "mcpServers": {
     "ctxpack": {
       "command": "python",
-      "args": ["-m", "ctxpack.integrations.mcp_server"]
+      "args": ["-P", "-m", "ctxpack.integrations.mcp_server"]
     }
   }
 }
