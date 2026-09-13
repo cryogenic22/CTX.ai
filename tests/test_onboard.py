@@ -529,6 +529,34 @@ def test_onboard_check_is_read_only(tmp_path):
     assert _snapshot(tmp_path) == before, "onboard --check modified the project"
 
 
+def test_onboard_check_validates_claude_block_content_not_just_marker(
+        tmp_path, capsys):
+    # rc1 final review Finding 1: a CURRENT marker over a STALE body (the exact
+    # defect — "trust its constraints and decisions" wording surviving under a
+    # v6 marker) must fail --check. The complete block content is validated,
+    # not just the marker string, so a marker bump without a real refresh
+    # cannot pass.
+    if sys.version_info < (3, 11):
+        pytest.skip("needs the 3.11 -P baseline so only the block content varies")
+    from ctxpack.cli.main import _CLAUDE_MD_MARKER, _onboard_check
+    assert _onboard(tmp_path) == 0
+    # the pristine onboarded (canonical) block passes
+    assert _onboard_check(str(tmp_path), probe=_approving_probe()) == 0
+    # tamper the block BODY while keeping the current marker intact
+    claude = tmp_path / "CLAUDE.md"
+    md = claude.read_text(encoding="utf-8")
+    assert _CLAUDE_MD_MARKER in md
+    tampered = md.replace("prior state, not verified truth",
+                          "trust its constraints and decisions", 1)
+    assert tampered != md, "canonical honest phrase should be present to tamper"
+    claude.write_text(tampered, encoding="utf-8")
+    assert _CLAUDE_MD_MARKER in tampered, "marker must remain current after tamper"
+    rc = _onboard_check(str(tmp_path), probe=_approving_probe())
+    assert rc == 1, "a stale block body under a current marker must fail --check"
+    err = capsys.readouterr().err
+    assert "CLAUDE.md" in err and "content" in err.lower()
+
+
 def test_onboard_check_real_probe_catches_split_a_string_check_misses(
         tmp_path, monkeypatch):
     # Finding 1(a)+(c), the DISCRIMINATING case (RED on the string-only parent):

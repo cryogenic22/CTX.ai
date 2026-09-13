@@ -2156,12 +2156,31 @@ def _onboard_check(project: str, *, probe=None) -> int:
     else:
         with open(claude_md, encoding="utf-8-sig") as f:
             md = f.read()
-        if _CLAUDE_MD_MARKER not in md:
-            if _CLAUDE_MD_MARKER_PREFIX in md:
-                problems.append(f"CLAUDE.md conventions block is STALE (expected "
-                                f"{_CLAUDE_MD_MARKER.strip()}) — re-run onboard")
-            else:
-                problems.append("CLAUDE.md has no ctxpack conventions block")
+        start = md.find(_CLAUDE_MD_MARKER_PREFIX)
+        end = md.find(_CLAUDE_MD_END)
+        if start == -1:
+            problems.append("CLAUDE.md has no ctxpack conventions block")
+        elif _CLAUDE_MD_MARKER not in md:
+            problems.append(f"CLAUDE.md conventions block is STALE (expected "
+                            f"{_CLAUDE_MD_MARKER.strip()}) — re-run onboard")
+        elif end == -1 or end < start:
+            problems.append("CLAUDE.md conventions block has no end marker — "
+                            "cannot validate its content; re-run "
+                            "`ctxpack onboard`")
+        else:
+            # Validate the COMPLETE block CONTENT, not just the marker: a
+            # marker bumped to the current version while the body still
+            # carries stale wording (the rc1-review defect — the block said
+            # "trust its constraints and decisions" under a v6 marker) must
+            # NOT pass. The block is byte-deterministic, so an exact match
+            # against the canonical block is the check.
+            block = md[start:end + len(_CLAUDE_MD_END)]
+            if block.strip() != _CLAUDE_MD_BLOCK.strip():
+                problems.append(
+                    "CLAUDE.md conventions block content does not match the "
+                    f"canonical {_CLAUDE_MD_VERSION} block (stale wording or a "
+                    "hand-edit under a current marker) — re-run "
+                    "`ctxpack onboard`")
 
     if problems:
         for p in problems:
