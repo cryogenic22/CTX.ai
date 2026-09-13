@@ -183,3 +183,55 @@ class TestH5ASCIIFallback:
         keys = [c.key for c in children if isinstance(c, KeyValue)]
         assert "ARROW" in keys
         assert "ASCII-ARROW" in keys
+
+
+class TestUnbalancedBracketBlastRadius:
+    """A value with unclosed brackets must never swallow later sections.
+
+    Live regression 2026-07-05: one banked shell command truncated
+    mid-`[` consumed 177 of 193 entities in a real session ledger —
+    every constraint and decision after it became unreachable via the
+    read path while the gist (built pre-serialization) looked healthy.
+    """
+
+    def test_unclosed_bracket_stops_at_section_boundary(self):
+        text = (
+            "§CTX v1.0 L2 DOMAIN:test\n\n"
+            "±ENTITY-TOOL-BASH-0001\n"
+            "COMMAND:python -c \"import json,sys; [print(json.d\n"
+            "TURN:48\n"
+            "±ENTITY-CONSTRAINT-AAAA\n"
+            "RULE:Do not run the full pass until cost reporting is fixed.\n"
+            "TURN:445\n"
+            "±ENTITY-DECISION-BBBB\n"
+            "DECISION:Decision: use exponential backoff because limits.\n"
+            "TURN:7\n"
+        )
+        doc = parse(text)
+        sections = [e for e in doc.body if isinstance(e, Section)]
+        names = [s.name for s in sections]
+        assert "ENTITY-CONSTRAINT-AAAA" in names
+        assert "ENTITY-DECISION-BBBB" in names
+        constraint = next(
+            s for s in sections if s.name == "ENTITY-CONSTRAINT-AAAA")
+        rule = next(c.value for c in constraint.children
+                    if isinstance(c, KeyValue) and c.key == "RULE")
+        assert rule.startswith("Do not run the full pass")
+
+    def test_legitimate_multiline_list_still_balances(self):
+        text = (
+            "§CTX v1.0 L2 DOMAIN:test\n\n"
+            "±SECTION\n"
+            "ITEMS:[one,\n"
+            "two,\n"
+            "three]\n"
+            "AFTER:value\n"
+        )
+        doc = parse(text)
+        sec = next(e for e in doc.body if isinstance(e, Section))
+        items = next(c.value for c in sec.children
+                     if isinstance(c, KeyValue) and c.key == "ITEMS")
+        assert "three]" in items
+        after = next(c.value for c in sec.children
+                     if isinstance(c, KeyValue) and c.key == "AFTER")
+        assert after == "value"

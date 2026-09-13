@@ -1,0 +1,1037 @@
+{
+  "schema": "ctxpack-resume-probe/v1",
+  "measurement_class": "quasi-experimental \u2014 recall accuracy for this repo's history under budget-parity arms; benchmark-grade causal claims need CompactBench",
+  "generated_at": "2026-07-05T23:59:20+00:00",
+  "repo": "KP_SDLC",
+  "config": {
+    "seed": 42,
+    "model": "claude-sonnet-4-6",
+    "n_probes": 20,
+    "probe_set": "recall",
+    "ctx_arm": "v2-session-literals",
+    "arm_notes": "ctx arm v2 adds the source session's banked-literals view (`ctxpack session literals`) to the context \u2014 the pre-registered 2026-07-05 fix for the baseline arm under-modeling the real read path (baseline files carry no ctx_arm field = v1). Probe universe is regenerated from the current ledger, which has grown since baseline \u2014 per-kind accuracy, not per-probe pairing, is the cross-run comparator.",
+    "grading_notes": "drift probes pass only when the answer contains a verbatim anchor of the conflicting prior that is never shown in the proposal; paraphrased flags grade as misses (uniform under-count, favors arms holding verbatim text). automem arm context is built solely from the repo's auto-memory files \u2014 isolation from ctx artifacts is by construction in this no-tools harness. Known asymmetry: the probe universe is ledger-derived (the only deterministic ground truth with provenance), so facts only automem holds are never probed \u2014 automem results measure its coverage OF banked facts, not its total knowledge."
+  },
+  "arms": {
+    "automem": {
+      "n": 20,
+      "correct": 0,
+      "accuracy": null,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 2694,
+      "by_kind": {
+        "decision": {
+          "n": 7,
+          "correct": 0
+        },
+        "literal": {
+          "n": 7,
+          "correct": 0
+        },
+        "rationale": {
+          "n": 6,
+          "correct": 0
+        }
+      }
+    },
+    "closed": {
+      "n": 20,
+      "correct": 0,
+      "accuracy": null,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 0,
+      "by_kind": {
+        "decision": {
+          "n": 7,
+          "correct": 0
+        },
+        "literal": {
+          "n": 7,
+          "correct": 0
+        },
+        "rationale": {
+          "n": 6,
+          "correct": 0
+        }
+      }
+    },
+    "ctx": {
+      "n": 20,
+      "correct": 0,
+      "accuracy": null,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 3838,
+      "by_kind": {
+        "decision": {
+          "n": 7,
+          "correct": 0
+        },
+        "literal": {
+          "n": 7,
+          "correct": 0
+        },
+        "rationale": {
+          "n": 6,
+          "correct": 0
+        }
+      }
+    },
+    "grep": {
+      "n": 20,
+      "correct": 0,
+      "accuracy": null,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 3691,
+      "by_kind": {
+        "decision": {
+          "n": 7,
+          "correct": 0
+        },
+        "literal": {
+          "n": 7,
+          "correct": 0
+        },
+        "rationale": {
+          "n": 6,
+          "correct": 0
+        }
+      }
+    }
+  },
+  "probes": [
+    {
+      "probe_id": "ca35891c-DF077329",
+      "kind": "decision",
+      "session": "ca35891c",
+      "turn": 57,
+      "question": "According to this project's history, complete the decision that begins: \"I'll hold the full analysis until they return, ...\" \u2014 state the full decision.",
+      "expected": "but here's the key finding on your",
+      "grade_mode": "contains",
+      "source_text": "I'll hold the full analysis until they return, but here's the key finding on your specific question already taking shape:"
+    },
+    {
+      "probe_id": "ca35891c-33029311",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 858,
+      "question": "The project's history records an exact path (session ca35891c, around turn 858). What is its exact value? Reply with the value only.",
+      "expected": "qg/checks_complexity.py",
+      "grade_mode": "exact",
+      "source_text": "qg/checks_complexity.py"
+    },
+    {
+      "probe_id": "ca35891c-4BB5660F-why",
+      "kind": "rationale",
+      "session": "ca35891c",
+      "turn": 1160,
+      "question": "This project's history records a decision that begins: \"Decision: park the quality/eval/web workflow templates rather than ...\". WHY was it made? State the reason.",
+      "expected": "raw placeholders would fail YAML",
+      "grade_mode": "contains",
+      "source_text": "Decision: park the quality/eval/web workflow templates rather than activate them, because raw placeholders would fail YAML parsing on every push and a gate running against a stack that doesn't exist is vacuous green."
+    },
+    {
+      "probe_id": "9f6f1f88-7021D729",
+      "kind": "decision",
+      "session": "9f6f1f88",
+      "turn": 25,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: the next build item is E0.2 self-CI, ...\" \u2014 state the full decision.",
+      "expected": "because the diagnosis is confirmed (only `structural-floor.yml`",
+      "grade_mode": "contains",
+      "source_text": "Decision: the next build item is E0.2 self-CI, because the diagnosis is confirmed (only `structural-floor.yml` is deployed, the shipped template never runs here) and it matches both the plan sequencing and the prior session's stated next step."
+    },
+    {
+      "probe_id": "ca35891c-7DEE673D",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 49,
+      "question": "The project's history records an exact path (session ca35891c, around turn 49). What is its exact value? Reply with the value only.",
+      "expected": "cathedral-keeper/coherence.py",
+      "grade_mode": "exact",
+      "source_text": "cathedral-keeper/coherence.py"
+    },
+    {
+      "probe_id": "ca35891c-8D98B69A-why",
+      "kind": "rationale",
+      "session": "ca35891c",
+      "turn": 1098,
+      "question": "This project's history records a decision that begins: \"Decision: delete the unreachable cross-stack exemption machinery rather ...\". WHY was it made? State the reason.",
+      "expected": "py/web signature separation now holds",
+      "grade_mode": "contains",
+      "source_text": "Decision: delete the unreachable cross-stack exemption machinery rather than keep it, because py/web signature separation now holds by construction (AST hash vs text hash) and retaining dead config for a future maybe is exactly the speculative bloat this epic gates against."
+    },
+    {
+      "probe_id": "ca35891c-257BC202",
+      "kind": "decision",
+      "session": "ca35891c",
+      "turn": 1105,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: this project formally activates E12.3 (TS/React depth ...\" \u2014 state the full decision.",
+      "expected": "+ CK multi-language graph) and E12.6 (visual",
+      "grade_mode": "contains",
+      "source_text": "Decision: this project formally activates E12.3 (TS/React depth + CK multi-language graph) and E12.6 (visual regression + design-token lint) under Epic 12's demand-gating rule \u2014 they move from \"waiting for demand\" to the backlog proper, prioritized after Loop 0 closes."
+    },
+    {
+      "probe_id": "ca35891c-C8D89030",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 555,
+      "question": "The project's history records an exact path (session ca35891c, around turn 555). What is its exact value? Reply with the value only.",
+      "expected": "C:\\Users\\kapil\\Downloads\\zs-init-spec-v0.1.md",
+      "grade_mode": "exact",
+      "source_text": "C:\\Users\\kapil\\Downloads\\zs-init-spec-v0.1.md"
+    },
+    {
+      "probe_id": "ca35891c-E8C19BFF-why",
+      "kind": "rationale",
+      "session": "ca35891c",
+      "turn": 858,
+      "question": "This project's history records a decision that begins: \"Decision: every generation-time convention ships paired with a ...\". WHY was it made? State the reason.",
+      "expected": "the METR perception-gap result shows",
+      "grade_mode": "contains",
+      "source_text": "Decision: every generation-time convention ships paired with a deterministic gate, because the METR perception-gap result shows agent self-report of \"I reused existing code\" cannot be trusted without measurement."
+    },
+    {
+      "probe_id": "ca35891c-C4B282D1",
+      "kind": "decision",
+      "session": "ca35891c",
+      "turn": 260,
+      "question": "According to this project's history, complete the decision that begins: \"**Verdict: APPROVE-WITH-NITS** \u2014 with one real correctness defect ...\" \u2014 state the full decision.",
+      "expected": "I need to fix.",
+      "grade_mode": "contains",
+      "source_text": "**Verdict: APPROVE-WITH-NITS** \u2014 with one real correctness defect I need to fix."
+    },
+    {
+      "probe_id": "ca35891c-3D82A6B3",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 30,
+      "question": "The project's history records an exact path (session ca35891c, around turn 30). What is its exact value? Reply with the value only.",
+      "expected": "C:\\Users\\kapil\\Documents\\KP_SDLC\\KP_SDLC_Overview.html",
+      "grade_mode": "exact",
+      "source_text": "C:\\Users\\kapil\\Documents\\KP_SDLC\\KP_SDLC_Overview.html"
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5-why",
+      "kind": "rationale",
+      "session": "9f6f1f88",
+      "turn": 111,
+      "question": "This project's history records a decision that begins: \"Decision: sequence Tier C as Loop 1 \u2192 ...\". WHY was it made? State the reason.",
+      "expected": "E1.7 unblocks G1/G2/G4/G5 simultaneously (the",
+      "grade_mode": "contains",
+      "source_text": "Decision: sequence Tier C as Loop 1 \u2192 {Loop 2 \u2225 Loop 4} \u2192 Loop 3 \u2192 Loop 5 \u2192 Loop 6, because E1.7 unblocks G1/G2/G4/G5 simultaneously (the plan's own critical path) and runtime-verify vs eval-engine are disjoint new components safely built in parallel worktrees."
+    },
+    {
+      "probe_id": "d1dc187e-C3574D74",
+      "kind": "decision",
+      "session": "d1dc187e",
+      "turn": 99,
+      "question": "According to this project's history, complete the decision that begins: \"It's also v0.1.x beta with self-reported benchmarks and ...\" \u2014 state the full decision.",
+      "expected": "heavy branding churn (the same author renames",
+      "grade_mode": "contains",
+      "source_text": "It's also v0.1.x beta with self-reported benchmarks and heavy branding churn (the same author renames projects often; \"meta-harness\" also refers to his separate *ruflo*)."
+    },
+    {
+      "probe_id": "ca35891c-80AF029B",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 869,
+      "question": "The project's history records an exact version (session ca35891c, around turn 869). What is its exact value? Reply with the value only.",
+      "expected": "v0.5.0",
+      "grade_mode": "exact",
+      "source_text": "v0.5.0"
+    },
+    {
+      "probe_id": "9f6f1f88-6DF28579-why",
+      "kind": "rationale",
+      "session": "9f6f1f88",
+      "turn": 111,
+      "question": "This project's history records a decision that begins: \"Decision: every implementation agent works in an isolated ...\". WHY was it made? State the reason.",
+      "expected": "the repo's doctrine (separation of",
+      "grade_mode": "contains",
+      "source_text": "Decision: every implementation agent works in an isolated worktree and every PR gets a fresh-context adversarial review before merge, because the repo's doctrine (separation of authorship, no vacuous green) applies to agent-authored code even more than human-authored."
+    },
+    {
+      "probe_id": "ca35891c-42F74C94",
+      "kind": "decision",
+      "session": "ca35891c",
+      "turn": 1328,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: build the golden-path init executor as the ...\" \u2014 state the full decision.",
+      "expected": "MVP and demand-gate the rest of Epic",
+      "grade_mode": "contains",
+      "source_text": "Decision: build the golden-path init executor as the MVP and demand-gate the rest of Epic 11 (manifest signing, profile-driven workflow activation, the automated failing-fixture proof phase, UI), because that scope retires the friction log now while each deferred piece lands when"
+    },
+    {
+      "probe_id": "ca35891c-EB2A3559",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 514,
+      "question": "The project's history records an exact path (session ca35891c, around turn 514). What is its exact value? Reply with the value only.",
+      "expected": "tests/test_protected_surface_sync.py",
+      "grade_mode": "exact",
+      "source_text": "tests/test_protected_surface_sync.py"
+    },
+    {
+      "probe_id": "ca35891c-C74C0CE4-why",
+      "kind": "rationale",
+      "session": "ca35891c",
+      "turn": 1105,
+      "question": "This project's history records a decision that begins: \"Decision: start the new repo on the manual ...\". WHY was it made? State the reason.",
+      "expected": "Epic 11 sits behind Loop",
+      "grade_mode": "contains",
+      "source_text": "Decision: start the new repo on the manual bootstrap path now rather than waiting for sdlc-init, because Epic 11 sits behind Loop 1, the pilot is what the plan's kill-switch requires, and the friction log from doing it by hand becomes the ground-truth spec for E11's interview and"
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5",
+      "kind": "decision",
+      "session": "9f6f1f88",
+      "turn": 111,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: sequence Tier C as Loop 1 \u2192 ...\" \u2014 state the full decision.",
+      "expected": "{Loop 2 \u2225 Loop 4} \u2192 Loop",
+      "grade_mode": "contains",
+      "source_text": "Decision: sequence Tier C as Loop 1 \u2192 {Loop 2 \u2225 Loop 4} \u2192 Loop 3 \u2192 Loop 5 \u2192 Loop 6, because E1.7 unblocks G1/G2/G4/G5 simultaneously (the plan's own critical path) and runtime-verify vs eval-engine are disjoint new components safely built in parallel worktrees."
+    },
+    {
+      "probe_id": "ca35891c-F2B1E8E7",
+      "kind": "literal",
+      "session": "ca35891c",
+      "turn": 1148,
+      "question": "The project's history records an exact git_sha (session ca35891c, around turn 1148). What is its exact value? Reply with the value only.",
+      "expected": "b620e64",
+      "grade_mode": "exact",
+      "source_text": "b620e64"
+    }
+  ],
+  "results": [
+    {
+      "probe_id": "ca35891c-DF077329",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4051,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-DF077329",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3738,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-DF077329",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-DF077329",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-33029311",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4020,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-33029311",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3844,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-33029311",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-33029311",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-4BB5660F-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4060,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-4BB5660F-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3948,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-4BB5660F-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-4BB5660F-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-7021D729",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3199,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-7021D729",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3155,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-7021D729",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-7021D729",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-7DEE673D",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4020,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-7DEE673D",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3805,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-7DEE673D",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-7DEE673D",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-8D98B69A-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4060,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-8D98B69A-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3909,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-8D98B69A-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-8D98B69A-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-257BC202",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4076,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-257BC202",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3962,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-257BC202",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-257BC202",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C8D89030",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4020,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C8D89030",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3972,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C8D89030",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C8D89030",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-E8C19BFF-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4054,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-E8C19BFF-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3952,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-E8C19BFF-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-E8C19BFF-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C4B282D1",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4052,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C4B282D1",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4013,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C4B282D1",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C4B282D1",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-3D82A6B3",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4020,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-3D82A6B3",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3805,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-3D82A6B3",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-3D82A6B3",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3280,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3194,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "d1dc187e-C3574D74",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3215,
+      "error": false
+    },
+    {
+      "probe_id": "d1dc187e-C3574D74",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2881,
+      "error": false
+    },
+    {
+      "probe_id": "d1dc187e-C3574D74",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "d1dc187e-C3574D74",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-80AF029B",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4045,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-80AF029B",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3966,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-80AF029B",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-80AF029B",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-6DF28579-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3208,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-6DF28579-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3154,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-6DF28579-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-6DF28579-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-42F74C94",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4051,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-42F74C94",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3889,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-42F74C94",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-42F74C94",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-EB2A3559",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4020,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-EB2A3559",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3840,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-EB2A3559",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-EB2A3559",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C74C0CE4-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4074,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C74C0CE4-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3856,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C74C0CE4-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-C74C0CE4-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3247,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3106,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "9f6f1f88-BD0CADE5",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-F2B1E8E7",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3997,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-F2B1E8E7",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3838,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-F2B1E8E7",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "ca35891c-F2B1E8E7",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2694,
+      "error": false
+    }
+  ]
+}

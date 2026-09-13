@@ -48,3 +48,7 @@ demo_features.py
 paper/ctxpack-whitepaper.md
 paper/linkedin-post*.md
 BACKLOG.md
+
+# CompactBench run-scoped workspaces (results/ stays tracked)
+ctxpack/benchmarks/compactbench/work/
+full_suite_result.txt

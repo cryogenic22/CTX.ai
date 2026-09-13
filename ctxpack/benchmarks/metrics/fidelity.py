@@ -26,8 +26,11 @@ logger = logging.getLogger(__name__)
 QA_SYSTEM_MSG = "You are a precise Q&A assistant. Answer concisely based only on the provided context."
 JUDGE_SYSTEM_MSG = "You are an expert grader evaluating answer correctness."
 
-# Transient HTTP status codes that should trigger retry
-_TRANSIENT_CODES = frozenset({429, 500, 502, 503, 504})
+# Transient HTTP status codes that should trigger retry.
+# 529 is Anthropic's "overloaded" status; 408/522/524 are timeout variants.
+# Treating any of these as permanent silently scores the answer INCORRECT —
+# the exact failure mode the v0.4 postmortem documented for 429s.
+_TRANSIENT_CODES = frozenset({408, 429, 500, 502, 503, 504, 522, 524, 529})
 
 # Inter-call delay to avoid API bursting (seconds)
 _INTER_CALL_DELAY = 0.5
@@ -451,17 +454,25 @@ def _build_prompt(question: str, context: str) -> str:
     )
 
 
-def _ask_anthropic(question: str, context: str, *, model: str, api_key: str) -> str:
-    """Call Anthropic Messages API with retry on transient errors."""
+def ask_anthropic_usage(question: str, context: str, *, model: str,
+                        api_key: str,
+                        max_tokens: int = 512) -> "tuple[str, dict]":
+    """(answer, usage) — Anthropic Messages call that KEEPS the API
+    usage block. Cost-enforced harnesses (drift-fork/v2's $2 ceiling)
+    need per-call actual token counts; the plain helper discards them.
+    Same retry semantics as ``_ask_anthropic``; usage is {} when the
+    call permanently failed."""
     import json
     import urllib.request
 
     prompt = _build_prompt(question, context)
+    usage_cell: dict = {}
 
     def _call() -> str:
+        usage_cell.clear()
         payload = json.dumps({
             "model": model,
-            "max_tokens": 512,
+            "max_tokens": max_tokens,
             "temperature": 0,
             "system": QA_SYSTEM_MSG,
             "messages": [{"role": "user", "content": prompt}],
@@ -479,11 +490,71 @@ def _ask_anthropic(question: str, context: str, *, model: str, api_key: str) -> 
 
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = json.loads(resp.read().decode("utf-8"))
+            usage_cell.update(data.get("usage") or {})
             if "content" in data and data["content"]:
                 return data["content"][0].get("text", "")
         return ""
 
-    return _retry_api_call(_call)
+    text = _retry_api_call(_call)
+    return text, dict(usage_cell)
+
+
+def anthropic_attempt(question: str, context: str, *, model: str,
+                      api_key: str, max_tokens: int = 512
+                      ) -> "tuple[str, dict, str]":
+    """SINGLE Messages attempt, no retry: (text, usage, status).
+
+    status: "ok" — response received (usage populated); "transient" —
+    a retriable HTTP rejection (``_TRANSIENT_CODES``; the API rejected
+    the request, so nothing was billed and usage is {}); "fatal" — a
+    non-retriable HTTP error or a non-HTTP failure (timeout,
+    connection reset), where billing is UNKNOWN and usage may be {}.
+
+    Retry/budget policy deliberately lives in the CALLER: cost-enforced
+    harnesses (drift-fork/v2) must ceiling-guard and ledger every
+    attempt individually (retry-level enforcement), which a helper-
+    internal retry loop cannot provide.
+    """
+    import json
+    import urllib.request
+
+    prompt = _build_prompt(question, context)
+    payload = json.dumps({
+        "model": model,
+        "max_tokens": max_tokens,
+        "temperature": 0,
+        "system": QA_SYSTEM_MSG,
+        "messages": [{"role": "user", "content": prompt}],
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages",
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            usage = dict(data.get("usage") or {})
+            text = ""
+            if "content" in data and data["content"]:
+                text = data["content"][0].get("text", "")
+            return text, usage, "ok"
+    except HTTPError as e:
+        status = "transient" if e.code in _TRANSIENT_CODES else "fatal"
+        return f"(error: HTTP {e.code} {e.msg})", {}, status
+    except Exception as e:  # noqa: BLE001 — timeout/reset: billing unknown
+        return f"(error: {e})", {}, "fatal"
+
+
+def _ask_anthropic(question: str, context: str, *, model: str, api_key: str) -> str:
+    """Call Anthropic Messages API with retry on transient errors."""
+    text, _ = ask_anthropic_usage(question, context, model=model,
+                                  api_key=api_key)
+    return text
 
 
 def _ask_openai(question: str, context: str, *, model: str, api_key: str) -> str:

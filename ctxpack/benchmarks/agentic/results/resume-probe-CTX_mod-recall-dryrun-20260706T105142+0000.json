@@ -1,0 +1,1056 @@
+{
+  "schema": "ctxpack-resume-probe/v1",
+  "measurement_class": "quasi-experimental \u2014 recall accuracy for this repo's history under budget-parity arms; benchmark-grade causal claims need CompactBench",
+  "generated_at": "2026-07-06T10:51:42+00:00",
+  "repo": "CTX_mod",
+  "config": {
+    "seed": 42,
+    "model": "claude-sonnet-4-6",
+    "n_probes": 20,
+    "probe_set": "recall",
+    "ctx_arm": "v2-session-literals",
+    "arm_notes": "ctx arm v2 adds the source session's banked-literals view (`ctxpack session literals`) to the context \u2014 the pre-registered 2026-07-05 fix for the baseline arm under-modeling the real read path (baseline files carry no ctx_arm field = v1). Probe universe is regenerated from the current ledger, which has grown since baseline \u2014 per-kind accuracy, not per-probe pairing, is the cross-run comparator.",
+    "literal_disambiguation": "skip-ambiguous-same-turn/v1",
+    "disambiguation_notes": "literal probes whose source turn banks more than one distinct same-kind value are skipped at generation \u2014 the question is degenerate, not the arm (pre-registered 2026-07-06, amendment A2 in PREREGISTRATION-resume-probe.md; applies to all arms symmetrically). Files without this field predate the rule; no prior result is regraded.",
+    "ambiguous_literals_skipped": 30,
+    "grading_notes": "drift probes pass only when the answer contains a verbatim anchor of the conflicting prior that is never shown in the proposal; paraphrased flags grade as misses (uniform under-count, favors arms holding verbatim text). automem arm context is built solely from the repo's auto-memory files \u2014 isolation from ctx artifacts is by construction in this no-tools harness. Known asymmetry: the probe universe is ledger-derived (the only deterministic ground truth with provenance), so facts only automem holds are never probed \u2014 automem results measure its coverage OF banked facts, not its total knowledge."
+  },
+  "arms": {
+    "automem": {
+      "n": 20,
+      "correct": 0,
+      "accuracy": null,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 11791,
+      "by_kind": {
+        "constraint": {
+          "n": 5,
+          "correct": 0
+        },
+        "decision": {
+          "n": 5,
+          "correct": 0
+        },
+        "literal": {
+          "n": 5,
+          "correct": 0
+        },
+        "rationale": {
+          "n": 5,
+          "correct": 0
+        }
+      }
+    },
+    "closed": {
+      "n": 20,
+      "correct": 0,
+      "accuracy": null,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 0,
+      "by_kind": {
+        "constraint": {
+          "n": 5,
+          "correct": 0
+        },
+        "decision": {
+          "n": 5,
+          "correct": 0
+        },
+        "literal": {
+          "n": 5,
+          "correct": 0
+        },
+        "rationale": {
+          "n": 5,
+          "correct": 0
+        }
+      }
+    },
+    "ctx": {
+      "n": 20,
+      "correct": 0,
+      "accuracy": null,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 4274,
+      "by_kind": {
+        "constraint": {
+          "n": 5,
+          "correct": 0
+        },
+        "decision": {
+          "n": 5,
+          "correct": 0
+        },
+        "literal": {
+          "n": 5,
+          "correct": 0
+        },
+        "rationale": {
+          "n": 5,
+          "correct": 0
+        }
+      }
+    },
+    "grep": {
+      "n": 20,
+      "correct": 0,
+      "accuracy": null,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 4153,
+      "by_kind": {
+        "constraint": {
+          "n": 5,
+          "correct": 0
+        },
+        "decision": {
+          "n": 5,
+          "correct": 0
+        },
+        "literal": {
+          "n": 5,
+          "correct": 0
+        },
+        "rationale": {
+          "n": 5,
+          "correct": 0
+        }
+      }
+    }
+  },
+  "probes": [
+    {
+      "probe_id": "bdfbd48b-1B1221A8",
+      "kind": "constraint",
+      "session": "bdfbd48b",
+      "turn": 519,
+      "question": "What standing constraint did the user state about dont want feature? Quote it as closely as you can.",
+      "expected": "want feature bloat but only if",
+      "grade_mode": "contains",
+      "source_text": "i dont want feature bloat but only if things are of real value and creates a moat."
+    },
+    {
+      "probe_id": "a4fac788-9A2D6BEA",
+      "kind": "decision",
+      "session": "a4fac788",
+      "turn": 354,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: eval exclusion compares each event row's transcript-derived ...\" \u2014 state the full decision.",
+      "expected": "cwd to the current transcript's cwd; rows",
+      "grade_mode": "contains",
+      "source_text": "Decision: eval exclusion compares each event row's transcript-derived cwd to the current transcript's cwd; rows predating the cwd stamp are kept, because a missing stamp is not evidence of eval traffic."
+    },
+    {
+      "probe_id": "bdfbd48b-4EC2B399",
+      "kind": "literal",
+      "session": "bdfbd48b",
+      "turn": 747,
+      "question": "The project's history records an exact path (session bdfbd48b, around turn 747). What is its exact value? Reply with the value only.",
+      "expected": "ctxpack/core/factid.py",
+      "grade_mode": "exact",
+      "source_text": "ctxpack/core/factid.py"
+    },
+    {
+      "probe_id": "a4fac788-11D54848-why",
+      "kind": "rationale",
+      "session": "a4fac788",
+      "turn": 536,
+      "question": "This project's history records a decision that begins: \"Decision: conflict evidence is a shared contiguous 5-word ...\". WHY was it made? State the reason.",
+      "expected": "the flagship drift case contains",
+      "grade_mode": "contains",
+      "source_text": "Decision: conflict evidence is a shared contiguous 5-word content n-gram, not full-text containment, because the flagship drift case contains neither text in the other \u2014 the quoted phrase is the exact match precision-first demands."
+    },
+    {
+      "probe_id": "bdfbd48b-E52D462E",
+      "kind": "constraint",
+      "session": "bdfbd48b",
+      "turn": 755,
+      "question": "What standing constraint did the user state about written manually never? Quote it as closely as you can.",
+      "expected": "is written by me, manually, with",
+      "grade_mode": "contains",
+      "source_text": "- This is written by me, manually, with never touches it."
+    },
+    {
+      "probe_id": "a21df970-38A2B9E1",
+      "kind": "decision",
+      "session": "a21df970",
+      "turn": 270,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: resolve the live transcript by newest mtime ...\" \u2014 state the full decision.",
+      "expected": "under the munged `~/.claude/projects/<project>` dir with a",
+      "grade_mode": "contains",
+      "source_text": "Decision: resolve the live transcript by newest mtime under the munged `~/.claude/projects/<project>` dir with a name tie-break, because write-path input selection is outside the byte-determinism contract, which governs pack output only."
+    },
+    {
+      "probe_id": "eca3f61c-4535F536",
+      "kind": "literal",
+      "session": "eca3f61c",
+      "turn": 323,
+      "question": "The project's history records an exact git_sha (session eca3f61c, around turn 323). What is its exact value? Reply with the value only.",
+      "expected": "968357d",
+      "grade_mode": "exact",
+      "source_text": "968357d"
+    },
+    {
+      "probe_id": "eca3f61c-AD569B43-why",
+      "kind": "rationale",
+      "session": "eca3f61c",
+      "turn": 310,
+      "question": "This project's history records a decision that begins: \"Decision: reject context-as-image for the ctx ledger and ...\". WHY was it made? State the reason.",
+      "expected": "it optimizes token count at",
+      "grade_mode": "contains",
+      "source_text": "Decision: reject context-as-image for the ctx ledger and read path, because it optimizes token count at the direct expense of verifiability \u2014 exactness, citations, and byte-determinism are the moat, and a provider-specific pricing arbitrage is not a foundation."
+    },
+    {
+      "probe_id": "bdfbd48b-31533EEF",
+      "kind": "constraint",
+      "session": "bdfbd48b",
+      "turn": 621,
+      "question": "What standing constraint did the user state about try build salience? Quote it as closely as you can.",
+      "expected": "try to build salience learning, DAG",
+      "grade_mode": "contains",
+      "source_text": "Do not try to build salience learning, DAG merges, typed edges, and consolidation all in the v1.1"
+    },
+    {
+      "probe_id": "a4fac788-5F1783BE",
+      "kind": "decision",
+      "session": "a4fac788",
+      "turn": 536,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: marker-led Decision:/Constraint: sentences bank up to a ...\" \u2014 state the full decision.",
+      "expected": "900-char cap, because the 300-char sentence filter",
+      "grade_mode": "contains",
+      "source_text": "Decision: marker-led Decision:/Constraint: sentences bank up to a 900-char cap, because the 300-char sentence filter was silently dropping long convention-following statements."
+    },
+    {
+      "probe_id": "bae8e5d2-56AE0265",
+      "kind": "literal",
+      "session": "bae8e5d2",
+      "turn": 791,
+      "question": "The project's history records an exact git_sha (session bae8e5d2, around turn 791). What is its exact value? Reply with the value only.",
+      "expected": "b82c106",
+      "grade_mode": "exact",
+      "source_text": "b82c106"
+    },
+    {
+      "probe_id": "eca3f61c-953C9049-why",
+      "kind": "rationale",
+      "session": "eca3f61c",
+      "turn": 323,
+      "question": "This project's history records a decision that begins: \"Decision: deterministic visual memory maps are allowed as ...\". WHY was it made? State the reason.",
+      "expected": "orientation is a legitimate use",
+      "grade_mode": "contains",
+      "source_text": "Decision: deterministic visual memory maps are allowed as optional orientation artifacts rendered from the ledger, because orientation is a legitimate use of projection \u2014 but the source of truth stays structured text/events and agents act by hydrating cited facts, never by readin"
+    },
+    {
+      "probe_id": "bdfbd48b-E0B1B210",
+      "kind": "constraint",
+      "session": "bdfbd48b",
+      "turn": 445,
+      "question": "What standing constraint did the user state about run full pass? Quote it as closely as you can.",
+      "expected": "not run the $60 full pass",
+      "grade_mode": "contains",
+      "source_text": "- Do not run the $60 full pass until cost reporting is fixed."
+    },
+    {
+      "probe_id": "a4fac788-A7DBC55B",
+      "kind": "decision",
+      "session": "a4fac788",
+      "turn": 536,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: the ratified same-key/different-value case ships as documented-reserved, ...\" \u2014 state the full decision.",
+      "expected": "because fact keys today are only literal",
+      "grade_mode": "contains",
+      "source_text": "Decision: the ratified same-key/different-value case ships as documented-reserved, because fact keys today are only literal kinds where same-key/different-value is normal \u2014 it lands with the first keyed producer (tool_observed knobs)."
+    },
+    {
+      "probe_id": "bae8e5d2-B9087149",
+      "kind": "literal",
+      "session": "bae8e5d2",
+      "turn": 57,
+      "question": "The project's history records an exact number_unit (session bae8e5d2, around turn 57). What is its exact value? Reply with the value only.",
+      "expected": "989 BPE",
+      "grade_mode": "exact",
+      "source_text": "989 BPE"
+    },
+    {
+      "probe_id": "eca3f61c-0438F975-why",
+      "kind": "rationale",
+      "session": "eca3f61c",
+      "turn": 281,
+      "question": "This project's history records a decision that begins: \"Decision: current-session lint comparisons gate on strictly-earlier constraint ...\". WHY was it made? State the reason.",
+      "expected": "the old same-turn-only skip let",
+      "grade_mode": "contains",
+      "source_text": "Decision: current-session lint comparisons gate on strictly-earlier constraint turns (integer turn carried per constraint; cross-session rows always apply), because the old same-turn-only skip let a decision be flagged against future text \u2014 a retroactive conflict the contract for"
+    },
+    {
+      "probe_id": "bdfbd48b-12168679",
+      "kind": "constraint",
+      "session": "bdfbd48b",
+      "turn": 621,
+      "question": "What standing constraint did the user state about ctx become smarter? Quote it as closely as you can.",
+      "expected": "should not become \u201csmarter summaries.\u201d It",
+      "grade_mode": "contains",
+      "source_text": "> ctx should not become \u201csmarter summaries.\u201d It should become immutable, cited facts plus deterministic event-"
+    },
+    {
+      "probe_id": "a4fac788-870F63D2",
+      "kind": "decision",
+      "session": "a4fac788",
+      "turn": 536,
+      "question": "According to this project's history, complete the decision that begins: \"Decision: conflict comparisons run only against sessions earlier ...\" \u2014 state the full decision.",
+      "expected": "in journal order plus the current session's",
+      "grade_mode": "contains",
+      "source_text": "Decision: conflict comparisons run only against sessions earlier in journal order plus the current session's own earlier turns, so a session's events block stays stable no matter when it is re-materialized."
+    },
+    {
+      "probe_id": "eca3f61c-D03AED63",
+      "kind": "literal",
+      "session": "eca3f61c",
+      "turn": 310,
+      "question": "The project's history records an exact number_unit (session eca3f61c, around turn 310). What is its exact value? Reply with the value only.",
+      "expected": "122 tokens",
+      "grade_mode": "exact",
+      "source_text": "122 tokens"
+    },
+    {
+      "probe_id": "a4fac788-B59A0666-why",
+      "kind": "rationale",
+      "session": "a4fac788",
+      "turn": 354,
+      "question": "This project's history records a decision that begins: \"Decision: the inferred-basis penalty applies to DECISION facts ...\". WHY was it made? State the reason.",
+      "expected": "measured over-extraction is exclusively decision-verb",
+      "grade_mode": "contains",
+      "source_text": "Decision: the inferred-basis penalty applies to DECISION facts only, because measured over-extraction is exclusively decision-verb junk, and penalizing FAILED-APPROACH evicted \"do not retry\" facts below number_unit table noise."
+    }
+  ],
+  "results": [
+    {
+      "probe_id": "bdfbd48b-1B1221A8",
+      "kind": "constraint",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4495,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-1B1221A8",
+      "kind": "constraint",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4351,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-1B1221A8",
+      "kind": "constraint",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-1B1221A8",
+      "kind": "constraint",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-9A2D6BEA",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4437,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-9A2D6BEA",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4418,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-9A2D6BEA",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-9A2D6BEA",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-4EC2B399",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4687,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-4EC2B399",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4636,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-4EC2B399",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-4EC2B399",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-11D54848-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4095,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-11D54848-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4017,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-11D54848-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-11D54848-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-E52D462E",
+      "kind": "constraint",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4488,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-E52D462E",
+      "kind": "constraint",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4366,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-E52D462E",
+      "kind": "constraint",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-E52D462E",
+      "kind": "constraint",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-38A2B9E1",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3918,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-38A2B9E1",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3752,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-38A2B9E1",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "a21df970-38A2B9E1",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-4535F536",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4060,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-4535F536",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3833,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-4535F536",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-4535F536",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-AD569B43-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4055,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-AD569B43-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4041,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-AD569B43-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-AD569B43-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-31533EEF",
+      "kind": "constraint",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4498,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-31533EEF",
+      "kind": "constraint",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4401,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-31533EEF",
+      "kind": "constraint",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-31533EEF",
+      "kind": "constraint",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-5F1783BE",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4433,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-5F1783BE",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4374,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-5F1783BE",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-5F1783BE",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-56AE0265",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4207,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-56AE0265",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4042,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-56AE0265",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-56AE0265",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-953C9049-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4070,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-953C9049-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3995,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-953C9049-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-953C9049-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-E0B1B210",
+      "kind": "constraint",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4489,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-E0B1B210",
+      "kind": "constraint",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4424,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-E0B1B210",
+      "kind": "constraint",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-E0B1B210",
+      "kind": "constraint",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-A7DBC55B",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4443,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-A7DBC55B",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4384,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-A7DBC55B",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-A7DBC55B",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-B9087149",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4191,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-B9087149",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4038,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-B9087149",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bae8e5d2-B9087149",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-0438F975-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4231,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-0438F975-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3987,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-0438F975-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-0438F975-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-12168679",
+      "kind": "constraint",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4492,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-12168679",
+      "kind": "constraint",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4341,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-12168679",
+      "kind": "constraint",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-12168679",
+      "kind": "constraint",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-870F63D2",
+      "kind": "decision",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4097,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-870F63D2",
+      "kind": "decision",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3970,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-870F63D2",
+      "kind": "decision",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-870F63D2",
+      "kind": "decision",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-D03AED63",
+      "kind": "literal",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4019,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-D03AED63",
+      "kind": "literal",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3833,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-D03AED63",
+      "kind": "literal",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "eca3f61c-D03AED63",
+      "kind": "literal",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-B59A0666-why",
+      "kind": "rationale",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4078,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-B59A0666-why",
+      "kind": "rationale",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 3863,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-B59A0666-why",
+      "kind": "rationale",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "a4fac788-B59A0666-why",
+      "kind": "rationale",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 11791,
+      "error": false
+    }
+  ]
+}

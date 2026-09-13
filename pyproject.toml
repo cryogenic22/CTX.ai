@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ctxpack"
-version = "0.3.0"
-description = "MP3 for LLM context — multi-resolution compression codec for domain knowledge"
+version = "0.5.0rc1"
+description = "Deterministic session memory for long-running agents — pack-on-compact ledger for Claude Code ('compaction is a commit, not a loss event') + zero-dependency domain-knowledge packer with progressive hydration"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
@@ -17,15 +17,19 @@ authors = [
 keywords = [
     "llm",
     "context",
+    "agent-memory",
+    "session-memory",
+    "claude-code",
+    "compaction",
+    "mcp",
     "compression",
-    "tokenizer",
     "ctx",
     "domain-knowledge",
     "rag",
     "context-engineering",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
     "Topic :: Text Processing :: General",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
@@ -41,6 +45,35 @@ code = [
     "tree-sitter-python>=0.21",
     "tree-sitter-typescript>=0.21",
     "tiktoken>=0.7",
+]
+# MCP server (ctx/session_*, ctx/hydrate, code-packer tools). Optional so
+# the core stays zero-dep: hooks + `ctxpack session` CLI work without it.
+mcp = [
+    "mcp>=1.0",
+]
+# Analytics domain-pack compiler (ctxpack.modules.analytics): PyYAML for
+# full YAML domain packs (folded scalars/anchors). Optional so the prose
+# packer stays zero-dep — install with `pip install ctxpack[analytics]`.
+analytics = [
+    "PyYAML>=6.0",
+]
+# All optional runtime features (code + mcp + analytics).
+all = [
+    "ctxpack[code,mcp,analytics]",
+]
+# Test runner + the DIRECT deps the ordinary (non-integration) test lane
+# needs to COLLECT and run non-vacuously: pytest, PyYAML (hermetic
+# analytics lane), tiktoken (token-accounting), and mcp (MCP handler tests
+# plus the module-level collection dependency of test_mcp_tool_budget.py).
+# These are listed directly, NOT via `ctxpack[all]` — tree-sitter (the
+# code-packer) is deliberately excluded, so the ordinary lane and the
+# `.[all,test]` integration lane stay distinct (Codex Finding 2). The CI
+# `extras` job installs `.[all,test]` to exercise the code-packer.
+test = [
+    "pytest>=7.0",
+    "PyYAML>=6.0",
+    "tiktoken>=0.7",
+    "mcp>=1.0",
 ]
 
 [project.urls]

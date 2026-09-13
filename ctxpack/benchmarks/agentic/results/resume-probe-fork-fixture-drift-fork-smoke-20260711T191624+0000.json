@@ -1,0 +1,209 @@
+{
+  "schema": "ctxpack-resume-probe/v1",
+  "measurement_class": "quasi-experimental \u2014 recall accuracy for this repo's history under budget-parity arms; benchmark-grade causal claims need CompactBench",
+  "generated_at": "2026-07-11T19:16:24+00:00",
+  "repo": "fork-fixture",
+  "config": {
+    "seed": 42,
+    "model": "claude-sonnet-4-6",
+    "n_probes": 3,
+    "probe_set": "drift-fork",
+    "ctx_arm": "v2-session-literals",
+    "arm_notes": "ctx arm v2 adds the source session's banked-literals view (`ctxpack session literals`) to the context \u2014 the pre-registered 2026-07-05 fix for the baseline arm under-modeling the real read path (baseline files carry no ctx_arm field = v1). Probe universe is regenerated from the current ledger, which has grown since baseline \u2014 per-kind accuracy, not per-probe pairing, is the cross-run comparator.",
+    "literal_disambiguation": "skip-ambiguous-same-turn/v1",
+    "disambiguation_notes": "literal probes whose source turn banks more than one distinct same-kind value are skipped at generation \u2014 the question is degenerate, not the arm (pre-registered 2026-07-06, amendment A2 in PREREGISTRATION-resume-probe.md; applies to all arms symmetrically). Files without this field predate the rule; no prior result is regraded.",
+    "ambiguous_literals_skipped": 0,
+    "grading_notes": "drift probes pass only when the answer contains a verbatim anchor of the conflicting prior that is never shown in the proposal; paraphrased flags grade as misses (uniform under-count, favors arms holding verbatim text). automem arm context is built solely from the repo's auto-memory files \u2014 isolation from ctx artifacts is by construction in this no-tools harness. Known asymmetry: the probe universe is ledger-derived (the only deterministic ground truth with provenance), so facts only automem holds are never probed \u2014 automem results measure its coverage OF banked facts, not its total knowledge.",
+    "fork_source": "synthetic-fixture",
+    "prereg": "drift-fork/v1 \u2014 amendment A3, PREREGISTRATION-resume-probe.md",
+    "fork_grade": "drift-fork-grade/v2",
+    "fork_grading": "pass = an explicit conflict token (conflict/unreconciled/unresolved/fork/diverg/competing/contradict) PLUS an exact anchor never shown in the proposal: the OTHER head's value verbatim, or both head session ids (pre-registered A4 \u2014 the A3 v2-containment disjunct false-passed linear-recency dismissals on the first smoke). Paraphrased flags grade as misses. grep budget = max(ctx-nowarn, ctx-warn) BPE per probe (over-powers the null arm \u2014 conservative)."
+  },
+  "arms": {
+    "ctx-nowarn": {
+      "n": 3,
+      "correct": 0,
+      "accuracy": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 1360,
+      "by_kind": {
+        "drift-fork": {
+          "n": 3,
+          "correct": 0
+        }
+      }
+    },
+    "ctx-warn": {
+      "n": 3,
+      "correct": 3,
+      "accuracy": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "mean_context_bpe": 2683,
+      "by_kind": {
+        "drift-fork": {
+          "n": 3,
+          "correct": 3
+        }
+      }
+    },
+    "grep": {
+      "n": 3,
+      "correct": 3,
+      "accuracy": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "mean_context_bpe": 456,
+      "by_kind": {
+        "drift-fork": {
+          "n": 3,
+          "correct": 3
+        }
+      }
+    }
+  },
+  "probes": [
+    {
+      "probe_id": "fork-auth-token-lifetime",
+      "kind": "drift-fork",
+      "session": "cccc3333",
+      "turn": 3,
+      "question": "Proceeding with AUTH-TOKEN-LIFETIME = ttl-60min-refresh as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "ttl-15min-sliding",
+      "grade_mode": "fork",
+      "source_text": "AUTH-TOKEN-LIFETIME: base ttl-30min-static (2f6c0d1ccd376702); heads ttl-60min-refresh (s:cccc3333, ba111464c69fe6d8) vs ttl-15min-sliding (s:bbbb2222, cb097d99f0b488e9) \u2014 unreconciled",
+      "alt_all": [
+        "cccc3333",
+        "bbbb2222"
+      ]
+    },
+    {
+      "probe_id": "fork-export-schema-tag",
+      "kind": "drift-fork",
+      "session": "bbbb2222",
+      "turn": 4,
+      "question": "Proceeding with EXPORT-SCHEMA-TAG = export-v2-nested as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "export-v2-columnar",
+      "grade_mode": "fork",
+      "source_text": "EXPORT-SCHEMA-TAG: base export-v1-flat (737461e9c2e0bbbc); heads export-v2-nested (s:bbbb2222, 8df1c97b0f1c7f2f) vs export-v2-columnar (s:cccc3333, f39375cb6037d8da) \u2014 unreconciled",
+      "alt_all": [
+        "bbbb2222",
+        "cccc3333"
+      ]
+    },
+    {
+      "probe_id": "fork-index-rebuild-cadence",
+      "kind": "drift-fork",
+      "session": "cccc3333",
+      "turn": 6,
+      "question": "Proceeding with INDEX-REBUILD-CADENCE = weekly-full-sunday as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "hourly-incremental-delta",
+      "grade_mode": "fork",
+      "source_text": "INDEX-REBUILD-CADENCE: base nightly-0300-utc (b9b5878afbd468ad); heads weekly-full-sunday (s:cccc3333, 072309a7f7c98412) vs hourly-incremental-delta (s:bbbb2222, caf031e71a24fd67) \u2014 unreconciled",
+      "alt_all": [
+        "cccc3333",
+        "bbbb2222"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "probe_id": "fork-auth-token-lifetime",
+      "kind": "drift-fork",
+      "arm": "ctx-nowarn",
+      "answer": "Yes, that's correct \u2014 `ttl-60min-refresh` is the current value for AUTH-TOKEN-LIFETIME, set during the incident review (session cccc3333, turn 3), which superseded the prior `ttl-15min-sliding` from the load test. Go ahead and draft on that basis.",
+      "correct": false,
+      "context_bpe": 1355,
+      "error": false
+    },
+    {
+      "probe_id": "fork-auth-token-lifetime",
+      "kind": "drift-fork",
+      "arm": "ctx-warn",
+      "answer": "Not quite \u2014 I'd pump the brakes before treating that as settled. AUTH-TOKEN-LIFETIME is currently an **unresolved supersession fork**. Two sessions independently overrode the original value:\n\n- **ttl-60min-refresh** (incident review, session cccc3333)\n- **ttl-15min-sliding** (follow-up load test, session bbbb2222)\n\nThese haven't been reconciled, so neither head value is confirmed as current. Drafting the next step on `ttl-60min-refresh` alone risks building on an unresolved conflict.\n\nCan we rec",
+      "correct": true,
+      "context_bpe": 2678,
+      "error": false
+    },
+    {
+      "probe_id": "fork-auth-token-lifetime",
+      "kind": "drift-fork",
+      "arm": "grep",
+      "answer": "Looking at the context, there are actually **three competing decisions** for AUTH-TOKEN-LIFETIME, all timestamped the same (2026-07-11T09:03:00Z), each superseding the same original decision:\n\n- **aaaa1111-fork-base**: `ttl-30min-static` (initial safe default)\n- **bbbb2222-fork-head**: `ttl-15min-sliding` (favored by load test)\n- **cccc3333-fork-head**: `ttl-60min-refresh` (demanded by incident review)\n\nThese appear to be **divergent fork branches** \u2014 it's not clear which one has been formally a",
+      "correct": true,
+      "context_bpe": 457,
+      "error": false
+    },
+    {
+      "probe_id": "fork-export-schema-tag",
+      "kind": "drift-fork",
+      "arm": "ctx-nowarn",
+      "answer": "Actually, that's not quite current \u2014 EXPORT-SCHEMA-TAG was subsequently updated in the incident review (session cccc3333, turn 4) to **export-v2-columnar**, superseding export-v2-nested. You'll want to draft the next step against **export-v2-columnar** instead.",
+      "correct": false,
+      "context_bpe": 1370,
+      "error": false
+    },
+    {
+      "probe_id": "fork-export-schema-tag",
+      "kind": "drift-fork",
+      "arm": "ctx-warn",
+      "answer": "Not quite \u2014 **EXPORT-SCHEMA-TAG is an unresolved fork** and shouldn't be treated as settled yet.\n\nThe base value (`export-v1-flat`, session aaaa1111) was superseded **independently** by two different sessions:\n\n- `export-v2-nested` \u2014 from the follow-up load test (session bbbb2222)\n- `export-v2-columnar` \u2014 from the incident review (session cccc3333)\n\nNeither head is reconciled against the other. Proceeding on `export-v2-nested` alone risks building on the wrong value if `export-v2-columnar` is ac",
+      "correct": true,
+      "context_bpe": 2693,
+      "error": false
+    },
+    {
+      "probe_id": "fork-export-schema-tag",
+      "kind": "drift-fork",
+      "arm": "grep",
+      "answer": "Not quite \u2014 there's a conflict to flag before we proceed.\n\nWe actually have **two competing superseding decisions** for `EXPORT-SCHEMA-TAG`, both overriding the same original decision (`737461e9c2e0bbbc`) and timestamped at the same time (`2026-07-11T09:04:00Z`):\n\n- **Session `bbbb2222-fork-head`**: `export-v2-nested` (favored by follow-up load test)\n- **Session `cccc3333-fork-head`**: `export-v2-columnar` (demanded by incident review)\n\nThese are divergent fork heads and haven't been reconciled.",
+      "correct": true,
+      "context_bpe": 455,
+      "error": false
+    },
+    {
+      "probe_id": "fork-index-rebuild-cadence",
+      "kind": "drift-fork",
+      "arm": "ctx-nowarn",
+      "answer": "Yes, that's correct \u2014 **INDEX-REBUILD-CADENCE is currently set to `weekly-full-sunday`**, as decided in the most recent session (cccc3333, turn 6) following the incident review, which superseded the earlier `hourly-incremental-delta` value. Go ahead and draft the next step on that basis.",
+      "correct": false,
+      "context_bpe": 1355,
+      "error": false
+    },
+    {
+      "probe_id": "fork-index-rebuild-cadence",
+      "kind": "drift-fork",
+      "arm": "ctx-warn",
+      "answer": "Not so fast \u2014 **INDEX-REBUILD-CADENCE is currently an unresolved conflict** and shouldn't be treated as settled.\n\nThe original value (`nightly-0300-utc`) was superseded **independently** by two different sessions:\n\n- `weekly-full-sunday` \u2014 from the incident review (session cccc3333)\n- `hourly-incremental-delta` \u2014 from the follow-up load test (session bbbb2222)\n\nThese two heads have **never been reconciled**, so we can't just proceed on one of them without risking inconsistency with whatever drov",
+      "correct": true,
+      "context_bpe": 2678,
+      "error": false
+    },
+    {
+      "probe_id": "fork-index-rebuild-cadence",
+      "kind": "drift-fork",
+      "arm": "grep",
+      "answer": "Not quite \u2014 there are actually **three competing decisions** for `INDEX-REBUILD-CADENCE`, all timestamped the same (`2026-07-11T09:06:00Z`), which makes this ambiguous:\n\n1. **`nightly-0300-utc`** (session `aaaa1111-fork-base`) \u2014 initial rollout safe default\n2. **`hourly-incremental-delta`** (session `bbbb2222-fork-head`) \u2014 favored by follow-up load test\n3. **`weekly-full-sunday`** (session `cccc3333-fork-head`) \u2014 demanded by incident review\n\nAll three sessions show fork branches, and sessions `b",
+      "correct": true,
+      "context_bpe": 456,
+      "error": false
+    }
+  ],
+  "fork_unlock": {
+    "n_pairs": 3,
+    "nowarn_miss_rate": 1.0,
+    "warn_miss_rate": 0.0,
+    "mcnemar_b_warn_fixed": 3,
+    "mcnemar_c_warn_broke": 0,
+    "mcnemar_p_one_sided": 0.125,
+    "unlock_rule": "build gist surfacing + possible_conflict emission iff nowarn_miss_rate >= 0.40 and warn_miss_rate <= 0.10 and p < 0.05 (pre-registered A3; scored runs only)",
+    "unlock": false
+  }
+}

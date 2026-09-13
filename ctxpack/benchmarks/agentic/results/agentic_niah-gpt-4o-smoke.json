@@ -1,0 +1,193 @@
+{
+  "model": "gpt-4o",
+  "judge": "gpt-4o",
+  "lengths": {
+    "8000": {
+      "actual_bpe": 8376,
+      "sections": 81,
+      "index_bpe": 207,
+      "summary_bpe": 9,
+      "conflicts": 0,
+      "aggregate": {
+        "RAW": {
+          "judge_pct": 66.7,
+          "rule_pct": 66.7,
+          "avg_bpe": 8376,
+          "by_type": {
+            "static": 66.7,
+            "updated": 0.0,
+            "aggregate": 0.0,
+            "absent": 0.0
+          }
+        },
+        "COMPACT": {
+          "judge_pct": 66.7,
+          "rule_pct": 0.0,
+          "avg_bpe": 9,
+          "by_type": {
+            "static": 66.7,
+            "updated": 0.0,
+            "aggregate": 0.0,
+            "absent": 0.0
+          }
+        },
+        "BM25": {
+          "judge_pct": 66.7,
+          "rule_pct": 100.0,
+          "avg_bpe": 748,
+          "by_type": {
+            "static": 66.7,
+            "updated": 0.0,
+            "aggregate": 0.0,
+            "absent": 0.0
+          }
+        },
+        "CTX": {
+          "judge_pct": 100.0,
+          "rule_pct": 100.0,
+          "avg_bpe": 512,
+          "by_type": {
+            "static": 100.0,
+            "updated": 0.0,
+            "aggregate": 0.0,
+            "absent": 0.0
+          }
+        }
+      },
+      "rows": [
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 8376,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The database connection pool size was set to 27 because the `pgbouncer` max_client_conn is 30, and 3 connections are reserved for schema migrations."
+        },
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 9,
+          "rule": false,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 597,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The database connection pool size was set to 27 because the pgbouncer max_client_conn is 30, and 3 connections are reserved for schema migrations."
+        },
+        {
+          "id": "S1",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 509,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The database connection pool size was set to 27 because the pgbouncer max_client_conn is 30 with 3 reserved for migrations.",
+          "sections": [
+            "ENTITY-CONFIG-DB-POOL"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 8376,
+          "rule": false,
+          "judge": false,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 9,
+          "rule": false,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 590,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The root cause of the flaky test_ledger_rollover failure was that it only fails when it runs after test_fx_cache, as both share the Redis fixture key fx:spot and the earlier test leaves a stale entry."
+        },
+        {
+          "id": "S2",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 517,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "The root cause of the flaky test_ledger_rollover failure was that the shared Redis fixture key fx:spot leaks from test_fx_cache when run in that order.",
+          "sections": [
+            "ENTITY-BUG-FLAKY-LEDGER-TEST"
+          ],
+          "rehydrated": false
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "RAW",
+          "bpe": 8376,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed with HMAC-SHA256 using key id whsec-2026-04; keys rotate quarterly."
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "COMPACT",
+          "bpe": 9,
+          "rule": false,
+          "judge": false,
+          "judge_err": false,
+          "answer": "Not found in context."
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "BM25",
+          "bpe": 1058,
+          "rule": true,
+          "judge": false,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed with HMAC-SHA256 using key id whsec-2026-04."
+        },
+        {
+          "id": "S3",
+          "type": "static",
+          "cond": "CTX",
+          "bpe": 510,
+          "rule": true,
+          "judge": true,
+          "judge_err": false,
+          "answer": "Outbound webhooks are signed using the HMAC-SHA256 algorithm, and the current key id is whsec-2026-04.",
+          "sections": [
+            "ENTITY-DECISION-WEBHOOK-SIGNING"
+          ],
+          "rehydrated": false
+        }
+      ]
+    }
+  }
+}

@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from .layers import ContextLayer
 from .model import CTXDocument, KeyValue, NumberedItem, PlainLine, Provenance, Section
 from .serializer import serialize_section, _serialize_header_iter
+from .tokens import ESTIMATOR_CTX, estimate_tokens
 
 if TYPE_CHECKING:
     from .telemetry import TelemetryLog
@@ -31,10 +32,17 @@ class HydrationResult:
     """Result of hydrating sections from a .ctx document."""
 
     sections: list[Section] = field(default_factory=list)
+    # tokens_injected estimates the raw .ctx serialization (the storage
+    # representation) — it drives hydration BUDGET decisions and
+    # telemetry, and is labelled ESTIMATOR_CTX. It does NOT describe a
+    # consumer's emitted render: a surface that emits prose
+    # (natural_language=True) must estimate its own final string with
+    # kind="prose" and report that label instead (Q2-1).
     tokens_injected: int = 0
     sections_available: int = 0
     header_text: str = ""
     layer_breakdown: dict[str, int] = field(default_factory=dict)
+    token_estimator: str = ESTIMATOR_CTX
 
 
 # ── Section Index (O(1) lookup) ──
@@ -50,9 +58,9 @@ def _build_section_index(doc: CTXDocument) -> dict[str, Section]:
 
 
 def _count_section_tokens(section: Section) -> int:
-    """Count tokens in a serialized section (whitespace-split)."""
+    """Estimate tokens in a serialized section (see core.tokens)."""
     lines = list(serialize_section(section))
-    return len("\n".join(lines).split())
+    return estimate_tokens("\n".join(lines), kind="ctx")
 
 
 def _section_provenance(section: Section) -> Optional[Provenance]:
@@ -87,6 +95,38 @@ def _section_confidence(section: Section) -> float:
     return prov.confidence if prov is not None else 1.0
 
 
+def _section_expired(section: Section, now: str) -> bool:
+    """True when the section's Provenance carries an expires_at in the past.
+
+    AMBIENT facts (live repo/branch/test state) carry expiry; serving one
+    past its expires_at re-injects stale state into the agent. Sections
+    without provenance or without expires_at never expire.
+
+    ``Provenance.expires_at`` is an epoch-seconds float; ``now`` is an
+    ISO-8601 date/datetime string (or a stringified epoch), converted here.
+    Unparseable inputs fail open (not expired) — hydration must never
+    crash on malformed metadata.
+    """
+    prov = _section_provenance(section)
+    if prov is None:
+        return False
+    expires = getattr(prov, "expires_at", None)
+    if not expires:
+        return False
+    try:
+        now_epoch = float(now)
+    except ValueError:
+        import datetime
+        try:
+            # Python 3.10's fromisoformat rejects the Z suffix
+            now_epoch = datetime.datetime.fromisoformat(
+                now.replace("Z", "+00:00")
+            ).timestamp()
+        except ValueError:
+            return False
+    return float(expires) < now_epoch
+
+
 # ── Public API ──
 
 
@@ -102,6 +142,7 @@ def hydrate_by_name(
     layers: Optional[set[ContextLayer]] = None,
     min_confidence: float = 0.0,
     include_layer_metadata: bool = False,
+    drop_expired_as_of: str = "",
 ) -> HydrationResult:
     """Return specific sections by name. O(1) lookup via index.
 
@@ -122,6 +163,10 @@ def hydrate_by_name(
             this threshold. Default 0.0 keeps everything.
         include_layer_metadata: When True, populate ``layer_breakdown`` on
             the result with per-layer section counts for telemetry / UI.
+        drop_expired_as_of: ISO date/datetime string; when non-empty, skip
+            sections whose Provenance expires_at is earlier than this
+            (AMBIENT facts past their TTL). Empty string (default) keeps
+            expired sections — existing callers are unaffected.
 
     Returns:
         HydrationResult with matched sections and token counts.
@@ -140,6 +185,8 @@ def hydrate_by_name(
             continue
         if min_confidence > 0.0 and _section_confidence(section) < min_confidence:
             continue
+        if drop_expired_as_of and _section_expired(section, drop_expired_as_of):
+            continue
         matched.append(section)
 
     # Count tokens
@@ -154,7 +201,7 @@ def hydrate_by_name(
             doc.header, canonical=False, ascii_mode=False
         ))
         header_text = "\n".join(header_lines)
-        total_tokens += len(header_text.split())
+        total_tokens += estimate_tokens(header_text, kind="ctx")
 
     breakdown: dict[str, int] = {}
     if include_layer_metadata:
@@ -187,6 +234,7 @@ def hydrate_by_name(
             tokens_injected=total_tokens,
             rehydration_triggered=rehydration_triggered,
             latency_ms=round(elapsed_ms, 3),
+            token_estimator=ESTIMATOR_CTX,
         )
         telemetry.log_hydration(event)
 
@@ -255,7 +303,7 @@ def hydrate_by_query(
             doc.header, canonical=False, ascii_mode=False
         ))
         header_text = "\n".join(header_lines)
-        total_tokens += len(header_text.split())
+        total_tokens += estimate_tokens(header_text, kind="ctx")
 
     return HydrationResult(
         sections=matched,

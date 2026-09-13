@@ -1,0 +1,13 @@
+# PF-16 negative control — DO NOT "fix" this file.
+#
+# This is the committed violation fixture for the fixture-privacy gate
+# (ctxpack/agent/fixture_privacy.py). It lives OUTSIDE the scanned
+# roots and is fed to the scanner explicitly by
+# tests/test_fixture_privacy.py, which REQUIRES the gate to reject it —
+# a gate that has never been observed failing is not a gate. The values
+# below are AWS's documented example credentials and an invented user;
+# nothing here is real.
+
+aws_access_key_id = "AKIAIOSFODNN7EXAMPLE"
+aws_secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+backup copied to C:\Users\planteduser\vault\creds.bak

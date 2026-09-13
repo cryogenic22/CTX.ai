@@ -1,0 +1,182 @@
+{
+  "model": "claude-sonnet-4-6",
+  "scales": {
+    "40": {
+      "raw_bpe": 11386,
+      "l3_bpe": 594,
+      "edge_faithful": true,
+      "aggregate": {
+        "RAW": {
+          "macro_f1": 1.0,
+          "avg_bpe": 11386,
+          "by_kind": {
+            "forward": 1.0,
+            "reverse": 0.0,
+            "bfs2": 0.0
+          }
+        },
+        "CTX-L3": {
+          "macro_f1": 1.0,
+          "avg_bpe": 594,
+          "by_kind": {
+            "forward": 1.0,
+            "reverse": 0.0,
+            "bfs2": 0.0
+          }
+        },
+        "CTX-TOOL": {
+          "macro_f1": 1.0,
+          "avg_bpe": 594,
+          "by_kind": {
+            "forward": 1.0,
+            "reverse": 0.0,
+            "bfs2": 0.0
+          }
+        }
+      },
+      "rows": [
+        {
+          "id": "G01",
+          "kind": "forward",
+          "cond": "RAW",
+          "f1": 1.0,
+          "bpe": 11386,
+          "pred": [
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-JUNIPER-JOURNAL"
+          ],
+          "gold": [
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-JUNIPER-JOURNAL"
+          ]
+        },
+        {
+          "id": "G01",
+          "kind": "forward",
+          "cond": "CTX-L3",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-JUNIPER-JOURNAL"
+          ],
+          "gold": [
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-JUNIPER-JOURNAL"
+          ]
+        },
+        {
+          "id": "G01",
+          "kind": "forward",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-JUNIPER-JOURNAL"
+          ],
+          "gold": [
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE",
+            "SVC-JUNIPER-JOURNAL"
+          ]
+        },
+        {
+          "id": "G02",
+          "kind": "forward",
+          "cond": "RAW",
+          "f1": 1.0,
+          "bpe": 11386,
+          "pred": [
+            "SVC-PUMICE-PAYOUTS"
+          ],
+          "gold": [
+            "SVC-PUMICE-PAYOUTS"
+          ]
+        },
+        {
+          "id": "G02",
+          "kind": "forward",
+          "cond": "CTX-L3",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-PUMICE-PAYOUTS"
+          ],
+          "gold": [
+            "SVC-PUMICE-PAYOUTS"
+          ]
+        },
+        {
+          "id": "G02",
+          "kind": "forward",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-PUMICE-PAYOUTS"
+          ],
+          "gold": [
+            "SVC-PUMICE-PAYOUTS"
+          ]
+        },
+        {
+          "id": "G03",
+          "kind": "forward",
+          "cond": "RAW",
+          "f1": 1.0,
+          "bpe": 11386,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE"
+          ]
+        },
+        {
+          "id": "G03",
+          "kind": "forward",
+          "cond": "CTX-L3",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE"
+          ]
+        },
+        {
+          "id": "G03",
+          "kind": "forward",
+          "cond": "CTX-TOOL",
+          "f1": 1.0,
+          "bpe": 594,
+          "pred": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE"
+          ],
+          "gold": [
+            "SVC-AMBER-AUTH",
+            "SVC-BASALT-BILLING",
+            "SVC-COBALT-CACHE"
+          ]
+        }
+      ]
+    }
+  }
+}

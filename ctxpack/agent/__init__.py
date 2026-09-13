@@ -16,7 +16,12 @@ from ..core.packer.conflict import detect_conflicts
 from ..core.packer.entity_resolver import resolve_entities
 from ..core.packer.ir import IRWarning
 from ..core.serializer import serialize
-from .state_parser import parse_steps
+
+# NOTE: .state_parser (eval-tier, benchmark-runner API) is imported
+# lazily inside compress_state — importing any core submodule
+# (checkpoint, session_reader) executes this package init, and core
+# must not load non-core modules as a side effect (capability-registry
+# gate checks core module-level imports statically).
 
 
 @dataclass
@@ -77,7 +82,8 @@ def compress_state(
             step_count=0,
         )
 
-    # 1. Parse steps → IRCorpus
+    # 1. Parse steps → IRCorpus (lazy: see module-level NOTE)
+    from .state_parser import parse_steps
     corpus = parse_steps(steps, domain=domain)
     tokens_raw = corpus.source_token_count
 

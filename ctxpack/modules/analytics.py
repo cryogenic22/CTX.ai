@@ -15,10 +15,6 @@ import os
 import re
 from typing import Any
 
-# Use PyYAML for full YAML support (folded scalars, anchors, etc.)
-# These domain packs are standard YAML, not the ctxpack YAML subset.
-import yaml
-
 from ctxpack.core.packer.ir import (
     Certainty,
     IRCorpus,
@@ -31,6 +27,28 @@ from ctxpack.core.packer.ir import (
 
 
 # ── Helpers ──
+
+def _load_yaml(text: str) -> Any:
+    """Parse a domain pack with PyYAML, imported lazily.
+
+    PyYAML is an optional `analytics` extra, not a core dependency — the
+    prose packer, hooks, and `ctxpack session` CLI stay zero-dep. Importing
+    this module therefore must never require PyYAML (that module-load import
+    was the public-CI break); it is imported here, at the one call site,
+    with a clear install hint if absent.
+
+    Domain packs are standard YAML (folded scalars, anchors, etc.), not the
+    ctxpack YAML subset, so full PyYAML is required to read them.
+    """
+    try:
+        import yaml
+    except ModuleNotFoundError as exc:  # pragma: no cover - env-dependent
+        raise ModuleNotFoundError(
+            "PyYAML is required for the analytics domain-pack compiler; "
+            "install it with `pip install ctxpack[analytics]`."
+        ) from exc
+    return yaml.safe_load(text)
+
 
 def _canon(name: str) -> str:
     """Canonicalize a name: uppercase, underscores/spaces to hyphens."""
@@ -76,7 +94,7 @@ def parse_domain_pack(
     if not text or not text.strip():
         return []
 
-    data = yaml.safe_load(text)
+    data = _load_yaml(text)
     if not isinstance(data, dict):
         return []
 

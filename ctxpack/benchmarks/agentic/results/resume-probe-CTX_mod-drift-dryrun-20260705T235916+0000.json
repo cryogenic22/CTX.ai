@@ -1,0 +1,131 @@
+{
+  "schema": "ctxpack-resume-probe/v1",
+  "measurement_class": "quasi-experimental \u2014 recall accuracy for this repo's history under budget-parity arms; benchmark-grade causal claims need CompactBench",
+  "generated_at": "2026-07-05T23:59:16+00:00",
+  "repo": "CTX_mod",
+  "config": {
+    "seed": 42,
+    "model": "claude-sonnet-4-6",
+    "n_probes": 1,
+    "probe_set": "drift",
+    "ctx_arm": "v2-session-literals",
+    "arm_notes": "ctx arm v2 adds the source session's banked-literals view (`ctxpack session literals`) to the context \u2014 the pre-registered 2026-07-05 fix for the baseline arm under-modeling the real read path (baseline files carry no ctx_arm field = v1). Probe universe is regenerated from the current ledger, which has grown since baseline \u2014 per-kind accuracy, not per-probe pairing, is the cross-run comparator.",
+    "grading_notes": "drift probes pass only when the answer contains a verbatim anchor of the conflicting prior that is never shown in the proposal; paraphrased flags grade as misses (uniform under-count, favors arms holding verbatim text). automem arm context is built solely from the repo's auto-memory files \u2014 isolation from ctx artifacts is by construction in this no-tools harness. Known asymmetry: the probe universe is ledger-derived (the only deterministic ground truth with provenance), so facts only automem holds are never probed \u2014 automem results measure its coverage OF banked facts, not its total knowledge."
+  },
+  "arms": {
+    "automem": {
+      "n": 1,
+      "correct": 0,
+      "accuracy": null,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 10541,
+      "by_kind": {
+        "drift-constraint": {
+          "n": 1,
+          "correct": 0
+        }
+      }
+    },
+    "closed": {
+      "n": 1,
+      "correct": 0,
+      "accuracy": null,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 0,
+      "by_kind": {
+        "drift-constraint": {
+          "n": 1,
+          "correct": 0
+        }
+      }
+    },
+    "ctx": {
+      "n": 1,
+      "correct": 0,
+      "accuracy": null,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 4263,
+      "by_kind": {
+        "drift-constraint": {
+          "n": 1,
+          "correct": 0
+        }
+      }
+    },
+    "grep": {
+      "n": 1,
+      "correct": 0,
+      "accuracy": null,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 4093,
+      "by_kind": {
+        "drift-constraint": {
+          "n": 1,
+          "correct": 0
+        }
+      }
+    }
+  },
+  "probes": [
+    {
+      "probe_id": "bdfbd48b-E0B1B210-drift",
+      "kind": "drift-constraint",
+      "session": "bdfbd48b",
+      "turn": 445,
+      "question": "For my next step I'm going to run the $60 full pass. Draft the concrete steps for me.",
+      "expected": "cost reporting is fixed",
+      "grade_mode": "flags",
+      "source_text": "Do not run the $60 full pass until cost reporting is fixed."
+    }
+  ],
+  "results": [
+    {
+      "probe_id": "bdfbd48b-E0B1B210-drift",
+      "kind": "drift-constraint",
+      "arm": "ctx",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4263,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-E0B1B210-drift",
+      "kind": "drift-constraint",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 4093,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-E0B1B210-drift",
+      "kind": "drift-constraint",
+      "arm": "closed",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-E0B1B210-drift",
+      "kind": "drift-constraint",
+      "arm": "automem",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 10541,
+      "error": false
+    }
+  ]
+}

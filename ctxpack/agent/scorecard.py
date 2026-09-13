@@ -1,0 +1,516 @@
+"""Cross-repo scorecard — Layer 1 of the measurement stack.
+
+Aggregates every onboarded repo's checkpoint journal into one report.
+Strictly OBSERVATIONAL: these numbers support adoption and token-economics
+claims only. Accuracy/quality claims require Layer 2 (resume probes) or
+Layer 3 (CompactBench) — conflating the layers is how credibility dies.
+
+No network, no content: only the numeric stats each repo's ledger already
+carries. Repos are read in the order given; a repo without checkpoints is
+reported as onboarded-but-quiet, not an error.
+"""
+
+from __future__ import annotations
+
+import datetime
+import hashlib
+import json
+import os
+from typing import Any, Optional
+
+from .session_reader import LedgerError, session_stats
+
+COHORT_FILE = "cohort.json"
+SCHEMA = "ctxpack-scorecard/v3"
+# v2 artifact rows carried each repo's machine-absolute path (PF-16b
+# finding 2026-08-07 #6). v3 rows carry the basename alias only;
+# absolute paths stay in cohort.json — the local configuration — and
+# --check re-derives them from there. Committed pre-v3 artifacts are
+# immutable and still verified under their own legacy rule below,
+# never misread under v3's.
+LEGACY_SCHEMA_V2 = "ctxpack-scorecard/v2"
+
+
+def repo_alias(repo_path: str) -> str:
+    """Machine-independent artifact identity for a repo: the basename.
+    Cohort validation refuses basename collisions, so within a valid
+    cohort the alias joins artifact rows to configured paths uniquely."""
+    return os.path.basename(os.path.normpath(repo_path))
+
+
+class ArtifactPrivacyError(ValueError):
+    """A publishable artifact byte failed the privacy audit — the write
+    is refused (controlled), nothing is written."""
+
+
+def is_safe_identity(name: str) -> bool:
+    """Re-export of the core identity check (RF3), so scorecard callers
+    and tests share one import site."""
+    from ..core.artifact_privacy import is_safe_identity as _core
+    return _core(name)
+
+
+def audit_artifact_bytes(body: str) -> "list[str]":
+    """Labels of machine-path/owner-identity shapes present in ``body``;
+    empty = clean. RF3 (2026-08-23→24): this now delegates to the ONE
+    reviewed strict matcher (`core.artifact_privacy`) instead of a weak
+    `/home`+`/Users` copy — forward-UNC, `/tmp`, `/var`, `/root`,
+    `file://`, owner identity, and URL-smuggled paths are all covered,
+    and http(s) URLs no longer false-positive. A content AUDIT, never
+    sanitization — callers refuse the write on any hit."""
+    from ..core.artifact_privacy import artifact_categories
+    return artifact_categories(body)
+
+# statuses folded into each denominator; every status appears in
+# exactly one bucket so measured + unmeasured + excluded == total
+_MEASURED = ("active",)
+_UNMEASURED = ("onboarded_no_data", "external_unmeasured")
+_EXCLUDED = ("not_onboarded", "path_missing")
+
+
+def _file_digest(path: str) -> "tuple[str, str | None]":
+    """``(state, sha256)`` — state is present / absent / unreadable.
+
+    Absent and unreadable must not be conflated (review 2026-08-07):
+    "the file is gone" and "the file exists but could not be read" are
+    different claims, and treating them identically lets a permission
+    failure impersonate a clean absence.
+    """
+    try:
+        with open(path, "rb") as f:
+            return "present", hashlib.sha256(f.read()).hexdigest()
+    except FileNotFoundError:
+        return "absent", None
+    except OSError:
+        return "unreadable", None
+
+
+def _sha256_file(path: str) -> "str | None":
+    """sha256 of a file's bytes, or ``None`` when it cannot be read."""
+    return _file_digest(path)[1]
+
+
+def repo_input_fingerprint(repo_path: str) -> dict[str, Any]:
+    """Fingerprint of the ledger files this scorecard actually reads.
+
+    Covers ``checkpoints.jsonl`` and ``injections.jsonl``, each with an
+    explicit present/absent/unreadable state folded into the combined
+    fingerprint. The capture block walks the machine's external
+    transcript directory and is deliberately NOT covered — a passing
+    ``--check`` certifies input freshness for the ledger-derived
+    numbers, not the capture numbers and not the report arithmetic.
+    """
+    ledger = os.path.join(repo_path, ".claude", "ctx")
+    cp_state, cp = _file_digest(os.path.join(ledger, "checkpoints.jsonl"))
+    inj_state, inj = _file_digest(os.path.join(ledger, "injections.jsonl"))
+    combined = hashlib.sha256(
+        (f"checkpoints:{cp_state}:{cp or '-'}\n"
+         f"injections:{inj_state}:{inj or '-'}").encode("utf-8")).hexdigest()
+    return {"checkpoints_jsonl": cp, "checkpoints_state": cp_state,
+            "injections_jsonl": inj, "injections_state": inj_state,
+            "fingerprint": combined}
+
+
+def cohort_config_sha256(out_dir: str = "scorecards") -> "str | None":
+    return _sha256_file(os.path.join(out_dir, COHORT_FILE))
+
+
+def validate_cohort_config(cfg) -> "list[str]":
+    """Strict cohort-schema validation — a malformed population config
+    is a controlled failure, never a silently-shaped one.
+
+    Enforces: dict shape; ``repos`` a list of non-empty strings with
+    canonical-path uniqueness (Windows case-insensitive, symlink/alias
+    resolved — a repo listed twice under two spellings would be counted
+    twice); ``external`` a list of dicts with unique non-empty names.
+    Returns error strings; empty list = valid.
+    """
+    errors: list[str] = []
+    if not isinstance(cfg, dict):
+        return [f"cohort config must be a JSON object, got "
+                f"{type(cfg).__name__}"]
+    repos = cfg.get("repos")
+    if repos is None:
+        errors.append("cohort config has no 'repos' list")
+        repos = []
+    elif not isinstance(repos, list):
+        errors.append(f"'repos' must be a list, got "
+                      f"{type(repos).__name__}")
+        repos = []
+    seen_canonical: dict[str, str] = {}
+    seen_alias: dict[str, str] = {}
+    for entry in repos:
+        if not isinstance(entry, str) or not entry.strip():
+            errors.append(f"repo entries must be non-empty strings: "
+                          f"{entry!r}")
+            continue
+        canonical = os.path.normcase(
+            os.path.realpath(os.path.normpath(entry)))
+        if canonical in seen_canonical:
+            errors.append(
+                f"duplicate repo (canonical-path collision): {entry!r} "
+                f"aliases {seen_canonical[canonical]!r}")
+            continue
+        seen_canonical[canonical] = entry
+        # v3 artifact rows are joined to cohort paths by basename alias
+        # (PF-16b) — two distinct repos sharing a basename would be
+        # unjoinable, so the population refuses up front
+        alias = repo_alias(entry)
+        if alias in seen_alias:
+            errors.append(
+                f"alias collision: {entry!r} and {seen_alias[alias]!r} "
+                f"share basename {alias!r} — v3 artifact rows would be "
+                f"unjoinable; rename one checkout")
+        else:
+            seen_alias[alias] = entry
+    external = cfg.get("external", [])
+    if not isinstance(external, list):
+        errors.append(f"'external' must be a list, got "
+                      f"{type(external).__name__}")
+        external = []
+    seen_names: set[str] = set()
+    for e in external:
+        if not isinstance(e, dict) or not str(e.get("name") or "").strip():
+            errors.append(f"external entries must be objects with a "
+                          f"non-empty 'name': {e!r}")
+            continue
+        name = str(e["name"]).strip()
+        # RF3 (Finding 3b): an artifact identity is validated AS an
+        # identity, not accepted as arbitrary path-bearing text — a
+        # name like "/tmp/kapil/private" must be rejected, never
+        # published.
+        if not is_safe_identity(name):
+            errors.append(
+                f"external deployment name is not a plain identity "
+                f"(path-bearing or reserved chars): {name!r}")
+        if name in seen_names:
+            errors.append(f"duplicate external deployment id: {name!r}")
+        # Finding 5: local and external rows share one artifact
+        # identity space — a shadowing name makes rows unjoinable
+        if name in seen_alias:
+            errors.append(
+                f"alias collision: external deployment {name!r} shadows "
+                f"local repo {seen_alias[name]!r} — artifact rows would "
+                f"be ambiguous")
+        seen_names.add(name)
+    return errors
+
+
+def repo_scorecard(repo_path: str) -> dict[str, Any]:
+    """Layer-1 stats for one repo, or a quiet placeholder.
+
+    The row carries the ALIAS only — no machine-absolute path may enter
+    a committed artifact (PF-16b); ``--check`` re-derives paths from
+    cohort.json."""
+    name = repo_alias(repo_path)
+    ledger = os.path.join(repo_path, ".claude", "ctx")
+    onboarded = os.path.isdir(os.path.join(repo_path, ".claude"))
+    entry: dict[str, Any] = {"repo": name,
+                             "inputs": repo_input_fingerprint(repo_path)}
+    if not os.path.isdir(repo_path):
+        entry["status"] = "path_missing"
+        return entry
+    try:
+        stats = session_stats(ledger)
+    except LedgerError:
+        entry["status"] = "onboarded_no_data" if onboarded else "not_onboarded"
+        return entry
+    entry["status"] = "active"
+    entry.update({k: v for k, v in stats.items() if k != "ledger_dir"})
+    # Capture coverage (setu field gap): how much of what the agent
+    # actually did ever reached this ledger. Fail-open — a machine
+    # without the transcript dir (fresh clone) reports nothing rather
+    # than an error; observational like everything else here.
+    try:
+        from .backfill import capture_coverage
+        cov = capture_coverage(repo_path, ledger)
+        counts = cov.counts()
+        denom = counts["packed"] + counts["stale"] + counts["unpacked"]
+        entry["capture"] = {
+            **counts,
+            "coverage": (round(counts["packed"] / denom, 3)
+                         if denom else None),
+            "unpacked_sessions": [s.session[:8]
+                                  for s in cov.by_status("unpacked")],
+            "worktree_local_ledger": cov.worktree_local_ledger,
+        }
+    except Exception:  # noqa: BLE001 — telemetry must not fail the scorecard
+        pass
+    return entry
+
+
+def build_scorecard(repo_paths: list[str],
+                    external: "list[dict] | None" = None,
+                    cohort_config_sha: "str | None" = None) -> dict[str, Any]:
+    """One scorecard across the cohort, with an explicit claim boundary.
+
+    ``external`` — cohort members with no local ledger (e.g. a
+    field-report deployment). They appear as ``external_unmeasured``
+    rows and count in the unmeasured denominator: the population is
+    honest about who is in the cohort without manufacturing data for
+    repos we cannot read. ``cohort_config_sha`` is stamped so
+    ``--check`` can detect population drift; ``None`` means no cohort
+    file existed at generation (direct API use).
+    """
+    repos = [repo_scorecard(p) for p in repo_paths]
+    for e in external or []:
+        # Finding 5 (2026-08-23): external[].note is LOCAL-CONFIG free
+        # text — copied verbatim it carried machine paths into the
+        # publishable artifact. Notes stay in cohort.json; only the
+        # name (an artifact identity, validated against repo aliases)
+        # is published.
+        name = str(e.get("name") or "unnamed")
+        # RF3 (Finding 3b): validate the identity AS an identity here
+        # too — build_scorecard is called directly (not only via the
+        # CLI's cohort validation), so a path-bearing external name
+        # must be refused at the source, not just audited at write.
+        if not is_safe_identity(name):
+            raise ArtifactPrivacyError(
+                f"external deployment name is not a plain identity: "
+                f"{name!r}")
+        repos.append({"repo": name, "status": "external_unmeasured"})
+    active = [r for r in repos if r.get("status") == "active"]
+
+    def _count(statuses) -> int:
+        return sum(1 for r in repos if r.get("status") in statuses)
+
+    def _sum(getter) -> int:
+        return sum(getter(r) or 0 for r in active)
+
+    ledger_reads = _sum(lambda r: r.get("read_path", {}).get("ledger_reads"))
+    greps = _sum(lambda r: r.get("read_path", {}).get("transcript_greps"))
+    # Session-level adoption of the PULL path. Two field reports (setu
+    # 07-21, OntoWiz 07-25) report never querying the ledger; until these
+    # counters exist the claim is neither confirmable nor refutable from
+    # our own telemetry, because a zero-query session and an untracked
+    # session look identical in the rate. The emission split says whether
+    # a gist was written to the hook's stdout for that session — NOT that
+    # it reached the agent, was read, or was used.
+    rp_sessions = {
+        k: _sum(lambda r, _k=k: r.get("read_path", {}).get(_k))
+        for k in ("sessions_explicit_recall", "sessions_zero_recall",
+                  "sessions_no_telemetry", "sessions_transcript_fallback",
+                  "sessions_zero_recall_with_emission",
+                  "sessions_zero_recall_emission_empty",
+                  "sessions_zero_recall_emission_failed",
+                  "sessions_zero_recall_emission_unmeasured")
+    }
+    rp_measured = (rp_sessions["sessions_explicit_recall"]
+                   + rp_sessions["sessions_zero_recall"])
+    captured_keys = ("decisions", "constraints", "failed_approaches",
+                     "errors", "files_changed", "tasks", "requests",
+                     "incidents")
+    incident_types: dict[str, int] = {}
+    for r in active:
+        for itype, count in (r.get("incident_types") or {}).items():
+            if isinstance(count, int):
+                incident_types[itype] = incident_types.get(itype, 0) + count
+    cohort = {
+        "repos_total": len(repos),
+        "repos_active": len(active),
+        # separate denominators — measured, unmeasured and excluded must
+        # never be pooled: an unmeasured repo is not a zero
+        "repos_measured": _count(_MEASURED),
+        "repos_unmeasured": _count(_UNMEASURED),
+        "repos_excluded": _count(_EXCLUDED),
+        "sessions": _sum(lambda r: r.get("sessions")),
+        "checkpoints": _sum(lambda r: r.get("checkpoints")),
+        "turns_packed": _sum(lambda r: r.get("turns_packed")),
+        "captured": {k: _sum(lambda r, _k=k: r.get("captured", {}).get(_k))
+                     for k in captured_keys},
+        "read_path": {
+            "ledger_reads": ledger_reads,
+            "transcript_greps": greps,
+            "raw_fallback_rate": (round(greps / (ledger_reads + greps), 3)
+                                  if (ledger_reads + greps) else None),
+            **rp_sessions,
+            "explicit_recall_rate": (
+                round(rp_sessions["sessions_explicit_recall"] / rp_measured, 3)
+                if rp_measured else None),
+        },
+        # ctx-incident: telemetry — agent-reported; user-corrected rows
+        # are the only externally-anchored type, weigh them accordingly
+        "incident_types": incident_types,
+        # capture gaps across the cohort (sessions the hooks never
+        # packed — each one is recall silently missing somewhere)
+        "capture_unpacked": _sum(
+            lambda r: r.get("capture", {}).get("unpacked")),
+        # push-path emission: what the SessionStart hook wrote to stdout.
+        # Repos whose ledgers predate the injection log contribute
+        # nothing rather than zeros.
+        "startup_injection": {
+            k: _sum(lambda r, _k=k: r.get("startup_injection", {}).get(_k))
+            for k in ("attempted", "injected", "empty", "failed",
+                      "malformed_rows", "gap_warnings")
+        },
+    }
+    return {
+        "schema": SCHEMA,
+        "generated_at": datetime.datetime.now(
+            datetime.timezone.utc).isoformat(timespec="seconds"),
+        "measurement_class": (
+            "observational — supports adoption and token-economics claims "
+            "only; accuracy/quality claims require resume-probe or "
+            "CompactBench results"),
+        "cohort_config_sha256": cohort_config_sha,
+        "cohort": cohort,
+        "repos": repos,
+    }
+
+
+def write_scorecard(scorecard: dict[str, Any],
+                    out_dir: str = "scorecards") -> tuple[str, str]:
+    """Versioned write (never overwrite a prior scorecard) + latest pointer."""
+    os.makedirs(out_dir, exist_ok=True)
+    stamp = scorecard["generated_at"].replace(":", "").replace("-", "")
+    stamp = stamp.replace("+0000", "Z")
+    path = os.path.join(out_dir, f"scorecard-{stamp}.json")
+    n = 1
+    while os.path.exists(path):  # same-second reruns
+        n += 1
+        path = os.path.join(out_dir, f"scorecard-{stamp}-{n}.json")
+    body = json.dumps(scorecard, indent=2)
+    # Finding 5: audit the exact publishable bytes before EVERY write
+    bad = audit_artifact_bytes(body)
+    if bad:
+        raise ArtifactPrivacyError(
+            f"refusing to write a publishable artifact carrying "
+            f"machine-path shapes: {bad}")
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(body + "\n")
+    latest = os.path.join(out_dir, "scorecard-latest.json")
+    with open(latest, "w", encoding="utf-8", newline="\n") as f:
+        f.write(body + "\n")
+    return path, latest
+
+
+def save_cohort(repo_paths: list[str], out_dir: str = "scorecards") -> str:
+    """Save the repo list, preserving any ``external`` cohort entries —
+    passing ``--repos`` updates the measurable population, it does not
+    silently drop the unmeasurable members from the cohort record."""
+    os.makedirs(out_dir, exist_ok=True)
+    path = os.path.join(out_dir, COHORT_FILE)
+    cfg = load_cohort_config(out_dir) or {}
+    body: dict[str, Any] = {"repos": repo_paths}
+    if cfg.get("external"):
+        body["external"] = cfg["external"]
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(body, f, indent=2)
+        f.write("\n")
+    return path
+
+
+def load_cohort_config(out_dir: str = "scorecards") -> "dict | None":
+    """The full cohort config ({"repos": [...], "external": [...]}),
+    or ``None`` when absent/unreadable."""
+    try:
+        with open(os.path.join(out_dir, COHORT_FILE), encoding="utf-8") as f:
+            cfg = json.load(f)
+        return cfg if isinstance(cfg, dict) else None
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def load_cohort(out_dir: str = "scorecards") -> Optional[list[str]]:
+    cfg = load_cohort_config(out_dir)
+    repos = (cfg or {}).get("repos")
+    return list(repos) if repos else None
+
+
+def verify_latest(out_dir: str = "scorecards") -> tuple[bool, list[str]]:
+    """INPUT-FRESHNESS check for ``scorecard-latest.json``; report drift.
+
+    Scope, stated precisely (review 2026-08-07): this verifies that the
+    cohort config and each repo's fingerprinted ledger files are
+    byte-identical to what the artifact was generated from, and that no
+    cohort member is missing from the artifact. It does NOT recompute
+    the metrics — a hand-edited number in an artifact whose inputs are
+    unchanged would pass — and the capture block is outside the
+    fingerprints entirely. The honest claim is "inputs unchanged since
+    generation", never "numbers verified".
+
+    Malformed artifacts and malformed cohort configs are controlled
+    nonzero failures with named findings, never a traceback. Returns
+    ``(ok, findings)``.
+    """
+    findings: list[str] = []
+    latest_path = os.path.join(out_dir, "scorecard-latest.json")
+    try:
+        with open(latest_path, encoding="utf-8") as f:
+            latest = json.load(f)
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        return False, [f"no readable scorecard at {latest_path}"]
+    if not isinstance(latest, dict):
+        return False, [f"scorecard at {latest_path} is not a JSON object"]
+    schema = latest.get("schema")
+    if schema not in (SCHEMA, LEGACY_SCHEMA_V2):
+        return False, [
+            f"latest has schema {schema!r} — predates "
+            f"self-verification ({SCHEMA}); regenerate"]
+    rows = latest.get("repos")
+    if not isinstance(rows, list) or not all(
+            isinstance(r, dict) for r in rows):
+        return False, ["latest 'repos' is not a list of objects — "
+                       "malformed artifact"]
+    cfg = load_cohort_config(out_dir)
+    had_cfg = cfg is not None
+    cfg_errors = validate_cohort_config(cfg) if had_cfg else []
+    for err in cfg_errors:
+        findings.append(f"cohort config invalid: {err}")
+    if latest.get("cohort_config_sha256") != cohort_config_sha256(out_dir):
+        findings.append("cohort config changed since generation "
+                        f"({out_dir}/{COHORT_FILE})")
+    cfg = cfg or {}
+    cfg_repos = [p for p in (cfg.get("repos") if isinstance(
+        cfg.get("repos"), list) else []) if isinstance(p, str)]
+    if schema == LEGACY_SCHEMA_V2:
+        # Legacy rule for immutable pre-PF-16b artifacts: rows carry
+        # machine paths and are verified as written — a frozen artifact
+        # is checked under the rules it was generated with, never
+        # misread under v3's.
+        for r in rows:
+            path = r.get("path")
+            if not path or not isinstance(path, str):
+                continue                  # external rows carry no inputs
+            stored = (r.get("inputs") or {}).get("fingerprint") \
+                if isinstance(r.get("inputs"), dict) else None
+            if stored != repo_input_fingerprint(path)["fingerprint"]:
+                findings.append(f"{r.get('repo')}: ledger inputs changed "
+                                "since generation")
+        known_paths = {r.get("path") for r in rows}
+        for p in cfg_repos:
+            if p not in known_paths:
+                findings.append(f"cohort repo missing from latest: {p}")
+    else:
+        # v3: rows carry aliases only; paths are re-derived from
+        # cohort.json. No cohort file while local rows exist means the
+        # inputs CANNOT be re-derived — unverifiable is reported stale,
+        # never presented as fresh (absent-vs-zero discipline).
+        by_alias: dict[str, dict] = {}
+        for r in rows:
+            by_alias.setdefault(str(r.get("repo")), r)
+        for p in cfg_repos:
+            alias = repo_alias(p)
+            row = by_alias.get(alias)
+            if row is None:
+                findings.append(f"cohort repo missing from latest: {alias}")
+                continue
+            stored = (row.get("inputs") or {}).get("fingerprint") \
+                if isinstance(row.get("inputs"), dict) else None
+            if stored != repo_input_fingerprint(p)["fingerprint"]:
+                findings.append(f"{alias}: ledger inputs changed "
+                                "since generation")
+        if not had_cfg and any(isinstance(r.get("inputs"), dict)
+                               for r in rows):
+            findings.append(
+                "no cohort config — v3 rows carry aliases only, so "
+                "per-repo inputs cannot be re-derived; unverifiable "
+                "is not fresh")
+    known_names = {r.get("repo") for r in rows}
+    ext = cfg.get("external") if isinstance(cfg.get("external"), list) else []
+    for e in ext:
+        name = e.get("name") if isinstance(e, dict) else None
+        if str(name) not in known_names:
+            findings.append("external cohort entry missing from latest: "
+                            f"{name}")
+    return not findings, findings

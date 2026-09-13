@@ -1,0 +1,31 @@
+{
+  "measured_with": "tiktoken cl100k_base",
+  "frozen": "2026-07-11",
+  "files": {
+    "ctx_spec_frozen.ctx": {
+      "kind": "ctx",
+      "cl100k": 656,
+      "sha256": "850dec933637db1fc35484ddddba24ee2e4b61358506cdce0df3bf8b7dcbd3f3"
+    },
+    "ctx_session_frozen.ctx": {
+      "kind": "ctx",
+      "cl100k": 3159,
+      "sha256": "3cff726c585d93e4156914d25d2a404ff4114031b414f2d659cc770b042380cf"
+    },
+    "ctx_cohort_synth_frozen.ctx": {
+      "kind": "ctx",
+      "cl100k": 9198,
+      "sha256": "c998b6161c1695a649a2d2c91190031bb9ceee30431b40403fa283642c6ef8a6"
+    },
+    "prose_readme_frozen.md": {
+      "kind": "prose",
+      "cl100k": 3305,
+      "sha256": "af715782bcfb05ab839b53411438833f63bddb338589385c1aff6df316bdb029"
+    },
+    "prose_unicode_frozen.md": {
+      "kind": "prose",
+      "cl100k": 772,
+      "sha256": "aeb89e638cef3bdff868bb785735deb9c689645c19c658885bba85c08ffb5891"
+    }
+  }
+}

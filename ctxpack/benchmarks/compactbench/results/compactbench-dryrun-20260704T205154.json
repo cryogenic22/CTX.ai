@@ -1,0 +1,55 @@
+{
+  "benchmark": "compactbench-v1",
+  "params": {
+    "seeds": [
+      0,
+      1
+    ],
+    "k_max": 3,
+    "arms": [
+      "native",
+      "ctx",
+      "grep"
+    ],
+    "model": "haiku",
+    "pct": 20.0,
+    "forced_window": 100000,
+    "forced_threshold_tokens": 13600,
+    "probe_mode": "batched",
+    "adherence": true,
+    "workers": 1,
+    "isolated_config": true,
+    "claude_code_version": "2.1.201"
+  },
+  "generated_at": "20260704T205154",
+  "arms": {
+    "ctx": {
+      "drk": {},
+      "drk_by_seed": {},
+      "by_kind": {},
+      "probe_cost_usd": 0,
+      "compaction_cost_usd": 0,
+      "memory_build_cost_usd": 0,
+      "total_cost_usd": 0
+    },
+    "grep": {
+      "drk": {},
+      "drk_by_seed": {},
+      "by_kind": {},
+      "probe_cost_usd": 0,
+      "compaction_cost_usd": 0,
+      "memory_build_cost_usd": 0,
+      "total_cost_usd": 0
+    },
+    "native": {
+      "drk": {},
+      "drk_by_seed": {},
+      "by_kind": {},
+      "probe_cost_usd": 0,
+      "compaction_cost_usd": 0,
+      "memory_build_cost_usd": 0,
+      "total_cost_usd": 0
+    }
+  },
+  "comparisons": {}
+}

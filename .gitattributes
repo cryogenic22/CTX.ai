@@ -1,0 +1,19 @@
+# Calibration fixtures are byte-frozen: git must never rewrite line endings
+# (sha256 + cl100k counts are committed against exact bytes; Q2-4)
+tests/fixtures/token_calibration/* -text
+
+# Hash-bound gate surfaces (Codex Finding 3 — byte portability). The claims
+# gate (docs/claims-ledger.md sha256 refs) and the PF-16 privacy gate
+# (tests/fixture_privacy_allowlist.json) hash WORKING-COPY bytes, so every
+# checkout — Linux CI and a fresh Windows core.autocrlf=true clone alike —
+# must reproduce the committed LF blob bytes exactly. Force LF; git must
+# never rewrite these. Proven safe: 0 of the covered blobs contain a CR
+# byte, so eol=lf is a content no-op (renormalize changes no blob) and the
+# immutable result artifacts are untouched.
+ctxpack/benchmarks/** text eol=lf
+scorecards/** text eol=lf
+
+# The one genuinely non-UTF-8 benchmark artifact (a frozen NIAH run-log,
+# sha-bound in the PF-16 allowlist as detector `non_utf8`): exclude it from
+# line-ending normalization so git never alters its exact bytes.
+ctxpack/benchmarks/agentic/results/niah_full_run.log -text

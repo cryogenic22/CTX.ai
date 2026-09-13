@@ -64,16 +64,19 @@ _MODEL_ENCODING = {
 def count_bpe_tokens(text: str, model: str = "gpt-4o") -> int:
     """Count BPE tokens for a given text and model.
 
-    Uses tiktoken for OpenAI models, falls back to len(text)//4 estimate.
+    Uses the model's tiktoken encoding for OpenAI models. Claude/Gemini have
+    no public tokenizer, so we approximate with cl100k_base — a real BPE
+    tokenizer whose counts track Claude's within a few percent on English
+    prose, and far better than a chars//4 estimate on code, JSON, and
+    hyphenated text. Final fallback (no tiktoken installed): len(text)//4.
     """
-    encoding_name = _MODEL_ENCODING.get(model)
-    if encoding_name:
-        try:
-            import tiktoken
-            enc = tiktoken.get_encoding(encoding_name)
-            return len(enc.encode(text))
-        except (ImportError, Exception):
-            pass
+    encoding_name = _MODEL_ENCODING.get(model, "cl100k_base")
+    try:
+        import tiktoken
+        enc = tiktoken.get_encoding(encoding_name)
+        return len(enc.encode(text))
+    except Exception:
+        pass
     # Fallback: ~4 chars per BPE token (standard English+symbols estimate)
     return max(1, len(text) // 4)
 

@@ -305,3 +305,80 @@ class TestEnterpriseCorpusGraph:
         related = graph.traverse("ENTITY-MERCHANT", depth=2)
         # Merchant should connect to MerchantStore, Product, Settlement, etc.
         assert len(related) >= 2
+
+
+# ── Directed API (P4: ctx/graph_query) ──
+
+
+class TestDirectedGraph:
+    """Reference direction: the section stating the relationship gets the
+    out-edge. parents(X) answers "who depends on X" — the reverse query
+    the GraphWalks eval showed in-context reasoning fails at first."""
+
+    def _graph(self):
+        from ctxpack.core.entity_graph import EntityGraph
+
+        return EntityGraph.from_document(_make_graph_doc())
+
+    def test_parents_vs_children(self):
+        graph = self._graph()
+        # WAREHOUSE never references anyone; INVENTORY references it
+        assert graph.parents("ENTITY-WAREHOUSE") == {"ENTITY-INVENTORY"}
+        assert graph.children("ENTITY-WAREHOUSE") == set()
+        # PRODUCT: referenced by ORDERLINE + INVENTORY, references INVENTORY
+        assert graph.children("ENTITY-PRODUCT") == {"ENTITY-INVENTORY"}
+        assert graph.parents("ENTITY-PRODUCT") == {
+            "ENTITY-ORDERLINE", "ENTITY-INVENTORY"}
+
+    def test_traverse_directed_is_asymmetric(self):
+        graph = self._graph()
+        assert graph.traverse_directed(
+            "ENTITY-WAREHOUSE", depth=3, direction="out") == set()
+        assert graph.traverse_directed(
+            "ENTITY-WAREHOUSE", depth=1, direction="in") == {"ENTITY-INVENTORY"}
+        two_up = graph.traverse_directed(
+            "ENTITY-WAREHOUSE", depth=2, direction="in")
+        assert "ENTITY-PRODUCT" in two_up
+
+    def test_traverse_directed_both_matches_undirected(self):
+        graph = self._graph()
+        assert graph.traverse_directed(
+            "ENTITY-CUSTOMER", depth=2, direction="both"
+        ) == graph.traverse("ENTITY-CUSTOMER", depth=2)
+
+    def test_traverse_directed_rejects_bad_direction(self):
+        import pytest as _pytest
+
+        with _pytest.raises(ValueError):
+            self._graph().traverse_directed("ENTITY-ORDER", direction="up")
+
+    def test_path_directed_follows_out_edges_only(self):
+        graph = self._graph()
+        assert graph.path_directed("ENTITY-ORDERLINE", "ENTITY-WAREHOUSE") == [
+            "ENTITY-ORDERLINE", "ENTITY-PRODUCT",
+            "ENTITY-INVENTORY", "ENTITY-WAREHOUSE"]
+        # no out-edges from WAREHOUSE → unreachable in dependency direction
+        assert graph.path_directed("ENTITY-WAREHOUSE", "ENTITY-ORDERLINE") == []
+
+    def test_query_normalizes_and_dispatches(self):
+        graph = self._graph()
+        result = graph.query("parents", "warehouse")
+        assert result["entity"] == "ENTITY-WAREHOUSE"
+        assert result["parents"] == ["ENTITY-INVENTORY"]
+
+        result = graph.query("neighbors", "Product")
+        assert result["out"] == ["ENTITY-INVENTORY"]
+        assert set(result["in"]) == {"ENTITY-INVENTORY", "ENTITY-ORDERLINE"}
+
+        result = graph.query("path", "orderline", to="warehouse")
+        assert result["found"] and len(result["path"]) == 4
+
+        result = graph.query("bfs", "ENTITY-WAREHOUSE",
+                             depth=2, direction="in")
+        assert "ENTITY-PRODUCT" in result["reachable"]
+
+    def test_query_errors_are_structured(self):
+        graph = self._graph()
+        assert graph.query("parents", "nonexistent")["error"] == "unknown_entity"
+        assert "error" in graph.query("teleport", "ENTITY-ORDER")
+        assert "error" in graph.query("path", "ENTITY-ORDER")  # missing to

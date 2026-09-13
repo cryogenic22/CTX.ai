@@ -391,6 +391,15 @@ class _Parser:
 
         parts = [value]
         while depth > 0 and not self._at_end():
+            # Blast-radius bound: a value with unbalanced brackets (e.g. a
+            # banked shell command truncated mid-`[`) must never swallow
+            # the sections that follow it — one damaged value may at worst
+            # eat the remainder of its own section. Found live 2026-07-05:
+            # one truncated COMMAND consumed 177 of 193 entities in a real
+            # session ledger, silently emptying the read path.
+            nxt = self._peek()
+            if nxt is not None and _SECTION_RE.match(nxt):
+                break
             line = self._advance()
             parts.append(line)
             for ch in line:

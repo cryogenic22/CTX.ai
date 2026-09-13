@@ -1,9 +1,24 @@
 """Tests for the analytics domain pack compiler.
 
-Uses ACTUAL Bright_Light pack files for integration tests.
+Two lanes (Codex Finding 2 — the external-corpus skip must NOT be
+module-wide, or a normal checkout runs zero analytics behaviour):
+
+- Hermetic inline-YAML unit tests (``TestHermeticInlineYAML``,
+  ``TestPyYAMLAbsence``) run wherever PyYAML is importable — no external
+  corpus needed. This is the ordinary-lane coverage (CI ``test`` job) and
+  is non-vacuous: it exercises real parse, the empty-pack path, the
+  dep-free module import, and the ``pip install ctxpack[analytics]``
+  install hint raised when PyYAML is absent.
+- Integration tests over the ACTUAL Bright_Light packs run only when that
+  external corpus is present (CI ``extras`` job); they are scoped-skipped
+  per class, never module-wide.
 """
 
 from __future__ import annotations
+
+import importlib
+import importlib.util
+import sys
 
 import os
 import pytest
@@ -23,10 +38,19 @@ PACKS_DIR = os.path.normpath(
 RETAIL_PACK = os.path.join(PACKS_DIR, "retail", "v1", "pack.yaml")
 AIRLINES_PACK = os.path.join(PACKS_DIR, "airlines", "v1", "pack.yaml")
 
-# Skip all tests if packs directory doesn't exist
-pytestmark = pytest.mark.skipif(
-    not os.path.isdir(PACKS_DIR),
-    reason="Bright_Light packs not found",
+HAVE_PACKS = os.path.isdir(PACKS_DIR)
+HAVE_YAML = importlib.util.find_spec("yaml") is not None
+
+# The external Bright_Light corpus gates ONLY the integration classes
+# (applied per-class below), never the whole module — the hermetic lane
+# always runs.
+requires_packs = pytest.mark.skipif(
+    not HAVE_PACKS,
+    reason="Bright_Light packs not found (external integration corpus)",
+)
+requires_yaml = pytest.mark.skipif(
+    not HAVE_YAML,
+    reason="PyYAML not installed (analytics extra)",
 )
 
 
@@ -58,8 +82,10 @@ def _find_field(entity: IREntity, key_fragment: str) -> IRField | None:
 # ── parse_domain_pack tests ──
 
 
+@requires_packs
 class TestParseDomainPack:
-    """Test parsing a single domain pack into IR entities."""
+    """Test parsing a single domain pack into IR entities (integration —
+    requires the external Bright_Light corpus)."""
 
     def test_parse_retail_pack_extracts_domain_entity(self):
         """The retail pack should produce a top-level RETAIL domain entity."""
@@ -231,19 +257,6 @@ class TestParseDomainPack:
             f"Expected airlines vocabulary synonyms, got: {all_aliases}"
         )
 
-    def test_parse_empty_pack_returns_empty(self):
-        """An empty YAML string should return an empty list."""
-        entities = parse_domain_pack("", filename="empty.yaml", domain="test")
-        assert entities == []
-
-    def test_parse_minimal_pack_returns_domain_entity(self):
-        """A minimal pack with just version and domain should work."""
-        text = "version: v1\ndomain: test\n"
-        entities = parse_domain_pack(text, filename="test.yaml", domain="test")
-        # Should at least return a domain entity
-        assert len(entities) >= 1
-        assert _find_entity(entities, "TEST") is not None
-
     def test_metric_entity_has_owner_and_tags(self):
         """Metric entities should carry owner and tags as fields."""
         entities = _load_pack(RETAIL_PACK)
@@ -278,8 +291,10 @@ class TestParseDomainPack:
 # ── compile_domain_packs tests ──
 
 
+@requires_packs
 class TestCompileDomainPacks:
-    """Test compiling all 17 packs into a unified IRCorpus."""
+    """Test compiling all 17 packs into a unified IRCorpus (integration —
+    requires the external Bright_Light corpus)."""
 
     @pytest.fixture(scope="class")
     def compiled(self) -> IRCorpus:
@@ -363,8 +378,10 @@ class TestCompileDomainPacks:
 # ── build_analytics_l3 tests ──
 
 
+@requires_packs
 class TestBuildAnalyticsL3:
-    """Test building the L3 directory index."""
+    """Test building the L3 directory index (integration — requires the
+    external Bright_Light corpus)."""
 
     @pytest.fixture(scope="class")
     def compiled(self) -> IRCorpus:
@@ -397,3 +414,105 @@ class TestBuildAnalyticsL3:
     def test_build_analytics_l3_contains_metric_count(self, l3_text: str):
         """L3 should mention metric counts."""
         assert "metric" in l3_text.lower()
+
+
+# ── hermetic inline-YAML lane (no external corpus; Codex Finding 2a) ──
+
+
+@requires_yaml
+class TestHermeticInlineYAML:
+    """Non-vacuous ordinary-lane coverage: parse real inline YAML domain
+    packs with PyYAML, no Bright_Light corpus required."""
+
+    def test_parse_empty_pack_returns_empty(self):
+        """An empty YAML string returns an empty entity list."""
+        assert parse_domain_pack("", filename="empty.yaml", domain="t") == []
+
+    def test_parse_whitespace_only_pack_returns_empty(self):
+        assert parse_domain_pack("  \n\n", filename="ws.yaml", domain="t") == []
+
+    def test_parse_minimal_pack_returns_domain_entity(self):
+        """A minimal pack (version + domain) yields a domain entity."""
+        entities = parse_domain_pack(
+            "version: v1\ndomain: test\n", filename="test.yaml", domain="test")
+        assert len(entities) >= 1
+        assert _find_entity(entities, "TEST") is not None
+
+    def test_parse_inline_pack_extracts_metric_entity(self):
+        """A hand-written inline pack with one metric produces a metric
+        entity carrying its formula — proves the parser runs end-to-end on
+        bytes authored here, not only on the external corpus."""
+        text = (
+            "version: v1\n"
+            "domain: retail\n"
+            "metadata:\n"
+            "  description: inline test pack\n"
+            "ontology:\n"
+            "  metrics:\n"
+            "    - name: gross_sales\n"
+            "      formula: SUM(sales_amount)\n"
+            "      owner: analytics-team\n"
+        )
+        entities = parse_domain_pack(text, filename="inline.yaml",
+                                     domain="retail")
+        domain_entity = _find_entity(entities, "RETAIL")
+        assert domain_entity is not None
+        assert "description" in domain_entity.annotations
+        gross = _find_entity(entities, "GROSS-SALES")
+        assert gross is not None
+        formula = _find_field(gross, "FORMULA")
+        assert formula is not None and "SUM" in formula.value
+
+    def test_folded_scalar_parses_with_full_pyyaml(self):
+        """Domain packs are standard YAML, not the ctxpack subset: a folded
+        scalar (`>`), which the subset parser rejects, parses fine here —
+        proof that full PyYAML is used, not the subset reader."""
+        text = (
+            "version: v1\n"
+            "domain: test\n"
+            "metadata:\n"
+            "  description: >\n"
+            "    one two\n"
+            "    three\n"
+        )
+        entities = parse_domain_pack(text, filename="folded.yaml",
+                                     domain="test")
+        dom = _find_entity(entities, "TEST")
+        assert dom is not None
+        assert "description" in dom.annotations
+
+
+class TestPyYAMLAbsence:
+    """The lazy-import contract (Finding 2a): the module imports without
+    PyYAML, and parsing without it raises the exact install hint. These run
+    ALWAYS — they simulate PyYAML's absence, so they must not be skipped
+    when PyYAML happens to be installed."""
+
+    def test_module_imports_without_pyyaml(self, monkeypatch):
+        """Reloading the analytics module with 'yaml' unavailable must not
+        raise — module load is dep-free (a module-load `import yaml` was the
+        public-CI break)."""
+        monkeypatch.setitem(sys.modules, "yaml", None)
+        import ctxpack.modules.analytics as analytics_mod
+        importlib.reload(analytics_mod)            # must not import yaml
+        assert analytics_mod is not None
+        monkeypatch.undo()                          # restore, then reload clean
+        importlib.reload(analytics_mod)
+
+    def test_parse_without_pyyaml_raises_install_hint(self, monkeypatch):
+        """Parsing a pack when PyYAML is absent raises ModuleNotFoundError
+        naming `pip install ctxpack[analytics]`."""
+        from ctxpack.modules import analytics as analytics_mod
+        monkeypatch.setitem(sys.modules, "yaml", None)
+        with pytest.raises(ModuleNotFoundError) as ei:
+            analytics_mod.parse_domain_pack(
+                "version: v1\ndomain: t\n", filename="t.yaml", domain="t")
+        assert "pip install ctxpack[analytics]" in str(ei.value)
+
+    def test_load_yaml_helper_raises_install_hint(self, monkeypatch):
+        """The one call site (`_load_yaml`) surfaces the hint directly."""
+        from ctxpack.modules import analytics as analytics_mod
+        monkeypatch.setitem(sys.modules, "yaml", None)
+        with pytest.raises(ModuleNotFoundError) as ei:
+            analytics_mod._load_yaml("a: 1")
+        assert "ctxpack[analytics]" in str(ei.value)

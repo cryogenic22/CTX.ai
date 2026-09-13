@@ -1,0 +1,181 @@
+Non-transient HTTP 529 — not retrying
+Answerer: claude-sonnet-4-6 (anthropic)  Judge: gpt-4o (openai)
+
+=== Trajectory 8000 BPE (actual 8376, 91 episodes, 91 steps) ===
+CTX doc: 81 sections, index 151 BPE, 0 conflicts detected
+Generating compaction summary...
+Summary: 775 BPE
+  [ 1/12] S1  RAW         8376 BPE  judge=Y
+  [ 1/12] S1  COMPACT      775 BPE  judge=Y
+  [ 1/12] S1  BM25         571 BPE  judge=Y
+  [ 1/12] S1  CTX          370 BPE  judge=Y
+  [ 2/12] S2  RAW         8376 BPE  judge=Y
+  [ 2/12] S2  COMPACT      775 BPE  judge=Y
+  [ 2/12] S2  BM25         573 BPE  judge=Y
+  [ 2/12] S2  CTX          381 BPE  judge=Y
+  [ 3/12] S3  RAW         8376 BPE  judge=Y
+  [ 3/12] S3  COMPACT      775 BPE  judge=Y
+  [ 3/12] S3  BM25         904 BPE  judge=Y
+  [ 3/12] S3  CTX          369 BPE  judge=Y
+  [ 4/12] S4  RAW         8376 BPE  judge=Y
+  [ 4/12] S4  COMPACT      775 BPE  judge=Y
+  [ 4/12] S4  BM25         806 BPE  judge=Y
+  [ 4/12] S4  CTX          381 BPE  judge=Y
+  [ 5/12] S5  RAW         8376 BPE  judge=Y
+  [ 5/12] S5  COMPACT      775 BPE  judge=Y
+  [ 5/12] S5  BM25         752 BPE  judge=Y
+  [ 5/12] S5  CTX          357 BPE  judge=Y
+  [ 6/12] U1  RAW         8376 BPE  judge=Y
+  [ 6/12] U1  COMPACT      775 BPE  judge=Y
+  [ 6/12] U1  BM25         581 BPE  judge=Y
+  [ 6/12] U1  CTX          477 BPE  judge=Y
+  [ 7/12] U2  RAW         8376 BPE  judge=Y
+  [ 7/12] U2  COMPACT      775 BPE  judge=Y
+  [ 7/12] U2  BM25        1051 BPE  judge=Y
+  [ 7/12] U2  CTX          447 BPE  judge=Y
+  [ 8/12] U3  RAW         8376 BPE  judge=Y
+  [ 8/12] U3  COMPACT      775 BPE  judge=Y
+  [ 8/12] U3  BM25         689 BPE  judge=Y
+  [ 8/12] U3  CTX          471 BPE  judge=Y
+  [ 9/12] U4  RAW         8376 BPE  judge=Y
+  [ 9/12] U4  COMPACT      775 BPE  judge=Y
+  [ 9/12] U4  BM25         581 BPE  judge=Y
+  [ 9/12] U4  CTX          430 BPE  judge=Y
+  [10/12] M1  RAW         8376 BPE  judge=Y
+  [10/12] M1  COMPACT      775 BPE  judge=Y
+  [10/12] M1  BM25         752 BPE  judge=N
+  [10/12] M1  CTX          854 BPE  judge=Y
+  [11/12] A1  RAW         8376 BPE  judge=Y
+  [11/12] A1  COMPACT      775 BPE  judge=Y
+  [11/12] A1  BM25        1204 BPE  judge=Y
+  [11/12] A1  CTX          151 BPE  judge=Y
+  [12/12] A2  RAW         8376 BPE  judge=Y
+  [12/12] A2  COMPACT      775 BPE  judge=Y
+  [12/12] A2  BM25         419 BPE  judge=Y
+  [12/12] A2  CTX          151 BPE  judge=Y
+
+  condition   judge   rule   avg BPE
+  RAW        100.0% 100.0%      8376
+  COMPACT    100.0%  91.7%       775
+  BM25        91.7% 100.0%       740
+  CTX        100.0% 100.0%       403
+
+=== Trajectory 32000 BPE (actual 33400, 313 episodes, 313 steps) ===
+CTX doc: 303 sections, index 151 BPE, 0 conflicts detected
+Generating compaction summary...
+Summary: 960 BPE
+  [ 1/12] S1  RAW        33400 BPE  judge=Y
+  [ 1/12] S1  COMPACT      960 BPE  judge=Y
+  [ 1/12] S1  BM25         574 BPE  judge=Y
+  [ 1/12] S1  CTX          371 BPE  judge=Y
+  [ 2/12] S2  RAW        33400 BPE  judge=Y
+  [ 2/12] S2  COMPACT      960 BPE  judge=Y
+  [ 2/12] S2  BM25         576 BPE  judge=Y
+  [ 2/12] S2  CTX          381 BPE  judge=Y
+  [ 3/12] S3  RAW        33400 BPE  judge=Y
+  [ 3/12] S3  COMPACT      960 BPE  judge=Y
+  [ 3/12] S3  BM25        1058 BPE  judge=Y
+  [ 3/12] S3  CTX          370 BPE  judge=Y
+  [ 4/12] S4  RAW        33400 BPE  judge=Y
+  [ 4/12] S4  COMPACT      960 BPE  judge=Y
+  [ 4/12] S4  BM25         765 BPE  judge=Y
+  [ 4/12] S4  CTX          382 BPE  judge=Y
+  [ 5/12] S5  RAW        33400 BPE  judge=Y
+  [ 5/12] S5  COMPACT      960 BPE  judge=Y
+  [ 5/12] S5  BM25        1248 BPE  judge=Y
+  [ 5/12] S5  CTX          359 BPE  judge=Y
+  [ 6/12] U1  RAW        33400 BPE  judge=Y
+  [ 6/12] U1  COMPACT      960 BPE  judge=Y
+  [ 6/12] U1  BM25         584 BPE  judge=Y
+  [ 6/12] U1  CTX          479 BPE  judge=Y
+  [ 7/12] U2  RAW        33400 BPE  judge=Y
+  [ 7/12] U2  COMPACT      960 BPE  judge=Y
+  [ 7/12] U2  BM25         587 BPE  judge=Y
+  [ 7/12] U2  CTX          449 BPE  judge=Y
+  [ 8/12] U3  RAW        33400 BPE  judge=Y
+  [ 8/12] U3  COMPACT      960 BPE  judge=Y
+  [ 8/12] U3  BM25         582 BPE  judge=Y
+  [ 8/12] U3  CTX          474 BPE  judge=Y
+  [ 9/12] U4  RAW        33400 BPE  judge=Y
+  [ 9/12] U4  COMPACT      960 BPE  judge=Y
+  [ 9/12] U4  BM25         584 BPE  judge=Y
+  [ 9/12] U4  CTX          432 BPE  judge=Y
+  [10/12] M1  RAW        33400 BPE  judge=Y
+  [10/12] M1  COMPACT      960 BPE  judge=Y
+  [10/12] M1  BM25        1248 BPE  judge=N
+  [10/12] M1  CTX          861 BPE  judge=Y
+  [11/12] A1  RAW        33400 BPE  judge=Y
+  [11/12] A1  COMPACT      960 BPE  judge=Y
+  [11/12] A1  BM25        1582 BPE  judge=Y
+  [11/12] A1  CTX          151 BPE  judge=Y
+  [12/12] A2  RAW        33400 BPE  judge=Y
+  [12/12] A2  COMPACT      960 BPE  judge=Y
+  [12/12] A2  BM25         421 BPE  judge=Y
+  [12/12] A2  CTX          151 BPE  judge=Y
+
+  condition   judge   rule   avg BPE
+  RAW        100.0% 100.0%     33400
+  COMPACT    100.0%  91.7%       960
+  BM25        91.7% 100.0%       817
+  CTX        100.0% 100.0%       405
+
+=== Trajectory 64000 BPE (actual 66377, 572 episodes, 572 steps) ===
+CTX doc: 562 sections, index 151 BPE, 0 conflicts detected
+Generating compaction summary...
+Summary: 861 BPE
+  [ 1/12] S1  RAW        66377 BPE  judge=Y
+  [ 1/12] S1  COMPACT      861 BPE  judge=Y
+  [ 1/12] S1  BM25         575 BPE  judge=Y
+  [ 1/12] S1  CTX          371 BPE  judge=Y
+  [ 2/12] S2  RAW        66377 BPE  judge=Y
+  [ 2/12] S2  COMPACT      861 BPE  judge=Y
+  [ 2/12] S2  BM25         576 BPE  judge=Y
+  [ 2/12] S2  CTX          382 BPE  judge=Y
+  [ 3/12] S3  RAW        66377 BPE  judge=Y
+  [ 3/12] S3  COMPACT      861 BPE  judge=Y
+  [ 3/12] S3  BM25        1188 BPE  judge=Y
+  [ 3/12] S3  CTX          370 BPE  judge=Y
+  [ 4/12] S4  RAW        66377 BPE  judge=Y
+  [ 4/12] S4  COMPACT      861 BPE  judge=Y
+  [ 4/12] S4  BM25         769 BPE  judge=Y
+  [ 4/12] S4  CTX          382 BPE  judge=Y
+  [ 5/12] S5  RAW        66377 BPE  judge=Y
+  [ 5/12] S5  COMPACT      861 BPE  judge=Y
+  [ 5/12] S5  BM25        1298 BPE  judge=Y
+  [ 5/12] S5  CTX          359 BPE  judge=Y
+  [ 6/12] U1  RAW        66377 BPE  judge=Y
+  [ 6/12] U1  COMPACT      861 BPE  judge=Y
+  [ 6/12] U1  BM25         584 BPE  judge=Y
+  [ 6/12] U1  CTX          479 BPE  judge=Y
+  [ 7/12] U2  RAW        66377 BPE  judge=Y
+  [ 7/12] U2  COMPACT      861 BPE  judge=Y
+  [ 7/12] U2  BM25         587 BPE  judge=Y
+  [ 7/12] U2  CTX          449 BPE  judge=Y
+  [ 8/12] U3  RAW        66377 BPE  judge=Y
+  [ 8/12] U3  COMPACT      861 BPE  judge=Y
+  [ 8/12] U3  BM25         583 BPE  judge=Y
+  [ 8/12] U3  CTX          474 BPE  judge=Y
+  [ 9/12] U4  RAW        66377 BPE  judge=Y
+  [ 9/12] U4  COMPACT      861 BPE  judge=Y
+  [ 9/12] U4  BM25         584 BPE  judge=Y
+  [ 9/12] U4  CTX          151 BPE  judge=Y
+  [10/12] M1  RAW        66377 BPE  judge=Y
+  [10/12] M1  COMPACT      861 BPE  judge=Y
+  [10/12] M1  BM25        1298 BPE  judge=N
+  [10/12] M1  CTX          861 BPE  judge=Y
+  [11/12] A1  RAW        66377 BPE  judge=Y
+  [11/12] A1  COMPACT      861 BPE  judge=Y
+  [11/12] A1  BM25        1555 BPE  judge=Y
+  [11/12] A1  CTX          151 BPE  judge=Y
+  [12/12] A2  RAW        66377 BPE  judge=Y
+  [12/12] A2  COMPACT      861 BPE  judge=Y
+  [12/12] A2  BM25         421 BPE  judge=Y
+  [12/12] A2  CTX          151 BPE  judge=Y
+
+  condition   judge   rule   avg BPE
+  RAW        100.0%  91.7%     66377
+  COMPACT    100.0%  91.7%       861
+  BM25        91.7% 100.0%       835
+  CTX        100.0%  91.7%       382
+
+Saved ctxpack\benchmarks\agentic\results\agentic_niah-claude-sonnet-4-6.json

@@ -6,12 +6,13 @@ Usage:
 
 Requires: mcp (pip install mcp)
 
-This server exposes five tools:
-  ctx/pack      — Pack a corpus directory into .ctx format
-  ctx/parse     — Parse a .ctx file/string into structured output
-  ctx/validate  — Validate a .ctx file and return diagnostics
-  ctx/format    — Reformat a .ctx file (canonical, ASCII, natural language)
-  ctx/hydrate   — Query-adaptive section retrieval from a .ctx file
+This server exposes three tool groups:
+  doc tools      — ctx/pack, ctx/parse, ctx/validate, ctx/format, ctx/hydrate
+  code tools     — ctx/code_pack + the symbol read path (optional [code] extra)
+  session tools  — the checkpoint-ledger read path (ctx/session_recall,
+                   session_timeline, session_decisions, session_literals,
+                   why, graph_query, resume) plus the agent-invokable
+                   write path (ctx/checkpoint)
 """
 
 from __future__ import annotations
@@ -38,6 +39,7 @@ from ..core.json_export import to_json
 from ..core.parser import parse
 from ..core.serializer import serialize, serialize_iter, serialize_section
 from ..core.telemetry import TelemetryLog
+from ..core.tokens import ESTIMATOR_CTX, estimate_tokens, estimator_label
 from ..core.validator import validate
 
 # Packer import (may fail if corpus tools not needed)
@@ -392,8 +394,206 @@ _CODE_TOOLS = [
     ),
 ]
 
-# Append code tools to the list MCP advertises.
-TOOLS = TOOLS + _CODE_TOOLS
+_SESSION_COMMON_PROPS = {
+    "ledger_dir": {
+        "type": "string",
+        "description": "Checkpoint ledger directory (default: .claude/ctx).",
+        "default": ".claude/ctx",
+    },
+    "session": {
+        "type": "string",
+        "description": (
+            "Session id (8-char prefix ok). Default: the most recent "
+            "checkpointed session."
+        ),
+    },
+}
+
+_SESSION_TOOLS = [
+    Tool(
+        name="ctx/session_recall",
+        description=(
+            "Recall facts from a checkpointed session ledger (the pack-on-"
+            "compact memory). Call with NO section/query first to get the "
+            "section index, then call again with section=<name>[,<name>] "
+            "to hydrate the ones you need (prose output). Use this instead "
+            "of grepping the raw transcript."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                **_SESSION_COMMON_PROPS,
+                "section": {
+                    "type": "string",
+                    "description": "Section name(s), comma-separated (e.g. 'DECISION-9FF7E602').",
+                },
+                "query": {
+                    "type": "string",
+                    "description": "Keyword query — fallback when you don't know section names.",
+                },
+                "max_sections": {"type": "integer", "default": 5},
+            },
+        },
+    ),
+    Tool(
+        name="ctx/session_timeline",
+        description=(
+            "The session ledger in turn order: what happened, when. "
+            "Filter with kinds (DECISION, CONSTRAINT, FAILED-APPROACH, "
+            "USER-REQUEST, TASK, ERROR, FILE, TOOL-BASH, LITERAL); limit "
+            "returns the most recent N events."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                **_SESSION_COMMON_PROPS,
+                "kinds": {
+                    "type": "array", "items": {"type": "string"},
+                    "description": "Restrict to these kinds.",
+                },
+                "limit": {"type": "integer", "default": 0,
+                          "description": "Return only the last N events."},
+            },
+        },
+    ),
+    Tool(
+        name="ctx/session_decisions",
+        description=(
+            "Every decision, constraint, and failed approach from a "
+            "checkpointed session in one call, each with turn provenance. "
+            "The first thing to read when resuming work."
+        ),
+        inputSchema={"type": "object", "properties": {**_SESSION_COMMON_PROPS}},
+    ),
+    Tool(
+        name="ctx/why",
+        description=(
+            "Provenance for a key/entity/value in the session ledger: "
+            "which turn set it, and the SUPERSEDED chain when it was "
+            "revised (oldest -> newest; current value wins)."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["key"],
+            "properties": {
+                **_SESSION_COMMON_PROPS,
+                "key": {
+                    "type": "string",
+                    "description": "Section name, field key, or value substring to trace.",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="ctx/graph_query",
+        description=(
+            "Deterministic traversal over the packed entity graph — "
+            "O(V+E) instead of in-context reasoning. Ops: neighbors "
+            "(out/in/undirected), parents (who depends on X — the query "
+            "models fail at in prose), bfs (reachable within depth), "
+            "path (shortest, dependency direction by default). Operates "
+            "on file_path/text if given, else the session ledger."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["entity"],
+            "properties": {
+                **_SESSION_COMMON_PROPS,
+                "file_path": {
+                    "type": "string",
+                    "description": "Path to a .ctx file (overrides session).",
+                },
+                "text": {
+                    "type": "string",
+                    "description": "Raw .ctx text (overrides session).",
+                },
+                "entity": {
+                    "type": "string",
+                    "description": "Start entity (e.g. 'ENTITY-ORDER' or just 'order').",
+                },
+                "op": {
+                    "type": "string",
+                    "enum": ["neighbors", "parents", "bfs", "path"],
+                    "default": "neighbors",
+                },
+                "to": {
+                    "type": "string",
+                    "description": "Target entity (op=path only).",
+                },
+                "depth": {"type": "integer", "default": 2,
+                          "description": "BFS depth (op=bfs only)."},
+                "direction": {
+                    "type": "string",
+                    "enum": ["out", "in", "both"],
+                    "default": "out",
+                    "description": "Edge direction for bfs/path.",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="ctx/session_literals",
+        description=(
+            "Every verbatim identifier banked in the session ledger "
+            "(commit shas, PR numbers, versions, paths, URLs, domain "
+            "ids), turn-ordered. Read this on resume so you write exact "
+            "ids from the ledger instead of reconstructing them; "
+            "ctx/why traces a single id's provenance."
+        ),
+        inputSchema={"type": "object", "properties": {**_SESSION_COMMON_PROPS}},
+    ),
+    Tool(
+        name="ctx/resume",
+        description=(
+            "One-call resume: the startup gist (project rollup + last "
+            "session) plus every decision, constraint, failed approach, "
+            "and verbatim identifier with turn provenance. The first "
+            "thing to call after a /clear, a compaction, or any context "
+            "loss — replaces chaining recall → decisions → why."
+        ),
+        inputSchema={"type": "object", "properties": {**_SESSION_COMMON_PROPS}},
+    ),
+    Tool(
+        name="ctx/checkpoint",
+        description=(
+            "Checkpoint the CURRENT session now: pack the live Claude "
+            "Code transcript into the .claude/ctx ledger + gist (the "
+            "same write path the hooks run). Call before /clear or "
+            "risky context loss to bank decisions/literals in one "
+            "action. The live transcript is auto-resolved; pass "
+            "'transcript' only to override."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "transcript": {
+                    "type": "string",
+                    "description": "Explicit transcript path (default: auto-resolve the project's live session).",
+                },
+                "project_dir": {
+                    "type": "string",
+                    "description": "Project root whose transcript to resolve (default: cwd).",
+                },
+                "ledger_dir": {
+                    "type": "string",
+                    "description": "Ledger output directory (default: .claude/ctx).",
+                    "default": ".claude/ctx",
+                },
+                "session": {
+                    "type": "string",
+                    "description": "Session id prefix to select among transcripts (default: newest).",
+                },
+                "as_of": {
+                    "type": "string",
+                    "description": "Pin the ledger header date (YYYY-MM-DD) for byte-deterministic packs.",
+                },
+            },
+        },
+    ),
+]
+
+# Append code + session tools to the list MCP advertises.
+TOOLS = TOOLS + _CODE_TOOLS + _SESSION_TOOLS
 
 
 # ── Tool implementations ──
@@ -433,16 +633,21 @@ def handle_pack(arguments: dict[str, Any]) -> str:
     ascii_mode = arguments.get("ascii_mode", False)
     ctx_text = serialize(result.document, ascii_mode=ascii_mode)
 
+    # Whitespace word counts are never presented as tokens (W1-3): the
+    # packer's source count is a word count, so the ratio is words/words;
+    # the token estimate carries its estimator label (see core.tokens).
+    ctx_words = len(ctx_text.split())
     output: dict[str, Any] = {
         "ctx_text": ctx_text,
         "metrics": {
-            "source_tokens": result.source_token_count,
+            "source_words": result.source_token_count,
             "source_files": result.source_file_count,
             "entities": result.entity_count,
             "warnings": result.warning_count,
-            "ctx_tokens": len(ctx_text.split()),
-            "compression_ratio": round(
-                result.source_token_count / max(len(ctx_text.split()), 1), 1
+            "ctx_token_estimate": estimate_tokens(ctx_text, kind="ctx"),
+            "token_estimator": ESTIMATOR_CTX,
+            "compression_ratio_words": round(
+                result.source_token_count / max(ctx_words, 1), 1
             ),
         },
     }
@@ -563,12 +768,18 @@ def handle_hydrate(arguments: dict[str, Any], telemetry: TelemetryLog | None = N
         result = hydrate_by_query(doc, query, max_sections=max_sections,
                                    include_header=include_header)
     else:
-        # No section or query — return section listing
+        # No section or query — return section listing. Q2-1 residual:
+        # per-section counts estimate the raw .ctx serialization, so the
+        # listing must carry the ctx estimator label like every other
+        # token surface.
         sections_list = list_sections(doc)
         return json.dumps({
             "sections_matched": 0,
             "sections_available": len(sections_list),
             "available_sections": sections_list,
+            "token_estimator": estimator_label("ctx"),
+            "token_note": ("per-section 'tokens' estimate the raw .ctx "
+                           "serialization, not the prose a hydrate emits"),
             "ctx_text": "",
         }, indent=2)
 
@@ -584,12 +795,17 @@ def handle_hydrate(arguments: dict[str, Any], telemetry: TelemetryLog | None = N
             lines.append(line)
         lines.append("")
 
+    # Q2-1: estimate the representation actually emitted (prose or raw
+    # .ctx per raw_format), and say which estimator produced the number
+    emitted = "\n".join(lines)
+    kind = "prose" if use_nl else "ctx"
     return json.dumps({
         "sections_matched": len(result.sections),
         "sections_available": result.sections_available,
-        "tokens_injected": result.tokens_injected,
+        "tokens_injected": estimate_tokens(emitted, kind=kind),
+        "token_estimator": estimator_label(kind),
         "format": "prose" if use_nl else "ctx",
-        "ctx_text": "\n".join(lines),
+        "ctx_text": emitted,
     }, indent=2)
 
 
@@ -744,6 +960,175 @@ def handle_code_telemetry(_arguments: dict[str, Any]) -> str:
     return json.dumps(tel.summary())
 
 
+# ── Session-ledger tool handlers (P4 read path) ──
+
+
+def _with_session_doc(arguments: dict[str, Any], fn) -> str:
+    """Load the requested/latest session ledger and apply ``fn(doc, sid)``."""
+    from ..agent.session_reader import LedgerError, load_session
+
+    try:
+        doc, sid = load_session(
+            arguments.get("ledger_dir") or ".claude/ctx",
+            arguments.get("session"),
+        )
+    except LedgerError as e:
+        return json.dumps({"error": {"code": "ledger_not_found",
+                                     "message": str(e)}})
+    except ParseError as e:
+        return json.dumps({"error": {"code": "internal_parse_error",
+                                     "message": str(e)}})
+    return json.dumps(fn(doc, sid), indent=2)
+
+
+def handle_session_recall(arguments: dict[str, Any]) -> str:
+    from ..agent.session_reader import session_recall
+
+    return _with_session_doc(arguments, lambda doc, sid: session_recall(
+        doc, sid,
+        section=arguments.get("section", ""),
+        query=arguments.get("query", ""),
+        max_sections=int(arguments.get("max_sections", 5)),
+        telemetry=_telemetry,
+    ))
+
+
+def handle_session_timeline(arguments: dict[str, Any]) -> str:
+    from ..agent.session_reader import session_timeline
+
+    kinds = arguments.get("kinds")
+    return _with_session_doc(arguments, lambda doc, sid: session_timeline(
+        doc, sid,
+        kinds=list(kinds) if kinds else None,
+        limit=int(arguments.get("limit", 0)),
+    ))
+
+
+def handle_session_decisions(arguments: dict[str, Any]) -> str:
+    from ..agent.session_reader import session_decisions
+
+    return _with_session_doc(arguments, session_decisions)
+
+
+def handle_session_why(arguments: dict[str, Any]) -> str:
+    from ..agent.session_reader import (
+        LedgerError,
+        session_why,
+        session_why_across,
+    )
+
+    key = arguments.get("key", "")
+    ledger_dir = arguments.get("ledger_dir") or ".claude/ctx"
+    # Default: search the whole ledger ("what do we know across history?").
+    # A `session` argument preserves explicit single-session scope.
+    if arguments.get("session"):
+        return _with_session_doc(
+            arguments,
+            lambda doc, sid: session_why(doc, sid, key, ledger_dir=ledger_dir))
+    try:
+        return json.dumps(session_why_across(ledger_dir, key), indent=2)
+    except LedgerError as e:
+        return json.dumps({"error": {"code": "ledger_not_found",
+                                     "message": str(e)}})
+
+
+def handle_session_literals(arguments: dict[str, Any]) -> str:
+    from ..agent.session_reader import session_literals
+
+    return _with_session_doc(arguments, session_literals)
+
+
+def handle_resume(arguments: dict[str, Any]) -> str:
+    from ..agent.session_reader import LedgerError, session_resume
+
+    try:
+        result = session_resume(
+            arguments.get("ledger_dir") or ".claude/ctx",
+            arguments.get("session"),
+        )
+    except LedgerError as e:
+        return json.dumps({"error": {"code": "ledger_not_found",
+                                     "message": str(e)}})
+    except ParseError as e:
+        return json.dumps({"error": {"code": "internal_parse_error",
+                                     "message": str(e)}})
+    return json.dumps(result, indent=2)
+
+
+def handle_checkpoint(arguments: dict[str, Any]) -> str:
+    """Agent-invokable write path: one call banks the current session."""
+    from ..agent.checkpoint import find_live_transcript, run_checkpoint
+
+    transcript = arguments.get("transcript") or ""
+    if not transcript:
+        try:
+            transcript = find_live_transcript(
+                arguments.get("project_dir") or ".",
+                arguments.get("session"),
+            )
+        except FileNotFoundError as e:
+            return json.dumps({"error": {"code": "transcript_not_found",
+                                         "message": str(e)}})
+    if not os.path.isfile(transcript):
+        return json.dumps({"error": {"code": "transcript_not_found",
+                                     "message": f"Not a file: {transcript}"}})
+    from ..agent.checkpoint import HollowTranscriptError
+    from ..agent.transcript_adapters import TranscriptFormatError
+    try:
+        result = run_checkpoint(
+            transcript,
+            arguments.get("ledger_dir") or ".claude/ctx",
+            as_of=arguments.get("as_of"),
+        )
+    except (TranscriptFormatError, HollowTranscriptError) as e:
+        # fail-loud, nothing written: a hollow/foreign parse must
+        # surface as an error object, never as a "banked" success
+        return json.dumps({"error": {"code": "transcript_rejected",
+                                     "message": str(e)}})
+    return json.dumps({
+        "session": result.session_id,
+        "transcript": transcript,
+        "ctx_path": result.ctx_path,
+        "gist_path": result.gist_path,
+        "turns": result.turns,
+        # receipt: what this call actually added, and whether the
+        # governance lint ran — so the caller can verify capture instead
+        # of inferring it from turn-count growth
+        "turns_new": result.turns_new,
+        "entities": result.entities,
+        "conflicts": result.conflicts,
+        "gist_bpe": result.gist_bpe,
+        "ledger_sha256": result.ledger_sha256,
+        "gist_sha256": result.gist_sha256,
+        "lint_status": result.lint_status,
+        "lint_comparisons": result.lint_comparisons,
+        "lint_conflicts": result.lint_conflicts,
+    }, indent=2)
+
+
+def handle_graph_query(arguments: dict[str, Any]) -> str:
+    from ..core.entity_graph import EntityGraph
+
+    def _run(doc) -> dict[str, Any]:
+        return EntityGraph.from_document(doc).query(
+            arguments.get("op", "neighbors"),
+            arguments.get("entity", ""),
+            to=arguments.get("to", ""),
+            depth=int(arguments.get("depth", 2)),
+            direction=arguments.get("direction", "out"),
+        )
+
+    if arguments.get("file_path") or arguments.get("text"):
+        try:
+            doc = parse(_read_ctx_input(arguments), level=2)
+        except ParseError as e:
+            return json.dumps({"error": {"code": "internal_parse_error",
+                                         "message": str(e)}})
+        return json.dumps(_run(doc), indent=2)
+    return _with_session_doc(
+        arguments, lambda doc, sid: {"session": sid, **_run(doc)})
+
+
 _HANDLERS = {
     "ctx/pack": handle_pack,
     "ctx/parse": handle_parse,
@@ -758,10 +1143,56 @@ _HANDLERS = {
     "ctx/code_search_symbols": handle_code_search_symbols,
     "ctx/code_raw_file": handle_code_raw_file,
     "ctx/code_telemetry": handle_code_telemetry,
+    # Session-ledger read path (P4)
+    "ctx/session_recall": handle_session_recall,
+    "ctx/session_timeline": handle_session_timeline,
+    "ctx/session_decisions": handle_session_decisions,
+    "ctx/why": handle_session_why,
+    "ctx/graph_query": handle_graph_query,
+    "ctx/session_literals": handle_session_literals,
+    "ctx/resume": handle_resume,
+    "ctx/checkpoint": handle_checkpoint,
 }
 
 
 # ── MCP Server setup ──
+
+# Finding 6 (2026-08-23): session-ledger read results are injected
+# into the calling agent's context — they pass the shared
+# final-serialization egress scan before leaving the process. The
+# corpus-packing tools serialize caller-chosen source content, a
+# different trust boundary tracked separately in E-6.
+SESSION_READ_TOOLS = frozenset({
+    "ctx/session_recall", "ctx/session_timeline", "ctx/session_decisions",
+    "ctx/why", "ctx/graph_query", "ctx/session_literals", "ctx/resume",
+})
+
+
+def scanned_session_result(name: str, result: str) -> str:
+    """Final egress scan for a session-read tool result; fail-closed —
+    a scanner failure returns the stable code, never unscanned bytes."""
+    from ..agent.egress import EGRESS_SCAN_FAILED, EgressError, scan_out
+    try:
+        return scan_out(result)
+    except EgressError:
+        return json.dumps({"error": EGRESS_SCAN_FAILED,
+                           "tool": str(name)})
+
+
+def tool_error_result(name: str, exc: object) -> str:
+    """The ONLY error payload the catch-all returns into model context.
+
+    TM-14 (Finding 1, 2026-08-23): this string is injected into the
+    calling agent's context, a channel no scanner rescans — so it
+    carries the stable code and the shared bounded category only.
+    Exception text (which can embed secret bytes) and class names
+    (which a caller can mint) never leave the process through it.
+    Known error shapes with safe stable codes (e.g. ledger_not_found)
+    are handled inside the tool handlers before this catch-all."""
+    from ..core.errors import classify_exception
+    return json.dumps({"error": "tool_failed", "tool": str(name),
+                       "error_class": classify_exception(exc)})
+
 
 def create_server() -> "Server":
     """Create and configure the MCP server."""
@@ -785,7 +1216,9 @@ def create_server() -> "Server":
         try:
             result = handler(arguments)
         except Exception as e:
-            result = json.dumps({"error": f"{type(e).__name__}: {str(e)}"})
+            result = tool_error_result(name, e)
+        if name in SESSION_READ_TOOLS:
+            result = scanned_session_result(name, result)
 
         return [TextContent(type="text", text=result)]
 

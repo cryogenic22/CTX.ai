@@ -1,6 +1,6 @@
 ---
 title: CtxPack — current capabilities and AI-app value (audited)
-date: 2026-05-01
+date: 2026-09-11
 audience: engineering leads, AI product owners
 length: 1-page status with claim grades
 ---
@@ -19,19 +19,19 @@ length: 1-page status with claim grades
 
 ---
 
-## Code state (as of 2026-05-01)
+## Code state (as of 2026-09-11)
 
 | Layer | Status | Where |
 |---|---|---|
-| **v0.5.0 release** | shipped | `main`, tagged |
+| **v0.5.0-rc1 release** | candidate — prepared locally, NOT yet tagged or published | `release/v0.5.0-rc1-r2` (local); GitHub prerelease pending owner/reviewer sign-off, no PyPI |
 | **Whitepaper v3 eval** | ✅ measured on a synthetic corpus | `paper/ctxpack-whitepaper-v3.md` |
 | **Phase 1 — Four-Layer typing** | shipped (`151956a`) | `ctxpack/core/layers.py`, `ir.py`, `model.py` |
 | **Phase 2 — Layer-aware consumers** | shipped (`246f435`) | `compressor.py`, `hydrator.py`, `modules/grounding.py` |
-| **Phase 3a/b/c — Producers** | shipped (`6cd44b6`) | `core/confidence.py`, `core/incremental.py`, `modules/dream.py`, `modules/elicit.py` |
+| **Phase 3a/b/c — Producers** | shipped (`6cd44b6`) | `core/confidence.py`, `modules/dream.py`, `modules/elicit.py` |
 | Real-world dream pass on Market Zero / Intelligent Enterprise telemetry | not yet run | (code ready, awaiting telemetry export) |
-| AMBIENT producer that actually pulls live state | foundation only (file-hash cache) | `core/incremental.py` |
+| AMBIENT producer that actually pulls live state | not built — the `IncrementalPacker` foundation was **retired in v0.5.0rc1** (zero product callers; stale-mtime hazard) | — |
 
-943 tests collected. 753 fast-suite tests pass post-Phase-3. Zero-dep packing. Apache-2.0.
+Full non-slow suite green (exact counts recorded in the v0.5.0-rc1 release manifest). Zero-dep packing. Apache-2.0.
 
 ---
 
@@ -67,11 +67,11 @@ length: 1-page status with claim grades
 - ⚙️ **ConfidenceTracker** — Bayesian-style observe/decay/prune, atomic JSON persistence. 26 tests.
 - ⚙️ **Dream pipeline** — `consolidate(telemetry_log)` mines co-occurrence patterns above a threshold and produces INFERRED `IREntity` plus a gap queue. 18 tests. ⚠️ Algorithm is sound; **the first real-world dream pass on production telemetry has not been run**, so we have no evidence yet that mined patterns are useful in practice.
 - ⚙️ **Elicit store** — single expert at 0.7, two-expert agreement at 0.95, challenge halves. 16 tests. ⚠️ No team has used it on real tribal knowledge yet.
-- ⚙️ **IncrementalPacker** — SHA-256 + mtime change-set classifier. 15 tests. ⚠️ This is the *foundation* for AMBIENT, not a live-state producer. The compile-side merge that would actually skip work on unchanged files is intentionally deferred.
+- ⚠️ **IncrementalPacker (retired in v0.5.0rc1; historical).** A SHA-256 + mtime change-set classifier that shipped as an AMBIENT *foundation*, never a live-state producer, with the compile-side merge intentionally deferred. Retired for zero product callers and a stale-mtime hazard that contradicts the said-vs-did (Track C) direction; a future AMBIENT producer must re-derive change detection rather than revive it.
 
 ### 7. Telemetry & integrations
 - ⚙️ Privacy-preserving `HydrationEvent` log (SHA-256 question hash, no raw text).
-- ⚙️ MCP server (5 tools, prose-default hydration after a real production hallucination incident in the pharma deployment).
+- ⚙️ MCP server exposes the full ctxpack tool surface (enumerated in `ctxpack/integrations/mcp_server.py` and mirrored by the capability registry — the count is not duplicated here); five of these are the default agent-facing operation set (the README's default surface; prose-default hydration after a real production hallucination incident in the pharma deployment).
 - ⚙️ CLI: `pack`, `hydrate`, `harness`, `telemetry`, `dream`, `elicit`.
 
 ---
@@ -115,7 +115,7 @@ These are the unmeasured claims above, ranked by how cheaply they could be valid
 2. **ContextGuard precision/recall (3–5 days).** Run guard against a labeled set of known-good and known-hallucinated answers. Need labels.
 3. **Codebase harness drift impact (1–2 weeks of usage).** Run a multi-session coding agent with and without the harness on the same task list; measure utility duplication and PR revision cycles.
 4. **First real-world dream pass (1 day, gated on telemetry export).** Run `ctxpack dream consolidate` on Market Zero / Intelligent Enterprise telemetry; have humans review the mined INFERRED patterns and gap queue for usefulness.
-5. **AMBIENT producer (1 week of build, not measurement).** Wire IncrementalPacker into the compressor's merge step so unchanged files actually skip re-parse, then measure pack-time savings on a corpus that updates frequently.
+5. **AMBIENT producer (1+ week of build, not measurement).** Build a live-state producer that lets the compressor's merge step skip re-parse on unchanged files, then measure pack-time savings on a frequently-updated corpus. (The retired `IncrementalPacker` was only a mtime/SHA foundation and carried a stale-mtime hazard, so this must be re-derived with a said-vs-did/Track-C-safe design, not revived.)
 6. **Real-corpus fidelity (gated on a real corpus).** Re-run the eval on actual enterprise documentation rather than the synthetic 92K corpus.
 
 The whitepaper section "Limitations" is candid about most of this — that section is a better source of truth than any one-pager, including the prior version of *this* page.

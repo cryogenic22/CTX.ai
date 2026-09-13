@@ -183,9 +183,14 @@ def run_hydration_eval(
                 model=eval_model, api_key=api_key, provider=provider,
             )
             fidelity_full = _grade_answer(answer_full, expected)
-            judge_full = _llm_judge(
+            _jf_resp, _jf_err = _llm_judge(
                 question, expected, answer_full,
                 model=eval_model, api_key=api_key, provider=provider,
+            )
+            judge_full = (
+                not _jf_err
+                and "CORRECT" in _jf_resp.upper()
+                and "INCORRECT" not in _jf_resp.upper()
             )
 
             # Hydrated
@@ -194,9 +199,14 @@ def run_hydration_eval(
                 model=eval_model, api_key=api_key, provider=provider,
             )
             fidelity_hydrated = _grade_answer(answer_hydrated, expected)
-            judge_hydrated = _llm_judge(
+            _jh_resp, _jh_err = _llm_judge(
                 question, expected, answer_hydrated,
                 model=eval_model, api_key=api_key, provider=provider,
+            )
+            judge_hydrated = (
+                not _jh_err
+                and "CORRECT" in _jh_resp.upper()
+                and "INCORRECT" not in _jh_resp.upper()
             )
 
         sections_matched = [s.name for s in hydrate_by_name(doc, section_names).sections] if section_names else []

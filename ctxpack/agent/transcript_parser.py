@@ -1,0 +1,1148 @@
+"""Agent session transcript → IRCorpus.
+
+Parses an agent session transcript into the packer IR. Claude Code
+JSONL and Codex rollouts are auto-detected; other agents map through
+the generic spec adapter (``transcript_adapters`` owns all format
+handling — this module consumes ONE canonical entry shape). Extracts
+ONLY structurally identifiable, load-bearing facts — the
+deterministic-extraction contract:
+
+- USER-REQUEST     what the user asked for (first line of each user turn)
+- CONSTRAINT       imperative/negation sentences from USER turns, verbatim
+                   (never prose-compressed — negations must survive), plus
+                   explicit "Constraint:"-marked sentences from ASSISTANT
+                   turns (agent-stated operating rules)
+- DECISION         decision-shaped sentences from assistant text
+- FAILED-APPROACH  dead ends the assistant declared
+- ERROR            tool results flagged is_error
+- FILE-*           one entity per file edited/written (edit counts, last turn)
+- TASK-*           TodoWrite / TaskCreate items with status
+- Read/Grep/Glob and other read-only tool chatter is deliberately dropped:
+  it is recoverable from the raw transcript (L0), which is never deleted.
+
+Every fact carries turn provenance (``session:{id}#turn{n}``) so
+supersession can order revisions and ``ctx/why`` can point back to the
+exact exchange. Zero LLM calls; same transcript → same IR.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+from dataclasses import dataclass, field
+from typing import Any, Optional
+
+from ..core import factid
+from ..core.packer.ir import IRCorpus, IREntity, IRField, IRSource
+from .transcript_adapters import load_transcript
+
+# ── Extraction patterns ──
+
+# User-turn sentences that read as standing instructions/constraints
+_CONSTRAINT_RE = re.compile(
+    r"(?i)\b(do not|don'?t|never|must not|mustn'?t|no longer|always|"
+    r"make sure|be careful|remember to|must \w+|should not|shouldn'?t|"
+    r"only use|use only|stick to|keep .{0,40}\b(under|below|within))\b"
+)
+
+# Assistant sentences that read as decisions / conclusions. The reliable
+# path is the explicit "Decision:" convention (the dogfood CLAUDE.md asks
+# sessions to state decisions that way); the verb patterns are best-effort.
+#
+# The marker is anchored to the sentence START (optionally behind a bullet
+# or bold prefix): dogfood showed the unanchored form fires on backticked
+# *mentions* of the convention and on list-introducer lines that merely
+# end in "verdict:". Matching runs against backtick-stripped prose (see
+# _prose_of) so quoted code spans can't trigger any extractor.
+_DECISION_MARKER_RE = re.compile(
+    r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
+    r"(?:decision|conclusion|verdict|confirmed)(?:\*{1,2}|_{1,2})?\s*:"
+)
+_MARKER_WORD_RE = re.compile(r"(?i)(decision|conclusion|verdict|confirmed)")
+
+
+def decision_marker(text: str) -> str:
+    """The marker word a decision line leads with (lowercased), or ''
+    when the line is not marker-led. The canonical 'decision' is a
+    stronger commitment than the self-assessment aliases — rank folds
+    (ctxpack.core.rank) weigh them differently, so the event emitter
+    records which one fired."""
+    m = _DECISION_MARKER_RE.match(text or "")
+    if not m:
+        return ""
+    word = _MARKER_WORD_RE.search(m.group(0))
+    return word.group(1).lower() if word else ""
+# Agent-stated operating rules: the explicit "Constraint:" convention,
+# mirroring "Decision:" (same anchoring, same use-vs-mention guard). In
+# agent-driven sessions the load-bearing constraints are often stated by
+# the ASSISTANT (conservation rules, DoD, review gates) — cohort evidence:
+# 49 decisions banked vs 1 constraint across 10 sessions, because the
+# user-imperative extractor is the only constraint path. Marker-only on
+# purpose: no verb heuristics — over-extraction of "rules" from ordinary
+# prose is worse than asking sessions to mark them.
+_CONSTRAINT_MARKER_RE = re.compile(
+    r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
+    r"(?:constraint|invariant)(?:\*{1,2}|_{1,2})?\s*:"
+)
+
+# Deterministic decision-override path (conflict lint, ratified
+# non-negotiable): `Supersedes: <fact_id> — <reason>` on its own line
+# directly after a Decision: line binds to that decision. The goal is
+# "never change decisions silently", not "never change decisions" — a
+# declared supersession resolves the lint row and emits a fact-level
+# fact_superseded event. Same anchoring and use-vs-mention guard as the
+# other markers; a malformed payload is IGNORED (fail-closed: the
+# conflict stays visible rather than being silently waved through).
+_SUPERSEDES_MARKER_RE = re.compile(
+    r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
+    r"supersedes(?:\*{1,2}|_{1,2})?\s*:\s*"
+)
+_SUPERSEDES_PAYLOAD_RE = re.compile(
+    r"[`']?([0-9a-fA-F]{16})\b[`']?\s*(?:[—–\-:,]\s*)?(.*)")
+
+# Memory-incident telemetry: the explicit "ctx-incident:" convention —
+# the ledger's own feedback loop (did ctx save/miss/mislead?). Same
+# anchoring and use-vs-mention guard as Decision:/Constraint:. Payload is
+# pipe-delimited key="value" pairs; only type + fact are REQUIRED — a
+# demanding grammar would bias telemetry toward conscientious sessions.
+# Fail-open: a marked line with a malformed payload is still banked
+# (parse_ok=false, verbatim RAW kept) — a lost incident is itself the
+# event this exists to record.
+_INCIDENT_MARKER_RE = re.compile(
+    r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
+    r"ctx-incident(?:\*{1,2}|_{1,2})?\s*:\s*"
+)
+_INCIDENT_TYPES = frozenset((
+    "saved",           # ledger supplied a fact the session would have lost
+    "missed",          # fact should have been in the ledger and wasn't
+    "stale",           # ledger served a superseded value as current
+    "wrong",           # ledger fact was incorrect
+    "conflicting",     # ledger returned contradictory facts
+    "native-better",   # compaction summary / grep would have done better
+    "user-corrected",  # the user had to correct the agent's recall
+))
+_INCIDENT_KV_RE = re.compile(r'^([A-Za-z][\w-]*)\s*=\s*(?:"([^"]*)"?|(.*))$')
+_INCIDENT_FIELD_KEYS = ("fact", "expected", "got", "source", "evidence")
+
+
+def _parse_incident_line(line: str) -> "dict | None":
+    """None if the line is not incident-marked; otherwise a record —
+    fail-open, so a malformed payload still comes back with
+    parse_ok=False rather than vanishing."""
+    if not _INCIDENT_MARKER_RE.match(_prose_of(line)):
+        return None  # includes backtick-quoted mentions of the convention
+    m = _INCIDENT_MARKER_RE.match(line)
+    if not m:  # marker was only visible in blanked prose — quoted material
+        return None
+    parts = [p.strip() for p in line[m.end():].split("|")]
+    itype = parts[0].lower().rstrip(".") if parts else ""
+    fields: dict[str, str] = {}
+    for part in parts[1:]:
+        kv = _INCIDENT_KV_RE.match(part)
+        if kv:
+            value = kv.group(2) if kv.group(2) is not None else kv.group(3)
+            fields[kv.group(1).lower()] = (value or "").strip().strip('"')[:300]
+    parse_ok = itype in _INCIDENT_TYPES and bool(fields.get("fact"))
+    return {"type": itype[:40], "fields": fields, "parse_ok": parse_ok}
+
+
+_DECISION_VERB_RE = re.compile(
+    r"(?i)\b(?:decided to|i'?ll (?:use|go with|take)|going with|"
+    r"we'?ll (?:use|go with)|chose|choosing|settled on|"
+    r"root cause\s*(?:is|was|:)|"  # assertion only — bare noun phrase
+    # ("found the root cause") is a mention, not a stated conclusion
+    r"caused by|the fix (?:is|was)|fixed by|renamed?|instead of using|"
+    r"switch(?:ed|ing) to|the right (?:move|approach|fix) is|"
+    r"key finding)"
+)
+
+# Inline code spans are quoted material, not statements by the assistant:
+# "state `Decision: ...` lines" mentions the convention, it doesn't use it.
+_INLINE_CODE_RE = re.compile(r"`[^`]*`")
+
+# User messages longer than this (after cleaning) are treated as pasted
+# material (transcripts, logs, articles): still scanned for the request
+# line, but NOT mined for constraints — quoted prose is full of imperative
+# sentences that are not instructions to the agent.
+_PASTED_CONTENT_THRESHOLD = 3000
+
+# Sentences riddled with video/log timestamps are quoted material
+_TIMESTAMP_NOISE_RE = re.compile(r"\b\d+:\d{2}\b")
+
+_FAILED_RE = re.compile(
+    r"(?i)\b(didn'?t work|doesn'?t work|dead end|failed because|"
+    r"abandon(?:ed|ing)|gave up on|reverted|turned out to be wrong|"
+    r"false (?:positive|start)|won'?t work because)\b"
+)
+
+_SYS_REMINDER_RE = re.compile(r"<system-reminder>.*?</system-reminder>", re.DOTALL)
+_TAGGED_META_RE = re.compile(
+    r"<(local-command-caveat|command-name|command-message|command-args|"
+    r"local-command-stdout)>.*?</\1>", re.DOTALL,
+)
+# Harness-injected user-role messages (background-task completion notices
+# etc.) are not things the user asked for. Whole block goes, tolerating a
+# missing close tag — dogfood found one extracted as a USER-REQUEST.
+_HARNESS_BLOCK_RE = re.compile(
+    r"<(task-notification|task-reminder)>.*?(?:</\1>|\Z)", re.DOTALL,
+)
+
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+|\n+")
+
+# C2 (remediated R2) — Markdown/paragraph-aware soft-wrap folding. A message
+# wrapped mid-sentence yields a row severed at the wrap (dogfood: a user
+# constraint stored as "...; do not"); fold the continuation back before
+# _SENTENCE_SPLIT_RE runs. The fold must respect Markdown block structure
+# and NOT invent it:
+#   - Only . ! ? end a sentence for fold purposes. A line ending in
+#     : ; ) or ] is a lead-in / mid-clause and DOES continue (a
+#     rationale-introducing colon, a parenthetical, an `unless` clause).
+#   - A line that STARTS a block never folds into the previous line:
+#     an ATX heading, a semantic marker (Decision:/Constraint:/Supersedes:
+#     must stay at sentence start so the extractor sees them), or a list
+#     item (bulleted, numbered, lettered, parenthesized), table row or
+#     blockquote.
+#   - We never append onto a STRUCTURAL previous line (heading/list/table/
+#     quote); a marker line, though, is prose that can legitimately wrap
+#     ("Constraint: never merge\nto main" is one constraint).
+#   - A blank line is a hard boundary (and _drop_fenced leaves one where it
+#     removed a fenced block, so quoted prose can never bridge a real fact).
+_HARD_END_RE = re.compile(r"""[.!?]["')\]]?$""")
+_BLOCK_START_RE = re.compile(
+    r"""^(?:\#{1,6}\s            # ATX heading
+        |[-*•]\s                 # bullet
+        |\d+[.)]\s               # numbered list   1.  1)
+        |[A-Za-z][.)]\s          # lettered list   a.  b)
+        |\([A-Za-z0-9]{1,3}\)    # parenthesized   (a) (1)
+        |>\s?                    # blockquote
+        |\|)                     # table row
+    """, re.VERBOSE)
+
+
+def _is_marker_start(s: str) -> bool:
+    p = _prose_of(s)
+    return bool(_DECISION_MARKER_RE.match(p)
+                or _CONSTRAINT_MARKER_RE.match(p)
+                or _SUPERSEDES_MARKER_RE.match(p))
+
+
+# A list item: the block-start set MINUS heading/quote/table. A wrapped list
+# item's indented continuation folds back into it (R4); a heading/table/quote
+# never receives a fold.
+_LIST_ITEM_RE = re.compile(
+    r"""^(?:[-*•]|\d+[.)]|[A-Za-z][.)]|\([A-Za-z0-9]{1,3}\))\s""",
+    re.VERBOSE)
+
+
+def _join_soft_wraps(text: str) -> str:
+    out: "list[str]" = []
+    for raw in text.split("\n"):
+        s = raw.strip()
+        indent = len(raw) - len(raw.lstrip())
+        prev = out[-1] if out else ""
+        # boundaries: no prev, blank line, prev already ends a sentence, or
+        # the current line starts a new block (heading / semantic marker /
+        # list item / table / quote).
+        if (not prev or not s
+                or _HARD_END_RE.search(prev)
+                or bool(_BLOCK_START_RE.match(s))
+                or _is_marker_start(s)):
+            out.append(s)
+            continue
+        prev_is_list = bool(_LIST_ITEM_RE.match(prev))
+        prev_is_struct = bool(_BLOCK_START_RE.match(prev))
+        if prev_is_struct and not prev_is_list:
+            out.append(s)          # never fold onto a heading/table/quote
+        elif prev_is_list and indent == 0:
+            out.append(s)          # unindented line after an item = new block
+        else:
+            out[-1] = f"{prev} {s}"   # prose wrap, or indented item continuation
+    return "\n".join(out)
+
+# Tools whose invocations mutate state and deserve per-file tracking
+_WRITE_TOOLS = {"Edit", "Write", "NotebookEdit", "MultiEdit"}
+
+# ── Read-path adoption telemetry (P4) ──
+# Counted per tool_use and carried into checkpoints.jsonl via
+# TranscriptStats: ledger_reads = the session used the checkpoint read
+# path; transcript_greps = it fell back to the raw transcript despite the
+# read path existing. The fallback rate is the earliest honest signal of
+# whether the ledger earns its keep (CP-041's negative-value signal).
+
+_LEDGER_READ_CMD_RE = re.compile(
+    r"ctxpack(?:\.cli\.main)?['\"]?\s+session\b")
+# MCP spellings: mcp__ctxpack__ctx/session_recall etc., normalized below
+_LEDGER_TOOL_SUFFIXES = (
+    "ctx_session_recall", "ctx_session_timeline", "ctx_session_decisions",
+    "ctx_why", "ctx_graph_query", "ctx_session_literals", "ctx_resume",
+)
+_READONLY_PATH_TOOLS = {"Grep", "Read", "Glob"}
+
+
+def _is_ledger_read_command(command: str) -> bool:
+    c = " ".join(command.lower().split())
+    if _LEDGER_READ_CMD_RE.search(c):
+        return True
+    return ("ctxpack" in c and "hydrate" in c
+            and ".claude/ctx" in c.replace("\\", "/"))
+
+
+def _touches_raw_transcript(text: str) -> bool:
+    t = text.lower().replace("\\", "/")
+    return ".claude/projects" in t and ".jsonl" in t
+
+
+@dataclass
+class TranscriptStats:
+    """Extraction coverage counters for the go/no-go gate."""
+
+    turns: int = 0
+    user_turns: int = 0
+    requests: int = 0
+    constraints: int = 0
+    decisions: int = 0
+    findings: int = 0            # subagent/workflow verdicts (feedback #5)
+    failed_approaches: int = 0
+    errors: int = 0
+    files_changed: int = 0
+    tasks: int = 0
+    bash_commands: int = 0
+    literals: int = 0
+    # Read-path adoption (P4): ledger reads vs raw-transcript fallbacks
+    ledger_reads: int = 0
+    transcript_greps: int = 0
+    # Memory-incident telemetry (ctx-incident: convention); by-type counts
+    # keyed by incident type, with malformed payloads under "unparsed"
+    incidents: int = 0
+    incident_types: dict = field(default_factory=dict)
+    # E-6 ingest boundary: secrets replaced (type-only) BEFORE extraction,
+    # so no fact value, literal or gist can carry one. Counts are
+    # observability, not proof of completeness — detection is
+    # pattern-based with documented limitations (core/redaction.py).
+    redactions: int = 0
+    redaction_types: dict = field(default_factory=dict)
+    # Workspace the session ran in (first cwd seen in the transcript).
+    # Stamped onto event rows so rank folds can exclude eval-harness
+    # workspaces deterministically — transcript-derived, so re-deriving
+    # events.jsonl stays byte-replayable (an env flag would not be).
+    cwd: str = ""
+
+    def to_dict(self) -> dict:
+        return dict(self.__dict__)
+
+
+@dataclass
+class ParsedTranscript:
+    corpus: IRCorpus = field(default_factory=IRCorpus)
+    stats: TranscriptStats = field(default_factory=TranscriptStats)
+    session_id: str = ""
+    last_turn: int = 0
+    # Hollow-transcript guard inputs (never serialized): how many
+    # parseable JSONL objects the file held vs what survived
+    # normalization, and which adapter normalized them.
+    raw_lines: int = 0
+    adapter: str = ""
+
+
+def _clean(text: str, limit: int = 300) -> str:
+    """Sanitize a value for a line-oriented KV: strip meta, collapse ws."""
+    text = _SYS_REMINDER_RE.sub("", text)
+    text = _TAGGED_META_RE.sub("", text)
+    text = _HARNESS_BLOCK_RE.sub("", text)
+    text = " ".join(text.split())
+    return text[:limit]
+
+
+def _clean_multiline(text: str, limit: int = 100_000) -> str:
+    """Like _clean but preserves line STRUCTURE — used before sentence
+    splitting. Collapses whitespace WITHIN a line but keeps two signals the
+    soft-wrap fold needs (Codex 2026-09-03 F2): blank lines (paragraph
+    boundaries — without them a blank-separated paragraph merges into the
+    previous fact) and leading indentation (a wrapped list item's
+    continuation — without it '- Constraint: do not\\n  merge …' is banked
+    severed). Runs of blank lines collapse to one; leading blanks are
+    dropped."""
+    text = _SYS_REMINDER_RE.sub("", text)
+    text = _TAGGED_META_RE.sub("", text)
+    text = _HARNESS_BLOCK_RE.sub("", text)
+    out: "list[str]" = []
+    prev_blank = False
+    for raw in text.splitlines():
+        m = re.match(r"^(\s*)(.*)$", raw)
+        lead, body = m.group(1), " ".join(m.group(2).split())
+        if not body:
+            if out and not prev_blank:   # keep one boundary; no leading blank
+                out.append("")
+            prev_blank = True
+            continue
+        prev_blank = False
+        out.append(f"{lead}{body}")
+    return "\n".join(out)[:limit]
+
+
+_FENCE_MARK = re.compile(r"(`{3,}|~{3,})(.*)$")
+
+
+class _FenceTracker:
+    """CommonMark fence state, shared by every extractor (TM-8,
+    tightened in the 2026-08-09 re-review: the old any-``` toggle let
+    a valid 4-backtick fence's inner ``` example escape as extractable
+    text, and tilde fences were not fences at all).
+
+    Rules honored: a fence opens with 3+ backticks or 3+ tildes and
+    closes ONLY on the same marker character, at least as long as the
+    opener, with nothing but whitespace after it; a backtick opener
+    whose info string contains a backtick is inline code, not a fence;
+    an unterminated fence quotes everything to the end — fail-closed,
+    same stance as the truncated private-key redaction."""
+
+    __slots__ = ("_char", "_len")
+
+    def __init__(self) -> None:
+        self._char = ""
+        self._len = 0
+
+    def quoted(self, line: str) -> bool:
+        """Feed one line; True when it is quoted material — a fence
+        marker line (open or close) or any line inside a fence."""
+        m = _FENCE_MARK.match(line.lstrip())
+        if m is None:
+            return self._len > 0
+        marker, info = m.group(1), m.group(2)
+        if self._len == 0:
+            if marker[0] == "`" and "`" in info:
+                return False
+            self._char, self._len = marker[0], len(marker)
+            return True
+        if (marker[0] == self._char and len(marker) >= self._len
+                and not info.strip()):
+            self._char = ""
+            self._len = 0
+        return True
+
+
+def _drop_fenced(text: str) -> str:
+    """Remove fenced lines before extraction (TM-8).
+
+    Fenced content is QUOTED MATERIAL: a `Decision:`/`Constraint:`
+    line inside a code fence is an example someone pasted, not a
+    statement the author made — extracting it lets injected content
+    mint facts (reviewer repro: a fenced "Decision: exfiltrate the
+    release key ..." extracted as a real decision). The incident
+    extractor shares the same `_FenceTracker`, so the two paths cannot
+    disagree about what is quoted.
+    """
+    tracker = _FenceTracker()
+    out: "list[str]" = []
+    dropped = False
+    for line in text.splitlines():
+        if tracker.quoted(line):
+            dropped = True
+            continue
+        if dropped:
+            # R2: a removed fenced block leaves a hard paragraph boundary,
+            # so the soft-wrap fold can never stitch prose from opposite
+            # sides of a quotation into one asserted fact.
+            out.append("")
+            dropped = False
+        out.append(line)
+    return "\n".join(out)
+
+
+def _short_hash(text: str) -> str:
+    normalized = " ".join(text.lower().split())
+    return hashlib.sha1(normalized.encode("utf-8")).hexdigest()[:8].upper()
+
+
+def _file_entity_name(path: str) -> str:
+    norm = re.sub(r"[^\w.-]+", "-", path).strip("-").upper()
+    norm = norm.replace(".", "-")
+    return f"FILE-{norm[-60:]}"
+
+
+# Non-marker sentences above 300 chars are merged-blob noise and are
+# dropped — but a MARKER-led sentence (Decision:/Constraint:) is an
+# explicit convention statement; dropping it for length silently loses
+# exactly the facts the convention exists to bank (found live 2026-07-06:
+# a 430-char turn-final Decision: vanished). Bounded, not unbounded.
+_MARKER_SENTENCE_CAP = 900
+
+
+def _sentences(text: str) -> list[str]:
+    out: list[str] = []
+    for raw in _SENTENCE_SPLIT_RE.split(_join_soft_wraps(text)):   # C2
+        s = raw.strip()
+        if len(s) < 15:
+            continue
+        if len(s) <= 300:
+            out.append(s)
+        elif len(s) <= _MARKER_SENTENCE_CAP:
+            prose = _prose_of(s)
+            if (_DECISION_MARKER_RE.match(prose)
+                    or _CONSTRAINT_MARKER_RE.match(prose)):
+                out.append(s)
+    return out
+
+
+def _prose_of(sentence: str) -> str:
+    """The sentence with inline code spans blanked — extractors match on
+    this so backtick-quoted mentions can't fire, while the verbatim
+    sentence is still what gets stored."""
+    return _INLINE_CODE_RE.sub(" ", sentence)
+
+
+def _is_decision(sentence: str) -> bool:
+    prose = _prose_of(sentence)
+    return bool(_DECISION_MARKER_RE.match(prose) or _DECISION_VERB_RE.search(prose))
+
+
+# ── Literal (verbatim-identifier) extraction ──
+# Load-bearing identifiers must survive a compaction fold VERBATIM so the agent
+# writes correct ids from the ledger instead of reconstructing them from a
+# paraphrase ("the frequency was about 0.19"). ONLY high-precision, low-ambiguity
+# classes — over-extraction is the failure mode the decision/constraint
+# extractors guard against, and it applies here too. Unlike prose facts these
+# are matched on the RAW text (backticks kept — ids live in backticks). No
+# per-turn cap: silently dropping an id defeats the ledger's whole purpose;
+# precision + dedup bound the count, and a display budget is enforced on the
+# GIST (checkpoint.build_gist), not by discarding literals at extraction.
+_LITERAL_URL_RE = re.compile(r"https?://[^\s)\]}>\"'`]+")
+_LITERAL_UUID_RE = re.compile(
+    r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+    r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b")
+# Domain identifiers (bioinformatics/registry ids seen in real sessions) — a
+# tagged prefix removes ambiguity entirely.
+_LITERAL_DOMAIN_ID_RE = re.compile(
+    r"\b(?:NCT|PMID|CHEMBL|ENSG|ENST|ENSP)\s?\d+\b|\bGO:\d{7}\b|\brs\d+\b")
+# A filesystem path: at least one slash segment + a dotted extension (+ optional
+# :line). Distinguishes "services/llm.py:42" from prose containing a slash.
+_LITERAL_PATH_RE = re.compile(
+    r"(?:[A-Za-z]:[\\/])?(?:[\w.\-]+[/\\])+[\w.\-]+\.[A-Za-z][A-Za-z0-9]{0,5}"
+    r"(?::\d+)?")
+_LITERAL_VERSION_RE = re.compile(r"\bv?\d+\.\d+\.\d+(?:[-.][0-9A-Za-z]+)*\b")
+# PR/issue ref: a lone #NNN (not ## markdown, not a fragment like abc#1).
+_LITERAL_PR_RE = re.compile(r"(?<![\w#])#\d{1,6}\b")
+# Number WITH a curated unit — bare numbers are too noisy to bank.
+# Word units require a trailing boundary; ``%`` is a non-word char so it must NOT
+# (the ``\b`` after ``%`` only matched when a word char followed, so "100% sure"
+# silently missed). ``x`` multipliers dropped — too noisy ("5-10x", "3x") to bank.
+_LITERAL_NUMBER_UNIT_RE = re.compile(
+    r"\b\d+(?:\.\d+)?\s?(?:(?:ms|ns|kb|mb|gb|tb|bpe|px|tokens?|req/min)\b|%)",
+    re.IGNORECASE)
+# Git SHA: 7-40 hex, but ONLY inside a backtick span or after a commit-context
+# word (a bare hex run in prose is almost always not a sha), AND containing both
+# a letter and a digit (rules out prose words like "deadbeef" and pure decimals).
+_LITERAL_HEX_RE = re.compile(r"[0-9a-f]{7,40}", re.IGNORECASE)
+_SHA_CONTEXT_RE = re.compile(
+    r"(?i)\b(?:commit|sha|revision|rev|head|tip|merged?|hash)\s+[`']?"
+    r"([0-9a-f]{7,40})\b")
+_BACKTICK_SPAN_RE = re.compile(r"`([^`]+)`")
+
+
+def _looks_like_sha(tok: str) -> bool:
+    t = tok.lower()
+    return (7 <= len(t) <= 40
+            and all(c in "0123456789abcdef" for c in t)
+            and any(c.isdigit() for c in t)
+            and any(c in "abcdef" for c in t))
+
+
+def _extract_literals(text: str) -> list[tuple[str, str]]:
+    """(kind, value) for every high-precision identifier in ``text``, in
+    position order with longest-match-wins on overlap (so a URL is not also
+    mined as a path). Values are VERBATIM. Deterministic."""
+    # (start, -length, priority, kind, value) — priority breaks ties so a
+    # more-specific class wins an exact-span collision.
+    cands: list[tuple[int, int, int, str, str]] = []
+
+    def add(kind: str, value: str, start: int, end: int, prio: int) -> None:
+        cands.append((start, -(end - start), prio, kind, value))
+
+    for m in _LITERAL_URL_RE.finditer(text):
+        v = m.group(0).rstrip(".,);:]}\"'")
+        add("url", v, m.start(), m.start() + len(v), 0)
+    for m in _LITERAL_UUID_RE.finditer(text):
+        add("uuid", m.group(0), m.start(), m.end(), 1)
+    for m in _LITERAL_DOMAIN_ID_RE.finditer(text):
+        add("domain_id", m.group(0), m.start(), m.end(), 2)
+    for m in _LITERAL_PATH_RE.finditer(text):
+        add("path", m.group(0), m.start(), m.end(), 3)
+    for m in _LITERAL_VERSION_RE.finditer(text):
+        v = m.group(0)
+        parts = v.lstrip("v").split(".")
+        numeric = [p for p in parts if p.isdigit()]
+        # Reject non-versions that share the x.y.z shape: a >=4-digit component is
+        # a year (dotted date "2026.07.04") or a phone group ("555.123.4567"); 4+
+        # all-numeric parts is an IP address ("192.168.0.1").
+        if any(len(p) >= 4 for p in numeric) or (
+                len(parts) >= 4 and len(numeric) == len(parts)):
+            continue
+        add("version", v, m.start(), m.end(), 4)
+    for span in _BACKTICK_SPAN_RE.finditer(text):
+        base = span.start(1)
+        for hm in _LITERAL_HEX_RE.finditer(span.group(1)):
+            if _looks_like_sha(hm.group(0)):
+                add("git_sha", hm.group(0), base + hm.start(), base + hm.end(), 5)
+    for m in _SHA_CONTEXT_RE.finditer(text):
+        if _looks_like_sha(m.group(1)):
+            add("git_sha", m.group(1), m.start(1), m.end(1), 5)
+    for m in _LITERAL_PR_RE.finditer(text):
+        if len(m.group(0)) - 1 == 6:  # "#RRGGBB"-length all-digit token = colour
+            continue
+        add("pr", m.group(0), m.start(), m.end(), 6)
+    for m in _LITERAL_NUMBER_UNIT_RE.finditer(text):
+        add("number_unit", m.group(0), m.start(), m.end(), 7)
+
+    cands.sort(key=lambda c: (c[0], c[1], c[2]))
+    out: list[tuple[str, str]] = []
+    last_end = -1
+    for start, neg_len, _prio, kind, value in cands:
+        if start < last_end:
+            continue
+        out.append((kind, value))
+        last_end = start - neg_len
+    return out
+
+
+def _text_of(content: Any) -> str:
+    """Concatenated text blocks of a message content (str or block list)."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "\n".join(
+            blk.get("text", "") for blk in content
+            if isinstance(blk, dict) and blk.get("type") == "text"
+        )
+    return ""
+
+
+# Incident fact= payloads resolve against these fact kinds' primary field
+_INCIDENT_LINK_KINDS = {"DECISION": "DECISION", "CONSTRAINT": "RULE",
+                        "LITERAL": "VALUE", "FAILED-APPROACH": "NOTE"}
+_INCIDENT_LINK_MIN_LEN = 6  # below this, containment matches are noise
+
+
+def _link_incidents(entities: list) -> None:
+    """Spec v1.1 §8: resolve each incident's fact= text to a banked
+    fact_id by conservative normalized containment — exactly one
+    candidate links, anything ambiguous or unmatched stays empty
+    (never guess; a wrong link is worse than no link)."""
+    candidates: list[tuple[str, str]] = []
+    for e in entities:
+        for prefix, primary in _INCIDENT_LINK_KINDS.items():
+            if not e.name.startswith(prefix + "-"):
+                continue
+            fid = next((f.value for f in e.fields if f.key == "FACT-ID"), "")
+            val = factid.normalize_value(
+                next((f.value for f in e.fields if f.key == primary), ""))
+            if fid and len(val) >= _INCIDENT_LINK_MIN_LEN:
+                candidates.append((fid, val))
+            break
+    if not candidates:
+        return
+    for e in entities:
+        if not e.name.startswith("INCIDENT-"):
+            continue
+        fact_text = factid.normalize_value(
+            next((f.value for f in e.fields if f.key == "FACT"), ""))
+        if len(fact_text) < _INCIDENT_LINK_MIN_LEN:
+            continue
+        hits = {fid for fid, val in candidates
+                if fact_text in val or val in fact_text}
+        if len(hits) == 1:
+            src = e.sources[0] if e.sources else None
+            linked = next(iter(hits))
+            e.fields.append(IRField(
+                key="LINKED-FACT-ID", value=linked, raw_value=linked,
+                source=src, salience=e.salience))
+
+
+def parse_transcript(
+    path: str,
+    *,
+    domain: Optional[str] = None,
+    since_turn: int = 0,
+    format_spec: Optional[str] = None,
+) -> ParsedTranscript:
+    """Parse an agent session transcript into IR.
+
+    Format handling lives in ``transcript_adapters``: Claude Code and
+    Codex rollouts are auto-detected; any other agent's JSONL parses
+    through the generic field-map adapter via ``format_spec``. An
+    unrecognized format raises TranscriptFormatError (fail-loud) —
+    it never silently parses to an empty corpus.
+
+    Args:
+        path: transcript path (Claude Code hook payload, a Codex
+            rollout file, or any spec-mapped JSONL).
+        domain: .ctx header domain; defaults to session-<id[:8]>.
+        since_turn: skip turns below this index (incremental checkpoints —
+            pass the previous checkpoint's ``last_turn``).
+        format_spec: path to a generic-adapter JSON field map; forces
+            the generic adapter instead of detection.
+    """
+    normalized = load_transcript(path, format_spec=format_spec)
+    session_id = normalized.session_id
+    entries = normalized.entries
+    sidechain_entries = normalized.sidechain_entries
+
+    # E-6 ingest boundary: redact BETWEEN normalization and extraction —
+    # the single choke point every extractor sits behind, so no secret
+    # can reach a fact value, literal, gist, or persistent write. Only
+    # the message payload is walked (ids/timestamps are schema, not
+    # content). FAIL-CLOSED: an exception here propagates and the
+    # checkpoint does not happen — an unscanned transcript is never
+    # persisted, and the hook layer records the failure rather than
+    # presenting a healthy empty result.
+    from ..core.redaction import redact_tree
+    _red_counts: dict = {}
+    for _entry in entries:
+        if "message" in _entry:
+            _entry["message"], _ = redact_tree(_entry["message"],
+                                               _red_counts)
+    for _entry in sidechain_entries:
+        if "message" in _entry:
+            _entry["message"], _ = redact_tree(_entry["message"],
+                                               _red_counts)
+
+    sid = session_id[:8] if session_id else "unknown"
+    corpus = IRCorpus(domain=domain or f"session-{sid}")
+    stats = TranscriptStats()
+    stats.redactions = sum(_red_counts.values())
+    stats.redaction_types = dict(sorted(_red_counts.items()))
+    stats.cwd = next(
+        (str(e["cwd"]) for e in entries if e.get("cwd")), "")
+    src_file = f"session:{sid}"
+
+    seen_names: set[str] = set()
+    file_edits: dict[str, dict] = {}  # path → {count, last_turn, tools}
+    tool_seq = 0
+    source_words = 0
+
+    def _src(turn: int, ts: str) -> IRSource:
+        return IRSource(file=src_file, turn=turn, timestamp=ts)
+
+    entities_by_name: dict[str, IREntity] = {}
+
+    def _add(name: str, fields: dict[str, str], *, turn: int, ts: str,
+             salience: float, update: bool = False,
+             fact: "tuple[str, str, str] | None" = None,
+             basis: str = "", source_role: str = "") -> None:
+        """fact=(kind, key, value) stamps the v1.1 substrate fields:
+        FACT-ID (canonical content hash), BASIS (extraction mechanics,
+        an enum never a float), STATUS (lifecycle, current at birth),
+        EXTRACTOR (parser version — provenance, never identity),
+        SOURCE-ROLE (who wrote the text — tp/1.2+; basis is never
+        authority, so an assistant's Decision: marker stays an agent
+        candidate no matter how it was extracted)."""
+        nonlocal source_words
+        if fact is not None:
+            kind, key, value = fact
+            fields = {**fields,
+                      "fact_id": factid.fact_id(kind, value, key=key),
+                      "basis": basis or factid.FactBasis.STRUCTURAL.value,
+                      "status": "current",
+                      "extractor": factid.EXTRACTOR_VERSION,
+                      "source_role": (source_role
+                                      or factid.SourceRole.UNKNOWN.value)}
+        if name in seen_names:
+            if fact is not None and source_role:
+                _merge_role_evidence(name, source_role, turn)
+            if update and name in entities_by_name:
+                # Refresh mutable fields in place (e.g. a TodoWrite status
+                # change) — first-wins dedup must not freeze task state.
+                entity = entities_by_name[name]
+                for key, value in fields.items():
+                    key_norm = key.upper().replace("_", "-")
+                    for f in entity.fields:
+                        if f.key == key_norm and value:
+                            f.value = value
+                            f.raw_value = value
+                            f.source = _src(turn, ts)
+            return
+        seen_names.add(name)
+        entity = IREntity(name=name, sources=[_src(turn, ts)], salience=salience)
+        for key, value in fields.items():
+            if not value:
+                continue
+            entity.fields.append(IRField(
+                key=key.upper().replace("_", "-"),
+                value=value,
+                raw_value=value,
+                source=_src(turn, ts),
+                salience=salience,
+            ))
+            source_words += len(str(value).split())
+        corpus.entities.append(entity)
+        entities_by_name[name] = entity
+
+    def _merge_role_evidence(name: str, role: str, turn: int) -> None:
+        """TM-4 (re-review 2026-08-09): EVERY re-assertion of an
+        existing fact is evidence, not a duplicate to discard —
+        including a later assertion by an already-seen role.
+        Occurrences accumulate in a SOURCE-ROLES field as every unique
+        `role@turn`, transcript order. SOURCE-ROLE stays the FIRST
+        assertion — a provenance record, not a ranking — and the set
+        is never collapsed into a single authority value downstream."""
+        entity = entities_by_name.get(name)
+        if entity is None:
+            return
+        base = next((f for f in entity.fields
+                     if f.key == "SOURCE-ROLE"), None)
+        if base is None:
+            return                      # legacy entity, no provenance
+        roles = next((f for f in entity.fields
+                      if f.key == "SOURCE-ROLES"), None)
+        if roles is None:
+            base_turn = base.source.turn if base.source else 0
+            initial = f"{base.value}@{base_turn}"
+            roles = IRField(key="SOURCE-ROLES", value=initial,
+                            raw_value=initial, source=base.source,
+                            salience=base.salience)
+            entity.fields.append(roles)
+        occurrence = f"{role}@{turn}"
+        if occurrence in roles.value.split(","):
+            return
+        roles.value = f"{roles.value},{occurrence}"
+        roles.raw_value = roles.value
+
+    def _attach(name: str, key: str, value: str, *, turn: int, ts: str,
+                salience: float = 2.5) -> None:
+        """Append one field to an already-banked entity (first wins) —
+        for markers that BIND to a prior entity (Supersedes: → the
+        decision it follows)."""
+        entity = entities_by_name.get(name)
+        if entity is None or not value:
+            return
+        key_norm = key.upper().replace("_", "-")
+        if any(f.key == key_norm for f in entity.fields):
+            return
+        entity.fields.append(IRField(key=key_norm, value=value,
+                                     raw_value=value, source=_src(turn, ts),
+                                     salience=salience))
+
+    def _extract_incidents(text: str, *, turn: int, ts: str,
+                           role: str = "") -> str:
+        """Bank ctx-incident: lines and return the text WITHOUT them, so
+        downstream extractors can't re-mine incident payloads (a stale
+        `got` value must not get banked as a LITERAL; payload prose must
+        not trigger the constraint patterns). Fenced lines are quoted
+        material — kept, never banked (`_FenceTracker`, shared with
+        `_drop_fenced`)."""
+        if "ctx-incident" not in text.lower():
+            return text  # fast path: nothing marked
+        kept: list[str] = []
+        tracker = _FenceTracker()
+        for line in text.splitlines():
+            rec = (None if tracker.quoted(line)
+                   else _parse_incident_line(line))
+            if rec is None:
+                kept.append(line)
+                continue
+            stats.incidents += 1
+            tkey = rec["type"] if rec["parse_ok"] else "unparsed"
+            stats.incident_types[tkey] = stats.incident_types.get(tkey, 0) + 1
+            fields = {"type": rec["type"], "parse_ok":
+                      "true" if rec["parse_ok"] else "false",
+                      "raw": line[:400], "turn": str(turn)}
+            fields.update({k: rec["fields"].get(k, "")
+                           for k in _INCIDENT_FIELD_KEYS})
+            _add(f"INCIDENT-{_short_hash(line)}", fields,
+                 turn=turn, ts=ts, salience=2.6,
+                 fact=("INCIDENT", rec["type"], line),
+                 basis=factid.FactBasis.MARKER_STATED.value,
+                 source_role=role)
+        return "\n".join(kept)
+
+    def _add_literals(text: str, *, turn: int, ts: str,
+                      role: str = "") -> None:
+        """Bank each verbatim identifier as a LITERAL entity (dedup first-wins;
+        stats count distinct)."""
+        for kind, value in _extract_literals(text):
+            name = f"LITERAL-{_short_hash(value)}"
+            if name not in seen_names:
+                stats.literals += 1
+            _add(name, {"value": value, "kind": kind, "turn": str(turn)},
+                 turn=turn, ts=ts, salience=2.4,
+                 fact=("LITERAL", kind, value),
+                 basis=factid.FactBasis.LITERAL_EXTRACTOR.value,
+                 source_role=role)
+
+    for turn, d in enumerate(entries):
+        if turn < since_turn:
+            continue
+        stats.turns = turn + 1
+        ts = str(d.get("timestamp", ""))
+        msg = d.get("message", {}) or {}
+        content = msg.get("content")
+
+        if d["type"] == "user":
+            # tool_result blocks arrive as user entries — handle them AND
+            # any text blocks in the same message (mixed messages happen)
+            blocks = content if isinstance(content, list) else []
+            for tr in blocks:
+                if not (isinstance(tr, dict) and tr.get("type") == "tool_result"):
+                    continue
+                if tr.get("is_error"):
+                    # content may be a string OR a list of text blocks —
+                    # str() on a block list writes repr garbage
+                    tr_content = tr.get("content", "")
+                    text = _clean(_text_of(tr_content) or str(tr_content), 240)
+                    if text:
+                        stats.errors += 1
+                        _add(f"ERROR-{_short_hash(text)}",
+                             {"message": text, "turn": str(turn)},
+                             turn=turn, ts=ts, salience=1.5,
+                             fact=("ERROR", "", text),
+                             basis=factid.FactBasis.STRUCTURAL.value,
+                             source_role=factid.SourceRole.TOOL.value)
+
+            text = _clean_multiline(_text_of(content))
+            if not text:
+                continue
+            stats.user_turns += 1
+
+            # Incidents first (short turns only — the pasted-content guard
+            # applies: quoted transcripts full of incident lines must not
+            # double-count); the request/constraint/literal extractors see
+            # the text with incident lines removed
+            if len(text) <= _PASTED_CONTENT_THRESHOLD:
+                text = _extract_incidents(
+                    text, turn=turn, ts=ts,
+                    role=factid.SourceRole.USER.value)
+                text = _drop_fenced(text)   # TM-8: quoted ≠ stated
+                if not text.strip():
+                    continue
+
+            # The request itself: first line, verbatim
+            first_line = text.split(". ")[0][:280]
+            stats.requests += 1
+            _add(f"USER-REQUEST-{_short_hash(first_line)}",
+                 {"request": first_line, "turn": str(turn)},
+                 turn=turn, ts=ts, salience=2.0,
+                 fact=("USER-REQUEST", "", first_line),
+                 basis=factid.FactBasis.STRUCTURAL.value,
+                 source_role=factid.SourceRole.USER.value)
+
+            # Constraints: verbatim, never compressed — negations intact.
+            # Skip pasted material (long messages) and timestamp-riddled
+            # quoted prose: imperative sentences there aren't instructions.
+            if len(text) <= _PASTED_CONTENT_THRESHOLD:
+                for sentence in _sentences(text):
+                    if len(_TIMESTAMP_NOISE_RE.findall(sentence)) >= 2:
+                        continue
+                    if _CONSTRAINT_RE.search(_prose_of(sentence)):
+                        stats.constraints += 1
+                        # store the full admitted sentence — truncating
+                        # below the 300-char admission cap could sever a
+                        # trailing negation
+                        _add(f"CONSTRAINT-{_short_hash(sentence)}",
+                             {"rule": sentence, "stated_turn": str(turn)},
+                             turn=turn, ts=ts, salience=3.0,
+                             fact=("CONSTRAINT", "", sentence),
+                             basis=factid.FactBasis.USER_IMPERATIVE.value,
+                             source_role=factid.SourceRole.USER.value)
+                # Verbatim identifiers the user named (short turns only — a
+                # pasted log is skipped by the same threshold as constraints).
+                _add_literals(text, turn=turn, ts=ts,
+                              role=factid.SourceRole.USER.value)
+
+        else:  # assistant
+            blocks = content if isinstance(content, list) else []
+            for blk in blocks:
+                if not isinstance(blk, dict):
+                    continue
+                btype = blk.get("type")
+
+                if btype == "text":
+                    atext = _clean_multiline(blk.get("text", ""))
+                    atext = _extract_incidents(
+                        atext, turn=turn, ts=ts,
+                        role=factid.SourceRole.ASSISTANT.value)
+                    atext = _drop_fenced(atext)  # TM-8: quoted ≠ stated
+                    last_decision_name = ""
+                    for sentence in _sentences(atext):
+                        if _SUPERSEDES_MARKER_RE.match(_prose_of(sentence)):
+                            # binds to the decision it follows in the SAME
+                            # text block; malformed payload or no preceding
+                            # decision → ignored (fail-closed: the conflict
+                            # stays visible)
+                            raw_m = _SUPERSEDES_MARKER_RE.match(sentence)
+                            if raw_m and last_decision_name:
+                                pm = _SUPERSEDES_PAYLOAD_RE.match(
+                                    sentence[raw_m.end():])
+                                if pm:
+                                    _attach(last_decision_name,
+                                            "supersedes_fact_id",
+                                            pm.group(1).lower(),
+                                            turn=turn, ts=ts)
+                                    reason = pm.group(2).strip(
+                                        " —–-:,.")[:200]
+                                    if reason:
+                                        _attach(last_decision_name,
+                                                "supersedes_reason",
+                                                reason, turn=turn, ts=ts)
+                            continue
+                        if _CONSTRAINT_MARKER_RE.match(_prose_of(sentence)):
+                            stats.constraints += 1
+                            # full sentence, same as user-path constraints:
+                            # truncation could sever a trailing negation
+                            _add(f"CONSTRAINT-{_short_hash(sentence)}",
+                                 {"rule": sentence, "stated_turn": str(turn)},
+                                 turn=turn, ts=ts, salience=3.0,
+                                 fact=("CONSTRAINT", "", sentence),
+                                 basis=factid.FactBasis.MARKER_STATED.value,
+                                 source_role=(
+                                     factid.SourceRole.ASSISTANT.value))
+                        elif _FAILED_RE.search(_prose_of(sentence)):
+                            stats.failed_approaches += 1
+                            _add(f"FAILED-APPROACH-{_short_hash(sentence)}",
+                                 {"note": sentence, "turn": str(turn)},
+                                 turn=turn, ts=ts, salience=2.2,
+                                 fact=("FAILED-APPROACH", "", sentence),
+                                 basis=factid.FactBasis.INFERRED.value,
+                                 source_role=(
+                                     factid.SourceRole.ASSISTANT.value))
+                        elif _is_decision(sentence):
+                            stats.decisions += 1
+                            # marker-stated vs verb-pattern decisions carry
+                            # different bases: only `inferred` may be wrong
+                            # about whether this is a fact at all
+                            d_basis = (
+                                factid.FactBasis.MARKER_STATED.value
+                                if _DECISION_MARKER_RE.match(
+                                    _prose_of(sentence))
+                                else factid.FactBasis.INFERRED.value)
+                            dname = f"DECISION-{_short_hash(sentence)}"
+                            _add(dname,
+                                 {"decision": sentence, "turn": str(turn)},
+                                 turn=turn, ts=ts, salience=2.5,
+                                 fact=("DECISION", "", sentence),
+                                 basis=d_basis,
+                                 source_role=(
+                                     factid.SourceRole.ASSISTANT.value))
+                            last_decision_name = dname
+                    # Verbatim identifiers stated in the assistant's reasoning
+                    # (commit shas, PR #s, versions, paths, domain ids).
+                    # Supersedes: lines are excluded — a 16-hex fact_id must
+                    # not be banked as a git_sha.
+                    lit_text = "\n".join(
+                        line for line in atext.splitlines()
+                        if not _SUPERSEDES_MARKER_RE.match(_prose_of(line)))
+                    _add_literals(lit_text, turn=turn, ts=ts,
+                                  role=factid.SourceRole.ASSISTANT.value)
+
+                elif btype == "tool_use":
+                    tool_seq += 1
+                    name = str(blk.get("name", ""))
+                    tool_input = blk.get("input", {}) or {}
+
+                    # Read-path adoption counters (no entity — just stats)
+                    norm_name = name.lower().replace("/", "_").replace("-", "_")
+                    if ("ctxpack" in norm_name
+                            and norm_name.endswith(_LEDGER_TOOL_SUFFIXES)):
+                        stats.ledger_reads += 1
+                    elif name in _READONLY_PATH_TOOLS:
+                        target = " ".join(str(v) for v in tool_input.values())
+                        if _touches_raw_transcript(target):
+                            stats.transcript_greps += 1
+                    elif name == "Bash":
+                        cmd = str(tool_input.get("command", ""))
+                        if _is_ledger_read_command(cmd):
+                            stats.ledger_reads += 1
+                        elif (_touches_raw_transcript(cmd)
+                              and "ctxpack" not in cmd.lower()):
+                            # ctxpack checkpoint/hook invocations reference
+                            # the transcript path — writes, not fallbacks
+                            stats.transcript_greps += 1
+
+                    if name in _WRITE_TOOLS:
+                        fpath = str(tool_input.get("file_path")
+                                    or tool_input.get("notebook_path") or "")
+                        if fpath:
+                            rec = file_edits.setdefault(
+                                fpath, {"count": 0, "last_turn": 0, "ts": ts})
+                            rec["count"] += 1
+                            rec["last_turn"] = turn
+                            rec["ts"] = ts
+                    elif name in ("TodoWrite", "TaskCreate"):
+                        todos = tool_input.get("todos")
+                        if isinstance(todos, list):
+                            for todo in todos:
+                                subject = _clean(str(todo.get("content", "")), 200)
+                                if subject:
+                                    stats.tasks += 1
+                                    _add(f"TASK-{_short_hash(subject)}",
+                                         {"task": subject,
+                                          "status": str(todo.get("status", "")),
+                                          "turn": str(turn)},
+                                         turn=turn, ts=ts, salience=1.6,
+                                         update=True)
+                        else:
+                            subject = _clean(str(tool_input.get("subject", "")), 200)
+                            if subject:
+                                stats.tasks += 1
+                                _add(f"TASK-{_short_hash(subject)}",
+                                     {"task": subject, "turn": str(turn)},
+                                     turn=turn, ts=ts, salience=1.6)
+                    elif name == "Bash":
+                        desc = _clean(str(tool_input.get("description", "")), 160)
+                        if desc:
+                            stats.bash_commands += 1
+                            _add(f"TOOL-BASH-{tool_seq:04d}",
+                                 {"ran": desc,
+                                  "command": _clean(
+                                      str(tool_input.get("command", "")), 160),
+                                  "turn": str(turn)},
+                                 turn=turn, ts=ts, salience=1.0)
+
+    # One entity per touched file, edit counts aggregated
+    for fpath, rec in sorted(file_edits.items()):
+        stats.files_changed += 1
+        _add(_file_entity_name(fpath),
+             {"path": fpath, "edits": str(rec["count"]),
+              "last_turn": str(rec["last_turn"])},
+             turn=rec["last_turn"], ts=rec["ts"], salience=1.4)
+
+    # Subagent/workflow verdicts (feedback #5): the main parse drops every
+    # sidechain, but a marker-led line in one (`Verdict:`/`Decision:`/…) is a
+    # load-bearing finding — an APPROVE_WITH_NITS / BLOCK the main thread
+    # never sees. Marker-GATED (opt-in, precision-first): only marker-led
+    # sentences bank, as FINDINGs tagged source=subagent, which keeps them
+    # out of the main-thread decision lint (that only lints DECISION facts).
+    # Full re-packs capture verdicts; skip on incremental tails (since_turn)
+    # so an already-banked verdict is not re-reported as new.
+    verdict_turn = len(entries)
+    for d in (sidechain_entries if not since_turn else ()):
+        ts = str(d.get("timestamp", ""))
+        content = d.get("message", {}).get("content", [])
+        for blk in content if isinstance(content, list) else []:
+            if not (isinstance(blk, dict) and blk.get("type") == "text"):
+                continue
+            for sentence in _sentences(_drop_fenced(
+                    str(blk.get("text", "")))):
+                marker = decision_marker(_prose_of(sentence))
+                if not marker:
+                    continue
+                stats.findings += 1
+                _add(f"FINDING-{_short_hash(sentence)}",
+                     {"finding": sentence, "source": "subagent",
+                      "marker": marker, "turn": str(verdict_turn)},
+                     turn=verdict_turn, ts=ts, salience=2.3,
+                     fact=("FINDING", "", sentence),
+                     basis=factid.FactBasis.MARKER_STATED.value,
+                     source_role=factid.SourceRole.ASSISTANT.value)
+
+    corpus.source_token_count = source_words
+    corpus.source_files = [src_file]
+
+    _link_incidents(corpus.entities)
+    return ParsedTranscript(
+        corpus=corpus,
+        stats=stats,
+        session_id=session_id,
+        last_turn=len(entries),
+        raw_lines=normalized.raw_lines,
+        adapter=normalized.adapter,
+    )

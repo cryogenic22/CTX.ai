@@ -23,6 +23,7 @@ def parse_steps(
     steps: list[dict[str, Any]],
     *,
     domain: str = "agent-state",
+    start_index: int = 0,
 ) -> IRCorpus:
     """Convert a list of step dicts into an IRCorpus.
 
@@ -33,11 +34,18 @@ def parse_steps(
     - Fallback: STEP-{i} entity from full dict
 
     Later steps get slightly higher salience (recency boost).
+
+    Args:
+        start_index: Global index of the first step. Incremental callers
+            (AgentSession.update) pass their running step count so
+            provenance reads step-0, step-1, ... across the whole session
+            instead of collapsing to step-0.
     """
     corpus = IRCorpus(domain=domain)
     source_words = 0
 
-    for i, step in enumerate(steps):
+    for local_i, step in enumerate(steps):
+        i = start_index + local_i
         source = IRSource(file=f"step-{i}", line_start=i)
         salience = 1.0 + i * 0.01
 
@@ -70,7 +78,9 @@ def parse_steps(
             source_words += _count_dict_words(step)
 
     corpus.source_token_count = source_words
-    corpus.source_files = [f"step-{i}" for i in range(len(steps))]
+    corpus.source_files = [
+        f"step-{start_index + i}" for i in range(len(steps))
+    ]
     return corpus
 
 

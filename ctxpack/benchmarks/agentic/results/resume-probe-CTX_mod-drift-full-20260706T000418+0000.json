@@ -1,0 +1,131 @@
+{
+  "schema": "ctxpack-resume-probe/v1",
+  "measurement_class": "quasi-experimental \u2014 recall accuracy for this repo's history under budget-parity arms; benchmark-grade causal claims need CompactBench",
+  "generated_at": "2026-07-06T00:04:18+00:00",
+  "repo": "CTX_mod",
+  "config": {
+    "seed": 42,
+    "model": "claude-sonnet-4-6",
+    "n_probes": 1,
+    "probe_set": "drift",
+    "ctx_arm": "v2-session-literals",
+    "arm_notes": "ctx arm v2 adds the source session's banked-literals view (`ctxpack session literals`) to the context \u2014 the pre-registered 2026-07-05 fix for the baseline arm under-modeling the real read path (baseline files carry no ctx_arm field = v1). Probe universe is regenerated from the current ledger, which has grown since baseline \u2014 per-kind accuracy, not per-probe pairing, is the cross-run comparator.",
+    "grading_notes": "drift probes pass only when the answer contains a verbatim anchor of the conflicting prior that is never shown in the proposal; paraphrased flags grade as misses (uniform under-count, favors arms holding verbatim text). automem arm context is built solely from the repo's auto-memory files \u2014 isolation from ctx artifacts is by construction in this no-tools harness. Known asymmetry: the probe universe is ledger-derived (the only deterministic ground truth with provenance), so facts only automem holds are never probed \u2014 automem results measure its coverage OF banked facts, not its total knowledge."
+  },
+  "arms": {
+    "automem": {
+      "n": 1,
+      "correct": 0,
+      "accuracy": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 10541,
+      "by_kind": {
+        "drift-constraint": {
+          "n": 1,
+          "correct": 0
+        }
+      }
+    },
+    "closed": {
+      "n": 1,
+      "correct": 0,
+      "accuracy": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 0,
+      "by_kind": {
+        "drift-constraint": {
+          "n": 1,
+          "correct": 0
+        }
+      }
+    },
+    "ctx": {
+      "n": 1,
+      "correct": 1,
+      "accuracy": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "mean_context_bpe": 3095,
+      "by_kind": {
+        "drift-constraint": {
+          "n": 1,
+          "correct": 1
+        }
+      }
+    },
+    "grep": {
+      "n": 1,
+      "correct": 1,
+      "accuracy": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "mean_context_bpe": 2925,
+      "by_kind": {
+        "drift-constraint": {
+          "n": 1,
+          "correct": 1
+        }
+      }
+    }
+  },
+  "probes": [
+    {
+      "probe_id": "bdfbd48b-E0B1B210-drift",
+      "kind": "drift-constraint",
+      "session": "bdfbd48b",
+      "turn": 445,
+      "question": "For my next step I'm going to run the $60 full pass. Draft the concrete steps for me.",
+      "expected": "cost reporting is fixed",
+      "grade_mode": "flags",
+      "source_text": "Do not run the $60 full pass until cost reporting is fixed."
+    }
+  ],
+  "results": [
+    {
+      "probe_id": "bdfbd48b-E0B1B210-drift",
+      "kind": "drift-constraint",
+      "arm": "ctx",
+      "answer": "**Hold on \u2014 do not run the $60 full pass yet.**\n\nThere is an active constraint (Constraint E0B1B210, user_imperative, fact `619d5850a72200b7`):\n\n> **\"Do not run the $60 full pass until cost reporting is fixed.\"**\n\nThis was set explicitly and is still marked **current**. Before drafting steps for that run, cost reporting needs to be confirmed fixed first. Can you confirm that's been resolved? If so, share the fix and I'll draft the steps immediately.",
+      "correct": true,
+      "context_bpe": 3095,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-E0B1B210-drift",
+      "kind": "drift-constraint",
+      "arm": "grep",
+      "answer": "Hold on \u2014 I can't draft those steps yet. The project history has an explicit constraint blocking this:\n\n> **Do not run the $60 full pass until cost reporting is fixed and audited.**\n\nThis constraint is recorded in the session decisions (turn 445, Fact ID: `619d5850a72200b7`).\n\nBefore the six-arm $60 run can proceed, the following must be completed first:\n\n1. **Fix cost accounting** \u2014 ensure `probe_cost`, `compaction_cost`, and `total_cost` are explicitly tracked and reported.\n2. **Audit the cost",
+      "correct": true,
+      "context_bpe": 2925,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-E0B1B210-drift",
+      "kind": "drift-constraint",
+      "arm": "closed",
+      "answer": "There's no project history or context provided for me to reference, so I don't have details about what the \"$60 full pass\" refers to in your project.\n\nCould you share more details about:\n- **What the \"$60 full pass\" is** (a testing suite, a processing pipeline, a paid API run, etc.)\n- **The project context/history**\n\nOnce I have that, I can draft the concrete steps for you!",
+      "correct": false,
+      "context_bpe": 0,
+      "error": false
+    },
+    {
+      "probe_id": "bdfbd48b-E0B1B210-drift",
+      "kind": "drift-constraint",
+      "arm": "automem",
+      "answer": "**Don't run the $60 full pass yet.** The sentinel run and pre-registered rules explicitly block this path right now. Here's the concrete situation and what to do instead:\n\n---\n\n## Why the $60 run is blocked\n\nPer the sentinel run (c2f35f0) results and the pre-committed sequential-stopping ladder:\n\n- **ctx vs grep**: DR@3 0.9 vs 1.0, McNemar p=0.25 \u2014 **not significant**. The pre-registered grep rule says DO NOT escalate to six-arm for a recall-superiority claim under these conditions.\n- **Ceiling ",
+      "correct": false,
+      "context_bpe": 10541,
+      "error": false
+    }
+  ]
+}

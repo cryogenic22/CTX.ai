@@ -1,0 +1,241 @@
+§CTX v1.0 L2 DOMAIN:session-3c9d41aa
+COMPRESSED:2026-07-12 SOURCE_TOKENS:~3300 CTX_TOKENS:~3400 RATIO:~1.0x
+
+±ENTITY-USER-REQUEST-7DD16C8D
+REQUEST:frontmatter dates render in three different formats across the site, normalize them at parse time not in the templates — context: the docs team hit this during the release-notes push and worked around it by hand, so fix the pipeline before the next release train
+FACT-ID:ef38a2a02a6c4084
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:5
+SRC:session:3c9d41aa#turn5
+±ENTITY-TOOL-BASH-0042-652EB459
+RAN:snapshot snippets check
+COMMAND:cd /c/Users/dev/Projects/lattice-docs && grep -nE 'def (render|resolve|flip)|redirect|anchor' ops/deploy.yaml | head -20
+TURN:7
+SRC:session:3c9d41aa#turn7
+±ENTITY-TOOL-BASH-0068-D7694094
+RAN:lint linkcheck check
+COMMAND:R="/c/Users/dev/Projects/lattice-docs" git -C "$R" log --oneline -12 -- linkcheck/ && git -C "$R" diff --stat HEAD~3
+TURN:16
+SRC:session:3c9d41aa#turn16
+±ENTITY-TOOL-BASH-0072-2EFD1211
+RAN:snapshot toc check
+COMMAND:R="/c/Users/dev/Projects/lattice-docs" git -C "$R" log --oneline -12 -- toc/ && git -C "$R" diff --stat HEAD~3
+TURN:18
+SRC:session:3c9d41aa#turn18
+±ENTITY-TOOL-BASH-0023-8B6D8B0E
+RAN:pin search check
+COMMAND:cd /c/Users/dev/Projects/lattice-docs && grep -nE 'def (render|resolve|flip)|redirect|anchor' pipeline/render.py | head -20
+TURN:26
+SRC:session:3c9d41aa#turn26
+±ENTITY-LITERAL-CAE7555E
+VALUE:e1ecb06d0980
+KIND:git_sha
+FACT-ID:d8cccf8f8ab7cbaa
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:35
+SRC:session:3c9d41aa#turn35
+±ENTITY-LITERAL-18268048
+VALUE:ae7aee9
+KIND:git_sha
+FACT-ID:0bc4632a487b41c8
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:38
+SRC:session:3c9d41aa#turn38
+±ENTITY-DECISION-0ABC2CC3
+DECISION:Decision: frontmatter dates normalize at parse time to a single ISO form because template-side formatting produced three variants and broke the sitemap lastmod ordering.
+FACT-ID:0df4322f88c72a4f
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:42
+SRC:session:3c9d41aa#turn42
+±ENTITY-DECISION-5F87FAD7
+DECISION:Decision: frontmatter dates normalize at parse time to a single ISO form because template-side formatting produced three variants and broke the sitemap lastmod ordering. The alternative we walked away from was rebuilding the linkcheck module first, which looked cheaper but left the staged tree unverified through the release train.
+FACT-ID:5b3899790ce65982
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:44
+SRC:session:3c9d41aa#turn44
+±ENTITY-ERROR-97349C19
+MESSAGE:FileNotFoundError: snippets/anchors.json missing — snippet pull ran before the index step in the parallel build
+FACT-ID:7c7af377fb9a770f
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:50
+SRC:session:3c9d41aa#turn50
+±ENTITY-CONSTRAINT-62D83862
+CONSTRAINT:Constraint: the production symlink flips only after linkcheck and search-index verification both pass on the staged tree.
+FACT-ID:30c83b29ffe7017c
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:51
+SRC:session:3c9d41aa#turn51
+±ENTITY-TASK-CAF922D6
+TASK:Render search per the release retro, then update the authoring guide section that describes the staged-preview flow so writers stop publishing from local trees
+TURN:56
+SRC:session:3c9d41aa#turn56
+±ENTITY-USER-REQUEST-E120C06D
+REQUEST:frontmatter dates render in three different formats across the site, normalize them at parse time not in the templates — context: the docs team hit this during the release-notes push and worked around it by hand, so fix the pipeline before the next release train
+FACT-ID:a5690670e16cd4ea
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:59
+SRC:session:3c9d41aa#turn59
+±ENTITY-TOOL-BASH-0006-9F37ADE2
+RAN:index snippets check
+COMMAND:cd /c/Users/dev/Projects/lattice-docs && python -m pytest tests/test_snippets.py -q 2>&1 | tail -8; echo exit: $?
+TURN:67
+SRC:session:3c9d41aa#turn67
+±ENTITY-TOOL-BASH-0015-5E836DBC
+RAN:invalidate search check
+COMMAND:R="/c/Users/dev/Projects/lattice-docs" git -C "$R" log --oneline -12 -- search/ && git -C "$R" diff --stat HEAD~3
+TURN:69
+SRC:session:3c9d41aa#turn69
+±ENTITY-TOOL-BASH-0037-96D9EC54
+RAN:verify theme check
+COMMAND:cd /c/Users/dev/Projects/lattice-docs && python -m pytest tests/test_theme.py -q 2>&1 | tail -8; echo exit: $?
+TURN:75
+SRC:session:3c9d41aa#turn75
+±ENTITY-TOOL-BASH-0084-D37E8D5F
+RAN:render frontmatter check
+COMMAND:cd /c/Users/dev/Projects/lattice-docs && python build.py --stage-only --module frontmatter 2>&1 | head -15
+TURN:77
+SRC:session:3c9d41aa#turn77
+±ENTITY-LITERAL-B0683687
+VALUE:https://docs.example.test/preview/763/
+KIND:url
+FACT-ID:a93a784ca0f952b0
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:80
+SRC:session:3c9d41aa#turn80
+±ENTITY-LITERAL-B0D9528A
+VALUE:C:\Users\dev\Projects\lattice-docs\themes\base\layout.html
+KIND:path
+FACT-ID:f6e44e3d312412b7
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:85
+SRC:session:3c9d41aa#turn85
+±ENTITY-DECISION-8A922E1A
+DECISION:Decision: redirects live in one committed table validated at build, not in server config, because the ops copy silently diverged and renamed pages 404ed for a week.
+FACT-ID:bbadaf93a1fc3c17
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:93
+SRC:session:3c9d41aa#turn93
+±ENTITY-DECISION-8CA1613F
+DECISION:Decision: snippets are pulled at build time by line anchor instead of pasted, because every pasted block in the audit had drifted from its source — the anchor fails the build when the source moves. The alternative we walked away from was pining the theme module first, which looked cheaper but left the staged tree unverified through the release train.
+FACT-ID:f1a9510a9efbe0b9
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:94
+SRC:session:3c9d41aa#turn94
+±ENTITY-CONSTRAINT-8EEDE492
+CONSTRAINT:Constraint: the production symlink flips only after linkcheck and search-index verification both pass on the staged tree.
+FACT-ID:6a925dfa8ce804ee
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:100
+SRC:session:3c9d41aa#turn100
+±ENTITY-TASK-85A7ACA9
+TASK:Snapshot sitemap per the release retro, then update the authoring guide section that describes the staged-preview flow so writers stop publishing from local trees
+TURN:104
+SRC:session:3c9d41aa#turn104
+±ENTITY-USER-REQUEST-3704E8F0
+REQUEST:broken-link checks pass locally but fail in ci, make the base url handling identical in both — context: the docs team hit this during the release-notes push and worked around it by hand, so fix the pipeline before the next release train
+FACT-ID:9c332d7921e63760
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:109
+SRC:session:3c9d41aa#turn109
+±ENTITY-TOOL-BASH-0087-0728A37D
+RAN:redirect search check
+COMMAND:cd /c/Users/dev/Projects/lattice-docs && make linkcheck && echo OK || echo BROKEN
+TURN:115
+SRC:session:3c9d41aa#turn115
+±ENTITY-TOOL-BASH-0042-7DF3B6DB
+RAN:invalidate search check
+COMMAND:cd /c/Users/dev/Projects/lattice-docs && make linkcheck && echo OK || echo BROKEN
+TURN:118
+SRC:session:3c9d41aa#turn118
+±ENTITY-TOOL-BASH-0039-552C4170
+RAN:rebuild search check
+COMMAND:R="/c/Users/dev/Projects/lattice-docs" git -C "$R" log --oneline -12 -- search/ && git -C "$R" diff --stat HEAD~3
+TURN:120
+SRC:session:3c9d41aa#turn120
+±ENTITY-TOOL-BASH-0042-64EAE550
+RAN:rebuild publish check
+COMMAND:R="/c/Users/dev/Projects/lattice-docs" git -C "$R" log --oneline -12 -- publish/ && git -C "$R" diff --stat HEAD~3
+TURN:128
+SRC:session:3c9d41aa#turn128
+±ENTITY-LITERAL-0F3F3B16
+VALUE:7a0eaf2128f1
+KIND:git_sha
+FACT-ID:1afd497ada0a55dc
+BASIS:literal_extractor
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:133
+SRC:session:3c9d41aa#turn133
+±ENTITY-LITERAL-4B27D261
+VALUE:4.11.13
+KIND:version
+FACT-ID:b773440828ce1e17
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:136
+SRC:session:3c9d41aa#turn136
+±ENTITY-DECISION-E1BC2936
+DECISION:Decision: the link checker resolves against the STAGED site root, not the production host, because ci and local disagreed only on the base url — same tree, same verdict, everywhere.
+FACT-ID:5a2f25c16913dc4b
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:139
+SRC:session:3c9d41aa#turn139
+±ENTITY-DECISION-FADE2783
+DECISION:Decision: frontmatter dates normalize at parse time to a single ISO form because template-side formatting produced three variants and broke the sitemap lastmod ordering. The alternative we walked away from was rendering the redirects module first, which looked cheaper but left the staged tree unverified through the release train.
+FACT-ID:cfacd1e307954d00
+BASIS:marker_stated
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:145
+SRC:session:3c9d41aa#turn145
+±ENTITY-ERROR-D569FA03
+MESSAGE:Exit code 1 FAILED tests/test_linkcheck.py::test_staged_root - AssertionError: 404 for /guides/quickstart/ under base /preview/
+FACT-ID:1d98e8e6488b6744
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:146
+SRC:session:3c9d41aa#turn146
+±ENTITY-CONSTRAINT-9A0E14D1
+CONSTRAINT:Constraint: the production symlink flips only after linkcheck and search-index verification both pass on the staged tree.
+FACT-ID:c7a1aca11bfb2102
+BASIS:structural
+STATUS:current
+EXTRACTOR:tp/1.1
+TURN:152
+SRC:session:3c9d41aa#turn152
+±ENTITY-TASK-46FC6B7E
+TASK:Verify search per the release retro, then update the authoring guide section that describes the staged-preview flow so writers stop publishing from local trees
+TURN:159
+SRC:session:3c9d41aa#turn159

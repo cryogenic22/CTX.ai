@@ -23,6 +23,7 @@ from ..model import (
     Section,
 )
 from ..serializer import serialize
+from .clock import as_of_date
 from .compressor import count_tokens
 
 # Regex for cross-ref targets
@@ -33,6 +34,7 @@ def generate_manifest(
     layers: dict[str, CTXDocument],
     *,
     domain: str = "unknown",
+    as_of: str | None = None,
 ) -> CTXDocument:
     """Generate a MANIFEST CTXDocument from layer documents.
 
@@ -80,7 +82,7 @@ def generate_manifest(
     if l3_doc:
         total_l3_tokens = count_tokens(l3_doc.body)
 
-    today = datetime.date.today().isoformat()
+    today = as_of_date(as_of)
     status_fields = (
         KeyValue(key="DOMAIN", value=domain),
     )

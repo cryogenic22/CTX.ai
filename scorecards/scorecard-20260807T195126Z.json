@@ -1,0 +1,951 @@
+{
+  "schema": "ctxpack-scorecard/v2",
+  "generated_at": "2026-08-07T19:51:26+00:00",
+  "measurement_class": "observational \u2014 supports adoption and token-economics claims only; accuracy/quality claims require resume-probe or CompactBench results",
+  "cohort_config_sha256": "17356ec1eae7a231b0d6a578645cccdad67675a0117cd6511e7d3376b47b96fc",
+  "cohort": {
+    "repos_total": 7,
+    "repos_active": 7,
+    "repos_measured": 7,
+    "repos_unmeasured": 0,
+    "repos_excluded": 0,
+    "sessions": 285,
+    "checkpoints": 1050,
+    "turns_packed": 54177,
+    "captured": {
+      "decisions": 1221,
+      "constraints": 146,
+      "failed_approaches": 120,
+      "errors": 483,
+      "files_changed": 1401,
+      "tasks": 271,
+      "requests": 881,
+      "incidents": 46
+    },
+    "read_path": {
+      "ledger_reads": 69,
+      "transcript_greps": 60,
+      "raw_fallback_rate": 0.465,
+      "sessions_explicit_recall": 19,
+      "sessions_zero_recall": 265,
+      "sessions_no_telemetry": 1,
+      "sessions_transcript_fallback": 14,
+      "sessions_zero_recall_with_emission": 9,
+      "sessions_zero_recall_emission_empty": 0,
+      "sessions_zero_recall_emission_failed": 0,
+      "sessions_zero_recall_emission_unmeasured": 256,
+      "explicit_recall_rate": 0.067
+    },
+    "incident_types": {
+      "saved": 28,
+      "missed": 7,
+      "native-better": 2,
+      "wrong": 2,
+      "stale": 2,
+      "user-corrected": 5
+    },
+    "capture_unpacked": 2,
+    "startup_injection": {
+      "attempted": 56,
+      "injected": 56,
+      "empty": 0,
+      "failed": 0,
+      "malformed_rows": 0,
+      "gap_warnings": 32
+    }
+  },
+  "repos": [
+    {
+      "repo": "CTX_mod",
+      "path": "C:/Users/kapil/Documents/CTX_mod",
+      "inputs": {
+        "checkpoints_jsonl": "d02a242a647648e6c824262fcb855b423ab099f869ec3b2fbe819dbcdef2a07d",
+        "checkpoints_state": "present",
+        "injections_jsonl": "28e0d1a72f53caf87a4db4aaa063bd562ce972a16be76dc9b3b090a803cc521f",
+        "injections_state": "present",
+        "fingerprint": "b2d1b2cd57c90f3a52648e20e46e4716e9f1195986386360a1f7d42f16e3af47"
+      },
+      "status": "active",
+      "sessions": 11,
+      "checkpoints": 131,
+      "captured": {
+        "decisions": 155,
+        "findings": 0,
+        "constraints": 52,
+        "failed_approaches": 4,
+        "errors": 97,
+        "files_changed": 337,
+        "tasks": 114,
+        "requests": 144,
+        "literals": 405,
+        "incidents": 32
+      },
+      "incident_types": {
+        "saved": 20,
+        "missed": 7,
+        "native-better": 2,
+        "wrong": 2,
+        "stale": 1
+      },
+      "read_path": {
+        "ledger_reads": 32,
+        "transcript_greps": 21,
+        "raw_fallback_rate": 0.396,
+        "sessions_explicit_recall": 8,
+        "sessions_zero_recall": 2,
+        "sessions_no_telemetry": 1,
+        "sessions_transcript_fallback": 3,
+        "sessions_zero_recall_with_emission": 0,
+        "sessions_zero_recall_emission_empty": 0,
+        "sessions_zero_recall_emission_failed": 0,
+        "sessions_zero_recall_emission_unmeasured": 2,
+        "explicit_recall_rate": 0.8
+      },
+      "startup_injection": {
+        "measures": "emitted_to_hook_stdout",
+        "attempted": 11,
+        "injected": 11,
+        "empty": 0,
+        "failed": 0,
+        "malformed_rows": 0,
+        "gap_warnings": 0,
+        "emit_success_rate": 1.0,
+        "injected_bytes": {
+          "min": 12824,
+          "max": 14561,
+          "mean": 14298.9
+        },
+        "latest": {
+          "outcome": "injected",
+          "bytes": 12824,
+          "sha256": "0cb9fb12ed6283bc",
+          "ts": "2026-08-05T19:35:06+00:00"
+        }
+      },
+      "gist_bpe": {
+        "latest_per_session": [
+          472,
+          1729,
+          1957,
+          1961,
+          1961,
+          1988,
+          1991,
+          1993,
+          1996,
+          1999
+        ]
+      },
+      "identifier_fidelity": {
+        "min": 1.0,
+        "latest": 1.0,
+        "checkpoints_measured": 72
+      },
+      "checkpoint_latency_ms": {
+        "max": 3393.5,
+        "mean": 619.9
+      },
+      "turns_packed": 9480,
+      "capture": {
+        "packed": 4,
+        "stale": 0,
+        "unpacked": 0,
+        "active": 1,
+        "coverage": 1.0,
+        "unpacked_sessions": [],
+        "worktree_local_ledger": false
+      }
+    },
+    {
+      "repo": "market_zero",
+      "path": "C:/Users/kapil/Documents/market_zero",
+      "inputs": {
+        "checkpoints_jsonl": "8853a4aa3da3aca2bece8a76840604ac70c1c77bcdb4bc1b1f66c30ca3dc5665",
+        "checkpoints_state": "present",
+        "injections_jsonl": "e54d4cdcaf76caf1366a9e8cf1865f479e29d2103cae00385fd42309dd8a4135",
+        "injections_state": "present",
+        "fingerprint": "721df7abd804705aeb178a5d35f40a20073f6292c4e068d436cfc2bbabb2d331"
+      },
+      "status": "active",
+      "sessions": 4,
+      "checkpoints": 50,
+      "captured": {
+        "decisions": 88,
+        "findings": 0,
+        "constraints": 1,
+        "failed_approaches": 6,
+        "errors": 41,
+        "files_changed": 124,
+        "tasks": 38,
+        "requests": 79,
+        "literals": 322,
+        "incidents": 0
+      },
+      "incident_types": {},
+      "read_path": {
+        "ledger_reads": 13,
+        "transcript_greps": 16,
+        "raw_fallback_rate": 0.552,
+        "sessions_explicit_recall": 3,
+        "sessions_zero_recall": 1,
+        "sessions_no_telemetry": 0,
+        "sessions_transcript_fallback": 3,
+        "sessions_zero_recall_with_emission": 1,
+        "sessions_zero_recall_emission_empty": 0,
+        "sessions_zero_recall_emission_failed": 0,
+        "sessions_zero_recall_emission_unmeasured": 0,
+        "explicit_recall_rate": 0.75
+      },
+      "startup_injection": {
+        "measures": "emitted_to_hook_stdout",
+        "attempted": 8,
+        "injected": 8,
+        "empty": 0,
+        "failed": 0,
+        "malformed_rows": 0,
+        "gap_warnings": 3,
+        "emit_success_rate": 1.0,
+        "injected_bytes": {
+          "min": 12047,
+          "max": 12509,
+          "mean": 12323.2
+        },
+        "latest": {
+          "outcome": "injected",
+          "bytes": 12047,
+          "sha256": "2b994860f65cc616",
+          "ts": "2026-08-05T19:45:32+00:00"
+        }
+      },
+      "gist_bpe": {
+        "latest_per_session": [
+          1939,
+          1995,
+          1999,
+          1999
+        ]
+      },
+      "identifier_fidelity": {
+        "min": 1.0,
+        "latest": 1.0,
+        "checkpoints_measured": 29
+      },
+      "checkpoint_latency_ms": {
+        "max": 1467.3,
+        "mean": 494.0
+      },
+      "turns_packed": 5286,
+      "capture": {
+        "packed": 1,
+        "stale": 1,
+        "unpacked": 0,
+        "active": 0,
+        "coverage": 0.5,
+        "unpacked_sessions": [],
+        "worktree_local_ledger": false
+      }
+    },
+    {
+      "repo": "KP_SDLC",
+      "path": "C:/Users/kapil/Documents/KP_SDLC",
+      "inputs": {
+        "checkpoints_jsonl": "dd08c57f8ffd7cc70e6cb7562d52f35b539ebdd6c4f787d59a882adf9655e3fa",
+        "checkpoints_state": "present",
+        "injections_jsonl": "ae054f9329098f575bc91fc14feb53660b5d6d24ab33f8554935359fbe31ed64",
+        "injections_state": "present",
+        "fingerprint": "8f377681e1edde663ec6cd7e9e4f6f4012d11c4db50ac168a631a2d3039e3410"
+      },
+      "status": "active",
+      "sessions": 2,
+      "checkpoints": 19,
+      "captured": {
+        "decisions": 30,
+        "findings": 0,
+        "constraints": 1,
+        "failed_approaches": 9,
+        "errors": 12,
+        "files_changed": 73,
+        "tasks": 7,
+        "requests": 34,
+        "literals": 96,
+        "incidents": 0
+      },
+      "incident_types": {},
+      "read_path": {
+        "ledger_reads": 6,
+        "transcript_greps": 5,
+        "raw_fallback_rate": 0.455,
+        "sessions_explicit_recall": 2,
+        "sessions_zero_recall": 0,
+        "sessions_no_telemetry": 0,
+        "sessions_transcript_fallback": 2,
+        "sessions_zero_recall_with_emission": 0,
+        "sessions_zero_recall_emission_empty": 0,
+        "sessions_zero_recall_emission_failed": 0,
+        "sessions_zero_recall_emission_unmeasured": 0,
+        "explicit_recall_rate": 1.0
+      },
+      "startup_injection": {
+        "measures": "emitted_to_hook_stdout",
+        "attempted": 3,
+        "injected": 3,
+        "empty": 0,
+        "failed": 0,
+        "malformed_rows": 0,
+        "gap_warnings": 0,
+        "emit_success_rate": 1.0,
+        "injected_bytes": {
+          "min": 12373,
+          "max": 12509,
+          "mean": 12418.3
+        },
+        "latest": {
+          "outcome": "injected",
+          "bytes": 12509,
+          "sha256": "ef2d2d7a10b629ff",
+          "ts": "2026-07-31T11:30:59+00:00"
+        }
+      },
+      "gist_bpe": {
+        "latest_per_session": [
+          1944,
+          1995
+        ]
+      },
+      "identifier_fidelity": {
+        "min": 1.0,
+        "latest": 1.0,
+        "checkpoints_measured": 13
+      },
+      "checkpoint_latency_ms": {
+        "max": 893.0,
+        "mean": 437.1
+      },
+      "turns_packed": 1826,
+      "capture": {
+        "packed": 3,
+        "stale": 1,
+        "unpacked": 0,
+        "active": 0,
+        "coverage": 0.75,
+        "unpacked_sessions": [],
+        "worktree_local_ledger": false
+      }
+    },
+    {
+      "repo": "Scriptiva_SCA",
+      "path": "C:/Users/kapil/Scriptiva_SCA",
+      "inputs": {
+        "checkpoints_jsonl": "4f9240e8ae85ef49aa16fbf695c96f55000575e6332e4ab962f118428bb9f00b",
+        "checkpoints_state": "present",
+        "injections_jsonl": "72a8da1bafd83ab59e7c8dcbac381338bd4b74e81cfb775e4a114e4108abf097",
+        "injections_state": "present",
+        "fingerprint": "10cc9a3e522f8bd1983f1d5d1e173cda21c627c4b68c5c78ff338caba946124e"
+      },
+      "status": "active",
+      "sessions": 247,
+      "checkpoints": 480,
+      "captured": {
+        "decisions": 547,
+        "findings": 0,
+        "constraints": 8,
+        "failed_approaches": 76,
+        "errors": 131,
+        "files_changed": 259,
+        "tasks": 43,
+        "requests": 329,
+        "literals": 1414,
+        "incidents": 0
+      },
+      "incident_types": {},
+      "read_path": {
+        "ledger_reads": 6,
+        "transcript_greps": 8,
+        "raw_fallback_rate": 0.571,
+        "sessions_explicit_recall": 1,
+        "sessions_zero_recall": 246,
+        "sessions_no_telemetry": 0,
+        "sessions_transcript_fallback": 2,
+        "sessions_zero_recall_with_emission": 3,
+        "sessions_zero_recall_emission_empty": 0,
+        "sessions_zero_recall_emission_failed": 0,
+        "sessions_zero_recall_emission_unmeasured": 243,
+        "explicit_recall_rate": 0.004
+      },
+      "startup_injection": {
+        "measures": "emitted_to_hook_stdout",
+        "attempted": 9,
+        "injected": 9,
+        "empty": 0,
+        "failed": 0,
+        "malformed_rows": 0,
+        "gap_warnings": 8,
+        "emit_success_rate": 1.0,
+        "injected_bytes": {
+          "min": 12026,
+          "max": 13007,
+          "mean": 12784.2
+        },
+        "latest": {
+          "outcome": "injected",
+          "bytes": 12026,
+          "sha256": "056af0d04d6e5cfe",
+          "ts": "2026-08-05T19:01:03+00:00"
+        }
+      },
+      "gist_bpe": {
+        "latest_per_session": [
+          76,
+          79,
+          80,
+          102,
+          114,
+          115,
+          132,
+          135,
+          146,
+          149,
+          151,
+          159,
+          161,
+          175,
+          180,
+          184,
+          188,
+          190,
+          192,
+          193,
+          201,
+          201,
+          203,
+          204,
+          205,
+          207,
+          212,
+          219,
+          221,
+          223,
+          227,
+          229,
+          230,
+          231,
+          232,
+          235,
+          235,
+          235,
+          237,
+          240,
+          241,
+          241,
+          244,
+          244,
+          244,
+          245,
+          251,
+          253,
+          253,
+          254,
+          254,
+          257,
+          258,
+          258,
+          258,
+          259,
+          259,
+          259,
+          262,
+          264,
+          267,
+          267,
+          267,
+          267,
+          268,
+          268,
+          268,
+          268,
+          269,
+          270,
+          271,
+          271,
+          272,
+          273,
+          273,
+          273,
+          274,
+          274,
+          276,
+          277,
+          277,
+          282,
+          282,
+          283,
+          286,
+          288,
+          290,
+          292,
+          293,
+          294,
+          296,
+          298,
+          299,
+          299,
+          304,
+          304,
+          306,
+          306,
+          307,
+          312,
+          312,
+          313,
+          313,
+          314,
+          314,
+          314,
+          315,
+          317,
+          317,
+          318,
+          319,
+          319,
+          320,
+          321,
+          321,
+          322,
+          327,
+          327,
+          327,
+          327,
+          328,
+          331,
+          332,
+          334,
+          334,
+          336,
+          336,
+          337,
+          339,
+          340,
+          341,
+          341,
+          342,
+          343,
+          344,
+          345,
+          345,
+          345,
+          346,
+          347,
+          349,
+          350,
+          350,
+          351,
+          352,
+          352,
+          352,
+          353,
+          354,
+          355,
+          356,
+          356,
+          356,
+          357,
+          358,
+          359,
+          359,
+          359,
+          360,
+          360,
+          368,
+          368,
+          371,
+          372,
+          374,
+          376,
+          378,
+          380,
+          382,
+          383,
+          383,
+          383,
+          384,
+          384,
+          385,
+          385,
+          386,
+          389,
+          392,
+          392,
+          392,
+          392,
+          394,
+          396,
+          398,
+          399,
+          400,
+          402,
+          402,
+          405,
+          406,
+          407,
+          408,
+          411,
+          414,
+          416,
+          419,
+          420,
+          427,
+          429,
+          430,
+          432,
+          436,
+          437,
+          438,
+          442,
+          442,
+          442,
+          443,
+          447,
+          447,
+          447,
+          452,
+          459,
+          472,
+          472,
+          472,
+          475,
+          476,
+          484,
+          486,
+          490,
+          491,
+          496,
+          499,
+          499,
+          503,
+          504,
+          507,
+          512,
+          519,
+          519,
+          529,
+          535,
+          540,
+          542,
+          555,
+          562,
+          570,
+          571,
+          577,
+          618,
+          632,
+          1940,
+          1959,
+          1995,
+          1996
+        ]
+      },
+      "identifier_fidelity": {
+        "min": 0.2414,
+        "latest": 1.0,
+        "checkpoints_measured": 294
+      },
+      "checkpoint_latency_ms": {
+        "max": 239473.0,
+        "mean": 4919.0
+      },
+      "turns_packed": 11608,
+      "capture": {
+        "packed": 20,
+        "stale": 0,
+        "unpacked": 0,
+        "active": 1,
+        "coverage": 1.0,
+        "unpacked_sessions": [],
+        "worktree_local_ledger": false
+      }
+    },
+    {
+      "repo": "setu",
+      "path": "C:/Users/kapil/Documents/setu",
+      "inputs": {
+        "checkpoints_jsonl": "18307473cba12789ac9a4979f219b0abc84d92dcfaa4bef2f52642677de467e3",
+        "checkpoints_state": "present",
+        "injections_jsonl": "ae509b8ff45d2736d70c662fc96ce4b5036a9a14a0d95fef692b8fb2d029529d",
+        "injections_state": "present",
+        "fingerprint": "a54ca54a022b217e095de011fcc78cd4ce89c2fa048cb9c382661d10d7d8a13c"
+      },
+      "status": "active",
+      "sessions": 12,
+      "checkpoints": 260,
+      "captured": {
+        "decisions": 240,
+        "findings": 0,
+        "constraints": 19,
+        "failed_approaches": 24,
+        "errors": 117,
+        "files_changed": 321,
+        "tasks": 35,
+        "requests": 173,
+        "literals": 518,
+        "incidents": 0
+      },
+      "incident_types": {},
+      "read_path": {
+        "ledger_reads": 8,
+        "transcript_greps": 10,
+        "raw_fallback_rate": 0.556,
+        "sessions_explicit_recall": 2,
+        "sessions_zero_recall": 10,
+        "sessions_no_telemetry": 0,
+        "sessions_transcript_fallback": 4,
+        "sessions_zero_recall_with_emission": 3,
+        "sessions_zero_recall_emission_empty": 0,
+        "sessions_zero_recall_emission_failed": 0,
+        "sessions_zero_recall_emission_unmeasured": 7,
+        "explicit_recall_rate": 0.167
+      },
+      "startup_injection": {
+        "measures": "emitted_to_hook_stdout",
+        "attempted": 18,
+        "injected": 18,
+        "empty": 0,
+        "failed": 0,
+        "malformed_rows": 0,
+        "gap_warnings": 18,
+        "emit_success_rate": 1.0,
+        "injected_bytes": {
+          "min": 9063,
+          "max": 13511,
+          "mean": 11836.1
+        },
+        "latest": {
+          "outcome": "injected",
+          "bytes": 12316,
+          "sha256": "9eeb67e3082b1dbd",
+          "ts": "2026-07-30T19:58:33+00:00"
+        }
+      },
+      "gist_bpe": {
+        "latest_per_session": [
+          44,
+          45,
+          46,
+          931,
+          1956,
+          1963,
+          1965,
+          1965,
+          1975,
+          1975,
+          1996,
+          1996
+        ]
+      },
+      "identifier_fidelity": {
+        "min": 1.0,
+        "latest": 1.0,
+        "checkpoints_measured": 209
+      },
+      "checkpoint_latency_ms": {
+        "max": 4901.4,
+        "mean": 717.4
+      },
+      "turns_packed": 17328,
+      "capture": {
+        "packed": 8,
+        "stale": 2,
+        "unpacked": 0,
+        "active": 0,
+        "coverage": 0.8,
+        "unpacked_sessions": [],
+        "worktree_local_ledger": false
+      }
+    },
+    {
+      "repo": "WhynotFamous",
+      "path": "C:/Users/kapil/Documents/WhynotFamous",
+      "inputs": {
+        "checkpoints_jsonl": "ceabadca61fddffb3e2591805aa2b1b8390cc5498d734c01aac46d8936af52d4",
+        "checkpoints_state": "present",
+        "injections_jsonl": "b94d424d34424ace36b863a35a94dff6578a0e10cbc8dddda5ae3ea53122675a",
+        "injections_state": "present",
+        "fingerprint": "b933bfcfb6446a9fcbcf2248b90774a41288de454424df3cd87b3e6c6288b48f"
+      },
+      "status": "active",
+      "sessions": 2,
+      "checkpoints": 39,
+      "captured": {
+        "decisions": 44,
+        "findings": 0,
+        "constraints": 10,
+        "failed_approaches": 1,
+        "errors": 46,
+        "files_changed": 114,
+        "tasks": 2,
+        "requests": 27,
+        "literals": 115,
+        "incidents": 0
+      },
+      "incident_types": {},
+      "read_path": {
+        "ledger_reads": 1,
+        "transcript_greps": 0,
+        "raw_fallback_rate": 0.0,
+        "sessions_explicit_recall": 1,
+        "sessions_zero_recall": 1,
+        "sessions_no_telemetry": 0,
+        "sessions_transcript_fallback": 0,
+        "sessions_zero_recall_with_emission": 1,
+        "sessions_zero_recall_emission_empty": 0,
+        "sessions_zero_recall_emission_failed": 0,
+        "sessions_zero_recall_emission_unmeasured": 0,
+        "explicit_recall_rate": 0.5
+      },
+      "startup_injection": {
+        "measures": "emitted_to_hook_stdout",
+        "attempted": 3,
+        "injected": 3,
+        "empty": 0,
+        "failed": 0,
+        "malformed_rows": 0,
+        "gap_warnings": 3,
+        "emit_success_rate": 1.0,
+        "injected_bytes": {
+          "min": 7035,
+          "max": 7081,
+          "mean": 7058.0
+        },
+        "latest": {
+          "outcome": "injected",
+          "bytes": 7058,
+          "sha256": "5271327bc5150c75",
+          "ts": "2026-07-27T17:21:06+00:00"
+        }
+      },
+      "gist_bpe": {
+        "latest_per_session": [
+          1978,
+          1988
+        ]
+      },
+      "identifier_fidelity": {
+        "min": 1.0,
+        "latest": 1.0,
+        "checkpoints_measured": 39
+      },
+      "checkpoint_latency_ms": {
+        "max": 1227.4,
+        "mean": 552.1
+      },
+      "turns_packed": 4203,
+      "capture": {
+        "packed": 2,
+        "stale": 0,
+        "unpacked": 2,
+        "active": 0,
+        "coverage": 0.5,
+        "unpacked_sessions": [
+          "2a2554be",
+          "350134c7"
+        ],
+        "worktree_local_ledger": false
+      }
+    },
+    {
+      "repo": "Onto_Wiz",
+      "path": "C:/Users/kapil/Documents/Onto_Wiz",
+      "inputs": {
+        "checkpoints_jsonl": "998ebd4e550786d77f5ffcb7ad761c547eaf09bd9039879cea25f4102ab942b4",
+        "checkpoints_state": "present",
+        "injections_jsonl": "266f47e9238f6e21e82f9a1bf11e6532d5553cc29e05c9064c257d29c201d389",
+        "injections_state": "present",
+        "fingerprint": "a2e1507a588852c862f7df5beebf4c29fdbb8514b98d3ae355e440bd1146f76e"
+      },
+      "status": "active",
+      "sessions": 7,
+      "checkpoints": 71,
+      "captured": {
+        "decisions": 117,
+        "findings": 0,
+        "constraints": 55,
+        "failed_approaches": 0,
+        "errors": 39,
+        "files_changed": 173,
+        "tasks": 32,
+        "requests": 95,
+        "literals": 270,
+        "incidents": 14
+      },
+      "incident_types": {
+        "user-corrected": 5,
+        "saved": 8,
+        "stale": 1
+      },
+      "read_path": {
+        "ledger_reads": 3,
+        "transcript_greps": 0,
+        "raw_fallback_rate": 0.0,
+        "sessions_explicit_recall": 2,
+        "sessions_zero_recall": 5,
+        "sessions_no_telemetry": 0,
+        "sessions_transcript_fallback": 0,
+        "sessions_zero_recall_with_emission": 1,
+        "sessions_zero_recall_emission_empty": 0,
+        "sessions_zero_recall_emission_failed": 0,
+        "sessions_zero_recall_emission_unmeasured": 4,
+        "explicit_recall_rate": 0.286
+      },
+      "startup_injection": {
+        "measures": "emitted_to_hook_stdout",
+        "attempted": 4,
+        "injected": 4,
+        "empty": 0,
+        "failed": 0,
+        "malformed_rows": 0,
+        "gap_warnings": 0,
+        "emit_success_rate": 1.0,
+        "injected_bytes": {
+          "min": 6856,
+          "max": 13753,
+          "mean": 10173.5
+        },
+        "latest": {
+          "outcome": "injected",
+          "bytes": 13229,
+          "sha256": "766dcfc1949d2fae",
+          "ts": "2026-07-30T19:10:46+00:00"
+        }
+      },
+      "gist_bpe": {
+        "latest_per_session": [
+          1966,
+          1990,
+          1990,
+          1990,
+          1995,
+          1998,
+          2000
+        ]
+      },
+      "identifier_fidelity": {
+        "min": 1.0,
+        "latest": 1.0,
+        "checkpoints_measured": 71
+      },
+      "checkpoint_latency_ms": {
+        "max": 3619.8,
+        "mean": 446.5
+      },
+      "turns_packed": 4446,
+      "capture": {
+        "packed": 5,
+        "stale": 2,
+        "unpacked": 0,
+        "active": 0,
+        "coverage": 0.714,
+        "unpacked_sessions": [],
+        "worktree_local_ledger": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CtxPack Scorecard</title><style>
+:root {
+  --surface-1: #fcfcfb; --page: #f9f9f7;
+  --ink-1: #0b0b0b; --ink-2: #52514e; --ink-3: #898781;
+  --grid: #e1e0d9; --ring: rgba(11,11,11,0.10);
+  --series-1: #2a78d6; --seq-150: #b7d3f6;
+  --good: #0ca30c; --warning: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface-1: #1a1a19; --page: #0d0d0d;
+    --ink-1: #ffffff; --ink-2: #c3c2b7; --ink-3: #898781;
+    --grid: #2c2c2a; --ring: rgba(255,255,255,0.10);
+    --series-1: #3987e5; --seq-150: #184f95;
+  }
+}
+* { box-sizing: border-box; margin: 0; }
+body { background: var(--page); color: var(--ink-1);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding: 24px; }
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1 { font-size: 20px; font-weight: 650; }
+.sub { color: var(--ink-2); margin: 4px 0 16px; }
+.note { background: var(--surface-1); border: 1px solid var(--ring);
+  border-left: 3px solid var(--warning); border-radius: 6px;
+  padding: 10px 14px; color: var(--ink-2); margin-bottom: 20px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px; margin-bottom: 24px; }
+.tile { background: var(--surface-1); border: 1px solid var(--ring);
+  border-radius: 8px; padding: 14px 16px; }
+.tile .k { color: var(--ink-3); font-size: 12px; letter-spacing: .02em; }
+.tile .v { font-size: 26px; font-weight: 650; margin-top: 2px; }
+.tile .d { color: var(--ink-2); font-size: 12px; margin-top: 2px; }
+.card { background: var(--surface-1); border: 1px solid var(--ring);
+  border-radius: 8px; padding: 16px; overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; }
+th { text-align: left; color: var(--ink-3); font-size: 12px;
+  font-weight: 600; padding: 6px 10px; border-bottom: 1px solid var(--grid); }
+td { padding: 8px 10px; border-bottom: 1px solid var(--grid);
+  font-variant-numeric: tabular-nums; vertical-align: middle; }
+tr:hover td { background: rgba(42,120,214,0.06); }
+.repo { font-weight: 600; }
+.chip { display: inline-block; font-size: 11px; padding: 1px 8px;
+  border-radius: 999px; border: 1px solid var(--ring); color: var(--ink-2); }
+.chip.active { border-color: var(--good); color: var(--good); }
+.bar { display: flex; align-items: center; gap: 8px; min-width: 140px; }
+.bar .track { flex: 1; height: 10px; background: none; position: relative; }
+.bar .fill { position: absolute; inset: 0 auto 0 0; background: var(--series-1);
+  border-radius: 0 4px 4px 0; min-width: 2px; }
+.bar .num { color: var(--ink-2); font-size: 12px; min-width: 34px; }
+.rate { font-weight: 600; }
+.rate.good { color: var(--good); } .rate.warning { color: var(--warning); }
+.rate.critical { color: var(--critical); }
+.rate .lbl { font-weight: 400; color: var(--ink-3); font-size: 11px; }
+footer { color: var(--ink-3); font-size: 12px; margin-top: 16px; }
+</style></head>
+<body><div class="wrap">
+<h1>CtxPack session-memory scorecard</h1>
+<div class="sub">Generated 2026-08-09T18:34:23+00:00
+ &middot; schema ctxpack-scorecard/v2</div>
+<div class="note"><strong>Measurement class: observational.</strong>
+ These numbers support adoption and token-economics claims only.
+ Accuracy claims come from the resume-probe evals; causal claims from
+ CompactBench.</div>
+<div class="tiles"><div class="tile"><div class="k">Repos active</div><div class="v">7<span style='font-size:14px;color:var(--ink-3)'> / 7</span></div><div class="d">checkpointing at least once</div></div><div class="tile"><div class="k">Sessions banked</div><div class="v">284</div><div class="d">53,922 turns packed</div></div><div class="tile"><div class="k">Decisions</div><div class="v">1231</div><div class="d">+ 147 constraints, 120 dead ends</div></div><div class="tile"><div class="k">Sessions querying ledger</div><div class="v">19<span style='font-size:14px;color:var(--ink-3)'> / 283</span></div><div class="d">queried vs never queried — raw-fallback 46%</div></div></div>
+<div class="card"><table>
+<thead><tr><th>Repo</th><th>Status</th><th>Sessions</th><th>Turns packed</th>
+<th>Decisions banked</th><th>Constraints / dead ends</th>
+<th>Raw-fallback rate</th><th>Resume cost · ckpt latency</th></tr></thead>
+<tbody><tr><td class="repo">CTX_mod</td><td><span class="chip active">active</span></td><td>11</td><td>9,837</td><td><span class="bar"><span class="track"><span class="fill" style="width:31%"></span></span><span class="num">169</span></span></td><td>57 / 5</td><td><span class="rate warning">39% <span class="lbl">(21/54 fell back)</span></span></td><td>1,999 BPE<span style="color:var(--ink-3)"> · 3394ms</span></td></tr><tr><td class="repo">market_zero</td><td><span class="chip active">active</span></td><td>4</td><td>5,286</td><td><span class="bar"><span class="track"><span class="fill" style="width:16%"></span></span><span class="num">88</span></span></td><td>1 / 6</td><td><span class="rate critical">55% <span class="lbl">(16/29 fell back)</span></span></td><td>1,999 BPE<span style="color:var(--ink-3)"> · 1467ms</span></td></tr><tr><td class="repo">KP_SDLC</td><td><span class="chip active">active</span></td><td>2</td><td>1,826</td><td><span class="bar"><span class="track"><span class="fill" style="width:6%"></span></span><span class="num">30</span></span></td><td>1 / 9</td><td><span class="rate warning">46% <span class="lbl">(5/11 fell back)</span></span></td><td>1,995 BPE<span style="color:var(--ink-3)"> · 893ms</span></td></tr><tr><td class="repo">Scriptiva_SCA</td><td><span class="chip active">active</span></td><td>246</td><td>10,996</td><td><span class="bar"><span class="track"><span class="fill" style="width:100%"></span></span><span class="num">543</span></span></td><td>4 / 75</td><td><span class="rate critical">57% <span class="lbl">(8/14 fell back)</span></span></td><td>1,996 BPE<span style="color:var(--ink-3)"> · 239473ms</span></td></tr><tr><td class="repo">setu</td><td><span class="chip active">active</span></td><td>12</td><td>17,328</td><td><span class="bar"><span class="track"><span class="fill" style="width:44%"></span></span><span class="num">240</span></span></td><td>19 / 24</td><td><span class="rate critical">56% <span class="lbl">(10/18 fell back)</span></span></td><td>1,996 BPE<span style="color:var(--ink-3)"> · 4901ms</span></td></tr><tr><td class="repo">WhynotFamous</td><td><span class="chip active">active</span></td><td>2</td><td>4,203</td><td><span class="bar"><span class="track"><span class="fill" style="width:8%"></span></span><span class="num">44</span></span></td><td>10 / 1</td><td><span class="rate good">0% <span class="lbl">(0/1 fell back)</span></span></td><td>1,988 BPE<span style="color:var(--ink-3)"> · 1227ms</span></td></tr><tr><td class="repo">Onto_Wiz</td><td><span class="chip active">active</span></td><td>7</td><td>4,446</td><td><span class="bar"><span class="track"><span class="fill" style="width:22%"></span></span><span class="num">117</span></span></td><td>55 / 0</td><td><span class="rate good">0% <span class="lbl">(0/3 fell back)</span></span></td><td>2,000 BPE<span style="color:var(--ink-3)"> · 3620ms</span></td></tr></tbody>
+</table></div>
+<footer>ctxpack scorecard &middot; deterministic Layer-1 telemetry computed
+ from each repo's ledger files (<code>checkpoints.jsonl</code> +
+ <code>injections.jsonl</code>; git tracking of those files is not
+ verified) — no content leaves the repo, only counts.</footer>
+</div></body></html>

@@ -28,6 +28,7 @@ class HydrationEvent:
     tokens_injected: int
     rehydration_triggered: bool
     latency_ms: float  # Time to serialize and return
+    token_estimator: str = ""  # label for tokens_injected (see core.tokens)
 
 
 class TelemetryLog:
@@ -64,7 +65,11 @@ class TelemetryLog:
           - total_hydrations: int
           - unique_sessions: int
           - top_sections: list of (section_name, count) sorted descending
-          - avg_tokens_per_hydration: float
+          - tokens_by_estimator: dict label -> {events, avg_tokens} —
+            grouped, never averaged across estimators (Q2-1: legacy
+            whitespace word counts and labelled estimates are different
+            units; rows logged before labels existed group under
+            "unlabeled-legacy-words")
           - rehydration_rate: float (0.0-1.0)
           - avg_latency_ms: float
           - zero_match_rate: float (0.0-1.0)
@@ -76,7 +81,7 @@ class TelemetryLog:
                 "total_hydrations": 0,
                 "unique_sessions": 0,
                 "top_sections": [],
-                "avg_tokens_per_hydration": 0.0,
+                "tokens_by_estimator": {},
                 "rehydration_rate": 0.0,
                 "avg_latency_ms": 0.0,
                 "zero_match_rate": 0.0,
@@ -85,7 +90,7 @@ class TelemetryLog:
         total = len(events)
         sessions: set[str] = set()
         section_counter: Counter[str] = Counter()
-        total_tokens = 0
+        tokens_by_label: dict[str, list[int]] = {}
         rehydrations = 0
         total_latency = 0.0
         zero_matches = 0
@@ -94,7 +99,9 @@ class TelemetryLog:
             sessions.add(ev.get("session_id", ""))
             for sec in ev.get("sections_requested", []):
                 section_counter[sec] += 1
-            total_tokens += ev.get("tokens_injected", 0)
+            label = ev.get("token_estimator") or "unlabeled-legacy-words"
+            tokens_by_label.setdefault(label, []).append(
+                ev.get("tokens_injected", 0))
             if ev.get("rehydration_triggered", False):
                 rehydrations += 1
             total_latency += ev.get("latency_ms", 0.0)
@@ -107,7 +114,11 @@ class TelemetryLog:
             "total_hydrations": total,
             "unique_sessions": len(sessions),
             "top_sections": top_sections,
-            "avg_tokens_per_hydration": total_tokens / total,
+            "tokens_by_estimator": {
+                label: {"events": len(vals),
+                        "avg_tokens": sum(vals) / len(vals)}
+                for label, vals in sorted(tokens_by_label.items())
+            },
             "rehydration_rate": rehydrations / total,
             "avg_latency_ms": total_latency / total,
             "zero_match_rate": zero_matches / total,

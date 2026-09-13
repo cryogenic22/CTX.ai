@@ -162,10 +162,31 @@ class TestSummaryEmptyLog:
         assert s["total_hydrations"] == 0
         assert s["unique_sessions"] == 0
         assert s["top_sections"] == []
-        assert s["avg_tokens_per_hydration"] == 0.0
+        assert s["tokens_by_estimator"] == {}
         assert s["rehydration_rate"] == 0.0
         assert s["avg_latency_ms"] == 0.0
         assert s["zero_match_rate"] == 0.0
+
+
+class TestSummaryGroupsTokensByEstimator:
+    def test_legacy_and_labelled_rows_never_average_together(self, tmp_path):
+        """Q2-1: whitespace-era rows (no label) and labelled estimates
+        are different units — the summary groups, never blends."""
+        log_path = str(tmp_path / "telem.jsonl")
+        tlog = TelemetryLog(path=log_path)
+        tlog.log_hydration(_make_event(tokens_injected=100,
+                                       token_estimator=""))
+        tlog.log_hydration(_make_event(tokens_injected=300,
+                                       token_estimator="chars/3 (ctx)"))
+        tlog.log_hydration(_make_event(tokens_injected=500,
+                                       token_estimator="chars/3 (ctx)"))
+
+        s = tlog.summary()
+        by = s["tokens_by_estimator"]
+        assert by["unlabeled-legacy-words"] == {
+            "events": 1, "avg_tokens": 100.0}
+        assert by["chars/3 (ctx)"] == {"events": 2, "avg_tokens": 400.0}
+        assert "avg_tokens_per_hydration" not in s  # blended avg is gone
 
 
 class TestQuestionHashIsSha256:

@@ -1,0 +1,2 @@
+{"seed": 0, "arm": "native", "kind": "cell_error", "error": "autocompact never fired for native/s0 (est 9335 tokens, threshold 5440): No conversation found with session ID: 8379224a-5e88-4815-a028-b0c7955e9b42\n"}
+{"seed": 0, "arm": "ctx", "kind": "cell_error", "error": "autocompact never fired for ctx/s0 (est 8152 tokens, threshold 5440): No conversation found with session ID: 8379224a-5e88-4815-a028-b0c7955e9b42\n"}

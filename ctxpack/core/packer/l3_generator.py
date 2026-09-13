@@ -21,6 +21,7 @@ from ..model import (
     Section,
 )
 from ..packer.ir import CONDITIONAL_RE, WINDOW_RE
+from .clock import as_of_date
 from .compressor import count_tokens
 
 # Regex for cross-ref extraction
@@ -36,7 +37,12 @@ _L3_TOKEN_BUDGET = 500
 HUB_THRESHOLD = 3
 
 
-def generate_l3(l2_doc: CTXDocument, *, hub_threshold: int | None = None) -> CTXDocument:
+def generate_l3(
+    l2_doc: CTXDocument,
+    *,
+    hub_threshold: int | None = None,
+    as_of: str | None = None,
+) -> CTXDocument:
     """Generate an L3 CTXDocument from an L2 CTXDocument.
 
     Extracts:
@@ -66,7 +72,7 @@ def generate_l3(l2_doc: CTXDocument, *, hub_threshold: int | None = None) -> CTX
     domain = l2_doc.header.get("DOMAIN", "unknown")
     source_tokens = l2_doc.header.get("SOURCE_TOKENS", "~0")
 
-    today = datetime.date.today().isoformat()
+    today = as_of_date(as_of)
     status_fields = (
         KeyValue(key="DOMAIN", value=domain),
     )

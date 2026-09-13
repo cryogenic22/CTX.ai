@@ -36,14 +36,24 @@ class Certainty(Enum):
 
 @dataclass
 class IRSource:
-    """Provenance tracking for a parsed element."""
+    """Provenance tracking for a parsed element.
+
+    ``turn`` / ``timestamp`` carry conversational provenance for facts
+    extracted from agent-session transcripts: ``turn`` is the message index
+    within the session and renders as ``file#turn{n}`` so a fact can be
+    traced to the exact exchange that produced it.
+    """
 
     file: str
     line_start: int = 0
     line_end: int = 0
     version: str = ""
+    turn: Optional[int] = None
+    timestamp: str = ""
 
     def __str__(self) -> str:
+        if self.turn is not None:
+            return f"{self.file}#turn{self.turn}"
         if self.line_start and self.line_end:
             return f"{self.file}#L{self.line_start}-L{self.line_end}"
         if self.line_start:

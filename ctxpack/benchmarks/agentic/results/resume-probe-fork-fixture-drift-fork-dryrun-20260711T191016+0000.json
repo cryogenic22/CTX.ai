@@ -1,0 +1,404 @@
+{
+  "schema": "ctxpack-resume-probe/v1",
+  "measurement_class": "quasi-experimental \u2014 recall accuracy for this repo's history under budget-parity arms; benchmark-grade causal claims need CompactBench",
+  "generated_at": "2026-07-11T19:10:16+00:00",
+  "repo": "fork-fixture",
+  "config": {
+    "seed": 42,
+    "model": "claude-sonnet-4-6",
+    "n_probes": 8,
+    "probe_set": "drift-fork",
+    "ctx_arm": "v2-session-literals",
+    "arm_notes": "ctx arm v2 adds the source session's banked-literals view (`ctxpack session literals`) to the context \u2014 the pre-registered 2026-07-05 fix for the baseline arm under-modeling the real read path (baseline files carry no ctx_arm field = v1). Probe universe is regenerated from the current ledger, which has grown since baseline \u2014 per-kind accuracy, not per-probe pairing, is the cross-run comparator.",
+    "literal_disambiguation": "skip-ambiguous-same-turn/v1",
+    "disambiguation_notes": "literal probes whose source turn banks more than one distinct same-kind value are skipped at generation \u2014 the question is degenerate, not the arm (pre-registered 2026-07-06, amendment A2 in PREREGISTRATION-resume-probe.md; applies to all arms symmetrically). Files without this field predate the rule; no prior result is regraded.",
+    "ambiguous_literals_skipped": 0,
+    "grading_notes": "drift probes pass only when the answer contains a verbatim anchor of the conflicting prior that is never shown in the proposal; paraphrased flags grade as misses (uniform under-count, favors arms holding verbatim text). automem arm context is built solely from the repo's auto-memory files \u2014 isolation from ctx artifacts is by construction in this no-tools harness. Known asymmetry: the probe universe is ledger-derived (the only deterministic ground truth with provenance), so facts only automem holds are never probed \u2014 automem results measure its coverage OF banked facts, not its total knowledge.",
+    "fork_source": "synthetic-fixture",
+    "prereg": "drift-fork/v1 \u2014 amendment A3, PREREGISTRATION-resume-probe.md",
+    "fork_grading": "pass = the OTHER head's value verbatim (normalized containment), OR both head session ids plus an explicit conflict token (conflict/unreconciled/fork/unresolved/diverg) \u2014 the A3 flag disjunct operationalized precision-first; paraphrased flags grade as misses. grep budget = max(ctx-nowarn, ctx-warn) BPE per probe (over-powers the null arm \u2014 conservative)."
+  },
+  "arms": {
+    "ctx-nowarn": {
+      "n": 8,
+      "correct": 0,
+      "accuracy": null,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 1358,
+      "by_kind": {
+        "drift-fork": {
+          "n": 8,
+          "correct": 0
+        }
+      }
+    },
+    "ctx-warn": {
+      "n": 8,
+      "correct": 0,
+      "accuracy": null,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 2681,
+      "by_kind": {
+        "drift-fork": {
+          "n": 8,
+          "correct": 0
+        }
+      }
+    },
+    "grep": {
+      "n": 8,
+      "correct": 0,
+      "accuracy": null,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_context_bpe": 442,
+      "by_kind": {
+        "drift-fork": {
+          "n": 8,
+          "correct": 0
+        }
+      }
+    }
+  },
+  "probes": [
+    {
+      "probe_id": "fork-auth-token-lifetime",
+      "kind": "drift-fork",
+      "session": "cccc3333",
+      "turn": 3,
+      "question": "Proceeding with AUTH-TOKEN-LIFETIME = ttl-60min-refresh as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "ttl-15min-sliding",
+      "grade_mode": "fork",
+      "source_text": "AUTH-TOKEN-LIFETIME: base ttl-30min-static (2f6c0d1ccd376702); heads ttl-60min-refresh (s:cccc3333, ba111464c69fe6d8) vs ttl-15min-sliding (s:bbbb2222, cb097d99f0b488e9) \u2014 unreconciled",
+      "alt_all": [
+        "cccc3333",
+        "bbbb2222"
+      ]
+    },
+    {
+      "probe_id": "fork-export-schema-tag",
+      "kind": "drift-fork",
+      "session": "bbbb2222",
+      "turn": 4,
+      "question": "Proceeding with EXPORT-SCHEMA-TAG = export-v2-nested as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "export-v2-columnar",
+      "grade_mode": "fork",
+      "source_text": "EXPORT-SCHEMA-TAG: base export-v1-flat (737461e9c2e0bbbc); heads export-v2-nested (s:bbbb2222, 8df1c97b0f1c7f2f) vs export-v2-columnar (s:cccc3333, f39375cb6037d8da) \u2014 unreconciled",
+      "alt_all": [
+        "bbbb2222",
+        "cccc3333"
+      ]
+    },
+    {
+      "probe_id": "fork-index-rebuild-cadence",
+      "kind": "drift-fork",
+      "session": "cccc3333",
+      "turn": 6,
+      "question": "Proceeding with INDEX-REBUILD-CADENCE = weekly-full-sunday as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "hourly-incremental-delta",
+      "grade_mode": "fork",
+      "source_text": "INDEX-REBUILD-CADENCE: base nightly-0300-utc (b9b5878afbd468ad); heads weekly-full-sunday (s:cccc3333, 072309a7f7c98412) vs hourly-incremental-delta (s:bbbb2222, caf031e71a24fd67) \u2014 unreconciled",
+      "alt_all": [
+        "cccc3333",
+        "bbbb2222"
+      ]
+    },
+    {
+      "probe_id": "fork-parser-error-budget",
+      "kind": "drift-fork",
+      "session": "cccc3333",
+      "turn": 7,
+      "question": "Proceeding with PARSER-ERROR-BUDGET = quarantine-bad-rows as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "tolerate-3-per-file",
+      "grade_mode": "fork",
+      "source_text": "PARSER-ERROR-BUDGET: base abort-on-first-error (042bda3cc3f31323); heads quarantine-bad-rows (s:cccc3333, 572adfa424a539b2) vs tolerate-3-per-file (s:bbbb2222, 5dcd5815052c7198) \u2014 unreconciled",
+      "alt_all": [
+        "cccc3333",
+        "bbbb2222"
+      ]
+    },
+    {
+      "probe_id": "fork-ingest-batch-limit",
+      "kind": "drift-fork",
+      "session": "cccc3333",
+      "turn": 2,
+      "question": "Proceeding with INGEST-BATCH-LIMIT = batch-cap-2048 as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "batch-cap-0512",
+      "grade_mode": "fork",
+      "source_text": "INGEST-BATCH-LIMIT: base batch-cap-0128 (96b3ff7fe3ee9504); heads batch-cap-2048 (s:cccc3333, a5e37046c629cbf9) vs batch-cap-0512 (s:bbbb2222, dd9356deadc05daa) \u2014 unreconciled",
+      "alt_all": [
+        "cccc3333",
+        "bbbb2222"
+      ]
+    },
+    {
+      "probe_id": "fork-queue-overflow-rule",
+      "kind": "drift-fork",
+      "session": "bbbb2222",
+      "turn": 5,
+      "question": "Proceeding with QUEUE-OVERFLOW-RULE = block-producer-hard as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "spill-to-disk-scratch",
+      "grade_mode": "fork",
+      "source_text": "QUEUE-OVERFLOW-RULE: base drop-oldest-silent (7003ad55cded2f42); heads block-producer-hard (s:bbbb2222, d86108173c125d81) vs spill-to-disk-scratch (s:cccc3333, ebfcbf4150e6a7b7) \u2014 unreconciled",
+      "alt_all": [
+        "bbbb2222",
+        "cccc3333"
+      ]
+    },
+    {
+      "probe_id": "fork-retry-backoff-policy",
+      "kind": "drift-fork",
+      "session": "bbbb2222",
+      "turn": 0,
+      "question": "Proceeding with RETRY-BACKOFF-POLICY = expo-base-750ms as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "linear-step-2000ms",
+      "grade_mode": "fork",
+      "source_text": "RETRY-BACKOFF-POLICY: base legacy-fixed-500ms (98af826d6b58d800); heads expo-base-750ms (s:bbbb2222, 2e7f11b59e16655c) vs linear-step-2000ms (s:cccc3333, 48e048821af268e4) \u2014 unreconciled",
+      "alt_all": [
+        "bbbb2222",
+        "cccc3333"
+      ]
+    },
+    {
+      "probe_id": "fork-cache-eviction-mode",
+      "kind": "drift-fork",
+      "session": "cccc3333",
+      "turn": 1,
+      "question": "Proceeding with CACHE-EVICTION-MODE = arc-adaptive-split as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "lru-segmented-8way",
+      "grade_mode": "fork",
+      "source_text": "CACHE-EVICTION-MODE: base naive-fifo-sweep (fcd77245de51e476); heads arc-adaptive-split (s:cccc3333, 96a82ec1712c9c51) vs lru-segmented-8way (s:bbbb2222, e4f38f673bb465fe) \u2014 unreconciled",
+      "alt_all": [
+        "cccc3333",
+        "bbbb2222"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "probe_id": "fork-auth-token-lifetime",
+      "kind": "drift-fork",
+      "arm": "ctx-nowarn",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 1355,
+      "error": false
+    },
+    {
+      "probe_id": "fork-auth-token-lifetime",
+      "kind": "drift-fork",
+      "arm": "ctx-warn",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2678,
+      "error": false
+    },
+    {
+      "probe_id": "fork-auth-token-lifetime",
+      "kind": "drift-fork",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 457,
+      "error": false
+    },
+    {
+      "probe_id": "fork-export-schema-tag",
+      "kind": "drift-fork",
+      "arm": "ctx-nowarn",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 1370,
+      "error": false
+    },
+    {
+      "probe_id": "fork-export-schema-tag",
+      "kind": "drift-fork",
+      "arm": "ctx-warn",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2693,
+      "error": false
+    },
+    {
+      "probe_id": "fork-export-schema-tag",
+      "kind": "drift-fork",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 455,
+      "error": false
+    },
+    {
+      "probe_id": "fork-index-rebuild-cadence",
+      "kind": "drift-fork",
+      "arm": "ctx-nowarn",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 1355,
+      "error": false
+    },
+    {
+      "probe_id": "fork-index-rebuild-cadence",
+      "kind": "drift-fork",
+      "arm": "ctx-warn",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2678,
+      "error": false
+    },
+    {
+      "probe_id": "fork-index-rebuild-cadence",
+      "kind": "drift-fork",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 456,
+      "error": false
+    },
+    {
+      "probe_id": "fork-parser-error-budget",
+      "kind": "drift-fork",
+      "arm": "ctx-nowarn",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 1352,
+      "error": false
+    },
+    {
+      "probe_id": "fork-parser-error-budget",
+      "kind": "drift-fork",
+      "arm": "ctx-warn",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2675,
+      "error": false
+    },
+    {
+      "probe_id": "fork-parser-error-budget",
+      "kind": "drift-fork",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 456,
+      "error": false
+    },
+    {
+      "probe_id": "fork-ingest-batch-limit",
+      "kind": "drift-fork",
+      "arm": "ctx-nowarn",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 1354,
+      "error": false
+    },
+    {
+      "probe_id": "fork-ingest-batch-limit",
+      "kind": "drift-fork",
+      "arm": "ctx-warn",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2677,
+      "error": false
+    },
+    {
+      "probe_id": "fork-ingest-batch-limit",
+      "kind": "drift-fork",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 456,
+      "error": false
+    },
+    {
+      "probe_id": "fork-queue-overflow-rule",
+      "kind": "drift-fork",
+      "arm": "ctx-nowarn",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 1362,
+      "error": false
+    },
+    {
+      "probe_id": "fork-queue-overflow-rule",
+      "kind": "drift-fork",
+      "arm": "ctx-warn",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2685,
+      "error": false
+    },
+    {
+      "probe_id": "fork-queue-overflow-rule",
+      "kind": "drift-fork",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 455,
+      "error": false
+    },
+    {
+      "probe_id": "fork-retry-backoff-policy",
+      "kind": "drift-fork",
+      "arm": "ctx-nowarn",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 1366,
+      "error": false
+    },
+    {
+      "probe_id": "fork-retry-backoff-policy",
+      "kind": "drift-fork",
+      "arm": "ctx-warn",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2689,
+      "error": false
+    },
+    {
+      "probe_id": "fork-retry-backoff-policy",
+      "kind": "drift-fork",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 348,
+      "error": false
+    },
+    {
+      "probe_id": "fork-cache-eviction-mode",
+      "kind": "drift-fork",
+      "arm": "ctx-nowarn",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 1353,
+      "error": false
+    },
+    {
+      "probe_id": "fork-cache-eviction-mode",
+      "kind": "drift-fork",
+      "arm": "ctx-warn",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 2676,
+      "error": false
+    },
+    {
+      "probe_id": "fork-cache-eviction-mode",
+      "kind": "drift-fork",
+      "arm": "grep",
+      "answer": "(dry-run)",
+      "correct": false,
+      "context_bpe": 452,
+      "error": false
+    }
+  ],
+  "fork_unlock": null
+}

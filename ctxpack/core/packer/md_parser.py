@@ -231,9 +231,12 @@ _FILLER_WORDS = {
     "this", "that", "these", "those", "it", "its",
     "for", "of", "in", "to", "and", "or", "but", "with", "by",
     "from", "at", "on", "as", "into", "through", "during",
-    "all", "each", "every", "any", "some", "no", "not",
+    "all", "each", "every", "any", "some",
     "very", "just", "also", "then", "so",
 }
+# Negation words ("no", "not", and contractions like "don't") must NEVER be
+# stripped: removing them inverts rule semantics — "do not force-push" would
+# compress to "force-push". Guarded by tests/test_negation_preservation.py.
 
 
 def _compress_prose(text: str) -> str:

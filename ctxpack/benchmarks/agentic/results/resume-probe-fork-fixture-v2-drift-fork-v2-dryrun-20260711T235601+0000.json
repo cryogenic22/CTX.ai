@@ -1,0 +1,2094 @@
+{
+  "schema": "ctxpack-drift-fork-v2/v1",
+  "measurement_class": "quasi-experimental \u2014 planted-fork surfacing under fixed-budget arms on synthetic cluster fixtures; the claim under test is scoped to SURFACING (A5); behavior-grade claims belong to CompactBench",
+  "generated_at": "2026-07-11T23:56:01+00:00",
+  "repo": "fork-fixture-v2",
+  "config": {
+    "model": "claude-sonnet-4-6",
+    "n_clusters": 8,
+    "sampling": "none \u2014 deterministic full enumeration of the pinned cluster table",
+    "fork_source": "synthetic-fixture",
+    "prereg": "drift-fork/v2 \u2014 amendment A5 (+ harness notes), PREREGISTRATION-resume-probe.md",
+    "fork_grade": "drift-fork-grade/v2",
+    "arms": {
+      "fork": [
+        "ctx-nowarn",
+        "ctx-nowarn-padded",
+        "ctx-warn",
+        "grep"
+      ],
+      "displacement": [
+        "ctx-nowarn-padded",
+        "ctx-warn"
+      ],
+      "false-alarm": [
+        "ctx-nowarn-padded",
+        "ctx-warn"
+      ]
+    },
+    "pad_filler_sha256": "e847962a88070ec85c69dd0c3a98c73bff98473a12954a7d9ff246f0eb33e016",
+    "authorized_run": false
+  },
+  "receipts_failed": [],
+  "cluster_analysis": null,
+  "probes": [
+    {
+      "probe_id": "c01-fork-snapshot-retention-rule",
+      "kind": "drift-fork",
+      "session": "c01bbbbb",
+      "turn": 0,
+      "question": "Proceeding with SNAPSHOT-RETENTION-RULE = keep-30d-tiered as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "keep-90d-coldline",
+      "grade_mode": "fork",
+      "source_text": "SNAPSHOT-RETENTION-RULE: base keep-07d-rolling (2b321aaeb987798a); heads keep-30d-tiered (s:c01bbbbb, 49cf540ee3f55daf) vs keep-90d-coldline (s:c01ccccc, efef9403dc888f47) \u2014 unreconciled",
+      "alt_all": [
+        "c01bbbbb",
+        "c01ccccc"
+      ]
+    },
+    {
+      "probe_id": "c01-fork-webhook-retry-ceiling",
+      "kind": "drift-fork",
+      "session": "c01ccccc",
+      "turn": 1,
+      "question": "Proceeding with WEBHOOK-RETRY-CEILING = retry-040-slow-lane as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "retry-012-with-jitter",
+      "grade_mode": "fork",
+      "source_text": "WEBHOOK-RETRY-CEILING: base retry-004-hard-stop (64d5fa47117a4177); heads retry-040-slow-lane (s:c01ccccc, 0b36c9054c4ddafb) vs retry-012-with-jitter (s:c01bbbbb, 79ba47b1ab12d2bb) \u2014 unreconciled",
+      "alt_all": [
+        "c01ccccc",
+        "c01bbbbb"
+      ]
+    },
+    {
+      "probe_id": "c01-disp-metric-rollup-grain",
+      "kind": "fork-displacement",
+      "session": "c01bbbbb",
+      "turn": 2,
+      "question": "The value of METRIC-ROLLUP-GRAIN was revised over time in this project. What is the CURRENT (final) value? Reply with the value only.",
+      "expected": "grain-300s-meanfold",
+      "grade_mode": "exact",
+      "source_text": "METRIC-ROLLUP-GRAIN: grain-060s-rawline -> current grain-300s-meanfold (linear)",
+      "alt_all": null
+    },
+    {
+      "probe_id": "c01-fa-snapshot-retention-rule",
+      "kind": "fork-false-alarm",
+      "session": "c01fffff",
+      "turn": 0,
+      "question": "Proceeding with SNAPSHOT-RETENTION-RULE = keep-90d-coldline as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "keep-30d-tiered",
+      "grade_mode": "fork-inverted",
+      "source_text": "SNAPSHOT-RETENTION-RULE: keep-07d-rolling -> keep-30d-tiered -> current keep-90d-coldline (linear, no fork)",
+      "alt_all": [
+        "c01eeeee",
+        "c01fffff"
+      ]
+    },
+    {
+      "probe_id": "c02-fork-login-lockout-policy",
+      "kind": "drift-fork",
+      "session": "c02bbbbb",
+      "turn": 0,
+      "question": "Proceeding with LOGIN-LOCKOUT-POLICY = lock-5-strikes-60m as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "lock-adaptive-risk",
+      "grade_mode": "fork",
+      "source_text": "LOGIN-LOCKOUT-POLICY: base lock-3-strikes-15m (548a945ff034f82d); heads lock-5-strikes-60m (s:c02bbbbb, 06f0965d61d7abb3) vs lock-adaptive-risk (s:c02ccccc, 9a988205a3e2a43f) \u2014 unreconciled",
+      "alt_all": [
+        "c02bbbbb",
+        "c02ccccc"
+      ]
+    },
+    {
+      "probe_id": "c02-fork-payload-size-ceiling",
+      "kind": "drift-fork",
+      "session": "c02ccccc",
+      "turn": 1,
+      "question": "Proceeding with PAYLOAD-SIZE-CEILING = payload-max-064mb as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "payload-max-016mb",
+      "grade_mode": "fork",
+      "source_text": "PAYLOAD-SIZE-CEILING: base payload-max-002mb (e9210b3048579e8f); heads payload-max-064mb (s:c02ccccc, 6b3f885637f8fc94) vs payload-max-016mb (s:c02bbbbb, b30ba71a7d6c3b46) \u2014 unreconciled",
+      "alt_all": [
+        "c02ccccc",
+        "c02bbbbb"
+      ]
+    },
+    {
+      "probe_id": "c02-disp-session-idle-window",
+      "kind": "fork-displacement",
+      "session": "c02bbbbb",
+      "turn": 2,
+      "question": "The value of SESSION-IDLE-WINDOW was revised over time in this project. What is the CURRENT (final) value? Reply with the value only.",
+      "expected": "idle-45m-softlock",
+      "grade_mode": "exact",
+      "source_text": "SESSION-IDLE-WINDOW: idle-20m-logout -> current idle-45m-softlock (linear)",
+      "alt_all": null
+    },
+    {
+      "probe_id": "c02-fa-login-lockout-policy",
+      "kind": "fork-false-alarm",
+      "session": "c02fffff",
+      "turn": 0,
+      "question": "Proceeding with LOGIN-LOCKOUT-POLICY = lock-adaptive-risk as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "lock-5-strikes-60m",
+      "grade_mode": "fork-inverted",
+      "source_text": "LOGIN-LOCKOUT-POLICY: lock-3-strikes-15m -> lock-5-strikes-60m -> current lock-adaptive-risk (linear, no fork)",
+      "alt_all": [
+        "c02eeeee",
+        "c02fffff"
+      ]
+    },
+    {
+      "probe_id": "c03-fork-replica-placement-mode",
+      "kind": "drift-fork",
+      "session": "c03ccccc",
+      "turn": 0,
+      "question": "Proceeding with REPLICA-PLACEMENT-MODE = place-region-mirror as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "place-tri-zone-spread",
+      "grade_mode": "fork",
+      "source_text": "REPLICA-PLACEMENT-MODE: base place-same-zone-pair (97b2e16c32ca192c); heads place-region-mirror (s:c03ccccc, 57636b842140974a) vs place-tri-zone-spread (s:c03bbbbb, e628e3f7a75043c0) \u2014 unreconciled",
+      "alt_all": [
+        "c03ccccc",
+        "c03bbbbb"
+      ]
+    },
+    {
+      "probe_id": "c03-fork-backup-cipher-suite",
+      "kind": "drift-fork",
+      "session": "c03ccccc",
+      "turn": 1,
+      "question": "Proceeding with BACKUP-CIPHER-SUITE = cipher-chacha20-poly as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "cipher-aes256-gcm",
+      "grade_mode": "fork",
+      "source_text": "BACKUP-CIPHER-SUITE: base cipher-aes128-gcm (c12db49abad1e54d); heads cipher-chacha20-poly (s:c03ccccc, 1983d569c445ad3f) vs cipher-aes256-gcm (s:c03bbbbb, 9b0b1259a7d66471) \u2014 unreconciled",
+      "alt_all": [
+        "c03ccccc",
+        "c03bbbbb"
+      ]
+    },
+    {
+      "probe_id": "c03-disp-failover-trigger-rule",
+      "kind": "fork-displacement",
+      "session": "c03bbbbb",
+      "turn": 2,
+      "question": "The value of FAILOVER-TRIGGER-RULE was revised over time in this project. What is the CURRENT (final) value? Reply with the value only.",
+      "expected": "trig-auto-30s-quorum",
+      "grade_mode": "exact",
+      "source_text": "FAILOVER-TRIGGER-RULE: trig-manual-only-ops -> current trig-auto-30s-quorum (linear)",
+      "alt_all": null
+    },
+    {
+      "probe_id": "c03-fa-replica-placement-mode",
+      "kind": "fork-false-alarm",
+      "session": "c03fffff",
+      "turn": 0,
+      "question": "Proceeding with REPLICA-PLACEMENT-MODE = place-region-mirror as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "place-tri-zone-spread",
+      "grade_mode": "fork-inverted",
+      "source_text": "REPLICA-PLACEMENT-MODE: place-same-zone-pair -> place-tri-zone-spread -> current place-region-mirror (linear, no fork)",
+      "alt_all": [
+        "c03eeeee",
+        "c03fffff"
+      ]
+    },
+    {
+      "probe_id": "c04-fork-crawler-politeness-delay",
+      "kind": "drift-fork",
+      "session": "c04bbbbb",
+      "turn": 0,
+      "question": "Proceeding with CRAWLER-POLITENESS-DELAY = crawl-delay-02s-token as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "crawl-delay-30s-peak",
+      "grade_mode": "fork",
+      "source_text": "CRAWLER-POLITENESS-DELAY: base crawl-delay-10s-flat (af98c925592ec444); heads crawl-delay-02s-token (s:c04bbbbb, 3caa1da3b0ef6c56) vs crawl-delay-30s-peak (s:c04ccccc, b13cb17e324879d2) \u2014 unreconciled",
+      "alt_all": [
+        "c04bbbbb",
+        "c04ccccc"
+      ]
+    },
+    {
+      "probe_id": "c04-fork-sitemap-refresh-cycle",
+      "kind": "drift-fork",
+      "session": "c04bbbbb",
+      "turn": 1,
+      "question": "Proceeding with SITEMAP-REFRESH-CYCLE = sitemap-hourly-light as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "sitemap-weekly-deep",
+      "grade_mode": "fork",
+      "source_text": "SITEMAP-REFRESH-CYCLE: base sitemap-daily-0400z (a4b12af2679c5d79); heads sitemap-hourly-light (s:c04bbbbb, 890a489840551135) vs sitemap-weekly-deep (s:c04ccccc, b06e6bed2791ce37) \u2014 unreconciled",
+      "alt_all": [
+        "c04bbbbb",
+        "c04ccccc"
+      ]
+    },
+    {
+      "probe_id": "c04-disp-robots-cache-lifetime",
+      "kind": "fork-displacement",
+      "session": "c04bbbbb",
+      "turn": 2,
+      "question": "The value of ROBOTS-CACHE-LIFETIME was revised over time in this project. What is the CURRENT (final) value? Reply with the value only.",
+      "expected": "robots-ttl-06h-soft",
+      "grade_mode": "exact",
+      "source_text": "ROBOTS-CACHE-LIFETIME: robots-ttl-24h-hard -> current robots-ttl-06h-soft (linear)",
+      "alt_all": null
+    },
+    {
+      "probe_id": "c04-fa-crawler-politeness-delay",
+      "kind": "fork-false-alarm",
+      "session": "c04fffff",
+      "turn": 0,
+      "question": "Proceeding with CRAWLER-POLITENESS-DELAY = crawl-delay-30s-peak as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "crawl-delay-02s-token",
+      "grade_mode": "fork-inverted",
+      "source_text": "CRAWLER-POLITENESS-DELAY: crawl-delay-10s-flat -> crawl-delay-02s-token -> current crawl-delay-30s-peak (linear, no fork)",
+      "alt_all": [
+        "c04eeeee",
+        "c04fffff"
+      ]
+    },
+    {
+      "probe_id": "c05-fork-billing-proration-method",
+      "kind": "drift-fork",
+      "session": "c05bbbbb",
+      "turn": 0,
+      "question": "Proceeding with BILLING-PRORATION-METHOD = prorate-second-exact as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "prorate-month-floor",
+      "grade_mode": "fork",
+      "source_text": "BILLING-PRORATION-METHOD: base prorate-daily-linear (c246d09fa932dd1d); heads prorate-second-exact (s:c05bbbbb, 8e75ff9caa624fa1) vs prorate-month-floor (s:c05ccccc, a1da20253fa779eb) \u2014 unreconciled",
+      "alt_all": [
+        "c05bbbbb",
+        "c05ccccc"
+      ]
+    },
+    {
+      "probe_id": "c05-fork-invoice-number-format",
+      "kind": "drift-fork",
+      "session": "c05ccccc",
+      "turn": 1,
+      "question": "Proceeding with INVOICE-NUMBER-FORMAT = inv-seq-region-coded as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "inv-seq-ulid-opaque",
+      "grade_mode": "fork",
+      "source_text": "INVOICE-NUMBER-FORMAT: base inv-seq-yyyymm-plain (dbf00112521ac452); heads inv-seq-region-coded (s:c05ccccc, 3c54a476b84ddc81) vs inv-seq-ulid-opaque (s:c05bbbbb, e7910f49625f9716) \u2014 unreconciled",
+      "alt_all": [
+        "c05ccccc",
+        "c05bbbbb"
+      ]
+    },
+    {
+      "probe_id": "c05-disp-dunning-escalation-step",
+      "kind": "fork-displacement",
+      "session": "c05bbbbb",
+      "turn": 2,
+      "question": "The value of DUNNING-ESCALATION-STEP was revised over time in this project. What is the CURRENT (final) value? Reply with the value only.",
+      "expected": "dun-3emails-1call",
+      "grade_mode": "exact",
+      "source_text": "DUNNING-ESCALATION-STEP: dun-email-then-pause -> current dun-3emails-1call (linear)",
+      "alt_all": null
+    },
+    {
+      "probe_id": "c05-fa-billing-proration-method",
+      "kind": "fork-false-alarm",
+      "session": "c05fffff",
+      "turn": 0,
+      "question": "Proceeding with BILLING-PRORATION-METHOD = prorate-month-floor as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "prorate-second-exact",
+      "grade_mode": "fork-inverted",
+      "source_text": "BILLING-PRORATION-METHOD: prorate-daily-linear -> prorate-second-exact -> current prorate-month-floor (linear, no fork)",
+      "alt_all": [
+        "c05eeeee",
+        "c05fffff"
+      ]
+    },
+    {
+      "probe_id": "c06-fork-thumbnail-render-path",
+      "kind": "drift-fork",
+      "session": "c06ccccc",
+      "turn": 0,
+      "question": "Proceeding with THUMBNAIL-RENDER-PATH = thumb-edge-precompute as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "thumb-batch-nightly",
+      "grade_mode": "fork",
+      "source_text": "THUMBNAIL-RENDER-PATH: base thumb-lambda-onfly (9dd30f62dcdc6515); heads thumb-edge-precompute (s:c06ccccc, 09f24bdbf80816a3) vs thumb-batch-nightly (s:c06bbbbb, e6d2f2a7fa57c972) \u2014 unreconciled",
+      "alt_all": [
+        "c06ccccc",
+        "c06bbbbb"
+      ]
+    },
+    {
+      "probe_id": "c06-fork-video-transcode-preset",
+      "kind": "drift-fork",
+      "session": "c06bbbbb",
+      "turn": 1,
+      "question": "Proceeding with VIDEO-TRANSCODE-PRESET = vt-preset-hq1080 as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "vt-preset-av1-2160",
+      "grade_mode": "fork",
+      "source_text": "VIDEO-TRANSCODE-PRESET: base vt-preset-fast720 (27ab89ed528f68a3); heads vt-preset-hq1080 (s:c06bbbbb, 61d99756e0a6f8d5) vs vt-preset-av1-2160 (s:c06ccccc, 797d21e9ea0f0f74) \u2014 unreconciled",
+      "alt_all": [
+        "c06bbbbb",
+        "c06ccccc"
+      ]
+    },
+    {
+      "probe_id": "c06-disp-asset-cdn-strategy",
+      "kind": "fork-displacement",
+      "session": "c06bbbbb",
+      "turn": 2,
+      "question": "The value of ASSET-CDN-STRATEGY was revised over time in this project. What is the CURRENT (final) value? Reply with the value only.",
+      "expected": "cdn-dual-failback",
+      "grade_mode": "exact",
+      "source_text": "ASSET-CDN-STRATEGY: cdn-single-origin -> current cdn-dual-failback (linear)",
+      "alt_all": null
+    },
+    {
+      "probe_id": "c06-fa-thumbnail-render-path",
+      "kind": "fork-false-alarm",
+      "session": "c06fffff",
+      "turn": 0,
+      "question": "Proceeding with THUMBNAIL-RENDER-PATH = thumb-edge-precompute as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "thumb-batch-nightly",
+      "grade_mode": "fork-inverted",
+      "source_text": "THUMBNAIL-RENDER-PATH: thumb-lambda-onfly -> thumb-batch-nightly -> current thumb-edge-precompute (linear, no fork)",
+      "alt_all": [
+        "c06eeeee",
+        "c06fffff"
+      ]
+    },
+    {
+      "probe_id": "c07-fork-flag-rollout-curve",
+      "kind": "drift-fork",
+      "session": "c07ccccc",
+      "turn": 0,
+      "question": "Proceeding with FLAG-ROLLOUT-CURVE = roll-ring-by-region as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "roll-canary-5pct-48h",
+      "grade_mode": "fork",
+      "source_text": "FLAG-ROLLOUT-CURVE: base roll-1-10-50-100pct (a5e67f1d5f0db46c); heads roll-ring-by-region (s:c07ccccc, 67c46adc57e433a8) vs roll-canary-5pct-48h (s:c07bbbbb, 878b6db0191f854f) \u2014 unreconciled",
+      "alt_all": [
+        "c07ccccc",
+        "c07bbbbb"
+      ]
+    },
+    {
+      "probe_id": "c07-fork-experiment-bucket-salt",
+      "kind": "drift-fork",
+      "session": "c07ccccc",
+      "turn": 1,
+      "question": "Proceeding with EXPERIMENT-BUCKET-SALT = salt-per-cohort-hash as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "salt-rotate-weekly",
+      "grade_mode": "fork",
+      "source_text": "EXPERIMENT-BUCKET-SALT: base salt-static-2026q3 (ae734c05a650956b); heads salt-per-cohort-hash (s:c07ccccc, 21203f4d8c05a9b1) vs salt-rotate-weekly (s:c07bbbbb, 2c06d0b4543dfe47) \u2014 unreconciled",
+      "alt_all": [
+        "c07ccccc",
+        "c07bbbbb"
+      ]
+    },
+    {
+      "probe_id": "c07-disp-telemetry-sample-rate",
+      "kind": "fork-displacement",
+      "session": "c07bbbbb",
+      "turn": 2,
+      "question": "The value of TELEMETRY-SAMPLE-RATE was revised over time in this project. What is the CURRENT (final) value? Reply with the value only.",
+      "expected": "tel-sample-10pct-adapt",
+      "grade_mode": "exact",
+      "source_text": "TELEMETRY-SAMPLE-RATE: tel-sample-100pct -> current tel-sample-10pct-adapt (linear)",
+      "alt_all": null
+    },
+    {
+      "probe_id": "c07-fa-flag-rollout-curve",
+      "kind": "fork-false-alarm",
+      "session": "c07fffff",
+      "turn": 0,
+      "question": "Proceeding with FLAG-ROLLOUT-CURVE = roll-ring-by-region as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "roll-canary-5pct-48h",
+      "grade_mode": "fork-inverted",
+      "source_text": "FLAG-ROLLOUT-CURVE: roll-1-10-50-100pct -> roll-canary-5pct-48h -> current roll-ring-by-region (linear, no fork)",
+      "alt_all": [
+        "c07eeeee",
+        "c07fffff"
+      ]
+    },
+    {
+      "probe_id": "c08-fork-migration-lock-protocol",
+      "kind": "drift-fork",
+      "session": "c08bbbbb",
+      "turn": 0,
+      "question": "Proceeding with MIGRATION-LOCK-PROTOCOL = mig-table-by-table as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "mig-shadow-copy-swap",
+      "grade_mode": "fork",
+      "source_text": "MIGRATION-LOCK-PROTOCOL: base mig-global-freeze (f809a09f6bc64584); heads mig-table-by-table (s:c08bbbbb, 5398253b359ff107) vs mig-shadow-copy-swap (s:c08ccccc, c78068b943bc27e1) \u2014 unreconciled",
+      "alt_all": [
+        "c08bbbbb",
+        "c08ccccc"
+      ]
+    },
+    {
+      "probe_id": "c08-fork-schema-check-cadence",
+      "kind": "drift-fork",
+      "session": "c08ccccc",
+      "turn": 1,
+      "question": "Proceeding with SCHEMA-CHECK-CADENCE = schk-nightly-full as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "schk-hourly-sentinel",
+      "grade_mode": "fork",
+      "source_text": "SCHEMA-CHECK-CADENCE: base schk-on-deploy-only (e8ff1c5a1e848e42); heads schk-nightly-full (s:c08ccccc, 0b902731aa93f191) vs schk-hourly-sentinel (s:c08bbbbb, d89ff1dc94ea0c1f) \u2014 unreconciled",
+      "alt_all": [
+        "c08ccccc",
+        "c08bbbbb"
+      ]
+    },
+    {
+      "probe_id": "c08-disp-queue-drain-deadline",
+      "kind": "fork-displacement",
+      "session": "c08bbbbb",
+      "turn": 2,
+      "question": "The value of QUEUE-DRAIN-DEADLINE was revised over time in this project. What is the CURRENT (final) value? Reply with the value only.",
+      "expected": "drain-090s-strict",
+      "grade_mode": "exact",
+      "source_text": "QUEUE-DRAIN-DEADLINE: drain-300s-forced -> current drain-090s-strict (linear)",
+      "alt_all": null
+    },
+    {
+      "probe_id": "c08-fa-migration-lock-protocol",
+      "kind": "fork-false-alarm",
+      "session": "c08fffff",
+      "turn": 0,
+      "question": "Proceeding with MIGRATION-LOCK-PROTOCOL = mig-shadow-copy-swap as the current value \u2014 drafting the next step on that basis. OK?",
+      "expected": "mig-table-by-table",
+      "grade_mode": "fork-inverted",
+      "source_text": "MIGRATION-LOCK-PROTOCOL: mig-global-freeze -> mig-table-by-table -> current mig-shadow-copy-swap (linear, no fork)",
+      "alt_all": [
+        "c08eeeee",
+        "c08fffff"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "probe_id": "c01-fork-snapshot-retention-rule",
+      "cluster": "c01",
+      "ptype": "fork",
+      "arm": "ctx-nowarn",
+      "context_bpe": 814,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c01-fork-snapshot-retention-rule",
+      "cluster": "c01",
+      "ptype": "fork",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1199,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c01-fork-snapshot-retention-rule",
+      "cluster": "c01",
+      "ptype": "fork",
+      "arm": "ctx-warn",
+      "context_bpe": 1199,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c01-fork-snapshot-retention-rule",
+      "cluster": "c01",
+      "ptype": "fork",
+      "arm": "grep",
+      "context_bpe": 349,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c01-fork-webhook-retry-ceiling",
+      "cluster": "c01",
+      "ptype": "fork",
+      "arm": "ctx-nowarn",
+      "context_bpe": 667,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c01-fork-webhook-retry-ceiling",
+      "cluster": "c01",
+      "ptype": "fork",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1052,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c01-fork-webhook-retry-ceiling",
+      "cluster": "c01",
+      "ptype": "fork",
+      "arm": "ctx-warn",
+      "context_bpe": 1052,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c01-fork-webhook-retry-ceiling",
+      "cluster": "c01",
+      "ptype": "fork",
+      "arm": "grep",
+      "context_bpe": 353,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c01-disp-metric-rollup-grain",
+      "cluster": "c01",
+      "ptype": "displacement",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1199,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c01-disp-metric-rollup-grain",
+      "cluster": "c01",
+      "ptype": "displacement",
+      "arm": "ctx-warn",
+      "context_bpe": 1199,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c01-fa-snapshot-retention-rule",
+      "cluster": "c01",
+      "ptype": "false-alarm",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 844,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c01-fa-snapshot-retention-rule",
+      "cluster": "c01",
+      "ptype": "false-alarm",
+      "arm": "ctx-warn",
+      "context_bpe": 844,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c02-fork-login-lockout-policy",
+      "cluster": "c02",
+      "ptype": "fork",
+      "arm": "ctx-nowarn",
+      "context_bpe": 798,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c02-fork-login-lockout-policy",
+      "cluster": "c02",
+      "ptype": "fork",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1185,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c02-fork-login-lockout-policy",
+      "cluster": "c02",
+      "ptype": "fork",
+      "arm": "ctx-warn",
+      "context_bpe": 1185,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c02-fork-login-lockout-policy",
+      "cluster": "c02",
+      "ptype": "fork",
+      "arm": "grep",
+      "context_bpe": 350,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c02-fork-payload-size-ceiling",
+      "cluster": "c02",
+      "ptype": "fork",
+      "arm": "ctx-nowarn",
+      "context_bpe": 784,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c02-fork-payload-size-ceiling",
+      "cluster": "c02",
+      "ptype": "fork",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1171,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c02-fork-payload-size-ceiling",
+      "cluster": "c02",
+      "ptype": "fork",
+      "arm": "ctx-warn",
+      "context_bpe": 1171,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c02-fork-payload-size-ceiling",
+      "cluster": "c02",
+      "ptype": "fork",
+      "arm": "grep",
+      "context_bpe": 347,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c02-disp-session-idle-window",
+      "cluster": "c02",
+      "ptype": "displacement",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1236,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c02-disp-session-idle-window",
+      "cluster": "c02",
+      "ptype": "displacement",
+      "arm": "ctx-warn",
+      "context_bpe": 1236,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c02-fa-login-lockout-policy",
+      "cluster": "c02",
+      "ptype": "false-alarm",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 823,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c02-fa-login-lockout-policy",
+      "cluster": "c02",
+      "ptype": "false-alarm",
+      "arm": "ctx-warn",
+      "context_bpe": 823,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c03-fork-replica-placement-mode",
+      "cluster": "c03",
+      "ptype": "fork",
+      "arm": "ctx-nowarn",
+      "context_bpe": 660,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c03-fork-replica-placement-mode",
+      "cluster": "c03",
+      "ptype": "fork",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1042,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c03-fork-replica-placement-mode",
+      "cluster": "c03",
+      "ptype": "fork",
+      "arm": "ctx-warn",
+      "context_bpe": 1042,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c03-fork-replica-placement-mode",
+      "cluster": "c03",
+      "ptype": "fork",
+      "arm": "grep",
+      "context_bpe": 350,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c03-fork-backup-cipher-suite",
+      "cluster": "c03",
+      "ptype": "fork",
+      "arm": "ctx-nowarn",
+      "context_bpe": 660,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c03-fork-backup-cipher-suite",
+      "cluster": "c03",
+      "ptype": "fork",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1042,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c03-fork-backup-cipher-suite",
+      "cluster": "c03",
+      "ptype": "fork",
+      "arm": "ctx-warn",
+      "context_bpe": 1042,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c03-fork-backup-cipher-suite",
+      "cluster": "c03",
+      "ptype": "fork",
+      "arm": "grep",
+      "context_bpe": 348,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c03-disp-failover-trigger-rule",
+      "cluster": "c03",
+      "ptype": "displacement",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1195,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c03-disp-failover-trigger-rule",
+      "cluster": "c03",
+      "ptype": "displacement",
+      "arm": "ctx-warn",
+      "context_bpe": 1195,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c03-fa-replica-placement-mode",
+      "cluster": "c03",
+      "ptype": "false-alarm",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 849,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c03-fa-replica-placement-mode",
+      "cluster": "c03",
+      "ptype": "false-alarm",
+      "arm": "ctx-warn",
+      "context_bpe": 849,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c04-fork-crawler-politeness-delay",
+      "cluster": "c04",
+      "ptype": "fork",
+      "arm": "ctx-nowarn",
+      "context_bpe": 833,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c04-fork-crawler-politeness-delay",
+      "cluster": "c04",
+      "ptype": "fork",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1228,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c04-fork-crawler-politeness-delay",
+      "cluster": "c04",
+      "ptype": "fork",
+      "arm": "ctx-warn",
+      "context_bpe": 1228,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c04-fork-crawler-politeness-delay",
+      "cluster": "c04",
+      "ptype": "fork",
+      "arm": "grep",
+      "context_bpe": 354,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c04-fork-sitemap-refresh-cycle",
+      "cluster": "c04",
+      "ptype": "fork",
+      "arm": "ctx-nowarn",
+      "context_bpe": 833,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c04-fork-sitemap-refresh-cycle",
+      "cluster": "c04",
+      "ptype": "fork",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1228,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c04-fork-sitemap-refresh-cycle",
+      "cluster": "c04",
+      "ptype": "fork",
+      "arm": "ctx-warn",
+      "context_bpe": 1228,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c04-fork-sitemap-refresh-cycle",
+      "cluster": "c04",
+      "ptype": "fork",
+      "arm": "grep",
+      "context_bpe": 359,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c04-disp-robots-cache-lifetime",
+      "cluster": "c04",
+      "ptype": "displacement",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1228,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c04-disp-robots-cache-lifetime",
+      "cluster": "c04",
+      "ptype": "displacement",
+      "arm": "ctx-warn",
+      "context_bpe": 1228,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c04-fa-crawler-politeness-delay",
+      "cluster": "c04",
+      "ptype": "false-alarm",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 862,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c04-fa-crawler-politeness-delay",
+      "cluster": "c04",
+      "ptype": "false-alarm",
+      "arm": "ctx-warn",
+      "context_bpe": 862,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c05-fork-billing-proration-method",
+      "cluster": "c05",
+      "ptype": "fork",
+      "arm": "ctx-nowarn",
+      "context_bpe": 812,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c05-fork-billing-proration-method",
+      "cluster": "c05",
+      "ptype": "fork",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1190,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c05-fork-billing-proration-method",
+      "cluster": "c05",
+      "ptype": "fork",
+      "arm": "ctx-warn",
+      "context_bpe": 1190,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c05-fork-billing-proration-method",
+      "cluster": "c05",
+      "ptype": "fork",
+      "arm": "grep",
+      "context_bpe": 563,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c05-fork-invoice-number-format",
+      "cluster": "c05",
+      "ptype": "fork",
+      "arm": "ctx-nowarn",
+      "context_bpe": 660,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c05-fork-invoice-number-format",
+      "cluster": "c05",
+      "ptype": "fork",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1038,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c05-fork-invoice-number-format",
+      "cluster": "c05",
+      "ptype": "fork",
+      "arm": "ctx-warn",
+      "context_bpe": 1038,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c05-fork-invoice-number-format",
+      "cluster": "c05",
+      "ptype": "fork",
+      "arm": "grep",
+      "context_bpe": 562,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c05-disp-dunning-escalation-step",
+      "cluster": "c05",
+      "ptype": "displacement",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1190,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c05-disp-dunning-escalation-step",
+      "cluster": "c05",
+      "ptype": "displacement",
+      "arm": "ctx-warn",
+      "context_bpe": 1190,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c05-fa-billing-proration-method",
+      "cluster": "c05",
+      "ptype": "false-alarm",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 853,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c05-fa-billing-proration-method",
+      "cluster": "c05",
+      "ptype": "false-alarm",
+      "arm": "ctx-warn",
+      "context_bpe": 853,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c06-fork-thumbnail-render-path",
+      "cluster": "c06",
+      "ptype": "fork",
+      "arm": "ctx-nowarn",
+      "context_bpe": 671,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c06-fork-thumbnail-render-path",
+      "cluster": "c06",
+      "ptype": "fork",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1066,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c06-fork-thumbnail-render-path",
+      "cluster": "c06",
+      "ptype": "fork",
+      "arm": "ctx-warn",
+      "context_bpe": 1066,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c06-fork-thumbnail-render-path",
+      "cluster": "c06",
+      "ptype": "fork",
+      "arm": "grep",
+      "context_bpe": 352,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c06-fork-video-transcode-preset",
+      "cluster": "c06",
+      "ptype": "fork",
+      "arm": "ctx-nowarn",
+      "context_bpe": 819,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c06-fork-video-transcode-preset",
+      "cluster": "c06",
+      "ptype": "fork",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1214,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c06-fork-video-transcode-preset",
+      "cluster": "c06",
+      "ptype": "fork",
+      "arm": "ctx-warn",
+      "context_bpe": 1214,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c06-fork-video-transcode-preset",
+      "cluster": "c06",
+      "ptype": "fork",
+      "arm": "grep",
+      "context_bpe": 353,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c06-disp-asset-cdn-strategy",
+      "cluster": "c06",
+      "ptype": "displacement",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1214,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c06-disp-asset-cdn-strategy",
+      "cluster": "c06",
+      "ptype": "displacement",
+      "arm": "ctx-warn",
+      "context_bpe": 1214,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c06-fa-thumbnail-render-path",
+      "cluster": "c06",
+      "ptype": "false-alarm",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 851,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c06-fa-thumbnail-render-path",
+      "cluster": "c06",
+      "ptype": "false-alarm",
+      "arm": "ctx-warn",
+      "context_bpe": 851,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c07-fork-flag-rollout-curve",
+      "cluster": "c07",
+      "ptype": "fork",
+      "arm": "ctx-nowarn",
+      "context_bpe": 667,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c07-fork-flag-rollout-curve",
+      "cluster": "c07",
+      "ptype": "fork",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1062,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c07-fork-flag-rollout-curve",
+      "cluster": "c07",
+      "ptype": "fork",
+      "arm": "ctx-warn",
+      "context_bpe": 1062,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c07-fork-flag-rollout-curve",
+      "cluster": "c07",
+      "ptype": "fork",
+      "arm": "grep",
+      "context_bpe": 366,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c07-fork-experiment-bucket-salt",
+      "cluster": "c07",
+      "ptype": "fork",
+      "arm": "ctx-nowarn",
+      "context_bpe": 667,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c07-fork-experiment-bucket-salt",
+      "cluster": "c07",
+      "ptype": "fork",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1062,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c07-fork-experiment-bucket-salt",
+      "cluster": "c07",
+      "ptype": "fork",
+      "arm": "ctx-warn",
+      "context_bpe": 1062,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c07-fork-experiment-bucket-salt",
+      "cluster": "c07",
+      "ptype": "fork",
+      "arm": "grep",
+      "context_bpe": 342,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c07-disp-telemetry-sample-rate",
+      "cluster": "c07",
+      "ptype": "displacement",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1212,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c07-disp-telemetry-sample-rate",
+      "cluster": "c07",
+      "ptype": "displacement",
+      "arm": "ctx-warn",
+      "context_bpe": 1212,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c07-fa-flag-rollout-curve",
+      "cluster": "c07",
+      "ptype": "false-alarm",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 837,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c07-fa-flag-rollout-curve",
+      "cluster": "c07",
+      "ptype": "false-alarm",
+      "arm": "ctx-warn",
+      "context_bpe": 837,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c08-fork-migration-lock-protocol",
+      "cluster": "c08",
+      "ptype": "fork",
+      "arm": "ctx-nowarn",
+      "context_bpe": 803,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c08-fork-migration-lock-protocol",
+      "cluster": "c08",
+      "ptype": "fork",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1182,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c08-fork-migration-lock-protocol",
+      "cluster": "c08",
+      "ptype": "fork",
+      "arm": "ctx-warn",
+      "context_bpe": 1182,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c08-fork-migration-lock-protocol",
+      "cluster": "c08",
+      "ptype": "fork",
+      "arm": "grep",
+      "context_bpe": 346,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c08-fork-schema-check-cadence",
+      "cluster": "c08",
+      "ptype": "fork",
+      "arm": "ctx-nowarn",
+      "context_bpe": 654,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c08-fork-schema-check-cadence",
+      "cluster": "c08",
+      "ptype": "fork",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1033,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c08-fork-schema-check-cadence",
+      "cluster": "c08",
+      "ptype": "fork",
+      "arm": "ctx-warn",
+      "context_bpe": 1033,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c08-fork-schema-check-cadence",
+      "cluster": "c08",
+      "ptype": "fork",
+      "arm": "grep",
+      "context_bpe": 354,
+      "receipts": {
+        "v1_present": true,
+        "v2_present": true,
+        "base_present": true,
+        "supersession_edges_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c08-disp-queue-drain-deadline",
+      "cluster": "c08",
+      "ptype": "displacement",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 1182,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c08-disp-queue-drain-deadline",
+      "cluster": "c08",
+      "ptype": "displacement",
+      "arm": "ctx-warn",
+      "context_bpe": 1182,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c08-fa-migration-lock-protocol",
+      "cluster": "c08",
+      "ptype": "false-alarm",
+      "arm": "ctx-nowarn-padded",
+      "context_bpe": 829,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": 0,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    },
+    {
+      "probe_id": "c08-fa-migration-lock-protocol",
+      "cluster": "c08",
+      "ptype": "false-alarm",
+      "arm": "ctx-warn",
+      "context_bpe": 829,
+      "receipts": {
+        "expected_present": true
+      },
+      "pad_delta": null,
+      "excluded": false,
+      "answer": null,
+      "correct": null,
+      "flagged": null
+    }
+  ]
+}
