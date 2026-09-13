@@ -466,7 +466,7 @@ def test_checkpoint_receipt_stamps_extractor_and_redaction_versions(
                    as_of="2026-08-09")
     row = json.loads((out / "checkpoints.jsonl").read_text(
         encoding="utf-8").splitlines()[-1])
-    assert factid.EXTRACTOR_VERSION == "tp/1.4"
+    assert factid.EXTRACTOR_VERSION == "tp/1.5"
     assert REDACTION_VERSION == "redact/v2"
     assert row["extractor"] == factid.EXTRACTOR_VERSION
     assert row["redaction"] == REDACTION_VERSION

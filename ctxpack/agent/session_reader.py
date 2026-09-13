@@ -350,8 +350,13 @@ def load_supersession(ledger_dir: str):
     return edges, build_graph(edges)
 
 
+# DI-01/DI-R2: literal-exact (case/punctuation-preserving) outranks the
+# case-folded normalized fallback, which outranks a broad substring hit. So a
+# cross-session query for one spelling recovers THAT spelling before recency
+# can surface a case variant. `value_normalized` is the explicitly-labelled
+# fallback — a case-folded hit is never labelled `value_exact`.
 _MATCH_TIER = {"section_name": 0, "field_key": 1,
-               "value_exact": 2, "value_substring": 3}
+               "value_exact": 2, "value_normalized": 3, "value_substring": 4}
 _WHY_MAX_MATCHES = 25
 
 _CHAIN_NOTE = ("A SUPERSEDED-<KEY> chain reads oldest -> newest; the "
@@ -410,12 +415,28 @@ def _why_matches(doc: CTXDocument,
                     _hit(s, "field_key", {"key": c.key, "value": _scoped(c.value)})
                     break
 
+    # value_exact: case/punctuation-preserving match — the literal-exact
+    # recovery tier (DI-01/DI-R2). A case-distinct spelling recovers ITSELF,
+    # never a variant, and outranks the normalized fallback below.
+    if not matches:
+        needle_raw = key.strip()
+        for s in _sections(doc):
+            for c in s.children:
+                if isinstance(c, KeyValue) and c.value.strip() == needle_raw:
+                    _hit(s, "value_exact",
+                         {"key": c.key, "value": _scoped(c.value)})
+                    break
+
+    # value_normalized: case-folded fallback (explicitly labelled — a
+    # case-folded hit is NEVER reported as exact). Fires only when no
+    # case-preserving match exists; search normalization is a recall
+    # convenience, never an identity/alias rule.
     if not matches:
         for s in _sections(doc):
             for c in s.children:
                 if (isinstance(c, KeyValue)
                         and c.value.strip().lower() == needle_lower):
-                    _hit(s, "value_exact",
+                    _hit(s, "value_normalized",
                          {"key": c.key, "value": _scoped(c.value)})
                     break
 

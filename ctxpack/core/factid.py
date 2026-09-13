@@ -37,7 +37,17 @@ _EDGE_PUNCT = " \t\r\n.,:;!?\"'`*_-—"
 # unchanged by construction (identity is content-addressed on the full
 # admitted sentence, which these changes do not alter — golden-pinned in
 # tests/test_capture_fidelity.py).
-EXTRACTOR_VERSION = "tp/1.4"
+# tp/1.5 (2026-09-13, DI-01): LITERAL extraction output changed — literal
+# entity NAMES are now case-preserving (_exact_short_hash) and literal
+# identity routes to exact_fact_id (64-hex, ctx-exact/v1) instead of the
+# legacy 16-hex fact_id, so the SAME transcript yields different literal
+# entity names + ids than tp/1.4. This is EXTRACTION PROVENANCE and is
+# deliberately SEPARATE from the identity namespace version
+# (EXACT_IDENTITY_NAMESPACE): a future extractor bump must not, by itself,
+# change an exact id, and an exact-namespace bump must not, by itself, be
+# read as a new extractor. Historical records keep their own stamp; a
+# tp/1.4 record is NOT assumed to carry exact ids.
+EXTRACTOR_VERSION = "tp/1.5"
 
 # rank = fold(events, policy); v0 is today's behavior — static
 # extraction-time priors, no updates. Recorded in every checkpoint

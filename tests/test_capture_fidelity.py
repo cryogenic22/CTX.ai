@@ -547,4 +547,4 @@ def test_r5_extractor_version_bumped_for_capture_output_change():
     so the provenance version must move (factid.py rule). Identity is
     unaffected — the golden pin still holds. RED on the pre-bump tree
     (tp/1.3)."""
-    assert factid.EXTRACTOR_VERSION == "tp/1.4"
+    assert factid.EXTRACTOR_VERSION == "tp/1.5"
