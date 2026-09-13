@@ -8,6 +8,7 @@ an old population as current. All fixtures synthetic.
 """
 
 import json
+import os
 
 import pytest
 
@@ -152,14 +153,22 @@ def test_save_cohort_preserves_external_entries(tmp_path):
 
 def test_duplicate_and_aliased_repo_paths_are_a_controlled_failure(
         tmp_path, capsys):
-    """A repo listed twice — including under a case-variant spelling on
-    Windows — would be double-counted. Generation refuses."""
+    """A repo listed twice would be double-counted; generation refuses.
+    The SAME path twice is a canonical-path collision on every platform; a
+    case-variant spelling aliases the same repo only where os.path.normcase
+    folds case (Windows) — on case-sensitive POSIX it is a different repo."""
     repo = _repo(tmp_path, "repo_a", "aaaaaaaa-1")
     out = tmp_path / "cards"
-    rc = main(["scorecard", "--repos", str(repo), str(repo).upper(),
-               "--out", str(out)])
+    # same path listed twice — a collision on ALL platforms
+    rc = main(["scorecard", "--repos", str(repo), str(repo), "--out", str(out)])
     assert rc == 1
     assert "canonical-path collision" in capsys.readouterr().err
+    if os.name == "nt":
+        # a case-variant spelling collides only where normcase folds case
+        rc = main(["scorecard", "--repos", str(repo), str(repo).upper(),
+                   "--out", str(out)])
+        assert rc == 1
+        assert "canonical-path collision" in capsys.readouterr().err
 
 
 def test_malformed_cohort_config_is_a_controlled_failure(

@@ -200,9 +200,16 @@ def test_rf2_cli_read_failure_emits_bounded_code_no_secret(
     monkeypatch.setattr(f"ctxpack.agent.session_reader.{target}", boom)
     out = tmp_path / "ctx"
     out.mkdir()
-    argv = ["session", action, "--ledger", str(out)]
+    # Put the positional (key) directly after the action, BEFORE --ledger:
+    # on Python 3.10 argparse cannot match a positional that is split from
+    # its sibling by an option-with-value (`session why --ledger X key` ->
+    # "unrecognized arguments"), a limitation lifted in 3.11. This order
+    # parses identically on all supported Pythons; the RF2 assertions below
+    # (bounded code, no secret, rc=1) are unchanged.
+    argv = ["session", action]
     if action in ("why", "graph"):
         argv.append("somekey")
+    argv += ["--ledger", str(out)]
     rc = main(argv)
     cap = capsys.readouterr()
     assert rc == 1

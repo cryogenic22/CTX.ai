@@ -97,11 +97,21 @@ def test_enrich_salt_separates_streams():
 
 
 def test_munge_matches_claude_code_rule():
-    # observed ground truth from ~/.claude/projects on this machine
-    assert munge_project_dir(r"C:\Users\kapil\Documents\CTX_mod") \
-        == "C--Users-kapil-Documents-CTX-mod"
-    assert munge_project_dir(r"C:\Users\kapil\Documents\Content_medical_hub") \
-        == "C--Users-kapil-Documents-Content-medical-hub"
+    # Claude Code's project-store key = os.path.abspath(path) with every
+    # non-alphanumeric replaced by '-'. The abspath step is platform-dependent
+    # (a Windows drive path is relative on POSIX and vice-versa), so assert the
+    # rule against a path already absolute on the running platform. Observed
+    # ground truth on Windows; the POSIX equivalent on Linux/macOS.
+    if os.name == "nt":
+        assert munge_project_dir(r"C:\Users\kapil\Documents\CTX_mod") \
+            == "C--Users-kapil-Documents-CTX-mod"
+        assert munge_project_dir(r"C:\Users\kapil\Documents\Content_medical_hub") \
+            == "C--Users-kapil-Documents-Content-medical-hub"
+    else:
+        assert munge_project_dir("/Users/kapil/Documents/CTX_mod") \
+            == "-Users-kapil-Documents-CTX-mod"
+        assert munge_project_dir("/home/kapil/Documents/Content_medical_hub") \
+            == "-home-kapil-Documents-Content-medical-hub"
 
 
 # ------------------------------------------------- transcript inspection

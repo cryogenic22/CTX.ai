@@ -1,6 +1,7 @@
 """Resume-probe harness (Layer 2) — generation, grading, arm mechanics."""
 
 import json
+import os
 
 from ctxpack.agent.checkpoint import run_checkpoint
 from ctxpack.benchmarks.agentic.resume_probe import (
@@ -78,8 +79,15 @@ def test_ctx_arm_includes_source_session_literals(tmp_path):
 
 
 def test_mangle_project_dir_matches_claude_code():
-    assert _mangle_project_dir(r"C:\Users\kapil\Documents\CTX_mod") == \
-        "C--Users-kapil-Documents-CTX-mod"
+    # os.path.abspath(repo_path) with non-alphanumerics -> '-' (hyphens kept).
+    # abspath is platform-dependent, so assert against a path already absolute
+    # on the running platform (Windows ground truth; POSIX equivalent).
+    if os.name == "nt":
+        assert _mangle_project_dir(r"C:\Users\kapil\Documents\CTX_mod") == \
+            "C--Users-kapil-Documents-CTX-mod"
+    else:
+        assert _mangle_project_dir("/Users/kapil/Documents/CTX_mod") == \
+            "-Users-kapil-Documents-CTX-mod"
 
 
 def _ambiguous_ledger(tmp_path):
