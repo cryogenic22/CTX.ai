@@ -57,7 +57,36 @@ def test_gate_allows_author_attribution(tmp_path):
     assert gate_main(str(tmp_path)) == 0
 
 
+def test_gate_scans_declared_readme(tmp_path):
+    # rc1 FINAL review: the pyproject-declared distribution readme (root
+    # README.md) is shipped as the long-description and MUST be scanned, not
+    # just docs/. An owner path there must fail even when docs/ is clean.
+    _write(tmp_path, "pyproject.toml",
+           '[project]\nname = "x"\nreadme = "README.md"\n')
+    _write(tmp_path, "docs/ok.md", "clean content\n")
+    _write(tmp_path, "README.md",
+           "install: pip install -e C:\\Users\\kapil\\Documents\\CTX_mod\n")
+    assert gate_main(str(tmp_path)) == 1, (
+        "an owner path in the declared distribution readme must fail the gate")
+
+
+def test_gate_fails_when_declared_readme_missing(tmp_path):
+    # rc1 FINAL review (non-vacuous): a declared readme that does not exist on
+    # disk is a release defect, not a clean scan.
+    _write(tmp_path, "pyproject.toml",
+           '[project]\nname = "x"\nreadme = "README.md"\n')
+    _write(tmp_path, "docs/ok.md", "clean content\n")
+    assert gate_main(str(tmp_path)) == 1
+
+
+def test_gate_is_not_vacuous_with_no_shipped_docs(tmp_path):
+    # rc1 FINAL review (non-vacuous): nothing to scan (no readme, no docs/)
+    # must FAIL rather than pass green vacuously.
+    assert gate_main(str(tmp_path)) == 1
+
+
 def test_gate_passes_on_real_shipped_docs():
-    # regression pin: the real docs/ tree is clean after the Finding-3 fix.
+    # regression pin: the real shipped-doc surface (declared README + docs/)
+    # is clean after the Finding-3 fix.
     assert gate_main(str(REPO)) == 0, (
-        "a shipped doc under docs/ embeds a machine-specific owner path")
+        "a shipped doc (README or docs/) embeds a machine-specific owner path")

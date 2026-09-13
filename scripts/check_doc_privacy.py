@@ -4,12 +4,20 @@
 Finding 3 (rc1 review, 2026-09-13): the upgrade guide shipped an editable-
 install example embedding ``C:\\Users\\kapil\\Documents\\CTX_mod`` — a machine-
 specific owner path, contrary to the program's artifact/privacy hygiene. This
-gate scans every shipped doc under ``docs/`` and FAILS (exit 1) on any
-machine-USER path leak, so that exact class cannot recur in shipped docs.
+gate scans every shipped doc and FAILS (exit 1) on any machine-USER path leak,
+so that exact class cannot recur in shipped docs.
 
-Scope: ``docs/**/*.md`` — the externally-distributed documentation tree. The
-repo-private ledger (``.claude/ctx/``), frozen test fixtures, research papers,
-and benchmark corpora are NOT shipped documentation and are out of scope.
+Scope (rc1 FINAL review, 2026-09-13): the shipped documentation surface is
+  * the pyproject ``[project].readme`` — the distribution readme that ships as
+    the package long-description (root ``README.md`` here), AND
+  * ``docs/**/*.md`` — the externally-distributed documentation tree.
+The repo-private ledger (``.claude/ctx/``), frozen test fixtures, research
+papers, and benchmark corpora are NOT shipped documentation and are out of
+scope.
+
+Non-vacuous (rc1 FINAL review): a declared distribution readme that is MISSING
+fails the gate, and a run that finds NOTHING to scan (no readme, no docs/)
+fails rather than passing green vacuously.
 
 Detection reuses the ONE strict matcher (``ctxpack/core/artifact_privacy``),
 never a second copy (see ``.claude/rules/anti-slop.md``). It fails on the
@@ -29,6 +37,7 @@ Stdlib + the shared matcher only.
 from __future__ import annotations
 
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -55,6 +64,19 @@ def scan_doc(path: str) -> "list[tuple[str, str]]":
             if cat in BLOCKING_CATEGORIES]
 
 
+def declared_readme(root: str) -> "str | None":
+    """The distribution readme declared in pyproject ``[project].readme``
+    (it ships as the package long-description), or None if not declared."""
+    pp = os.path.join(root, "pyproject.toml")
+    if not os.path.exists(pp):
+        return None
+    with open(pp, encoding="utf-8") as f:
+        txt = f.read()
+    # `readme = "README.md"` — the string form this project uses.
+    m = re.search(r'(?m)^\s*readme\s*=\s*"([^"]+)"', txt)
+    return m.group(1) if m else None
+
+
 def _iter_docs(root: str) -> "list[str]":
     docs_dir = os.path.join(root, "docs")
     found: "list[str]" = []
@@ -65,9 +87,38 @@ def _iter_docs(root: str) -> "list[str]":
     return sorted(found)
 
 
+def shipped_docs(root: str) -> "list[str]":
+    """Every shipped documentation file: the declared distribution readme
+    (if present on disk) PLUS ``docs/**/*.md``."""
+    paths = _iter_docs(root)
+    readme = declared_readme(root)
+    if readme:
+        rp = os.path.join(root, readme)
+        if os.path.exists(rp):
+            paths.insert(0, rp)
+    return paths
+
+
 def main(root: str = ".") -> int:
+    # Non-vacuous #1: a DECLARED distribution readme must exist — a missing
+    # one is a release defect, not a clean scan.
+    readme = declared_readme(root)
+    if readme is not None and not os.path.exists(os.path.join(root, readme)):
+        print(f"doc-privacy gate FAIL: declared distribution readme {readme!r} "
+              f"(pyproject [project].readme) is missing", file=sys.stderr)
+        return 1
+
+    paths = shipped_docs(root)
+    # Non-vacuous #2: refuse to pass when there is nothing to scan (docs/
+    # deleted and no readme) rather than green vacuously.
+    if not paths:
+        print("doc-privacy gate FAIL: no shipped docs found to scan "
+              "(no pyproject readme, no docs/**/*.md) - refusing to pass "
+              "vacuously", file=sys.stderr)
+        return 1
+
     problems: "list[str]" = []
-    for path in _iter_docs(root):
+    for path in paths:
         for cat, detail in scan_doc(path):
             rel = os.path.relpath(path, root).replace(os.sep, "/")
             problems.append(f"{rel}: {cat} - {detail!r}")
@@ -78,7 +129,7 @@ def main(root: str = ".") -> int:
               f"path(s) in shipped docs - use a neutral example",
               file=sys.stderr)
         return 1
-    print("doc-privacy gate: OK")
+    print(f"doc-privacy gate: OK ({len(paths)} shipped doc(s) scanned)")
     return 0
 
 
