@@ -98,8 +98,12 @@ _SUPERSEDES_MARKER_RE = re.compile(
     r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
     r"supersedes(?:\*{1,2}|_{1,2})?\s*:\s*"
 )
+# A fact_id target is a legacy 16-hex id OR a DI-01 exact 64-hex id (a decision
+# may supersede a fact identified by an exact literal). 64 is tried first so a
+# full exact id is captured whole; a 40-hex git sha or any other length stays
+# unmatched → the payload is ignored (fail-closed: the conflict stays visible).
 _SUPERSEDES_PAYLOAD_RE = re.compile(
-    r"[`']?([0-9a-fA-F]{16})\b[`']?\s*(?:[—–\-:,]\s*)?(.*)")
+    r"[`']?([0-9a-fA-F]{64}|[0-9a-fA-F]{16})\b[`']?\s*(?:[—–\-:,]\s*)?(.*)")
 
 # Memory-incident telemetry: the explicit "ctx-incident:" convention —
 # the ledger's own feedback loop (did ctx save/miss/mislead?). Same

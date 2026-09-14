@@ -128,6 +128,46 @@ def test_superseded_fact_demoted_in_rank_fold(tmp_path):
         rank.CONSTRAINT_FLOOR, abs=rank.RECENCY_EPSILON)
 
 
+def test_di01_supersedes_payload_regex_accepts_16_or_64_hex_only():
+    """AC3 (tight can-fail): the Supersedes payload regex captures a legacy
+    16-hex OR a DI-01 exact 64-hex id whole, and NOTHING in between — a 40-hex
+    git sha and a 65-hex blob stay unmatched (fail-closed, no weakening). Red
+    on the pre-AC3 ``{16}`` pattern for the 64-hex case."""
+    from ctxpack.agent.transcript_parser import _SUPERSEDES_PAYLOAD_RE as RE
+    id16, id64 = "a" * 16, "b" * 64
+    m16 = RE.match(f"{id16} — legacy reason")
+    assert m16 and m16.group(1) == id16 and "legacy reason" in m16.group(2)
+    m64 = RE.match(f"{id64} — exact-literal reason")
+    assert m64 and m64.group(1) == id64 and "exact-literal reason" in m64.group(2)
+    # not a fact_id length → no capture at all
+    assert RE.match("a" * 40 + " — git sha") is None
+    assert RE.match("a" * 65 + " — too long") is None
+    assert RE.match("a" * 17 + " — typo") is None
+
+
+def test_di01_supersedes_accepts_exact_64hex_target(tmp_path):
+    """AC3: a decision may declare it supersedes a fact identified by a DI-01
+    exact literal id (64-hex) — the payload is captured and a fact_superseded
+    event carries it. Before AC3 the ``{16}`` regex silently dropped every
+    64-hex target. A 40-hex git sha in a Supersedes line is not a fact_id and
+    produces NO supersession (fail-closed, no weakening)."""
+    from ctxpack.core.factid import exact_fact_id
+    out = tmp_path / "ctx"
+    target64 = exact_fact_id("LITERAL", "CACHE_TTL", key="literal")
+    assert len(target64) == 64
+    text = ("Decision: rename the cache knob for clarity.\n"
+            f"Supersedes: {target64} — CACHE_TTL replaced CacheTtl.")
+    run_checkpoint(_session_b(tmp_path, text), str(out), as_of="2026-07-06")
+    superseded = [r for r in _events(out) if r["event"] == "fact_superseded"]
+    assert any(r["fact_id"] == target64 for r in superseded)
+
+    out2 = tmp_path / "ctx2"
+    text2 = ("Decision: pin the dependency.\n"
+             f"Supersedes: {'a' * 40} — bumped the lockfile.")
+    run_checkpoint(_session_b(tmp_path, text2), str(out2), as_of="2026-07-06")
+    assert not any(r["event"] == "fact_superseded" for r in _events(out2))
+
+
 # ------------------------------------------------- precision guards
 
 
