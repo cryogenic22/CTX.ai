@@ -27,6 +27,7 @@ import re
 from typing import Any, Optional
 
 from ..core.errors import ParseError
+from ..core.factid import fact_id as _legacy_fact_id
 from ..core.hydrator import hydrate_by_name, hydrate_by_query, list_sections
 from ..core.model import CTXDocument, KeyValue, Section
 from ..core.parser import parse
@@ -365,6 +366,132 @@ _FORK_NOTE = ("An unresolved supersession fork touches this key — two or "
               "more current values compete. Surface both; do not silently "
               "pick one.")
 
+# 16-hex legacy fact-id shape — the pre-DI-01 identity width (sha1[:16]).
+# A DI-01 exact id is 64-hex, so this only ever names a legacy id.
+_HEX16_RE = re.compile(r"(?i)^[0-9a-f]{16}$")
+
+_LEGACY_ALIAS_NOTE = (
+    "Resolved from a legacy 16-hex id via the rebuildable legacy->exact "
+    "alias map (recomputed from banked literals; never persisted). The "
+    "matched fact's current identity is its 64-hex exact id.")
+
+
+def _section_fields(s: Section) -> "list[dict[str, str]]":
+    return [{"key": c.key, "value": _scoped(c.value)}
+            for c in s.children if isinstance(c, KeyValue)]
+
+
+def _section_chains(s: Section) -> "list[dict[str, str]]":
+    return [{"key": c.key, "chain": _scoped(c.value)}
+            for c in s.children if isinstance(c, KeyValue)
+            and c.key.upper().startswith("SUPERSEDED-")]
+
+
+def _match_dict(s: Section, matched_on: str,
+                field: "Optional[dict]" = None) -> "dict[str, Any]":
+    """The why-match record for a section. Shared by the ``_why_matches``
+    cascade and the legacy-alias resolver, so both emit ONE match shape."""
+    return {"section": s.name, "kind": _kind_of(s), "turn": _turn_of(s),
+            "matched_on": matched_on, "field": field,
+            "fields": _section_fields(s),
+            "superseded_chains": _section_chains(s)}
+
+
+def _literal_legacy_id(subtype: str, value: str) -> str:
+    """The legacy 16-hex id a LITERAL WOULD have had before DI-01 exact
+    identity — recomputed from the SAME ``("LITERAL", key=subtype, value)``
+    tuple ``_add_literals`` feeds ``fact_id()``. The alias key is the literal
+    SUBTYPE, matching the extractor's identity tuple. Rebuildable, never
+    persisted."""
+    return _legacy_fact_id("LITERAL", value, key=subtype)
+
+
+def _resolve_legacy_alias(
+        key: str,
+        session_docs: "list[tuple[str, CTXDocument]]",
+        ) -> "Optional[tuple[str, Any]]":
+    """AC3 (DI-01): resolve a legacy 16-hex literal id to its exact fact(s)
+    via the rebuildable legacy->exact alias map.
+
+    Case/punctuation-distinct literals (``CACHE_TTL`` vs ``cache_ttl``) share
+    ONE legacy id but are DISTINCT exact facts, so a legacy id can map to many
+    exact facts. Returns:
+
+    - ``None`` — ``key`` is not a 16-hex id, or maps to no banked literal;
+    - ``("resolved", [match])`` — exactly ONE exact literal: legacy ids stay
+      lookupable;
+    - ``("ambiguous", info)`` — MORE than one: an EXPLICIT ambiguity report
+      listing every candidate exact id/value, never a guessed successor.
+
+    Built over the FULL literal set, so ambiguity is detected BEFORE any
+    caller applies a result cap. Pure/read-only: it never mutates a match, a
+    stored record, or an incident link, and never invents a mapping for a
+    missing/malformed literal (it is simply omitted)."""
+    needle = key.strip().lower()
+    if not _HEX16_RE.match(needle):
+        return None
+    # keyed by exact id so the same literal banked across sessions counts once;
+    # deterministic candidate order comes from sorting the keys below.
+    exacts: "dict[str, dict[str, Any]]" = {}
+    for session, doc in session_docs:
+        for s in _sections(doc):
+            if _kind_of(s) != "LITERAL":
+                continue
+            value = _kv(s, "VALUE")
+            exact_fid = _kv(s, "FACT-ID")
+            if not value or not exact_fid or exact_fid in exacts:
+                continue
+            if _literal_legacy_id(_kv(s, "KIND"), value) != needle:
+                continue
+            m = _match_dict(s, "legacy_alias")
+            m["session"] = session
+            m["legacy_fact_id"] = needle
+            m["exact_fact_id"] = exact_fid
+            m["_value"] = value
+            m["_subtype"] = _kv(s, "KIND")
+            exacts[exact_fid] = m
+    if not exacts:
+        return None
+    if len(exacts) == 1:
+        m = next(iter(exacts.values()))
+        m.pop("_value", None)
+        m.pop("_subtype", None)
+        return ("resolved", [m])
+    candidates = [
+        {"exact_fact_id": fid, "value": _scoped(m["_value"]),
+         "subtype": m["_subtype"], "session": m["session"], "turn": m["turn"]}
+        for fid, m in sorted(exacts.items())]
+    return ("ambiguous", {"legacy_fact_id": needle,
+                          "candidate_count": len(candidates),
+                          "candidates": candidates})
+
+
+def _alias_why_result(alias: "tuple[str, Any]",
+                      ledger_dir: "Optional[str]") -> "dict[str, Any]":
+    """Fold a ``_resolve_legacy_alias`` outcome into the shared why-result
+    fields (both single- and cross-session ``why`` merge their own scope
+    keys). A resolved alias is annotated exactly like a direct match; an
+    ambiguous one returns NO match and never a guessed successor."""
+    kind, payload = alias
+    if kind == "resolved":
+        matches = payload
+        forked = _annotate_supersession(matches, ledger_dir)
+        journal = _annotate_authority(matches, ledger_dir)
+        out = {"matches": matches, "found": True,
+               **_ratification_journal_block(journal),
+               "count": len(matches), "matched_via": "legacy_alias",
+               "note": _LEGACY_ALIAS_NOTE}
+        if forked:
+            out["has_conflict"] = True
+        return out
+    return {"matches": [], "found": False,
+            "legacy_alias_ambiguous": True, **payload,
+            "note": ("This legacy 16-hex id maps to "
+                     f"{payload['candidate_count']} distinct exact facts "
+                     "(case/punctuation variants that normalized to one "
+                     "legacy id). Reported as ambiguous — no single successor "
+                     "is guessed. Recover a specific fact by its 64-hex id.")}
+
 
 def _why_matches(doc: CTXDocument,
                  key: str) -> "tuple[list[dict[str, Any]], int, int]":
@@ -378,26 +505,8 @@ def _why_matches(doc: CTXDocument,
     needle_lower = key.strip().lower()
     matches: list[dict[str, Any]] = []
 
-    def _fields_of(s: Section) -> list[dict[str, str]]:
-        return [{"key": c.key, "value": _scoped(c.value)}
-                for c in s.children if isinstance(c, KeyValue)]
-
-    def _chains_of(s: Section) -> list[dict[str, str]]:
-        return [{"key": c.key, "chain": _scoped(c.value)}
-                for c in s.children
-                if isinstance(c, KeyValue)
-                and c.key.upper().startswith("SUPERSEDED-")]
-
     def _hit(s: Section, matched_on: str, field: Optional[dict] = None) -> None:
-        matches.append({
-            "section": s.name,
-            "kind": _kind_of(s),
-            "turn": _turn_of(s),
-            "matched_on": matched_on,
-            "field": field,
-            "fields": _fields_of(s),
-            "superseded_chains": _chains_of(s),
-        })
+        matches.append(_match_dict(s, matched_on, field))
 
     for s in _sections(doc):
         s_name = s.name.upper()
@@ -501,6 +610,14 @@ def session_why(doc: CTXDocument, sid: str, key: str,
                 "error": "key is required"}
     matches, searched, max_turn = _why_matches(doc, key)
     if not matches:
+        # AC3: a legacy 16-hex literal id stays lookupable via the rebuildable
+        # legacy->exact alias map; a one-to-many legacy id reports explicit
+        # ambiguity (never a guessed successor) BEFORE any absence claim.
+        alias = _resolve_legacy_alias(key, [(sid, doc)])
+        if alias is not None:
+            return {"session": sid, "key": key,
+                    "searched_entities": searched, "as_of_turn": max_turn,
+                    **_alias_why_result(alias, ledger_dir)}
         # Spec v1.1 §7: asserted, auditable absence
         return {"session": sid, "key": key, "matches": [], "count": 0,
                 "found": False, "searched_entities": searched,
@@ -556,6 +673,11 @@ def session_why_across(ledger_dir: str = DEFAULT_LEDGER_DIR, key: str = "",
     collected: list[dict[str, Any]] = []
     searched = 0
     max_turn = 0
+    # AC3: retain docs ONLY for a legacy-id-shaped query, so the alias map can
+    # be built across the whole ledger in this one pass if the direct search
+    # comes up empty (a normal query never pays this memory).
+    key_is_legacy = bool(_HEX16_RE.match(key.strip().lower()))
+    session_docs: "list[tuple[str, CTXDocument]]" = []
     for idx, sid in enumerate(order):
         try:
             doc, rsid = load_session(ledger_dir, sid)
@@ -571,8 +693,20 @@ def session_why_across(ledger_dir: str = DEFAULT_LEDGER_DIR, key: str = "",
             collected.append(m)
         searched += n
         max_turn = max(max_turn, mt)
+        if key_is_legacy:
+            session_docs.append((rsid, doc))
 
     if not collected:
+        # AC3: legacy 16-hex literal ids stay lookupable, and a one-to-many
+        # legacy id reports EXPLICIT ambiguity computed over the FULL literal
+        # set — detected here, before any max_matches cap, so a cap can never
+        # collapse ambiguity to one guessed successor.
+        alias = (_resolve_legacy_alias(key, session_docs)
+                 if key_is_legacy else None)
+        if alias is not None:
+            return {"key": key, "sessions_searched": len(order),
+                    "searched_entities": searched, "as_of_turn": max_turn,
+                    **_alias_why_result(alias, ledger_dir)}
         return {"key": key, "matches": [], "count": 0, "found": False,
                 "sessions_searched": len(order),
                 "searched_entities": searched, "as_of_turn": max_turn,
