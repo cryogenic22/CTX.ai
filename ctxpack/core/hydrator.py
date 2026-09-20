@@ -10,6 +10,7 @@ This module implements WS4 of the v0.4.0 backlog.
 from __future__ import annotations
 
 import hashlib
+import math
 import re
 import time
 from dataclasses import dataclass, field
@@ -241,6 +242,33 @@ def hydrate_by_name(
     return result
 
 
+# Suffix order matters: longest first, so "ization" wins over "ion".
+_STEM_SUFFIXES = ("ization", "isation", "ations", "ation", "ingly", "ing",
+                  "edly", "ed", "ies", "ily", "ly", "es", "s")
+
+
+def _stem(token: str) -> str:
+    """Strip a common English suffix, leaving at least a 4-character root.
+
+    Deliberately conservative: it exists so "emission" and "emitting" can
+    match a rule that says "emitting", not to be a linguistics engine.
+    """
+    for suffix in _STEM_SUFFIXES:
+        if token.endswith(suffix) and len(token) - len(suffix) >= 4:
+            root = token[: -len(suffix)]
+            return root + "y" if suffix == "ies" else root
+    return token
+
+
+def _idf(n_sections: int, doc_freq: int) -> float:
+    """Inverse document frequency over the sections of one document.
+
+    A term present in every section scores near zero, so common words stop
+    outranking distinctive ones without needing a hard-coded stopword list.
+    """
+    return math.log(1 + (n_sections - doc_freq + 0.5) / (doc_freq + 0.5))
+
+
 def hydrate_by_query(
     doc: CTXDocument,
     query: str,
@@ -262,7 +290,7 @@ def hydrate_by_query(
     Returns:
         HydrationResult with top-scoring sections.
     """
-    query_terms = set(_tokenize(query))
+    query_terms = {_stem(term) for term in _tokenize(query)}
     if not query_terms:
         return HydrationResult(
             sections=[],
@@ -273,17 +301,25 @@ def hydrate_by_query(
 
     all_sections = [elem for elem in doc.body if isinstance(elem, Section)]
 
+    # Term sets per section, then document frequency for IDF weighting.
+    # Without IDF a section matching "the" outranks one matching "telemetry".
+    section_terms = [
+        {_stem(term) for term in _tokenize(_extract_section_text(section))}
+        for section in all_sections
+    ]
+    doc_freq: dict[str, int] = {}
+    for terms in section_terms:
+        for term in terms:
+            doc_freq[term] = doc_freq.get(term, 0) + 1
+
     # Score each section
     scored: list[tuple[float, int, Section]] = []
     for idx, section in enumerate(all_sections):
-        section_text = _extract_section_text(section)
-        section_terms = set(_tokenize(section_text))
-
-        overlap = query_terms & section_terms
+        overlap = query_terms & section_terms[idx]
         if not overlap:
             continue
 
-        score = len(overlap) / len(query_terms)
+        score = sum(_idf(len(all_sections), doc_freq[term]) for term in overlap)
         scored.append((score, idx, section))
 
     # Sort by score descending, take top N
