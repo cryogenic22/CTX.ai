@@ -250,8 +250,11 @@ _STEM_SUFFIXES = ("ization", "isation", "ations", "ation", "ingly", "ing",
 def _stem(token: str) -> str:
     """Strip a common English suffix, leaving at least a 4-character root.
 
-    Deliberately conservative: it exists so "emission" and "emitting" can
-    match a rule that says "emitting", not to be a linguistics engine.
+    Inflectional only: plural -s, past -ed, gerund -ing and similar, so
+    "delivers" matches "delivered". Derivational pairs are NOT normalised -
+    "emission" and "emitting" keep different stems - and over-stemming is
+    possible ("proves" -> "prov" while "prove" is left alone). It is a
+    cheap recall aid, not a linguistics engine.
     """
     for suffix in _STEM_SUFFIXES:
         if token.endswith(suffix) and len(token) - len(suffix) >= 4:

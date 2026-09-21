@@ -40,13 +40,32 @@ def test_rare_term_survives_a_crowded_field_at_k5():
     assert "SIGNAL" in {s.name for s in result.sections}
 
 
-def test_morphological_variants_match():
-    """VIOLATION: exact-token matching misses emission/emitting."""
-    doc = _doc(("OTHER", COMMON),
-               ("TARGET", "Emitting context is not evidence an agent benefited."))
-    result = hydrate_by_query(doc, "gist emission proves the agent benefits",
-                              max_sections=1)
+def test_inflectional_variants_match():
+    """VIOLATION: without stemming the query shares no term with any section.
+
+    Isolated on purpose - "delivers"/"delivered" is the only overlap in the
+    document, so this cannot pass on an unrelated shared word. An earlier
+    version of this test claimed to cover "emission"/"emitting" but actually
+    passed on "agent"/"benefit"; see test_derivational_pairs_are_not_claimed
+    for what the stemmer genuinely does not do.
+    """
+    doc = _doc(("DECOY", "unrelated alpha beta gamma"),
+               ("TARGET", "the system delivered every payload"))
+    result = hydrate_by_query(doc, "delivers")
     assert [s.name for s in result.sections] == ["TARGET"]
+
+
+def test_derivational_pairs_are_not_claimed():
+    """Regression pin: the stemmer is inflectional only.
+
+    Pins the limitation so no future change can quietly claim derivational
+    coverage without a test that actually shows it.
+    """
+    from ctxpack.core.hydrator import _stem
+
+    assert _stem("delivers") == _stem("delivered")
+    assert _stem("emitting") == _stem("emitted")
+    assert _stem("emission") != _stem("emitting")
 
 
 def test_empty_query_still_returns_nothing():
