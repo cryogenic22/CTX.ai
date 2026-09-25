@@ -1,0 +1,48 @@
+# CTX protected surface — the success-definition surface
+#
+# Conservation-gates principle 1: "Separation of authorship — you do not edit
+# the bar to pass." Every path below defines what counts as success. Changing
+# one changes the bar, so it requires owner review.
+#
+# This file is the single source of truth. `scripts/gen_codeowners.py` renders
+# it into .github/CODEOWNERS; CI fails if the two drift, so the bar cannot be
+# quietly relocated. Real teeth come from branch protection: require CODEOWNERS
+# review and disallow self-approval.
+#
+# Format: one glob per line. Blank lines and #-comments ignored.
+# Order matters — CODEOWNERS applies the LAST matching rule.
+
+# --- Owner-authored doctrine -------------------------------------------------
+/CLAUDE.md
+/AGENTS.md
+/.claude/rules/
+
+# --- The gates themselves ----------------------------------------------------
+# A gate that the implementer can edit is not a gate.
+/scripts/check_claims.py
+/scripts/check_capability_registry.py
+/scripts/check_doc_privacy.py
+/scripts/check_release_manifest.py
+/scripts/gen_codeowners.py
+/scripts/check_pr_template.py
+
+# --- CI definition -----------------------------------------------------------
+/.github/workflows/
+/.github/CODEOWNERS
+/.github/pull_request_template.md
+
+# --- The protected surface itself --------------------------------------------
+/harness/structural-floor/
+
+# --- Preregistrations: amended only by commit BEFORE a scored run ------------
+/ctxpack/benchmarks/**/PREREGISTRATION*.md
+
+# --- Immutable evidence: new runs write new versioned files ------------------
+/ctxpack/benchmarks/**/results/
+
+# --- Non-negotiable invariant tests ------------------------------------------
+# Softening one of these silently removes a guarantee.
+/tests/test_p0_trust_repairs.py
+/tests/test_negation_preservation.py
+/tests/test_protected_surface_sync.py
+/tests/test_pr_template_gate.py
