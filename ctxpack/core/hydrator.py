@@ -13,6 +13,7 @@ import hashlib
 import math
 import re
 import time
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -263,13 +264,8 @@ def _stem(token: str) -> str:
     return token
 
 
-def _idf(n_sections: int, doc_freq: int) -> float:
-    """Inverse document frequency over the sections of one document.
-
-    A term present in every section scores near zero, so common words stop
-    outranking distinctive ones without needing a hard-coded stopword list.
-    """
-    return math.log(1 + (n_sections - doc_freq + 0.5) / (doc_freq + 0.5))
+_BM25_K1 = 1.5
+_BM25_B = 0.75
 
 
 def hydrate_by_query(
@@ -281,8 +277,9 @@ def hydrate_by_query(
 ) -> HydrationResult:
     """Keyword-based section retrieval for non-agentic (programmatic) use.
 
-    Scores sections by term overlap with the query. This is the fallback
-    path — LLM-as-router (hydrate_by_name) is preferred for agentic use.
+    Scores sections with deterministic, zero-dependency BM25. This is the
+    fallback path — LLM-as-router (hydrate_by_name) is preferred for agentic
+    use.
 
     Args:
         doc: Parsed CTXDocument.
@@ -304,25 +301,50 @@ def hydrate_by_query(
 
     all_sections = [elem for elem in doc.body if isinstance(elem, Section)]
 
-    # Term sets per section, then document frequency for IDF weighting.
-    # Without IDF a section matching "the" outranks one matching "telemetry".
-    section_terms = [
-        {_stem(term) for term in _tokenize(_extract_section_text(section))}
+    # Token sequences preserve frequency and length for BM25.  `_tokenize`
+    # remains shared with the benchmark comparator and is intentionally not
+    # changed here.
+    section_tokens = [
+        [_stem(term) for term in _tokenize(_extract_section_text(section))]
         for section in all_sections
     ]
-    doc_freq: dict[str, int] = {}
-    for terms in section_terms:
-        for term in terms:
-            doc_freq[term] = doc_freq.get(term, 0) + 1
+    if not section_tokens:
+        return HydrationResult(
+            sections=[],
+            tokens_injected=0,
+            sections_available=0,
+            header_text="",
+        )
+
+    doc_freq: Counter[str] = Counter()
+    for tokens in section_tokens:
+        doc_freq.update(set(tokens))
+    section_count = len(section_tokens)
+    average_length = sum(len(tokens) for tokens in section_tokens) / section_count
+
+    idf = {
+        term: math.log(1 + (section_count - doc_freq[term] + 0.5) /
+                       (doc_freq[term] + 0.5))
+        for term in query_terms
+    }
 
     # Score each section
     scored: list[tuple[float, int, Section]] = []
     for idx, section in enumerate(all_sections):
-        overlap = query_terms & section_terms[idx]
-        if not overlap:
+        frequencies = Counter(section_tokens[idx])
+        if not query_terms & frequencies.keys():
             continue
 
-        score = sum(_idf(len(all_sections), doc_freq[term]) for term in overlap)
+        length_norm = (
+            1 - _BM25_B
+            + _BM25_B * (len(section_tokens[idx]) / average_length)
+        )
+        score = sum(
+            idf[term] * frequency * (_BM25_K1 + 1)
+            / (frequency + _BM25_K1 * length_norm)
+            for term in query_terms
+            if (frequency := frequencies[term])
+        )
         scored.append((score, idx, section))
 
     # Sort by score descending, take top N
