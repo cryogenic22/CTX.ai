@@ -387,7 +387,7 @@ def find_transcript(repo_path: str, sid8: str) -> Optional[str]:
     return hits[0] if hits else None
 
 
-CTX_ARM_VERSION = "v2-session-literals"
+CTX_ARM_VERSION = "v3-bm25"
 
 
 def ctx_context(ledger_dir: str, probe: Probe, max_sections: int = 3) -> str:
@@ -720,7 +720,7 @@ def to_report(repo_path: str, probes: list[Probe],
                    "probe_set": probe_set,
                    "ctx_arm": CTX_ARM_VERSION,
                    "arm_notes": (
-                       "ctx arm v2 adds the source session's banked-"
+                       "ctx arm v3 uses BM25 keyword hydration and adds the source session's banked-"
                        "literals view (`ctxpack session literals`) to the "
                        "context — the pre-registered 2026-07-05 fix for "
                        "the baseline arm under-modeling the real read "

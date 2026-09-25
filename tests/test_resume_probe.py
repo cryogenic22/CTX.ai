@@ -5,6 +5,7 @@ import os
 
 from ctxpack.agent.checkpoint import run_checkpoint
 from ctxpack.benchmarks.agentic.resume_probe import (
+    CTX_ARM_VERSION,
     LITERAL_DISAMBIGUATION,
     Probe,
     _mangle_project_dir,
@@ -140,3 +141,13 @@ def test_report_config_stamps_disambiguation_policy(tmp_path):
     cfg = report["config"]
     assert cfg["literal_disambiguation"] == LITERAL_DISAMBIGUATION
     assert cfg["ambiguous_literals_skipped"] == 0  # disclosed even at 0
+
+
+def test_report_stamps_bm25_ctx_arm_version(tmp_path):
+    ledger = _ledger(tmp_path)
+    probes = generate_probes(ledger, n=5, seed=42)
+    report = to_report(str(tmp_path), probes, [], seed=42,
+                       model="none", probe_set="recall")
+    assert CTX_ARM_VERSION == "v3-bm25"
+    assert report["config"]["ctx_arm"] == CTX_ARM_VERSION
+    assert "BM25 keyword hydration" in report["config"]["arm_notes"]

@@ -10,14 +10,13 @@ This module implements WS4 of the v0.4.0 backlog.
 from __future__ import annotations
 
 import hashlib
-import math
 import re
 import time
-from collections import Counter
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
 from .layers import ContextLayer
+from .bm25 import score_bm25
 from .model import CTXDocument, KeyValue, NumberedItem, PlainLine, Provenance, Section
 from .serializer import serialize_section, _serialize_header_iter
 from .tokens import ESTIMATOR_CTX, estimate_tokens
@@ -264,10 +263,6 @@ def _stem(token: str) -> str:
     return token
 
 
-_BM25_K1 = 1.5
-_BM25_B = 0.75
-
-
 def hydrate_by_query(
     doc: CTXDocument,
     query: str,
@@ -316,35 +311,13 @@ def hydrate_by_query(
             header_text="",
         )
 
-    doc_freq: Counter[str] = Counter()
-    for tokens in section_tokens:
-        doc_freq.update(set(tokens))
-    section_count = len(section_tokens)
-    average_length = sum(len(tokens) for tokens in section_tokens) / section_count
-
-    idf = {
-        term: math.log(1 + (section_count - doc_freq[term] + 0.5) /
-                       (doc_freq[term] + 0.5))
-        for term in query_terms
-    }
-
     # Score each section
     scored: list[tuple[float, int, Section]] = []
-    for idx, section in enumerate(all_sections):
-        frequencies = Counter(section_tokens[idx])
-        if not query_terms & frequencies.keys():
+    for idx, (section, score) in enumerate(zip(
+        all_sections, score_bm25(list(query_terms), section_tokens)
+    )):
+        if score == 0.0:
             continue
-
-        length_norm = (
-            1 - _BM25_B
-            + _BM25_B * (len(section_tokens[idx]) / average_length)
-        )
-        score = sum(
-            idf[term] * frequency * (_BM25_K1 + 1)
-            / (frequency + _BM25_K1 * length_norm)
-            for term in query_terms
-            if (frequency := frequencies[term])
-        )
         scored.append((score, idx, section))
 
     # Sort by score descending, take top N
