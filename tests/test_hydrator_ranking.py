@@ -40,6 +40,26 @@ def test_rare_term_survives_a_crowded_field_at_k5():
     assert "SIGNAL" in {s.name for s in result.sections}
 
 
+def test_bm25_length_normalisation_penalises_verbose_section():
+    """VIOLATION: set-overlap ties and returns the first, verbose section."""
+    doc = _doc(
+        ("VERBOSE", "telemetry " + " ".join(f"filler{i}" for i in range(40))),
+        ("CONCISE", "telemetry"),
+    )
+    result = hydrate_by_query(doc, "telemetry", max_sections=1)
+    assert [s.name for s in result.sections] == ["CONCISE"]
+
+
+def test_bm25_term_frequency_breaks_set_overlap_tie():
+    """VIOLATION: set-overlap ties and returns the first, weaker section."""
+    doc = _doc(
+        ("DECOY", "telemetry alpha beta gamma delta"),
+        ("TARGET", "telemetry telemetry telemetry telemetry telemetry"),
+    )
+    result = hydrate_by_query(doc, "telemetry", max_sections=1)
+    assert [s.name for s in result.sections] == ["TARGET"]
+
+
 def test_inflectional_variants_match():
     """VIOLATION: without stemming the query shares no term with any section.
 

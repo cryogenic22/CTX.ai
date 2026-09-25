@@ -20,11 +20,10 @@ catalog.
 
 from __future__ import annotations
 
-import math
 import re
-from collections import Counter
 from typing import Iterable
 
+from ctxpack.core.bm25 import score_bm25
 from ctxpack.core.packer.ir import IREntity
 
 
@@ -53,10 +52,6 @@ def _tokenise(text: str) -> list[str]:
 
 
 # ── BM25 (single-document scoring at query time) ───────────────────────
-
-
-_BM25_K1 = 1.5
-_BM25_B = 0.75
 
 
 def compute_task_scores(
@@ -90,38 +85,8 @@ def compute_task_scores(
     if not docs:
         return {}
 
-    avg_len = sum(len(d) for _, d in docs) / len(docs)
-    # Document frequency
-    df: Counter[str] = Counter()
-    for _, toks in docs:
-        for t in set(toks):
-            df[t] += 1
-    n_docs = len(docs)
-
-    idf: dict[str, float] = {}
-    for term in set(query_tokens):
-        n_q = df.get(term, 0)
-        # BM25 IDF (with 0.5 smoothing). Clamp to ≥0 so common terms
-        # don't subtract.
-        val = math.log((n_docs - n_q + 0.5) / (n_q + 0.5) + 1)
-        idf[term] = max(0.0, val)
-
-    out: dict[str, float] = {}
-    for name, toks in docs:
-        if not toks:
-            out[name] = 0.0
-            continue
-        tf = Counter(toks)
-        doc_len = len(toks)
-        norm = 1 - _BM25_B + _BM25_B * (doc_len / avg_len if avg_len > 0 else 1.0)
-        score = 0.0
-        for term in query_tokens:
-            f = tf.get(term, 0)
-            if f == 0:
-                continue
-            score += idf[term] * f * (_BM25_K1 + 1) / (f + _BM25_K1 * norm)
-        out[name] = score
-    return out
+    scores = score_bm25(query_tokens, [tokens for _, tokens in docs])
+    return {name: score for (name, _), score in zip(docs, scores)}
 
 
 # ── Rank normalisation (§6.2 critical step) ────────────────────────────
