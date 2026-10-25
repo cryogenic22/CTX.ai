@@ -41,6 +41,13 @@ RATIFY = "ratify"
 REJECT = "reject"
 _ACTIONS = (RATIFY, REJECT)
 
+# A fact_id is either a legacy 16-hex id (:func:`ctxpack.core.factid.fact_id`)
+# or a DI-01 exact 64-hex id (:func:`ctxpack.core.factid.exact_fact_id`). Both
+# are ratifiable — an exact literal you can find via `why` you must be able to
+# ratify. Only EXACTLY those two lengths are accepted, never a range: a 40-hex
+# git sha or a 17-hex typo stays malformed (no weakening of the strict gate).
+_FACT_ID_LENS = (16, 64)
+
 
 def record_ratification(ledger_dir: str, fact_id: str, *,
                         action: str = RATIFY, note: str = "",
@@ -48,9 +55,9 @@ def record_ratification(ledger_dir: str, fact_id: str, *,
     """Append one ratification event. Raises on a malformed request —
     a ratification that cannot be recorded exactly must not happen."""
     fid = str(fact_id or "").strip().lower()
-    if not fid or len(fid) != 16 or any(c not in "0123456789abcdef"
-                                        for c in fid):
-        raise ValueError(f"not a 16-hex fact_id: {fact_id!r}")
+    if (not fid or len(fid) not in _FACT_ID_LENS
+            or any(c not in "0123456789abcdef" for c in fid)):
+        raise ValueError(f"not a 16- or 64-hex fact_id: {fact_id!r}")
     if action not in _ACTIONS:
         raise ValueError(f"action must be one of {_ACTIONS}: {action!r}")
     if not isinstance(by, str) or not by.strip():
@@ -84,8 +91,8 @@ def record_ratification(ledger_dir: str, fact_id: str, *,
 def _row_is_valid(row) -> "tuple[str, str] | None":
     """``(fact_id, action)`` for a complete, schema-correct row; else
     ``None``. Strict by design (TM-3, tightened in the 2026-08-09
-    re-review): schema string, 16-hex id, known action, ISO-8601 ``ts``
-    and a non-empty ``by`` actor — a row that cannot be read EXACTLY,
+    re-review): schema string, 16- or 64-hex id, known action, ISO-8601
+    ``ts`` and a non-empty ``by`` actor — a row that cannot be read EXACTLY,
     including WHEN it happened and through WHICH path, confers nothing
     and taints the journal."""
     if not isinstance(row, dict):
@@ -94,7 +101,8 @@ def _row_is_valid(row) -> "tuple[str, str] | None":
         return None
     fid = str(row.get("fact_id") or "").lower()
     action = str(row.get("action") or "")
-    if len(fid) != 16 or any(c not in "0123456789abcdef" for c in fid):
+    if len(fid) not in _FACT_ID_LENS or any(
+            c not in "0123456789abcdef" for c in fid):
         return None
     if action not in _ACTIONS:
         return None

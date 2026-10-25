@@ -37,7 +37,17 @@ _EDGE_PUNCT = " \t\r\n.,:;!?\"'`*_-—"
 # unchanged by construction (identity is content-addressed on the full
 # admitted sentence, which these changes do not alter — golden-pinned in
 # tests/test_capture_fidelity.py).
-EXTRACTOR_VERSION = "tp/1.4"
+# tp/1.5 (2026-09-13, DI-01): LITERAL extraction output changed — literal
+# entity NAMES are now case-preserving (_exact_short_hash) and literal
+# identity routes to exact_fact_id (64-hex, ctx-exact/v1) instead of the
+# legacy 16-hex fact_id, so the SAME transcript yields different literal
+# entity names + ids than tp/1.4. This is EXTRACTION PROVENANCE and is
+# deliberately SEPARATE from the identity namespace version
+# (EXACT_IDENTITY_NAMESPACE): a future extractor bump must not, by itself,
+# change an exact id, and an exact-namespace bump must not, by itself, be
+# read as a new extractor. Historical records keep their own stamp; a
+# tp/1.4 record is NOT assumed to carry exact ids.
+EXTRACTOR_VERSION = "tp/1.5"
 
 # rank = fold(events, policy); v0 is today's behavior — static
 # extraction-time priors, no updates. Recorded in every checkpoint
@@ -152,3 +162,66 @@ def fact_id(kind: str, value: str, key: str = "", scope: str = "") -> str:
         normalize_value(value),
     ))
     return hashlib.sha1(canon.encode("utf-8")).hexdigest()[:16]
+
+
+# ── Exact-literal identity (DI-01, exact/v1) ─────────────────────────────
+# Legacy fact_id() runs normalize_value() (lowercase + whitespace collapse +
+# edge-punctuation trim), so identifiers that differ only in case/punctuation/
+# whitespace collapse to ONE id (getUserId == getuserid). Exact identity keeps
+# the literal verbatim. It is a SEPARATE, namespaced identity — a full 64-hex
+# SHA-256 that can never collide with or be mistaken for a legacy 16-hex id —
+# and legacy fact_id() is left UNCHANGED for legacy lookup. Search
+# normalization stays a distinct concern (normalize_value / normalized search
+# indexes), never the unique identity of an exact literal.
+EXACT_IDENTITY_NAMESPACE = "ctx-exact/v1"
+
+
+def _utf8_framed(*fields: str) -> bytes:
+    """Length-delimited canonical framing keyed on UTF-8 BYTE length.
+
+    Each field becomes ``<utf8-byte-len>:<utf-8 bytes>`` so no value can forge
+    a boundary into the next — a value may contain ``:``, digit runs, the unit
+    separator, or any Unicode and the byte-length prefix stays unambiguous.
+    (``value="ab", key="c"`` and ``value="a", key="bc"`` frame differently.)
+    """
+    out = bytearray()
+    for f in fields:
+        b = f.encode("utf-8")
+        out += str(len(b)).encode("ascii")
+        out += b":"
+        out += b
+    return bytes(out)
+
+
+def exact_fact_id(kind, value: str, key: str = "", scope: str = "") -> str:
+    """Case/punctuation/whitespace/Unicode-preserving identity for an exact
+    literal — the DI-01 substrate primitive.
+
+    Unlike :func:`fact_id`, the literal ``value`` and ``key`` are hashed as
+    their EXACT UTF-8 bytes (no lowercasing, no whitespace collapse, no edge
+    trimming), so ``CACHE_TTL`` and ``cache_ttl`` are distinct facts. The id is
+    a full 64-hex SHA-256 under the ``ctx-exact/v1`` namespace, so it never
+    collides with or reuses a legacy 16-hex id.
+
+    Schema fields: ``kind`` is a schema tag (stripped + upper-cased, like the
+    legacy enum; accepts an enum or str); ``scope`` is the cross-repo namespace
+    field (verbatim). ``value``/``key`` are the exact literal (verbatim). None
+    is rejected rather than coerced to the string ``"None"``, and the literal
+    fields must be real strings — no implicit coercion. Search normalization is
+    a separate concern (see :func:`normalize_value`), never the identity here.
+    """
+    if kind is None or value is None:
+        raise TypeError("exact_fact_id: kind and value are required (got None)")
+    for _name, _val in (("value", value), ("key", key), ("scope", scope)):
+        if not isinstance(_val, str):
+            raise TypeError(
+                f"exact_fact_id: {_name} must be str, not "
+                f"{type(_val).__name__} (no implicit coercion)")
+    framed = _utf8_framed(
+        EXACT_IDENTITY_NAMESPACE,
+        scope,                        # namespace field, verbatim
+        str(kind).strip().upper(),    # schema tag (enum or str)
+        key,                          # exact literal key, verbatim
+        value,                        # exact literal value, verbatim
+    )
+    return hashlib.sha256(framed).hexdigest()
