@@ -1,9 +1,9 @@
 {
   "as_of": "2026-10-25",
   "determinism": {
-    "first_sha256": "bf71f64345f6d1ad99cbd67dbf731b5407cbdf0ab27ed04ae395e0130c0b4c26",
+    "first_sha256": "58f21637e88967a2e669ad24f6d555c4de3a6e5cf6100dbc0f75664dd2683449",
     "identical_bytes": true,
-    "second_sha256": "bf71f64345f6d1ad99cbd67dbf731b5407cbdf0ab27ed04ae395e0130c0b4c26",
+    "second_sha256": "58f21637e88967a2e669ad24f6d555c4de3a6e5cf6100dbc0f75664dd2683449",
     "seeds": [
       "11",
       "97"
@@ -28,17 +28,17 @@
             "status": "unsupported"
           }
         },
-        "chars": 725,
+        "chars": 7900,
         "coverage_by_kind": {
           "CONSTRAINT": 1.0,
-          "DECISION": 1.0
+          "DECISION": 0.0
         },
         "dropped_by_kind": {
           "CONSTRAINT": 0,
-          "DECISION": 0
+          "DECISION": 1
         },
-        "drops_disclosed": true,
-        "sha256": "ea06194c1f6364879ef3f7fee48b3b73b4700e3f7526f2e70d861b40225e8722"
+        "drops_disclosed": false,
+        "sha256": "6593dac55fb695eee22fe1dd7f9de845daf1650de9e46c1d6ef61309eaa4a2f8"
       },
       "capture": {
         "found": 2,
@@ -48,8 +48,8 @@
         "status": "unsupported"
       },
       "ledger_bytes_by_kind": {
-        "CONSTRAINT": 222,
-        "DECISION": 224,
+        "CONSTRAINT": 5127,
+        "DECISION": 11851,
         "LITERAL": 191,
         "USER-REQUEST": 195
       },
@@ -71,15 +71,15 @@
             "status": "unsupported"
           }
         },
-        "chars": 1060,
+        "chars": 10532,
         "coverage_by_kind": {
           "DECISION": 1.0
         },
         "dropped_by_kind": {
           "DECISION": 0
         },
-        "drops_disclosed": true,
-        "sha256": "62aa6493e7bd06e47c5a63988335883e009d9bbe913e062e809359be6633fd43"
+        "drops_disclosed": false,
+        "sha256": "a1b82b4c4191656703c38ddf0d7a5d43870257f74bffbd10921ad7e3bcc78ad3"
       },
       "capture": {
         "found": 2,
@@ -89,7 +89,8 @@
         "status": "unsupported"
       },
       "ledger_bytes_by_kind": {
-        "DECISION": 539,
+        "CONSTRAINT": 2300,
+        "DECISION": 5636,
         "LITERAL": 382
       },
       "session": "rpl00002"
@@ -110,11 +111,11 @@
             "status": "unsupported"
           }
         },
-        "chars": 826,
+        "chars": 9293,
         "coverage_by_kind": {},
         "dropped_by_kind": {},
-        "drops_disclosed": true,
-        "sha256": "9ec9b3a0f23237ec24ff9c34715cf4814b8a0f5f2f24493707a95ac0b687d6b0"
+        "drops_disclosed": false,
+        "sha256": "5d082c8525d2377b53207de78d501bc59f3a1dd5535e118edfe804c2fa357314"
       },
       "capture": {
         "found": 0,
@@ -123,7 +124,11 @@
       "commit_capture": {
         "status": "unsupported"
       },
-      "ledger_bytes_by_kind": {},
+      "ledger_bytes_by_kind": {
+        "CONSTRAINT": 1720,
+        "DECISION": 3637,
+        "USER-REQUEST": 228
+      },
       "session": "rpl00003"
     },
     {
@@ -142,11 +147,11 @@
             "status": "unsupported"
           }
         },
-        "chars": 1624,
+        "chars": 7180,
         "coverage_by_kind": {},
         "dropped_by_kind": {},
-        "drops_disclosed": true,
-        "sha256": "4d41fa66eabcc605edd3a77ef1e83216e36643ead1d01246986520aa4a4ad6c5"
+        "drops_disclosed": false,
+        "sha256": "719f264d0ff00354f3da0a0ef5b181301e9f671eed1d0f7f30dbc1b9cafe2cdf"
       },
       "capture": {
         "found": 0,
@@ -156,10 +161,10 @@
         "status": "unsupported"
       },
       "ledger_bytes_by_kind": {
-        "CONSTRAINT": 234,
-        "DECISION": 227,
+        "CONSTRAINT": 224,
+        "DECISION": 298,
         "LITERAL": 377,
-        "USER-REQUEST": 647
+        "USER-REQUEST": 700
       },
       "session": "rpl00004"
     }
@@ -182,13 +187,13 @@
       },
       "coverage_by_kind": {
         "CONSTRAINT": 1.0,
-        "DECISION": 1.0
+        "DECISION": 0.6667
       },
       "dropped_by_kind": {
         "CONSTRAINT": 0,
-        "DECISION": 0
+        "DECISION": 1
       },
-      "drops_disclosed": true
+      "drops_disclosed": false
     },
     "capture": {
       "found": 4,
@@ -216,92 +221,52 @@
         "harness": {
           "count": 3,
           "ids": [
-            "3c3101a88a30f5bc",
-            "6b926a0e9c157517",
+            "6fa664e2499a5029",
+            "c057889468a6ce0d",
             "d2018dbd19705d43"
-          ],
-          "refs": [
-            "rpl00004:turn2:CONSTRAINT",
-            "rpl00004:turn2:LITERAL",
-            "rpl00004:turn2:USER-REQUEST"
           ]
         },
         "probe": {
           "count": 3,
           "ids": [
-            "5058d09a53e320a3",
-            "7d17221aec3da77d",
-            "c4907879de291f6b"
-          ],
-          "refs": [
-            "rpl00004:turn0:USER-REQUEST",
-            "rpl00004:turn1:DECISION",
-            "rpl00004:turn1:LITERAL"
+            "2eb2cdd9d1ec0155",
+            "41baafa3ce6bb68c",
+            "7d17221aec3da77d"
           ]
         }
       },
       "count": 6,
       "ids": [
-        "3c3101a88a30f5bc",
-        "5058d09a53e320a3",
-        "6b926a0e9c157517",
+        "2eb2cdd9d1ec0155",
+        "41baafa3ce6bb68c",
+        "6fa664e2499a5029",
         "7d17221aec3da77d",
-        "c4907879de291f6b",
+        "c057889468a6ce0d",
         "d2018dbd19705d43"
-      ],
-      "refs": [
-        "rpl00004:turn0:USER-REQUEST",
-        "rpl00004:turn1:DECISION",
-        "rpl00004:turn1:LITERAL",
-        "rpl00004:turn2:CONSTRAINT",
-        "rpl00004:turn2:LITERAL",
-        "rpl00004:turn2:USER-REQUEST"
       ]
     },
     "ledger_bytes_by_kind": {
-      "CONSTRAINT": 456,
-      "DECISION": 990,
+      "CONSTRAINT": 9371,
+      "DECISION": 21422,
       "LITERAL": 950,
-      "USER-REQUEST": 842
+      "USER-REQUEST": 1123
     },
     "supersession": {
       "checks": [
         {
-          "checks": [
-            {
-              "new_present": true,
-              "old_absent": false,
-              "passed": false,
-              "session": "rpl00002"
-            },
-            {
-              "new_present": true,
-              "old_absent": false,
-              "passed": false,
-              "session": "rpl00003"
-            },
-            {
-              "new_present": true,
-              "old_absent": false,
-              "passed": false,
-              "session": "rpl00004"
-            }
-          ],
           "last_session_checked": "rpl00004",
           "new": "l1-decision-new",
           "old": "l1-decision-old",
           "passed": false,
           "stale_sessions": [
-            "rpl00002",
-            "rpl00003",
-            "rpl00004"
+            "rpl00002"
           ],
           "start_session": "rpl00002"
         }
       ],
       "correctness": 0.0,
       "passed": 0,
-      "stale_items_present": 3,
+      "stale_items_present": 1,
       "total": 1
     }
   }

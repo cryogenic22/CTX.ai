@@ -107,29 +107,14 @@ def _require_as_of(fixture: dict[str, Any]) -> str:
 
 
 def _parse_contamination_turns(fixture: dict[str, Any]) -> dict[str, set[tuple[str, int]]]:
-    raw = fixture.get("contamination_turns", {})
-    if raw is None:
-        raw = {}
-    if not isinstance(raw, dict):
-        raise ValueError("contamination_turns must be an object keyed by contamination kind")
+    raw = fixture.get("contamination_turns") or {}
     turns: dict[str, set[tuple[str, int]]] = {"harness": set(), "probe": set()}
     for kind in ("harness", "probe"):
-        rows = raw.get(kind, [])
-        if rows is None:
-            rows = []
-        if not isinstance(rows, list):
-            raise ValueError(f"contamination_turns.{kind} must be a list")
+        rows = raw.get(kind) or []
         parsed: set[tuple[str, int]] = set()
         for row in rows:
-            if not isinstance(row, dict):
-                raise ValueError(f"contamination_turns.{kind} entries must be objects")
-            sid = str(row.get("session", ""))[:8]
-            if not sid:
-                raise ValueError(f"contamination_turns.{kind} entry missing session")
-            try:
-                turn = int(row["turn"])
-            except (KeyError, TypeError, ValueError) as exc:
-                raise ValueError(f"contamination_turns.{kind} entry has invalid turn") from exc
+            sid = str(row["session"])[:8]
+            turn = int(row["turn"])
             parsed.add((sid, turn))
         turns[kind] = parsed
     return turns
@@ -157,13 +142,12 @@ def _commit_capture_adapter(_session_id: str, _commits: list[dict[str, Any]]) ->
 
 
 def _drops_disclosed(briefing_text: str, dropped_by_kind: dict[str, int]) -> bool:
-    required = {k: n for k, n in dropped_by_kind.items() if n > 0}
-    if not required:
-        return True
+    if not dropped_by_kind:
+        return False
     low = briefing_text.lower()
     if "dropped" not in low:
         return False
-    for kind, count in required.items():
+    for kind, count in dropped_by_kind.items():
         term = _DROPS_KIND_TERMS.get(kind, kind.lower().replace("-", " "))
         term_pattern = re.escape(term).replace(r"\ ", r"[ -]+")
         pattern = rf"\bdropped\s+{count}\s+{term_pattern}s?\b"
@@ -178,16 +162,6 @@ def _live_blob(briefing_text: str, decisions_payload: dict[str, Any]) -> str:
         for row in decisions_payload.get(key, []):
             lines.append(str(row.get("text", "")))
     return "\n".join(lines)
-
-
-def _normalize_extra_facts(rows: list[dict[str, Any]]) -> set[tuple[str, str]]:
-    out: set[tuple[str, str]] = set()
-    for row in rows:
-        kind = str(row.get("kind", "")).upper()
-        text = str(row.get("text", ""))
-        if kind and text:
-            out.add((kind, text))
-    return out
 
 
 def _score_briefing(
@@ -288,13 +262,13 @@ def _one_process_report(
     source_found: dict[str, int] = {"transcript": 0, "commit": 0}
     capture_found = 0
     contamination_ids: dict[str, list[str]] = {"harness": [], "probe": []}
-    contamination_refs: dict[str, list[str]] = {"harness": [], "probe": []}
     session_live: dict[str, str] = {}
     session_order: list[str] = []
     micro_seen: dict[str, int] = {}
     micro_total: dict[str, int] = {}
     total_ledger_bytes: dict[str, int] = {}
     total_disclosed = 0
+    scored_sessions = 0
 
     with tempfile.TemporaryDirectory() as td:
         for sdir in session_dirs:
@@ -312,7 +286,11 @@ def _one_process_report(
             commit_capture = commit_capture_adapter(sid, commit_rows)
             commit_status = str(commit_capture.get("status", "unsupported"))
             if commit_status == "ok":
-                fact_set |= _normalize_extra_facts(list(commit_capture.get("facts", [])))
+                for row in commit_capture.get("facts", []):
+                    kind = str(row.get("kind", "")).upper()
+                    text = str(row.get("text", ""))
+                    if kind and text:
+                        fact_set.add((kind, text))
 
             for label in labels_here:
                 source_totals[label.source] = source_totals.get(label.source, 0) + 1
@@ -323,12 +301,10 @@ def _one_process_report(
                     missing_ids.append(label.id)
 
             for fact in facts:
-                ref = f"{sid}:turn{fact['turn']}:{fact['kind']}"
                 cid = fact["fact_id"] or fact["section"].name
                 for kind in ("harness", "probe"):
                     if (sid, fact["turn"]) in contamination_turns[kind]:
                         contamination_ids[kind].append(cid)
-                        contamination_refs[kind].append(ref)
 
             base_briefing = briefing_adapter(td, None)
             base_status = str(base_briefing.get("status", "unsupported"))
@@ -349,7 +325,9 @@ def _one_process_report(
             for kind, total in by_kind_total.items():
                 micro_total[kind] = micro_total.get(kind, 0) + total
                 micro_seen[kind] = micro_seen.get(kind, 0) + by_kind_seen.get(kind, 0)
-            total_disclosed += 1 if drops_disclosed else 0
+            if by_kind_total:
+                scored_sessions += 1
+                total_disclosed += 1 if drops_disclosed else 0
 
             budget_rows = _budget_rows(td, budgets, labels_here, fact_set, briefing_adapter)
 
@@ -390,20 +368,11 @@ def _one_process_report(
             raise ValueError(f"supersession session not found in fixture run: {start_sid}")
         checked_sessions = session_order[sid_to_index[start_sid]:]
         stale_sessions: list[str] = []
-        checks: list[dict[str, Any]] = []
         edge_passed = True
         for sid in checked_sessions:
             live = session_live.get(sid, "")
             old_absent = old.text not in live
             new_present = new.text in live
-            checks.append(
-                {
-                    "session": sid,
-                    "old_absent": old_absent,
-                    "new_present": new_present,
-                    "passed": old_absent and new_present,
-                }
-            )
             if not old_absent:
                 stale_sessions.append(sid)
                 stale_present += 1
@@ -420,7 +389,6 @@ def _one_process_report(
                 "last_session_checked": checked_sessions[-1] if checked_sessions else start_sid,
                 "passed": edge_passed,
                 "stale_sessions": stale_sessions,
-                "checks": checks,
             }
         )
 
@@ -446,7 +414,6 @@ def _one_process_report(
             total_budget_rows[key] = {"status": "mixed"}
 
     contamination_total_ids = sorted(contamination_ids["harness"] + contamination_ids["probe"])
-    contamination_total_refs = sorted(contamination_refs["harness"] + contamination_refs["probe"])
 
     return {
         "schema_version": "replay/v1",
@@ -471,17 +438,14 @@ def _one_process_report(
             "contamination_facts": {
                 "count": len(contamination_total_ids),
                 "ids": contamination_total_ids,
-                "refs": contamination_total_refs,
                 "by_kind": {
                     "harness": {
                         "count": len(contamination_ids["harness"]),
                         "ids": sorted(contamination_ids["harness"]),
-                        "refs": sorted(contamination_refs["harness"]),
                     },
                     "probe": {
                         "count": len(contamination_ids["probe"]),
                         "ids": sorted(contamination_ids["probe"]),
-                        "refs": sorted(contamination_refs["probe"]),
                     },
                 },
             },
@@ -495,7 +459,7 @@ def _one_process_report(
                     kind: micro_total[kind] - micro_seen.get(kind, 0)
                     for kind in sorted(micro_total)
                 },
-                "drops_disclosed": total_disclosed == len(sessions_out) and len(sessions_out) > 0,
+                "drops_disclosed": scored_sessions > 0 and total_disclosed == scored_sessions,
                 "budgets": total_budget_rows,
             },
             "ledger_bytes_by_kind": dict(sorted(total_ledger_bytes.items())),
