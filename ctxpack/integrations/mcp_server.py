@@ -21,6 +21,7 @@ import json
 import os
 import sys
 import tempfile
+from dataclasses import dataclass
 from typing import Any, Optional  # noqa: F401
 
 # ── MCP SDK import ──
@@ -32,6 +33,12 @@ try:
     HAS_MCP = True
 except ImportError:
     HAS_MCP = False
+
+    @dataclass(frozen=True)
+    class Tool:  # type: ignore[no-redef]
+        name: str
+        description: str
+        inputSchema: dict[str, Any]
 
 # ── CtxPack imports ──
 from ..core.errors import DiagnosticLevel, ParseError
