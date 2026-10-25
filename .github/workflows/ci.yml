@@ -101,8 +101,10 @@ jobs:
       - name: Install package + test extra
         run: pip install ".[test]"
       - name: Build replay report
+        shell: bash
         run: python -m ctxpack.benchmarks.replay --fixture tests/fixtures/replay/synthetic-l1 --output out.json
       - name: Assert exact pinned bytes (out.json == expected.json)
+        shell: bash
         run: |
           python - <<'PY'
           import hashlib
