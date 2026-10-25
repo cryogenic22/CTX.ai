@@ -107,15 +107,17 @@ jobs:
           python - <<'PY'
           import hashlib
           import pathlib
+          import subprocess
           import sys
           out_path = pathlib.Path("out.json")
-          expected_path = pathlib.Path("tests/fixtures/replay/synthetic-l1/expected.json")
           out_bytes = out_path.read_bytes()
-          expected_bytes = expected_path.read_bytes()
+          expected_bytes = subprocess.check_output(
+              ["git", "show", "HEAD:tests/fixtures/replay/synthetic-l1/expected.json"]
+          )
           out_sha = hashlib.sha256(out_bytes).hexdigest()
           expected_sha = hashlib.sha256(expected_bytes).hexdigest()
           print(f"out.json sha256={out_sha}")
-          print(f"expected.json sha256={expected_sha}")
+          print(f"expected.json (git blob) sha256={expected_sha}")
           if out_bytes != expected_bytes:
               print("byte mismatch between out.json and expected.json", file=sys.stderr)
               sys.exit(1)
