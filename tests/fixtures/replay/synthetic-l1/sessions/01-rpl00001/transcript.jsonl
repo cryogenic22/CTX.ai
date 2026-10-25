@@ -1,0 +1,2 @@
+{"type":"user","sessionId":"rpl00001-session","timestamp":"2026-10-25T00:00:00Z","isSidechain":false,"isMeta":false,"message":{"role":"user","content":"Please stabilize vendor retries. Do not modify auth service during this replay test."}}
+{"type":"assistant","sessionId":"rpl00001-session","timestamp":"2026-10-25T00:00:05Z","isSidechain":false,"isMeta":false,"message":{"role":"assistant","content":[{"type":"text","text":"Decision: keep retry backoff at 250ms for vendor calls."}]}}

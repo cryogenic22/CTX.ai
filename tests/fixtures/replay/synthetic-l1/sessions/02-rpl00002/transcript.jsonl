@@ -1,0 +1,1 @@
+{"type":"assistant","sessionId":"rpl00002-session","timestamp":"2026-10-25T00:01:00Z","isSidechain":false,"isMeta":false,"message":{"role":"assistant","content":[{"type":"text","text":"Decision: keep retry backoff at 250ms for vendor calls.\nDecision: raise retry backoff to 750ms for vendor calls.\nSupersedes: 5d3d328c92117769 -- load test replaced 250ms with 750ms."}]}}

@@ -1,0 +1,2 @@
+{"type":"user","sessionId":"rpl00004-session","timestamp":"2026-10-25T00:03:00Z","isSidechain":false,"isMeta":false,"message":{"role":"user","content":"What did we decide about retry backoff?"}}
+{"type":"assistant","sessionId":"rpl00004-session","timestamp":"2026-10-25T00:03:05Z","isSidechain":false,"isMeta":false,"message":{"role":"assistant","content":[{"type":"text","text":"Decision: confirm retry backoff is 750ms for vendor calls."}]}}
