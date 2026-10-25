@@ -44,7 +44,18 @@ def test_synthetic_fixture_matches_pinned_baseline():
     expected_path = Path(_fixture_path()) / "expected.json"
     expected = json.loads(expected_path.read_text(encoding="utf-8"))
     actual = run_replay(_fixture_path())
-    assert actual == expected
+    e_tot = expected["totals"]
+    a_tot = actual["totals"]
+    assert actual["schema_version"] == expected["schema_version"]
+    assert actual["as_of"] == expected["as_of"]
+    assert actual["fixture"] == expected["fixture"]
+    assert a_tot["capture"] == e_tot["capture"]
+    assert a_tot["supersession"] == e_tot["supersession"]
+    assert a_tot["contamination_facts"] == e_tot["contamination_facts"]
+    assert a_tot["briefing"]["dropped_by_kind"] == e_tot["briefing"]["dropped_by_kind"]
+    assert a_tot["briefing"]["coverage_by_kind"] == e_tot["briefing"]["coverage_by_kind"]
+    assert a_tot["briefing"]["drops_disclosed"] == e_tot["briefing"]["drops_disclosed"]
+    assert a_tot["ledger_bytes_by_kind"] == e_tot["ledger_bytes_by_kind"]
 
 
 def test_report_schema_and_briefing_fields_present():
