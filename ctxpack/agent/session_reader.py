@@ -186,6 +186,35 @@ def _sections(doc: CTXDocument) -> list[Section]:
     return [e for e in doc.body if isinstance(e, Section)]
 
 
+def ledger_facts(doc: CTXDocument) -> list[dict[str, Any]]:
+    """Return normalized fact rows from a parsed session ledger.
+
+    Each row carries:
+    - ``kind``: canonical section kind (DECISION, CONSTRAINT, ...)
+    - ``text``: primary fact value for that section
+    - ``turn``: turn index, ``-1`` when unknown
+    - ``fact_id``: FACT-ID value when present
+    - ``section``: original ``Section`` object (for callers that need
+      serialized bytes or extra fields)
+    """
+    rows: list[dict[str, Any]] = []
+    for section in _sections(doc):
+        text = _primary_value(section)
+        if not text:
+            continue
+        rows.append(
+            {
+                "kind": _kind_of(section).upper(),
+                "text": text,
+                "turn": _turn_of(section),
+                "fact_id": _kv(section, "FACT-ID"),
+                "section": section,
+            }
+        )
+    rows.sort(key=lambda r: (r["turn"], r["kind"], r["text"]))
+    return rows
+
+
 # ── Tool implementations ──
 
 

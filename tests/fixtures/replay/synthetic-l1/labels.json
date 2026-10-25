@@ -1,1 +1,72 @@
-{"as_of":"2026-10-25","contamination_texts":["<task-notification>Background task completed.</task-notification>","Decision: confirm retry backoff is 750ms for vendor calls."],"labels":[{"id":"l1-decision-250","kind":"DECISION","session":"rpl00001","source":"transcript","text":"Decision: keep retry backoff at 250ms for vendor calls."},{"id":"l1-constraint-auth","kind":"CONSTRAINT","session":"rpl00001","source":"transcript","text":"Do not modify auth service during this replay test."},{"id":"l1-commit-only","kind":"DECISION","session":"rpl00001","source":"commit","text":"Decision: commit-path fallback is disabled for replay baseline."},{"id":"l1-decision-old","kind":"DECISION","session":"rpl00002","source":"transcript","text":"Decision: keep retry backoff at 250ms for vendor calls."},{"id":"l1-decision-new","kind":"DECISION","session":"rpl00002","source":"transcript","text":"Decision: raise retry backoff to 750ms for vendor calls."},{"id":"l1-rejected","kind":"FAILED-APPROACH","session":"rpl00003","source":"transcript","text":"Rejected: use branchless cache writes because they corrupted counters under parallel load."},{"id":"l1-recall-answer","kind":"DECISION","session":"rpl00004","source":"transcript","text":"Decision: confirm retry backoff is 750ms for vendor calls."}],"supersessions":[{"new":"l1-decision-new","old":"l1-decision-old","session":"rpl00002"}]}
+{
+  "as_of": "2026-10-25",
+  "contamination_turns": {
+    "harness": [
+      {
+        "session": "rpl00004",
+        "turn": 2
+      }
+    ],
+    "probe": [
+      {
+        "session": "rpl00004",
+        "turn": 0
+      },
+      {
+        "session": "rpl00004",
+        "turn": 1
+      }
+    ]
+  },
+  "labels": [
+    {
+      "id": "l1-decision-250",
+      "kind": "DECISION",
+      "session": "rpl00001",
+      "source": "transcript",
+      "text": "Decision: keep retry backoff at 250ms for vendor calls."
+    },
+    {
+      "id": "l1-constraint-auth",
+      "kind": "CONSTRAINT",
+      "session": "rpl00001",
+      "source": "transcript",
+      "text": "Do not modify auth service during this replay test."
+    },
+    {
+      "id": "l1-commit-only",
+      "kind": "DECISION",
+      "session": "rpl00001",
+      "source": "commit",
+      "text": "Decision: commit-path fallback is disabled for replay baseline."
+    },
+    {
+      "id": "l1-decision-old",
+      "kind": "DECISION",
+      "session": "rpl00002",
+      "source": "transcript",
+      "text": "Decision: keep retry backoff at 250ms for vendor calls."
+    },
+    {
+      "id": "l1-decision-new",
+      "kind": "DECISION",
+      "session": "rpl00002",
+      "source": "transcript",
+      "text": "Decision: raise retry backoff to 750ms for vendor calls."
+    },
+    {
+      "id": "l1-rejected",
+      "kind": "FAILED-APPROACH",
+      "session": "rpl00003",
+      "source": "transcript",
+      "text": "Rejected: use branchless cache writes because they corrupted counters under parallel load."
+    }
+  ],
+  "supersessions": [
+    {
+      "new": "l1-decision-new",
+      "old": "l1-decision-old",
+      "session": "rpl00002"
+    }
+  ]
+}

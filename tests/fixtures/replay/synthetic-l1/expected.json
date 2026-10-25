@@ -1,1 +1,308 @@
-{"as_of":"2026-10-25","determinism":{"first_sha256":"ba5c6e8a536b0a005503a6fe297b6d64a1211887a1b1ebe37adb90c99fa24e34","identical_bytes":true,"second_sha256":"ba5c6e8a536b0a005503a6fe297b6d64a1211887a1b1ebe37adb90c99fa24e34","seeds":["11","97"]},"fixture":"synthetic-l1","schema_version":"replay/v1","sessions":[{"briefing":{"budgets":{"14000":{"status":"unsupported"},"2000":{"status":"unsupported"},"4000":{"status":"unsupported"},"8000":{"status":"unsupported"}},"chars":725,"coverage_by_kind":{"CONSTRAINT":1.0,"DECISION":0.5},"dropped_by_kind":{"CONSTRAINT":0,"DECISION":1},"drops_disclosed":false,"estimated_tokens":181},"capture":{"found":2,"total":3},"ledger_bytes_by_kind":{"CONSTRAINT":222,"DECISION":224,"LITERAL":191,"USER-REQUEST":195},"session":"rpl00001"},{"briefing":{"budgets":{"14000":{"status":"unsupported"},"2000":{"status":"unsupported"},"4000":{"status":"unsupported"},"8000":{"status":"unsupported"}},"chars":1060,"coverage_by_kind":{"DECISION":1.0},"dropped_by_kind":{"DECISION":0},"drops_disclosed":false,"estimated_tokens":265},"capture":{"found":2,"total":2},"ledger_bytes_by_kind":{"DECISION":539,"LITERAL":382},"session":"rpl00002"},{"briefing":{"budgets":{"14000":{"status":"unsupported"},"2000":{"status":"unsupported"},"4000":{"status":"unsupported"},"8000":{"status":"unsupported"}},"chars":826,"coverage_by_kind":{"FAILED-APPROACH":0.0},"dropped_by_kind":{"FAILED-APPROACH":1},"drops_disclosed":false,"estimated_tokens":206},"capture":{"found":0,"total":1},"ledger_bytes_by_kind":{},"session":"rpl00003"},{"briefing":{"budgets":{"14000":{"status":"unsupported"},"2000":{"status":"unsupported"},"4000":{"status":"unsupported"},"8000":{"status":"unsupported"}},"chars":1113,"coverage_by_kind":{"DECISION":1.0},"dropped_by_kind":{"DECISION":0},"drops_disclosed":false,"estimated_tokens":278},"capture":{"found":1,"total":1},"ledger_bytes_by_kind":{"DECISION":227,"LITERAL":191,"USER-REQUEST":203},"session":"rpl00004"}],"totals":{"briefing":{"budgets":{"14000":{"status":"unsupported"},"2000":{"status":"unsupported"},"4000":{"status":"unsupported"},"8000":{"status":"unsupported"}},"coverage_by_kind":{"CONSTRAINT":0.25,"DECISION":0.625,"FAILED-APPROACH":0.0},"dropped_by_kind":{"CONSTRAINT":0,"DECISION":1,"FAILED-APPROACH":1},"drops_disclosed":false},"capture":{"found":5,"missing_label_ids":["l1-commit-only","l1-rejected"],"recall":0.7143,"split_by_source":{"commit":{"found":0,"recall":0.0,"total":1},"transcript":{"found":5,"recall":0.8333,"total":6}},"total":7},"contamination_facts":{"count":1,"ids":["c4907879de291f6b"],"refs":["rpl00004:DECISION"]},"ledger_bytes_by_kind":{"CONSTRAINT":222,"DECISION":990,"LITERAL":764,"USER-REQUEST":398},"supersession":{"correctness":0.0,"passed":0,"stale_items_present":1,"total":1}}}
+{
+  "as_of": "2026-10-25",
+  "determinism": {
+    "first_sha256": "bf71f64345f6d1ad99cbd67dbf731b5407cbdf0ab27ed04ae395e0130c0b4c26",
+    "identical_bytes": true,
+    "second_sha256": "bf71f64345f6d1ad99cbd67dbf731b5407cbdf0ab27ed04ae395e0130c0b4c26",
+    "seeds": [
+      "11",
+      "97"
+    ]
+  },
+  "fixture": "synthetic-l1",
+  "schema_version": "replay/v1",
+  "sessions": [
+    {
+      "briefing": {
+        "budgets": {
+          "14000": {
+            "status": "unsupported"
+          },
+          "2000": {
+            "status": "unsupported"
+          },
+          "4000": {
+            "status": "unsupported"
+          },
+          "8000": {
+            "status": "unsupported"
+          }
+        },
+        "chars": 725,
+        "coverage_by_kind": {
+          "CONSTRAINT": 1.0,
+          "DECISION": 1.0
+        },
+        "dropped_by_kind": {
+          "CONSTRAINT": 0,
+          "DECISION": 0
+        },
+        "drops_disclosed": true,
+        "sha256": "ea06194c1f6364879ef3f7fee48b3b73b4700e3f7526f2e70d861b40225e8722"
+      },
+      "capture": {
+        "found": 2,
+        "total": 3
+      },
+      "commit_capture": {
+        "status": "unsupported"
+      },
+      "ledger_bytes_by_kind": {
+        "CONSTRAINT": 222,
+        "DECISION": 224,
+        "LITERAL": 191,
+        "USER-REQUEST": 195
+      },
+      "session": "rpl00001"
+    },
+    {
+      "briefing": {
+        "budgets": {
+          "14000": {
+            "status": "unsupported"
+          },
+          "2000": {
+            "status": "unsupported"
+          },
+          "4000": {
+            "status": "unsupported"
+          },
+          "8000": {
+            "status": "unsupported"
+          }
+        },
+        "chars": 1060,
+        "coverage_by_kind": {
+          "DECISION": 1.0
+        },
+        "dropped_by_kind": {
+          "DECISION": 0
+        },
+        "drops_disclosed": true,
+        "sha256": "62aa6493e7bd06e47c5a63988335883e009d9bbe913e062e809359be6633fd43"
+      },
+      "capture": {
+        "found": 2,
+        "total": 2
+      },
+      "commit_capture": {
+        "status": "unsupported"
+      },
+      "ledger_bytes_by_kind": {
+        "DECISION": 539,
+        "LITERAL": 382
+      },
+      "session": "rpl00002"
+    },
+    {
+      "briefing": {
+        "budgets": {
+          "14000": {
+            "status": "unsupported"
+          },
+          "2000": {
+            "status": "unsupported"
+          },
+          "4000": {
+            "status": "unsupported"
+          },
+          "8000": {
+            "status": "unsupported"
+          }
+        },
+        "chars": 826,
+        "coverage_by_kind": {},
+        "dropped_by_kind": {},
+        "drops_disclosed": true,
+        "sha256": "9ec9b3a0f23237ec24ff9c34715cf4814b8a0f5f2f24493707a95ac0b687d6b0"
+      },
+      "capture": {
+        "found": 0,
+        "total": 1
+      },
+      "commit_capture": {
+        "status": "unsupported"
+      },
+      "ledger_bytes_by_kind": {},
+      "session": "rpl00003"
+    },
+    {
+      "briefing": {
+        "budgets": {
+          "14000": {
+            "status": "unsupported"
+          },
+          "2000": {
+            "status": "unsupported"
+          },
+          "4000": {
+            "status": "unsupported"
+          },
+          "8000": {
+            "status": "unsupported"
+          }
+        },
+        "chars": 1624,
+        "coverage_by_kind": {},
+        "dropped_by_kind": {},
+        "drops_disclosed": true,
+        "sha256": "4d41fa66eabcc605edd3a77ef1e83216e36643ead1d01246986520aa4a4ad6c5"
+      },
+      "capture": {
+        "found": 0,
+        "total": 0
+      },
+      "commit_capture": {
+        "status": "unsupported"
+      },
+      "ledger_bytes_by_kind": {
+        "CONSTRAINT": 234,
+        "DECISION": 227,
+        "LITERAL": 377,
+        "USER-REQUEST": 647
+      },
+      "session": "rpl00004"
+    }
+  ],
+  "totals": {
+    "briefing": {
+      "budgets": {
+        "14000": {
+          "status": "unsupported"
+        },
+        "2000": {
+          "status": "unsupported"
+        },
+        "4000": {
+          "status": "unsupported"
+        },
+        "8000": {
+          "status": "unsupported"
+        }
+      },
+      "coverage_by_kind": {
+        "CONSTRAINT": 1.0,
+        "DECISION": 1.0
+      },
+      "dropped_by_kind": {
+        "CONSTRAINT": 0,
+        "DECISION": 0
+      },
+      "drops_disclosed": true
+    },
+    "capture": {
+      "found": 4,
+      "missing_label_ids": [
+        "l1-commit-only",
+        "l1-rejected"
+      ],
+      "recall": 0.6667,
+      "split_by_source": {
+        "commit": {
+          "found": 0,
+          "recall": 0.0,
+          "total": 1
+        },
+        "transcript": {
+          "found": 4,
+          "recall": 0.8,
+          "total": 5
+        }
+      },
+      "total": 6
+    },
+    "contamination_facts": {
+      "by_kind": {
+        "harness": {
+          "count": 3,
+          "ids": [
+            "3c3101a88a30f5bc",
+            "6b926a0e9c157517",
+            "d2018dbd19705d43"
+          ],
+          "refs": [
+            "rpl00004:turn2:CONSTRAINT",
+            "rpl00004:turn2:LITERAL",
+            "rpl00004:turn2:USER-REQUEST"
+          ]
+        },
+        "probe": {
+          "count": 3,
+          "ids": [
+            "5058d09a53e320a3",
+            "7d17221aec3da77d",
+            "c4907879de291f6b"
+          ],
+          "refs": [
+            "rpl00004:turn0:USER-REQUEST",
+            "rpl00004:turn1:DECISION",
+            "rpl00004:turn1:LITERAL"
+          ]
+        }
+      },
+      "count": 6,
+      "ids": [
+        "3c3101a88a30f5bc",
+        "5058d09a53e320a3",
+        "6b926a0e9c157517",
+        "7d17221aec3da77d",
+        "c4907879de291f6b",
+        "d2018dbd19705d43"
+      ],
+      "refs": [
+        "rpl00004:turn0:USER-REQUEST",
+        "rpl00004:turn1:DECISION",
+        "rpl00004:turn1:LITERAL",
+        "rpl00004:turn2:CONSTRAINT",
+        "rpl00004:turn2:LITERAL",
+        "rpl00004:turn2:USER-REQUEST"
+      ]
+    },
+    "ledger_bytes_by_kind": {
+      "CONSTRAINT": 456,
+      "DECISION": 990,
+      "LITERAL": 950,
+      "USER-REQUEST": 842
+    },
+    "supersession": {
+      "checks": [
+        {
+          "checks": [
+            {
+              "new_present": true,
+              "old_absent": false,
+              "passed": false,
+              "session": "rpl00002"
+            },
+            {
+              "new_present": true,
+              "old_absent": false,
+              "passed": false,
+              "session": "rpl00003"
+            },
+            {
+              "new_present": true,
+              "old_absent": false,
+              "passed": false,
+              "session": "rpl00004"
+            }
+          ],
+          "last_session_checked": "rpl00004",
+          "new": "l1-decision-new",
+          "old": "l1-decision-old",
+          "passed": false,
+          "stale_sessions": [
+            "rpl00002",
+            "rpl00003",
+            "rpl00004"
+          ],
+          "start_session": "rpl00002"
+        }
+      ],
+      "correctness": 0.0,
+      "passed": 0,
+      "stale_items_present": 3,
+      "total": 1
+    }
+  }
+}

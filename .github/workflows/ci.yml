@@ -86,6 +86,41 @@ jobs:
       - name: Run ordinary lane (no -x; report every failure)
         run: python -m pytest tests/ -q -m "not slow" --ignore=tests/code
 
+  replay-byte-pin:
+    name: replay-byte-pin (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6 (2026-07-16)
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6 (2026-06-23)
+        with:
+          python-version: "3.12"
+      - name: Install package + test extra
+        run: pip install ".[test]"
+      - name: Build replay report
+        run: python -m ctxpack.benchmarks.replay --fixture tests/fixtures/replay/synthetic-l1 --output out.json
+      - name: Assert exact pinned bytes (out.json == expected.json)
+        run: |
+          python - <<'PY'
+          import hashlib
+          import pathlib
+          import sys
+          out_path = pathlib.Path("out.json")
+          expected_path = pathlib.Path("tests/fixtures/replay/synthetic-l1/expected.json")
+          out_bytes = out_path.read_bytes()
+          expected_bytes = expected_path.read_bytes()
+          out_sha = hashlib.sha256(out_bytes).hexdigest()
+          expected_sha = hashlib.sha256(expected_bytes).hexdigest()
+          print(f"out.json sha256={out_sha}")
+          print(f"expected.json sha256={expected_sha}")
+          if out_bytes != expected_bytes:
+              print("byte mismatch between out.json and expected.json", file=sys.stderr)
+              sys.exit(1)
+          PY
+
   # ── extras: the OPTIONAL-INTEGRATION lane — install every runtime extra
   #    and run the FULL non-slow suite (incl. tests/code code-packer + MCP,
   #    and the analytics hermetic lane) on one Ubuntu/3.12 cell.
@@ -166,7 +201,7 @@ jobs:
   #    fails, is cancelled, or is skipped.
   ci-required:
     name: ci-required
-    needs: [core, test, extras, gates, artifact]
+    needs: [core, test, replay-byte-pin, extras, gates, artifact]
     if: always()
     runs-on: ubuntu-latest
     steps:
