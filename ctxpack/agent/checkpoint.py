@@ -123,9 +123,11 @@ class CheckpointResult:
 
 
 def _count_bpe(text: str) -> int:
-    # Determinism guardrail for gist budgeting: use one fixed estimator
-    # regardless of optional tokenizer availability in the environment.
-    return max(1, len(text) // 4)
+    try:
+        from ..benchmarks.metrics.cost import count_bpe_tokens
+        return count_bpe_tokens(text, model="claude")
+    except Exception:
+        return max(1, len(text) // 4)
 
 
 # R1 (remediation of C1 Finding 1): the injected gist renders WHOLE facts
