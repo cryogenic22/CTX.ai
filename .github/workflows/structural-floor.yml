@@ -1,0 +1,69 @@
+name: structural-floor
+
+# CTX's own conservation-gates doctrine lists two owner-level floor items as
+# "flagged, not built": CI on push, and branch protection / CODEOWNERS over the
+# success-definition surface. This workflow builds the second half of the
+# second one.
+#
+# protected-surface.txt generates .github/CODEOWNERS, and this gate fails if
+# they drift — so the bar cannot be quietly relocated by whoever is trying to
+# clear it. Be plain about the limit: this is a ceiling until branch protection
+# requires CODEOWNERS review and disallows self-approval. That is an owner
+# action on GitHub; a repository cannot assert it about itself.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: structural-floor-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  protected-surface:
+    name: protected surface + process gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6 (2026-07-16)
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6 (2026-06-23)
+        with:
+          python-version: "3.12"
+
+      - name: CODEOWNERS is in sync with protected-surface.txt
+        run: python scripts/gen_codeowners.py --check
+
+      - name: PR template keeps its required sections
+        run: python scripts/check_pr_template.py
+
+      - name: Install test extra
+        run: pip install ".[test]"
+
+      - name: The floor's own guards can fail
+        run: |
+          python -m pytest tests/test_protected_surface_sync.py \
+                           tests/test_pr_template_gate.py -q
+
+  pr-body:
+    name: PR description is reviewable
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6 (2026-07-16)
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6 (2026-06-23)
+        with:
+          python-version: "3.12"
+
+      # Reported is not verified. A PR that cannot be checked against artifacts
+      # is not reviewable, however green its suite is.
+      - name: Required sections are present and filled in
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: printf '%s' "$BODY" | python scripts/check_pr_template.py --body -

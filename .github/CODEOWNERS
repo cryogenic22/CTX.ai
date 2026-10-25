@@ -1,0 +1,31 @@
+# DO NOT EDIT — generated from harness/structural-floor/protected-surface.txt
+# by scripts/gen_codeowners.py. Edit the source list, then regenerate:
+#
+#     python scripts/gen_codeowners.py
+#
+# CI (.github/workflows/structural-floor.yml) and
+# tests/test_protected_surface_sync.py both fail on drift.
+#
+# This file assigns review of the success-definition surface to the owner.
+# It is advisory until branch protection requires CODEOWNERS review and
+# disallows self-approval.
+
+/CLAUDE.md @cryogenic22
+/AGENTS.md @cryogenic22
+/.claude/rules/ @cryogenic22
+/scripts/check_claims.py @cryogenic22
+/scripts/check_capability_registry.py @cryogenic22
+/scripts/check_doc_privacy.py @cryogenic22
+/scripts/check_release_manifest.py @cryogenic22
+/scripts/gen_codeowners.py @cryogenic22
+/scripts/check_pr_template.py @cryogenic22
+/.github/workflows/ @cryogenic22
+/.github/CODEOWNERS @cryogenic22
+/.github/pull_request_template.md @cryogenic22
+/harness/structural-floor/ @cryogenic22
+/ctxpack/benchmarks/**/PREREGISTRATION*.md @cryogenic22
+/ctxpack/benchmarks/**/results/ @cryogenic22
+/tests/test_p0_trust_repairs.py @cryogenic22
+/tests/test_negation_preservation.py @cryogenic22
+/tests/test_protected_surface_sync.py @cryogenic22
+/tests/test_pr_template_gate.py @cryogenic22
