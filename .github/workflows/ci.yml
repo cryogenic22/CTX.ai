@@ -126,7 +126,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m pytest tests/test_replay_benchmark.py -rs | tee replay-pytest.log
-          python -c 'import pathlib,re,sys;text=pathlib.Path("replay-pytest.log").read_text(encoding="utf-8");p=[int(x) for x in re.findall(r"(\\d+)\\s+passed", text)];s=[int(x) for x in re.findall(r"(\\d+)\\s+skipped", text)];pc=p[-1] if p else 0;sc=s[-1] if s else 0;print(f"replay-pytest-counts passed={pc} skipped={sc}");sys.exit(0 if sc==0 else 1)'
+          python -c 'import pathlib,re,sys;text=pathlib.Path("replay-pytest.log").read_text(encoding="utf-8");p=[int(x) for x in re.findall(r"(\\d+)\\s+passed", text)];s=[int(x) for x in re.findall(r"(\\d+)\\s+skipped", text)];pc=p[-1] if p else 0;sc=s[-1] if s else 0;print(f\"::notice::replay-pytest-counts passed={pc} skipped={sc}\");sys.exit(0 if sc==0 else 1)'
 
   # ── extras: the OPTIONAL-INTEGRATION lane — install every runtime extra
   #    and run the FULL non-slow suite (incl. tests/code code-packer + MCP,
