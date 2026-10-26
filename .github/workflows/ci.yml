@@ -90,8 +90,8 @@ jobs:
     name: replay-byte-pin (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     env:
-      TIKTOKEN_CACHE_DIR: ${{ runner.temp }}/tiktoken-cache
-      CTX_REPLAY_TOKENIZER_READY_FILE: ${{ runner.temp }}/tiktoken-cache/cl100k_base.ready
+      TIKTOKEN_CACHE_DIR: ./.tmp/tiktoken-cache
+      CTX_REPLAY_TOKENIZER_READY_FILE: ./.tmp/tiktoken-cache/cl100k_base.ready
     strategy:
       fail-fast: false
       matrix:
