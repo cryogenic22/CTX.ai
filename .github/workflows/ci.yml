@@ -86,9 +86,11 @@ jobs:
       - name: Run ordinary lane (no -x; report every failure)
         shell: bash
         run: |
+          set +e
           set -o pipefail
           python -m pytest tests/ -q -m "not slow" --ignore=tests/code 2>&1 | tee /tmp/pytest-test-lane.log
           rc=${PIPESTATUS[0]}
+          set -e
           if [ "$rc" -ne 0 ]; then
             python - <<'PY'
             from pathlib import Path
@@ -178,9 +180,11 @@ jobs:
       - name: Run full non-slow suite (code / MCP / analytics integrations)
         shell: bash
         run: |
+          set +e
           set -o pipefail
           python -m pytest tests/ -q -m "not slow" 2>&1 | tee /tmp/pytest-extras-lane.log
           rc=${PIPESTATUS[0]}
+          set -e
           if [ "$rc" -ne 0 ]; then
             python - <<'PY'
             from pathlib import Path
