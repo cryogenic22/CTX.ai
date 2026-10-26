@@ -124,9 +124,25 @@ jobs:
       - name: Run replay pytest (must execute with zero skips)
         shell: bash
         run: |
-          set -euo pipefail
+          set +e
           python -m pytest tests/test_replay_benchmark.py -rs | tee replay-pytest.log
-          python -c 'import pathlib,re,sys;text=pathlib.Path("replay-pytest.log").read_text(encoding="utf-8");p=[int(x) for x in re.findall(r"(\\d+)\\s+passed", text)];s=[int(x) for x in re.findall(r"(\\d+)\\s+skipped", text)];pc=p[-1] if p else 0;sc=s[-1] if s else 0;print(f\"::notice::replay-pytest-counts passed={pc} skipped={sc}\");sys.exit(0 if sc==0 else 1)'
+          status=${PIPESTATUS[0]}
+          set -e
+          python - "$status" <<'PY'
+          import pathlib, re, sys
+          text = pathlib.Path("replay-pytest.log").read_text(encoding="utf-8", errors="replace")
+          failures = [line for line in text.splitlines() if line.startswith(("FAILED ", "ERROR "))]
+          if failures:
+              print("::error::replay_pytest_failures=" + " || ".join(failures[:20]))
+          passed = [int(x) for x in re.findall(r"(\\d+)\\s+passed", text)]
+          skipped = [int(x) for x in re.findall(r"(\\d+)\\s+skipped", text)]
+          pc = passed[-1] if passed else 0
+          sc = skipped[-1] if skipped else 0
+          print(f"::notice::replay-pytest-counts passed={pc} skipped={sc}")
+          if int(sys.argv[1]) != 0:
+              raise SystemExit(int(sys.argv[1]))
+          raise SystemExit(0 if sc == 0 else 1)
+          PY
 
   # ── extras: the OPTIONAL-INTEGRATION lane — install every runtime extra
   #    and run the FULL non-slow suite (incl. tests/code code-packer + MCP,
