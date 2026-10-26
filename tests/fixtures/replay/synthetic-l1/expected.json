@@ -1,9 +1,9 @@
 {
   "as_of": "2026-10-25",
   "determinism": {
-    "first_sha256": "58f21637e88967a2e669ad24f6d555c4de3a6e5cf6100dbc0f75664dd2683449",
+    "first_sha256": "0d929e6a50b1457d89d3dc7baea6bc737d81c3dd1d4420e7b7c39ad068a4161a",
     "identical_bytes": true,
-    "second_sha256": "58f21637e88967a2e669ad24f6d555c4de3a6e5cf6100dbc0f75664dd2683449",
+    "second_sha256": "0d929e6a50b1457d89d3dc7baea6bc737d81c3dd1d4420e7b7c39ad068a4161a",
     "seeds": [
       "11",
       "97"
@@ -28,21 +28,23 @@
             "status": "unsupported"
           }
         },
-        "chars": 7900,
+        "chars": 8092,
         "coverage_by_kind": {
           "CONSTRAINT": 1.0,
-          "DECISION": 0.0
+          "DECISION": 0.0,
+          "FAILED-APPROACH": 0.0
         },
         "dropped_by_kind": {
           "CONSTRAINT": 0,
-          "DECISION": 1
+          "DECISION": 1,
+          "FAILED-APPROACH": 2
         },
         "drops_disclosed": false,
-        "sha256": "6593dac55fb695eee22fe1dd7f9de845daf1650de9e46c1d6ef61309eaa4a2f8"
+        "sha256": "fd7b710917bdb4346aadd042f40b64faaf19fbc4e6f40a7820cc8bcb01913b58"
       },
       "capture": {
-        "found": 2,
-        "total": 3
+        "found": 4,
+        "total": 5
       },
       "commit_capture": {
         "status": "unsupported"
@@ -50,6 +52,7 @@
       "ledger_bytes_by_kind": {
         "CONSTRAINT": 5127,
         "DECISION": 11851,
+        "FAILED-APPROACH": 2341,
         "LITERAL": 191,
         "USER-REQUEST": 195
       },
@@ -71,19 +74,21 @@
             "status": "unsupported"
           }
         },
-        "chars": 10532,
+        "chars": 11128,
         "coverage_by_kind": {
-          "DECISION": 1.0
+          "DECISION": 1.0,
+          "FAILED-APPROACH": 1.0
         },
         "dropped_by_kind": {
-          "DECISION": 0
+          "DECISION": 0,
+          "FAILED-APPROACH": 0
         },
         "drops_disclosed": false,
-        "sha256": "a1b82b4c4191656703c38ddf0d7a5d43870257f74bffbd10921ad7e3bcc78ad3"
+        "sha256": "0dd2286ab10a3e9ea961e5adb96e422291daed271439d1988ddea01023dad285"
       },
       "capture": {
-        "found": 2,
-        "total": 2
+        "found": 3,
+        "total": 3
       },
       "commit_capture": {
         "status": "unsupported"
@@ -91,6 +96,7 @@
       "ledger_bytes_by_kind": {
         "CONSTRAINT": 2300,
         "DECISION": 5636,
+        "FAILED-APPROACH": 1756,
         "LITERAL": 382
       },
       "session": "rpl00002"
@@ -111,15 +117,15 @@
             "status": "unsupported"
           }
         },
-        "chars": 9293,
+        "chars": 10199,
         "coverage_by_kind": {},
         "dropped_by_kind": {},
         "drops_disclosed": false,
-        "sha256": "5d082c8525d2377b53207de78d501bc59f3a1dd5535e118edfe804c2fa357314"
+        "sha256": "b132bc9bbfa84f4ea5ea2492011e287f4758e036cb89d8139b0a3d0b74b480fb"
       },
       "capture": {
         "found": 0,
-        "total": 1
+        "total": 0
       },
       "commit_capture": {
         "status": "unsupported"
@@ -127,6 +133,7 @@
       "ledger_bytes_by_kind": {
         "CONSTRAINT": 1720,
         "DECISION": 3637,
+        "FAILED-APPROACH": 2824,
         "USER-REQUEST": 228
       },
       "session": "rpl00003"
@@ -147,11 +154,11 @@
             "status": "unsupported"
           }
         },
-        "chars": 7180,
+        "chars": 6451,
         "coverage_by_kind": {},
         "dropped_by_kind": {},
         "drops_disclosed": false,
-        "sha256": "719f264d0ff00354f3da0a0ef5b181301e9f671eed1d0f7f30dbc1b9cafe2cdf"
+        "sha256": "fda52c36d7dd058791a363d47b3114bfef8fbc54db60f185472e9e67d6708dce"
       },
       "capture": {
         "found": 0,
@@ -169,6 +176,10 @@
       "session": "rpl00004"
     }
   ],
+  "tokenizer": {
+    "encoding": "cl100k_base",
+    "library": "tiktoken"
+  },
   "totals": {
     "briefing": {
       "budgets": {
@@ -187,21 +198,22 @@
       },
       "coverage_by_kind": {
         "CONSTRAINT": 1.0,
-        "DECISION": 0.6667
+        "DECISION": 0.6667,
+        "FAILED-APPROACH": 0.3333
       },
       "dropped_by_kind": {
         "CONSTRAINT": 0,
-        "DECISION": 1
+        "DECISION": 1,
+        "FAILED-APPROACH": 2
       },
       "drops_disclosed": false
     },
     "capture": {
-      "found": 4,
+      "found": 7,
       "missing_label_ids": [
-        "l1-commit-only",
-        "l1-rejected"
+        "l1-commit-only"
       ],
-      "recall": 0.6667,
+      "recall": 0.875,
       "split_by_source": {
         "commit": {
           "found": 0,
@@ -209,12 +221,12 @@
           "total": 1
         },
         "transcript": {
-          "found": 4,
-          "recall": 0.8,
-          "total": 5
+          "found": 7,
+          "recall": 1.0,
+          "total": 7
         }
       },
-      "total": 6
+      "total": 8
     },
     "contamination_facts": {
       "by_kind": {
@@ -248,6 +260,7 @@
     "ledger_bytes_by_kind": {
       "CONSTRAINT": 9371,
       "DECISION": 21422,
+      "FAILED-APPROACH": 6921,
       "LITERAL": 950,
       "USER-REQUEST": 1123
     },
