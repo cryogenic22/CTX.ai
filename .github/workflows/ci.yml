@@ -86,6 +86,54 @@ jobs:
       - name: Run ordinary lane (no -x; report every failure)
         run: python -m pytest tests/ -q -m "not slow" --ignore=tests/code
 
+  replay-byte-pin:
+    name: replay-byte-pin (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    env:
+      TIKTOKEN_CACHE_DIR: ./.tmp/tiktoken-cache
+      CTX_REPLAY_TOKENIZER_READY_FILE: ./.tmp/tiktoken-cache/cl100k_base.ready
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6 (2026-07-16)
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6 (2026-06-23)
+        with:
+          python-version: "3.12"
+      - name: Install package + test extra
+        run: pip install ".[test]"
+      - name: Prewarm pinned replay tokenizer cache
+        shell: bash
+        run: |
+          mkdir -p "${TIKTOKEN_CACHE_DIR}"
+          python -c 'import os,pathlib,tiktoken;tiktoken.get_encoding("cl100k_base");pathlib.Path(os.environ["CTX_REPLAY_TOKENIZER_READY_FILE"]).write_text("cl100k_base ready\\n",encoding="utf-8")'
+      - name: Build replay report
+        shell: bash
+        run: python -m ctxpack.benchmarks.replay --fixture tests/fixtures/replay/synthetic-l1 --output out.json
+      - name: Assert exact pinned bytes (out.json == expected.json)
+        shell: bash
+        run: |
+          python - <<'PY'
+          import pathlib, subprocess, sys
+          out_bytes = pathlib.Path("out.json").read_bytes()
+          expected_bytes = subprocess.check_output(["git", "show", "HEAD:tests/fixtures/replay/synthetic-l1/expected.json"])
+          sys.exit(0 if out_bytes == expected_bytes else 1)
+          PY
+      - name: Run replay pytest (must execute with zero skips)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest tests/test_replay_benchmark.py -rs | tee replay-pytest.log
+          python - <<'PY'
+          import pathlib, re, sys
+          text = pathlib.Path("replay-pytest.log").read_text(encoding="utf-8", errors="replace")
+          passed = [int(x) for x in re.findall(r"(\d+)\s+passed", text)]; skipped = [int(x) for x in re.findall(r"(\d+)\s+skipped", text)]
+          pc = passed[-1] if passed else 0; sc = skipped[-1] if skipped else 0
+          print(f"::notice::replay-pytest-counts passed={pc} skipped={sc}")
+          raise SystemExit(0 if sc == 0 else 1)
+          PY
+
   # ── extras: the OPTIONAL-INTEGRATION lane — install every runtime extra
   #    and run the FULL non-slow suite (incl. tests/code code-packer + MCP,
   #    and the analytics hermetic lane) on one Ubuntu/3.12 cell.
@@ -166,7 +214,7 @@ jobs:
   #    fails, is cancelled, or is skipped.
   ci-required:
     name: ci-required
-    needs: [core, test, extras, gates, artifact]
+    needs: [core, test, replay-byte-pin, extras, gates, artifact]
     if: always()
     runs-on: ubuntu-latest
     steps:
