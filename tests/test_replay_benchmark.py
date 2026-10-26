@@ -19,10 +19,6 @@ def _fixture_path() -> str:
 
 _HAS_TIKTOKEN = importlib.util.find_spec("tiktoken") is not None
 _HAS_REPLAY_TEST_ENV = bool(os.environ.get("CTX_REPLAY_TOKENIZER_READY_FILE"))
-pytestmark = pytest.mark.skipif(
-    not _HAS_REPLAY_TEST_ENV,
-    reason="replay benchmark unit tests require pinned tokenizer cache marker",
-)
 _REQUIRES_TIKTOKEN = pytest.mark.skipif(
     not (_HAS_TIKTOKEN and _HAS_REPLAY_TEST_ENV),
     reason="replay baseline determinism path requires warmed tiktoken/cl100k_base cache",
@@ -36,17 +32,11 @@ def test_synthetic_fixture_shows_known_main_gaps():
     expected = json.loads((Path(_fixture_path()) / "expected.json").read_text(encoding="utf-8"))
     assert report["determinism"]["identical_bytes"] is True
     assert report["tokenizer"] == {"encoding": "cl100k_base", "library": "tiktoken"}
-    assert totals["capture"]["total"] == 8
-    assert totals["capture"]["found"] == 7
-    assert set(totals["capture"]["missing_label_ids"]) == {"l1-commit-only"}
-    assert totals["capture"]["split_by_source"]["commit"]["found"] == 0
-    assert totals["capture"]["split_by_source"]["commit"]["total"] == 1
-    assert totals["supersession"]["total"] == 1
-    assert totals["supersession"]["passed"] == 0
+    assert totals["capture"] == expected["totals"]["capture"]
+    assert totals["supersession"]["total"] == expected["totals"]["supersession"]["total"]
+    assert totals["supersession"]["passed"] == expected["totals"]["supersession"]["passed"]
     assert totals["supersession"]["stale_items_present"] > 0
-    assert totals["contamination_facts"]["ids"] == expected["totals"]["contamination_facts"]["ids"]
-    assert totals["contamination_facts"]["by_kind"]["harness"]["ids"] == expected["totals"]["contamination_facts"]["by_kind"]["harness"]["ids"]
-    assert totals["contamination_facts"]["by_kind"]["probe"]["ids"] == expected["totals"]["contamination_facts"]["by_kind"]["probe"]["ids"]
+    assert totals["contamination_facts"] == expected["totals"]["contamination_facts"]
     assert totals["briefing"]["dropped_by_kind"]["DECISION"] > 0
     assert totals["briefing"]["dropped_by_kind"]["FAILED-APPROACH"] > 0
     assert totals["briefing"]["coverage_by_kind"]["DECISION"] < 1.0

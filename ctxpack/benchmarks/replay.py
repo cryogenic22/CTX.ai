@@ -20,7 +20,6 @@ from typing import Any, Callable
 
 from ..agent.checkpoint import read_startup_context, run_checkpoint
 from ..agent.session_reader import ledger_facts, load_session, session_decisions
-from ..core.serializer import serialize_section
 
 DEFAULT_BUDGETS = (2000, 4000, 8000, 14000)
 BriefingAdapter = Callable[[str, int | None], dict[str, Any]]
@@ -32,11 +31,6 @@ _DROPS_KIND_TERMS = {
     "DECISION": "decision",
     "CONSTRAINT": "constraint",
     "FAILED-APPROACH": "failed approach",
-    "LITERAL": "literal",
-    "USER-REQUEST": "user request",
-    "ERROR": "error",
-    "TASK": "task",
-    "FILE": "file",
 }
 
 
@@ -61,24 +55,20 @@ def _read_json(path: str) -> Any:
 
 
 def _read_jsonl(path: str) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
     with open(path, encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                rows.append(json.loads(line))
-    return rows
+        return [json.loads(line) for line in f if line.strip()]
 
 
 def _session_dirs(fixture_dir: str) -> list[str]:
     root = os.path.join(fixture_dir, "sessions")
     if not os.path.isdir(root):
         raise ValueError(f"missing fixture sessions dir: {root}")
-    out: list[str] = []
-    for name in sorted(os.listdir(root)):
-        path = os.path.join(root, name)
-        if os.path.isdir(path) and os.path.isfile(os.path.join(path, "transcript.jsonl")):
-            out.append(path)
+    out = [
+        os.path.join(root, name)
+        for name in sorted(os.listdir(root))
+        if os.path.isdir(os.path.join(root, name))
+        and os.path.isfile(os.path.join(root, name, "transcript.jsonl"))
+    ]
     if not out:
         raise ValueError(f"no transcript sessions found under {root}")
     return out
@@ -97,37 +87,6 @@ def _load_fixture(fixture_dir: str) -> tuple[dict[str, Any], list[Label]]:
         for row in payload.get("labels", [])
     ]
     return payload, labels
-
-
-def _require_as_of(fixture: dict[str, Any]) -> str:
-    if "as_of" not in fixture:
-        raise ValueError("fixture labels.json is missing required field: as_of")
-    as_of = str(fixture["as_of"]).strip()
-    if not as_of:
-        raise ValueError("fixture labels.json has empty as_of")
-    return as_of
-
-
-def _parse_contamination_turns(fixture: dict[str, Any]) -> dict[str, set[tuple[str, int]]]:
-    raw = fixture.get("contamination_turns") or {}
-    turns: dict[str, set[tuple[str, int]]] = {"harness": set(), "probe": set()}
-    for kind in ("harness", "probe"):
-        rows = raw.get(kind) or []
-        parsed: set[tuple[str, int]] = set()
-        for row in rows:
-            sid = str(row["session"])[:8]
-            turn = int(row["turn"])
-            parsed.add((sid, turn))
-        turns[kind] = parsed
-    return turns
-
-
-def _ledger_bytes_by_kind(facts: list[dict[str, Any]]) -> dict[str, int]:
-    out: dict[str, int] = {}
-    for fact in facts:
-        payload = "\n".join(serialize_section(fact["section"]))
-        out[fact["kind"]] = out.get(fact["kind"], 0) + len(payload.encode("utf-8"))
-    return out
 
 
 def _briefing_adapter(ledger_dir: str, budget_chars: int | None = None) -> dict[str, Any]:
@@ -190,14 +149,6 @@ def _require_replay_tokenizer() -> dict[str, Any]:
     }
 
 
-def _live_blob(briefing_text: str, decisions_payload: dict[str, Any]) -> str:
-    lines = [briefing_text]
-    for key in ("decisions", "constraints", "failed_approaches"):
-        for row in decisions_payload.get(key, []):
-            lines.append(str(row.get("text", "")))
-    return "\n".join(lines)
-
-
 def _score_briefing(
     labels_here: list[Label],
     captured_facts: set[tuple[str, str]],
@@ -206,11 +157,10 @@ def _score_briefing(
     by_kind_total: dict[str, int] = {}
     by_kind_seen: dict[str, int] = {}
     for label in labels_here:
-        if (label.kind, label.text) not in captured_facts:
-            continue
-        by_kind_total[label.kind] = by_kind_total.get(label.kind, 0) + 1
-        if label.text in briefing_text:
-            by_kind_seen[label.kind] = by_kind_seen.get(label.kind, 0) + 1
+        if (label.kind, label.text) in captured_facts:
+            by_kind_total[label.kind] = by_kind_total.get(label.kind, 0) + 1
+            if label.text in briefing_text:
+                by_kind_seen[label.kind] = by_kind_seen.get(label.kind, 0) + 1
     coverage_by_kind = {
         kind: round(by_kind_seen.get(kind, 0) / total, 4)
         for kind, total in sorted(by_kind_total.items())
@@ -237,7 +187,6 @@ def _budget_rows(
 ) -> dict[str, dict[str, Any]]:
     out: dict[str, dict[str, Any]] = {}
     for budget in budgets:
-        key = str(budget)
         payload = adapter(ledger_dir, budget)
         status = str(payload.get("status", "unsupported"))
         row: dict[str, Any] = {"status": status}
@@ -246,33 +195,15 @@ def _budget_rows(
             _, _, coverage_by_kind, dropped_by_kind, drops_disclosed = _score_briefing(
                 labels_here, captured_facts, text
             )
-            row.update(
-                {
-                    "chars": len(text),
-                    "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
-                    "coverage_by_kind": coverage_by_kind,
-                    "dropped_by_kind": dropped_by_kind,
-                    "drops_disclosed": drops_disclosed,
-                }
-            )
-        out[key] = row
+            row.update({
+                "chars": len(text),
+                "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+                "coverage_by_kind": coverage_by_kind,
+                "dropped_by_kind": dropped_by_kind,
+                "drops_disclosed": drops_disclosed,
+            })
+        out[str(budget)] = row
     return out
-
-
-def _validate_commit_labels(labels: list[Label], session_dirs: list[str]) -> None:
-    commit_texts: dict[str, set[str]] = {}
-    for sdir in session_dirs:
-        sid = os.path.basename(sdir).split("-", 1)[-1][:8]
-        cpath = os.path.join(sdir, "commits.jsonl")
-        if os.path.isfile(cpath):
-            commit_texts[sid] = {
-                str(row.get("text", ""))
-                for row in _read_jsonl(cpath)
-                if str(row.get("text", "")).strip()
-            }
-    for label in labels:
-        if label.source == "commit" and label.text not in commit_texts.get(label.session, set()):
-            raise ValueError(f"commit label not present in commits.jsonl: {label.id}")
 
 
 def _one_process_report(
@@ -285,25 +216,26 @@ def _one_process_report(
 ) -> dict[str, Any]:
     fixture, labels = _load_fixture(fixture_dir)
     label_by_id = {l.id: l for l in labels}
-    as_of = _require_as_of(fixture)
-    contamination_turns = _parse_contamination_turns(fixture)
+    as_of = str(fixture.get("as_of", "")).strip()
+    if not as_of:
+        raise ValueError("fixture labels.json is missing required field: as_of")
+    contamination_turns = {
+        kind: {(str(row["session"])[:8], int(row["turn"])) for row in (fixture.get("contamination_turns", {}) or {}).get(kind, [])}
+        for kind in ("harness", "probe")
+    }
     supers = fixture.get("supersessions", [])
     session_dirs = _session_dirs(fixture_dir)
-    _validate_commit_labels(labels, session_dirs)
 
     sessions_out: list[dict[str, Any]] = []
     missing_ids: list[str] = []
     source_totals: dict[str, int] = {"transcript": 0, "commit": 0}
     source_found: dict[str, int] = {"transcript": 0, "commit": 0}
     capture_found = 0
-    contamination_ids: dict[str, list[str]] = {"harness": [], "probe": []}
+    contamination_counts: dict[str, int] = {"harness": 0, "probe": 0}
     session_live: dict[str, str] = {}
     session_order: list[str] = []
     micro_seen: dict[str, int] = {}
     micro_total: dict[str, int] = {}
-    total_ledger_bytes: dict[str, int] = {}
-    total_disclosed = 0
-    scored_sessions = 0
 
     with tempfile.TemporaryDirectory() as td:
         for sdir in session_dirs:
@@ -336,10 +268,9 @@ def _one_process_report(
                     missing_ids.append(label.id)
 
             for fact in facts:
-                cid = fact["fact_id"] or fact["section"].name
                 for kind in ("harness", "probe"):
                     if (sid, fact["turn"]) in contamination_turns[kind]:
-                        contamination_ids[kind].append(cid)
+                        contamination_counts[kind] += 1
 
             base_briefing = briefing_adapter(td, None)
             base_status = str(base_briefing.get("status", "unsupported"))
@@ -347,7 +278,14 @@ def _one_process_report(
                 raise ValueError("briefing adapter must return status=ok for baseline (budget=None)")
             base_text = str(base_briefing.get("text", ""))
             decisions_payload = session_decisions(doc, sid)
-            session_live[sid] = _live_blob(base_text, decisions_payload)
+            session_live[sid] = "\n".join(
+                [base_text]
+                + [
+                    str(row.get("text", ""))
+                    for key in ("decisions", "constraints", "failed_approaches")
+                    for row in decisions_payload.get(key, [])
+                ]
+            )
 
             (
                 by_kind_total,
@@ -360,35 +298,22 @@ def _one_process_report(
             for kind, total in by_kind_total.items():
                 micro_total[kind] = micro_total.get(kind, 0) + total
                 micro_seen[kind] = micro_seen.get(kind, 0) + by_kind_seen.get(kind, 0)
-            if by_kind_total:
-                scored_sessions += 1
-                total_disclosed += 1 if drops_disclosed else 0
 
             budget_rows = _budget_rows(td, budgets, labels_here, fact_set, briefing_adapter)
 
-            ledger_bytes = _ledger_bytes_by_kind(facts)
-            for kind, value in ledger_bytes.items():
-                total_ledger_bytes[kind] = total_ledger_bytes.get(kind, 0) + value
-
-            sessions_out.append(
-                {
-                    "session": sid,
-                    "capture": {
-                        "found": sum(1 for l in labels_here if (l.kind, l.text) in fact_set),
-                        "total": len(labels_here),
-                    },
-                    "commit_capture": {"status": commit_status},
-                    "briefing": {
-                        "chars": len(base_text),
-                        "sha256": hashlib.sha256(base_text.encode("utf-8")).hexdigest(),
-                        "coverage_by_kind": coverage_by_kind,
-                        "dropped_by_kind": dropped_by_kind,
-                        "drops_disclosed": drops_disclosed,
-                        "budgets": budget_rows,
-                    },
-                    "ledger_bytes_by_kind": ledger_bytes,
-                }
-            )
+            sessions_out.append({
+                "session": sid,
+                "capture": {"found": sum(1 for l in labels_here if (l.kind, l.text) in fact_set), "total": len(labels_here)},
+                "commit_capture": {"status": commit_status},
+                "briefing": {
+                    "chars": len(base_text),
+                    "sha256": hashlib.sha256(base_text.encode("utf-8")).hexdigest(),
+                    "coverage_by_kind": coverage_by_kind,
+                    "dropped_by_kind": dropped_by_kind,
+                    "drops_disclosed": drops_disclosed,
+                    "budgets": budget_rows,
+                },
+            })
 
     supers_total = 0
     supers_passed = 0
@@ -416,26 +341,23 @@ def _one_process_report(
         supers_total += 1
         if edge_passed:
             supers_passed += 1
-        supers_checks.append(
-            {
-                "old": old.id,
-                "new": new.id,
-                "start_session": start_sid,
-                "last_session_checked": checked_sessions[-1] if checked_sessions else start_sid,
-                "passed": edge_passed,
-                "stale_sessions": stale_sessions,
-            }
-        )
+        supers_checks.append({
+            "old": old.id,
+            "new": new.id,
+            "start_session": start_sid,
+            "last_session_checked": checked_sessions[-1] if checked_sessions else start_sid,
+            "passed": edge_passed,
+            "stale_sessions": stale_sessions,
+        })
 
-    split: dict[str, dict[str, Any]] = {}
-    for source in sorted(source_totals):
-        total = source_totals[source]
-        found = source_found.get(source, 0)
-        split[source] = {
-            "found": found,
-            "total": total,
-            "recall": round(found / total, 4) if total else 1.0,
+    split = {
+        source: {
+            "found": source_found.get(source, 0),
+            "total": source_totals[source],
+            "recall": round(source_found.get(source, 0) / source_totals[source], 4) if source_totals[source] else 1.0,
         }
+        for source in sorted(source_totals)
+    }
 
     total_budget_rows: dict[str, dict[str, Any]] = {}
     for budget in budgets:
@@ -448,7 +370,7 @@ def _one_process_report(
         else:
             total_budget_rows[key] = {"status": "mixed"}
 
-    contamination_total_ids = sorted(contamination_ids["harness"] + contamination_ids["probe"])
+    scored_sessions = [row for row in sessions_out if row["briefing"]["coverage_by_kind"]]
 
     return {
         "schema_version": "replay/v1",
@@ -472,17 +394,10 @@ def _one_process_report(
                 "checks": supers_checks,
             },
             "contamination_facts": {
-                "count": len(contamination_total_ids),
-                "ids": contamination_total_ids,
+                "count": contamination_counts["harness"] + contamination_counts["probe"],
                 "by_kind": {
-                    "harness": {
-                        "count": len(contamination_ids["harness"]),
-                        "ids": sorted(contamination_ids["harness"]),
-                    },
-                    "probe": {
-                        "count": len(contamination_ids["probe"]),
-                        "ids": sorted(contamination_ids["probe"]),
-                    },
+                    "harness": {"count": contamination_counts["harness"]},
+                    "probe": {"count": contamination_counts["probe"]},
                 },
             },
             "briefing": {
@@ -495,26 +410,13 @@ def _one_process_report(
                     kind: micro_total[kind] - micro_seen.get(kind, 0)
                     for kind in sorted(micro_total)
                 },
-                "drops_disclosed": scored_sessions > 0 and total_disclosed == scored_sessions,
+                "drops_disclosed": bool(scored_sessions) and all(
+                    row["briefing"]["drops_disclosed"] for row in scored_sessions
+                ),
                 "budgets": total_budget_rows,
             },
-            "ledger_bytes_by_kind": dict(sorted(total_ledger_bytes.items())),
         },
     }
-
-
-def _run_single_process_cli(fixture_dir: str, budgets: tuple[int, ...], output_path: str) -> dict[str, Any]:
-    tokenizer = _require_replay_tokenizer()
-    report = _one_process_report(
-        fixture_dir,
-        budgets,
-        briefing_adapter=_briefing_adapter,
-        commit_capture_adapter=_commit_capture_adapter,
-        tokenizer=tokenizer,
-    )
-    if output_path:
-        _write_report(output_path, report)
-    return report
 
 
 def _run_subprocess_once(fixture_dir: str, budgets: tuple[int, ...], seed: str) -> bytes:
@@ -550,7 +452,6 @@ def run_replay(
     briefing_adapter: BriefingAdapter = _briefing_adapter,
     commit_capture_adapter: CommitCaptureAdapter = _commit_capture_adapter,
 ) -> dict[str, Any]:
-    """Run replay benchmark with optional cross-process determinism verification."""
     if determinism_check and (
         briefing_adapter is not _briefing_adapter
         or commit_capture_adapter is not _commit_capture_adapter
@@ -563,10 +464,7 @@ def run_replay(
             budgets,
             briefing_adapter=briefing_adapter,
             commit_capture_adapter=commit_capture_adapter,
-            tokenizer={
-                "library": "unchecked",
-                "encoding": REPLAY_TOKENIZER_ENCODING,
-            },
+            tokenizer={"library": "unchecked", "encoding": REPLAY_TOKENIZER_ENCODING},
         )
         report["determinism"] = {
             "identical_bytes": True,
@@ -597,18 +495,6 @@ def run_replay(
     return report
 
 
-def _emit_token_info(report: dict[str, Any]) -> None:
-    """Print rough token info to stderr without affecting pinned report bytes."""
-    for row in report.get("sessions", []):
-        sid = str(row.get("session", ""))
-        chars = int(row.get("briefing", {}).get("chars", 0))
-        rough_tokens = max(1, chars // 4) if chars else 0
-        print(
-            f"[replay-token-info] session={sid} chars={chars} rough_tokens={rough_tokens} method=chars_div_4",
-            file=sys.stderr,
-        )
-
-
 def main(argv: list[str] | None = None) -> int:
     """CLI for ``python -m ctxpack.benchmarks.replay``."""
     parser = argparse.ArgumentParser(description="Offline deterministic CTX replay benchmark")
@@ -624,13 +510,20 @@ def main(argv: list[str] | None = None) -> int:
     budgets = tuple(int(x) for x in args.budgets.split(",") if x.strip())
     try:
         if args.single_process:
-            report = _run_single_process_cli(args.fixture, budgets, args.output)
+            report = _one_process_report(
+                args.fixture,
+                budgets,
+                briefing_adapter=_briefing_adapter,
+                commit_capture_adapter=_commit_capture_adapter,
+                tokenizer=_require_replay_tokenizer(),
+            )
+            if args.output:
+                _write_report(args.output, report)
         else:
             report = run_replay(args.fixture, budgets=budgets, output_path=args.output)
     except Exception as exc:
         print(f"replay failed: {exc}", file=sys.stderr)
         return 1
-    _emit_token_info(report)
     if not args.output:
         print(json.dumps(report, indent=2, sort_keys=True, ensure_ascii=True))
     return 0

@@ -7,10 +7,6 @@ budget so the surface can't silently bloat.
 
 from pathlib import Path
 
-import pytest
-
-pytest.importorskip("mcp")
-
 from ctxpack.integrations.mcp_server import TOOLS
 
 ROOT = Path(__file__).resolve().parent.parent

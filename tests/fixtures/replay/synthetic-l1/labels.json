@@ -74,6 +74,20 @@
       "session": "rpl00001",
       "source": "transcript",
       "text": "Rejected: collapse every status note into one freeform paragraph failed because audit readers lose per-lane causal links."
+    },
+    {
+      "id": "l1-rejected-plain-ops-notes",
+      "kind": "FAILED-APPROACH",
+      "session": "rpl00002",
+      "source": "transcript",
+      "text": "Rejected: move rollback docs into unlabeled ops notes until next quarter."
+    },
+    {
+      "id": "l1-rejected-plain-alert-matrix",
+      "kind": "FAILED-APPROACH",
+      "session": "rpl00003",
+      "source": "transcript",
+      "text": "Rejected: defer lane alert matrix updates until after this maintenance window."
     }
   ],
   "supersessions": [

@@ -89,6 +89,9 @@ jobs:
   replay-byte-pin:
     name: replay-byte-pin (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    env:
+      TIKTOKEN_CACHE_DIR: ${{ runner.temp }}/tiktoken-cache
+      CTX_REPLAY_TOKENIZER_READY_FILE: ${{ runner.temp }}/tiktoken-cache/cl100k_base.ready
     strategy:
       fail-fast: false
       matrix:
@@ -103,48 +106,27 @@ jobs:
       - name: Prewarm pinned replay tokenizer cache
         shell: bash
         run: |
-          export TIKTOKEN_CACHE_DIR="${RUNNER_TEMP}/tiktoken-cache"
-          export CTX_REPLAY_TOKENIZER_READY_FILE="${RUNNER_TEMP}/tiktoken-cache/cl100k_base.ready"
           mkdir -p "${TIKTOKEN_CACHE_DIR}"
-          python - <<'PY'
-          import os
-          import pathlib
-          import tiktoken
-          tiktoken.get_encoding("cl100k_base")
-          pathlib.Path(os.environ["CTX_REPLAY_TOKENIZER_READY_FILE"]).write_text(
-              "cl100k_base ready\n",
-              encoding="utf-8",
-          )
-          PY
+          python -c 'import os,pathlib,tiktoken;tiktoken.get_encoding("cl100k_base");pathlib.Path(os.environ["CTX_REPLAY_TOKENIZER_READY_FILE"]).write_text("cl100k_base ready\\n",encoding="utf-8")'
+      - name: Run replay pytest (must execute with zero skips)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest tests/test_replay_benchmark.py -rs | tee replay-pytest.log
+          python -c 'import pathlib,re,sys;text=pathlib.Path("replay-pytest.log").read_text(encoding="utf-8");p=[int(x) for x in re.findall(r"(\\d+)\\s+passed", text)];s=[int(x) for x in re.findall(r"(\\d+)\\s+skipped", text)];pc=p[-1] if p else 0;sc=s[-1] if s else 0;print(f"replay-pytest-counts passed={pc} skipped={sc}");sys.exit(0 if sc==0 else 1)'
       - name: Build replay report
         shell: bash
-        env:
-          TIKTOKEN_CACHE_DIR: ${{ runner.temp }}/tiktoken-cache
-          CTX_REPLAY_TOKENIZER_READY_FILE: ${{ runner.temp }}/tiktoken-cache/cl100k_base.ready
         run: python -m ctxpack.benchmarks.replay --fixture tests/fixtures/replay/synthetic-l1 --output out.json
       - name: Assert exact pinned bytes (out.json == expected.json)
         shell: bash
-        env:
-          TIKTOKEN_CACHE_DIR: ${{ runner.temp }}/tiktoken-cache
-          CTX_REPLAY_TOKENIZER_READY_FILE: ${{ runner.temp }}/tiktoken-cache/cl100k_base.ready
         run: |
           python - <<'PY'
-          import hashlib
-          import pathlib
-          import subprocess
-          import sys
-          out_path = pathlib.Path("out.json")
-          out_bytes = out_path.read_bytes()
-          expected_bytes = subprocess.check_output(
-              ["git", "show", "HEAD:tests/fixtures/replay/synthetic-l1/expected.json"]
-          )
-          out_sha = hashlib.sha256(out_bytes).hexdigest()
-          expected_sha = hashlib.sha256(expected_bytes).hexdigest()
-          print(f"out.json sha256={out_sha}")
-          print(f"expected.json (git blob) sha256={expected_sha}")
-          if out_bytes != expected_bytes:
-              print("byte mismatch between out.json and expected.json", file=sys.stderr)
-              sys.exit(1)
+          import hashlib, pathlib, subprocess, sys
+          out_bytes = pathlib.Path("out.json").read_bytes()
+          expected_bytes = subprocess.check_output(["git", "show", "HEAD:tests/fixtures/replay/synthetic-l1/expected.json"])
+          print(f"out.json sha256={hashlib.sha256(out_bytes).hexdigest()}")
+          print(f"expected.json (git blob) sha256={hashlib.sha256(expected_bytes).hexdigest()}")
+          sys.exit(0 if out_bytes == expected_bytes else 1)
           PY
 
   # ── extras: the OPTIONAL-INTEGRATION lane — install every runtime extra
