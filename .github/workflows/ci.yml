@@ -95,10 +95,12 @@ jobs:
             python - <<'PY'
             from pathlib import Path
             log = Path("/tmp/pytest-test-lane.log").read_text(encoding="utf-8", errors="replace")
-            chunk = 3500
-            for i in range(0, len(log), chunk):
-                part = log[i:i + chunk].replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
-                print(f"::error title=pytest-test-lane-log-{i // chunk:03d}::{part}")
+            failed = [line for line in log.splitlines() if line.startswith("FAILED ")]
+            if not failed:
+                failed = [line for line in log.splitlines() if line.startswith("ERROR ")]
+            msg = " | ".join(failed[:20]) if failed else "pytest failed; inspect job logs"
+            msg = msg.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+            print(f"::error title=pytest-test-lane-failures::{msg}")
             PY
           fi
           exit "$rc"
@@ -189,10 +191,12 @@ jobs:
             python - <<'PY'
             from pathlib import Path
             log = Path("/tmp/pytest-extras-lane.log").read_text(encoding="utf-8", errors="replace")
-            chunk = 3500
-            for i in range(0, len(log), chunk):
-                part = log[i:i + chunk].replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
-                print(f"::error title=pytest-extras-lane-log-{i // chunk:03d}::{part}")
+            failed = [line for line in log.splitlines() if line.startswith("FAILED ")]
+            if not failed:
+                failed = [line for line in log.splitlines() if line.startswith("ERROR ")]
+            msg = " | ".join(failed[:20]) if failed else "pytest failed; inspect job logs"
+            msg = msg.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+            print(f"::error title=pytest-extras-lane-failures::{msg}")
             PY
           fi
           exit "$rc"
