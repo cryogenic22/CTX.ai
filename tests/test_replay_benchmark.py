@@ -168,7 +168,7 @@ def test_cli_main_fails_loudly_without_required_tokenizer(
 
     monkeypatch.setattr(replay_mod, "_require_replay_tokenizer", _boom)
     out = tmp_path / "report.json"
-    rc = main(["--fixture", _fixture_path(), "--output", str(out)])
+    rc = main(["--fixture", _fixture_path(), "--output", str(out), "--single-process"])
     assert rc == 1
 
 

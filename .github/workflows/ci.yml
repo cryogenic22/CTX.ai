@@ -84,20 +84,7 @@ jobs:
       - name: Install package + test extra (pytest + PyYAML; NOT all)
         run: pip install ".[test]"
       - name: Run ordinary lane (no -x; report every failure)
-        shell: bash
-        run: |
-          set +e
-          python -m pytest tests/ -q -m "not slow" --ignore=tests/code 2>&1 | tee pytest.log
-          status=${PIPESTATUS[0]}
-          set -e
-          python - "$status" <<'PY'
-          import pathlib, sys
-          text = pathlib.Path("pytest.log").read_text(encoding="utf-8", errors="replace")
-          lines = [line for line in text.splitlines() if line.startswith(("FAILED ", "ERROR "))]
-          if lines:
-              print("::error::pytest_failures=" + " || ".join(lines[:20]))
-          raise SystemExit(int(sys.argv[1]))
-          PY
+        run: python -m pytest tests/ -q -m "not slow" --ignore=tests/code
 
   replay-byte-pin:
     name: replay-byte-pin (${{ matrix.os }})
@@ -128,40 +115,18 @@ jobs:
         shell: bash
         run: |
           python - <<'PY'
-          import base64, hashlib, pathlib, subprocess, sys
+          import pathlib, subprocess, sys
           out_bytes = pathlib.Path("out.json").read_bytes()
           expected_bytes = subprocess.check_output(["git", "show", "HEAD:tests/fixtures/replay/synthetic-l1/expected.json"])
-          out_sha = hashlib.sha256(out_bytes).hexdigest()
-          expected_sha = hashlib.sha256(expected_bytes).hexdigest()
           if out_bytes != expected_bytes:
-              b64 = base64.b64encode(out_bytes).decode("ascii")
-              for i in range(0, len(b64), 1500):
-                  print(f"::error::out_json_base64_chunk_{i // 1500:04d}={b64[i:i + 1500]}")
               sys.exit(1)
-          sys.exit(0)
           PY
       - name: Run replay pytest (must execute with zero skips)
         shell: bash
         run: |
-          set +e
+          set -euo pipefail
           python -m pytest tests/test_replay_benchmark.py -rs | tee replay-pytest.log
-          status=${PIPESTATUS[0]}
-          set -e
-          python - "$status" <<'PY'
-          import pathlib, re, sys
-          text = pathlib.Path("replay-pytest.log").read_text(encoding="utf-8", errors="replace")
-          passed = [int(x) for x in re.findall(r"(\\d+)\\s+passed", text)]
-          skipped = [int(x) for x in re.findall(r"(\\d+)\\s+skipped", text)]
-          passed_count = passed[-1] if passed else 0
-          skipped_count = skipped[-1] if skipped else 0
-          print(f"replay-pytest-counts passed={passed_count} skipped={skipped_count}")
-          failures = [line for line in text.splitlines() if line.startswith(("FAILED ", "ERROR "))]
-          if failures:
-              print("::error::replay_pytest_failures=" + " || ".join(failures[:20]))
-          if int(sys.argv[1]) != 0:
-              raise SystemExit(int(sys.argv[1]))
-          raise SystemExit(0 if skipped_count == 0 else 1)
-          PY
+          python -c 'import pathlib,re,sys;text=pathlib.Path("replay-pytest.log").read_text(encoding="utf-8");p=[int(x) for x in re.findall(r"(\\d+)\\s+passed", text)];s=[int(x) for x in re.findall(r"(\\d+)\\s+skipped", text)];pc=p[-1] if p else 0;sc=s[-1] if s else 0;print(f"replay-pytest-counts passed={pc} skipped={sc}");sys.exit(0 if sc==0 else 1)'
 
   # ── extras: the OPTIONAL-INTEGRATION lane — install every runtime extra
   #    and run the FULL non-slow suite (incl. tests/code code-packer + MCP,
@@ -177,20 +142,7 @@ jobs:
       - name: Install package + ALL runtime extras + test runner
         run: pip install ".[all,test]"
       - name: Run full non-slow suite (code / MCP / analytics integrations)
-        shell: bash
-        run: |
-          set +e
-          python -m pytest tests/ -q -m "not slow" 2>&1 | tee pytest.log
-          status=${PIPESTATUS[0]}
-          set -e
-          python - "$status" <<'PY'
-          import pathlib, sys
-          text = pathlib.Path("pytest.log").read_text(encoding="utf-8", errors="replace")
-          lines = [line for line in text.splitlines() if line.startswith(("FAILED ", "ERROR "))]
-          if lines:
-              print("::error::pytest_failures=" + " || ".join(lines[:20]))
-          raise SystemExit(int(sys.argv[1]))
-          PY
+        run: python -m pytest tests/ -q -m "not slow"
 
   # ── gates: the non-suite guards the deterministic lane depends on, plus
   #    the tokenizer calibration re-verified against the live encoding
