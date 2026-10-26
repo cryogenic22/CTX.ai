@@ -84,26 +84,7 @@ jobs:
       - name: Install package + test extra (pytest + PyYAML; NOT all)
         run: pip install ".[test]"
       - name: Run ordinary lane (no -x; report every failure)
-        shell: bash
-        run: |
-          set +e
-          set -o pipefail
-          python -m pytest tests/ -q -m "not slow" --ignore=tests/code 2>&1 | tee /tmp/pytest-test-lane.log
-          rc=${PIPESTATUS[0]}
-          set -e
-          if [ "$rc" -ne 0 ]; then
-            python - <<'PY'
-            from pathlib import Path
-            log = Path("/tmp/pytest-test-lane.log").read_text(encoding="utf-8", errors="replace")
-            failed = [line for line in log.splitlines() if line.startswith("FAILED ")]
-            if not failed:
-                failed = [line for line in log.splitlines() if line.startswith("ERROR ")]
-            msg = " | ".join(failed[:20]) if failed else "pytest failed; inspect job logs"
-            msg = msg.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
-            print(f"::error title=pytest-test-lane-failures::{msg}")
-            PY
-          fi
-          exit "$rc"
+        run: python -m pytest tests/ -q -m "not slow" --ignore=tests/code
 
   replay-byte-pin:
     name: replay-byte-pin (${{ matrix.os }})
@@ -180,26 +161,7 @@ jobs:
       - name: Install package + ALL runtime extras + test runner
         run: pip install ".[all,test]"
       - name: Run full non-slow suite (code / MCP / analytics integrations)
-        shell: bash
-        run: |
-          set +e
-          set -o pipefail
-          python -m pytest tests/ -q -m "not slow" 2>&1 | tee /tmp/pytest-extras-lane.log
-          rc=${PIPESTATUS[0]}
-          set -e
-          if [ "$rc" -ne 0 ]; then
-            python - <<'PY'
-            from pathlib import Path
-            log = Path("/tmp/pytest-extras-lane.log").read_text(encoding="utf-8", errors="replace")
-            failed = [line for line in log.splitlines() if line.startswith("FAILED ")]
-            if not failed:
-                failed = [line for line in log.splitlines() if line.startswith("ERROR ")]
-            msg = " | ".join(failed[:20]) if failed else "pytest failed; inspect job logs"
-            msg = msg.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
-            print(f"::error title=pytest-extras-lane-failures::{msg}")
-            PY
-          fi
-          exit "$rc"
+        run: python -m pytest tests/ -q -m "not slow"
 
   # ── gates: the non-suite guards the deterministic lane depends on, plus
   #    the tokenizer calibration re-verified against the live encoding
