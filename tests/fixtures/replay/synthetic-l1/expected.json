@@ -1,9 +1,9 @@
 {
   "as_of": "2026-10-25",
   "determinism": {
-    "first_sha256": "0d929e6a50b1457d89d3dc7baea6bc737d81c3dd1d4420e7b7c39ad068a4161a",
+    "first_sha256": "ccb6ca8602cbc8a24ad17621b2a1a22d7f1bb7b5387e1e67d163b999c78816bd",
     "identical_bytes": true,
-    "second_sha256": "0d929e6a50b1457d89d3dc7baea6bc737d81c3dd1d4420e7b7c39ad068a4161a",
+    "second_sha256": "ccb6ca8602cbc8a24ad17621b2a1a22d7f1bb7b5387e1e67d163b999c78816bd",
     "seeds": [
       "11",
       "97"
@@ -49,13 +49,6 @@
       "commit_capture": {
         "status": "unsupported"
       },
-      "ledger_bytes_by_kind": {
-        "CONSTRAINT": 5127,
-        "DECISION": 11851,
-        "FAILED-APPROACH": 2341,
-        "LITERAL": 191,
-        "USER-REQUEST": 195
-      },
       "session": "rpl00001"
     },
     {
@@ -88,16 +81,10 @@
       },
       "capture": {
         "found": 3,
-        "total": 3
+        "total": 4
       },
       "commit_capture": {
         "status": "unsupported"
-      },
-      "ledger_bytes_by_kind": {
-        "CONSTRAINT": 2300,
-        "DECISION": 5636,
-        "FAILED-APPROACH": 1756,
-        "LITERAL": 382
       },
       "session": "rpl00002"
     },
@@ -125,16 +112,10 @@
       },
       "capture": {
         "found": 0,
-        "total": 0
+        "total": 1
       },
       "commit_capture": {
         "status": "unsupported"
-      },
-      "ledger_bytes_by_kind": {
-        "CONSTRAINT": 1720,
-        "DECISION": 3637,
-        "FAILED-APPROACH": 2824,
-        "USER-REQUEST": 228
       },
       "session": "rpl00003"
     },
@@ -166,12 +147,6 @@
       },
       "commit_capture": {
         "status": "unsupported"
-      },
-      "ledger_bytes_by_kind": {
-        "CONSTRAINT": 224,
-        "DECISION": 298,
-        "LITERAL": 377,
-        "USER-REQUEST": 700
       },
       "session": "rpl00004"
     }
@@ -211,9 +186,11 @@
     "capture": {
       "found": 7,
       "missing_label_ids": [
-        "l1-commit-only"
+        "l1-commit-only",
+        "l1-rejected-plain-alert-matrix",
+        "l1-rejected-plain-ops-notes"
       ],
-      "recall": 0.875,
+      "recall": 0.7,
       "split_by_source": {
         "commit": {
           "found": 0,
@@ -222,47 +199,22 @@
         },
         "transcript": {
           "found": 7,
-          "recall": 1.0,
-          "total": 7
+          "recall": 0.7778,
+          "total": 9
         }
       },
-      "total": 8
+      "total": 10
     },
     "contamination_facts": {
       "by_kind": {
         "harness": {
-          "count": 3,
-          "ids": [
-            "6fa664e2499a5029",
-            "c057889468a6ce0d",
-            "d2018dbd19705d43"
-          ]
+          "count": 3
         },
         "probe": {
-          "count": 3,
-          "ids": [
-            "2eb2cdd9d1ec0155",
-            "41baafa3ce6bb68c",
-            "7d17221aec3da77d"
-          ]
+          "count": 3
         }
       },
-      "count": 6,
-      "ids": [
-        "2eb2cdd9d1ec0155",
-        "41baafa3ce6bb68c",
-        "6fa664e2499a5029",
-        "7d17221aec3da77d",
-        "c057889468a6ce0d",
-        "d2018dbd19705d43"
-      ]
-    },
-    "ledger_bytes_by_kind": {
-      "CONSTRAINT": 9371,
-      "DECISION": 21422,
-      "FAILED-APPROACH": 6921,
-      "LITERAL": 950,
-      "USER-REQUEST": 1123
+      "count": 6
     },
     "supersession": {
       "checks": [
