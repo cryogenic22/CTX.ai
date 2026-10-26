@@ -84,7 +84,22 @@ jobs:
       - name: Install package + test extra (pytest + PyYAML; NOT all)
         run: pip install ".[test]"
       - name: Run ordinary lane (no -x; report every failure)
-        run: python -m pytest tests/ -q -m "not slow" --ignore=tests/code
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m pytest tests/ -q -m "not slow" --ignore=tests/code 2>&1 | tee /tmp/pytest-test-lane.log
+          rc=${PIPESTATUS[0]}
+          if [ "$rc" -ne 0 ]; then
+            python - <<'PY'
+            from pathlib import Path
+            log = Path("/tmp/pytest-test-lane.log").read_text(encoding="utf-8", errors="replace")
+            chunk = 3500
+            for i in range(0, len(log), chunk):
+                part = log[i:i + chunk].replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+                print(f"::error title=pytest-test-lane-log-{i // chunk:03d}::{part}")
+            PY
+          fi
+          exit "$rc"
 
   replay-byte-pin:
     name: replay-byte-pin (${{ matrix.os }})
@@ -161,7 +176,22 @@ jobs:
       - name: Install package + ALL runtime extras + test runner
         run: pip install ".[all,test]"
       - name: Run full non-slow suite (code / MCP / analytics integrations)
-        run: python -m pytest tests/ -q -m "not slow"
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m pytest tests/ -q -m "not slow" 2>&1 | tee /tmp/pytest-extras-lane.log
+          rc=${PIPESTATUS[0]}
+          if [ "$rc" -ne 0 ]; then
+            python - <<'PY'
+            from pathlib import Path
+            log = Path("/tmp/pytest-extras-lane.log").read_text(encoding="utf-8", errors="replace")
+            chunk = 3500
+            for i in range(0, len(log), chunk):
+                part = log[i:i + chunk].replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+                print(f"::error title=pytest-extras-lane-log-{i // chunk:03d}::{part}")
+            PY
+          fi
+          exit "$rc"
 
   # ── gates: the non-suite guards the deterministic lane depends on, plus
   #    the tokenizer calibration re-verified against the live encoding
