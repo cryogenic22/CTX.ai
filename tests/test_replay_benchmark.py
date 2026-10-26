@@ -114,7 +114,6 @@ def test_fake_adapter_enables_budget_scoring_and_supersession_pass(monkeypatch: 
             "Decision: raise retry backoff to 750ms for vendor calls.\n"
             "Dropped 1 decision.\n"
             "Dropped 1 constraint.\n"
-            "Dropped 1 failed approach.\n"
             "Dropped 2 failed approaches."
         )
         return {"status": "ok", "text": text}
@@ -138,8 +137,9 @@ def test_fake_adapter_enables_budget_scoring_and_supersession_pass(monkeypatch: 
     assert calls.count(None) == 4
     assert set(x for x in calls if x is not None) == set(DEFAULT_BUDGETS)
     for budget in ("2000", "4000", "8000", "14000"):
-        assert report["sessions"][0]["briefing"]["budgets"][budget]["status"] == "ok"
-    assert report["totals"]["briefing"]["drops_disclosed"] is True
+        row = report["sessions"][0]["briefing"]["budgets"][budget]
+        assert row["status"] == "ok"
+        assert row["drops_disclosed"] is True
     assert report["totals"]["supersession"]["passed"] == 1
 
 
