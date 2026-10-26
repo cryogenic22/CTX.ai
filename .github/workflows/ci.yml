@@ -108,12 +108,6 @@ jobs:
         run: |
           mkdir -p "${TIKTOKEN_CACHE_DIR}"
           python -c 'import os,pathlib,tiktoken;tiktoken.get_encoding("cl100k_base");pathlib.Path(os.environ["CTX_REPLAY_TOKENIZER_READY_FILE"]).write_text("cl100k_base ready\\n",encoding="utf-8")'
-      - name: Run replay pytest (must execute with zero skips)
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -m pytest tests/test_replay_benchmark.py -rs | tee replay-pytest.log
-          python -c 'import pathlib,re,sys;text=pathlib.Path("replay-pytest.log").read_text(encoding="utf-8");p=[int(x) for x in re.findall(r"(\\d+)\\s+passed", text)];s=[int(x) for x in re.findall(r"(\\d+)\\s+skipped", text)];pc=p[-1] if p else 0;sc=s[-1] if s else 0;print(f"replay-pytest-counts passed={pc} skipped={sc}");sys.exit(0 if sc==0 else 1)'
       - name: Build replay report
         shell: bash
         run: python -m ctxpack.benchmarks.replay --fixture tests/fixtures/replay/synthetic-l1 --output out.json
@@ -121,13 +115,24 @@ jobs:
         shell: bash
         run: |
           python - <<'PY'
-          import hashlib, pathlib, subprocess, sys
+          import base64, hashlib, pathlib, subprocess, sys
           out_bytes = pathlib.Path("out.json").read_bytes()
           expected_bytes = subprocess.check_output(["git", "show", "HEAD:tests/fixtures/replay/synthetic-l1/expected.json"])
-          print(f"out.json sha256={hashlib.sha256(out_bytes).hexdigest()}")
-          print(f"expected.json (git blob) sha256={hashlib.sha256(expected_bytes).hexdigest()}")
-          sys.exit(0 if out_bytes == expected_bytes else 1)
+          out_sha = hashlib.sha256(out_bytes).hexdigest()
+          expected_sha = hashlib.sha256(expected_bytes).hexdigest()
+          if out_bytes != expected_bytes:
+              print(f"::error::out_json_sha256={out_sha}")
+              print(f"::error::expected_json_sha256={expected_sha}")
+              print(f"::error::out_json_base64={base64.b64encode(out_bytes).decode('ascii')}")
+              sys.exit(1)
+          sys.exit(0)
           PY
+      - name: Run replay pytest (must execute with zero skips)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest tests/test_replay_benchmark.py -rs | tee replay-pytest.log
+          python -c 'import pathlib,re,sys;text=pathlib.Path("replay-pytest.log").read_text(encoding="utf-8");p=[int(x) for x in re.findall(r"(\\d+)\\s+passed", text)];s=[int(x) for x in re.findall(r"(\\d+)\\s+skipped", text)];pc=p[-1] if p else 0;sc=s[-1] if s else 0;print(f"replay-pytest-counts passed={pc} skipped={sc}");sys.exit(0 if sc==0 else 1)'
 
   # ── extras: the OPTIONAL-INTEGRATION lane — install every runtime extra
   #    and run the FULL non-slow suite (incl. tests/code code-packer + MCP,

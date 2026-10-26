@@ -33,7 +33,6 @@ _DROPS_KIND_TERMS = {
     "FAILED-APPROACH": "failed approach",
 }
 
-
 @dataclass(frozen=True)
 class Label:
     id: str
@@ -42,22 +41,18 @@ class Label:
     source: str
     text: str
 
-
 def _write_report(path: str, report: dict[str, Any]) -> None:
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(report, f, indent=2, sort_keys=True, ensure_ascii=True)
         f.write("\n")
 
-
 def _read_json(path: str) -> Any:
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 
-
 def _read_jsonl(path: str) -> list[dict[str, Any]]:
     with open(path, encoding="utf-8") as f:
         return [json.loads(line) for line in f if line.strip()]
-
 
 def _session_dirs(fixture_dir: str) -> list[str]:
     root = os.path.join(fixture_dir, "sessions")
