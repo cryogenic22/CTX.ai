@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -18,8 +19,8 @@ def _fixture_path() -> str:
 
 _HAS_TIKTOKEN = importlib.util.find_spec("tiktoken") is not None
 _REQUIRES_TIKTOKEN = pytest.mark.skipif(
-    not _HAS_TIKTOKEN,
-    reason="replay baseline determinism path requires tiktoken/cl100k_base",
+    not (_HAS_TIKTOKEN and os.environ.get("CTX_REPLAY_TOKENIZER_READY_FILE")),
+    reason="replay baseline determinism path requires warmed tiktoken/cl100k_base cache",
 )
 
 
