@@ -18,8 +18,13 @@ def _fixture_path() -> str:
 
 
 _HAS_TIKTOKEN = importlib.util.find_spec("tiktoken") is not None
+_HAS_REPLAY_TEST_ENV = bool(os.environ.get("CTX_REPLAY_TOKENIZER_READY_FILE"))
+pytestmark = pytest.mark.skipif(
+    not _HAS_REPLAY_TEST_ENV,
+    reason="replay benchmark unit tests require pinned tokenizer cache marker",
+)
 _REQUIRES_TIKTOKEN = pytest.mark.skipif(
-    not (_HAS_TIKTOKEN and os.environ.get("CTX_REPLAY_TOKENIZER_READY_FILE")),
+    not (_HAS_TIKTOKEN and _HAS_REPLAY_TEST_ENV),
     reason="replay baseline determinism path requires warmed tiktoken/cl100k_base cache",
 )
 
