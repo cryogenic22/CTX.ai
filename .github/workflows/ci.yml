@@ -129,6 +129,7 @@ jobs:
           CTX_REPLAY_TOKENIZER_READY_FILE: ${{ runner.temp }}/tiktoken-cache/cl100k_base.ready
         run: |
           python - <<'PY'
+          import base64
           import hashlib
           import pathlib
           import subprocess
@@ -143,6 +144,8 @@ jobs:
           print(f"out.json sha256={out_sha}")
           print(f"expected.json (git blob) sha256={expected_sha}")
           if out_bytes != expected_bytes:
+              encoded = base64.b64encode(out_bytes).decode("ascii")
+              print(f"::error title=replay-out-json-b64::{encoded}")
               print("BEGIN_REPLAY_OUT_JSON")
               print(out_bytes.decode("utf-8"))
               print("END_REPLAY_OUT_JSON")
