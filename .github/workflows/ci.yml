@@ -84,7 +84,20 @@ jobs:
       - name: Install package + test extra (pytest + PyYAML; NOT all)
         run: pip install ".[test]"
       - name: Run ordinary lane (no -x; report every failure)
-        run: python -m pytest tests/ -q -m "not slow" --ignore=tests/code
+        shell: bash
+        run: |
+          set +e
+          python -m pytest tests/ -q -m "not slow" --ignore=tests/code 2>&1 | tee pytest.log
+          status=${PIPESTATUS[0]}
+          set -e
+          python - "$status" <<'PY'
+          import pathlib, sys
+          text = pathlib.Path("pytest.log").read_text(encoding="utf-8", errors="replace")
+          lines = [line for line in text.splitlines() if line.startswith(("FAILED ", "ERROR "))]
+          if lines:
+              print("::error::pytest_failures=" + " || ".join(lines[:20]))
+          raise SystemExit(int(sys.argv[1]))
+          PY
 
   replay-byte-pin:
     name: replay-byte-pin (${{ matrix.os }})
@@ -130,9 +143,25 @@ jobs:
       - name: Run replay pytest (must execute with zero skips)
         shell: bash
         run: |
-          set -euo pipefail
+          set +e
           python -m pytest tests/test_replay_benchmark.py -rs | tee replay-pytest.log
-          python -c 'import pathlib,re,sys;text=pathlib.Path("replay-pytest.log").read_text(encoding="utf-8");p=[int(x) for x in re.findall(r"(\\d+)\\s+passed", text)];s=[int(x) for x in re.findall(r"(\\d+)\\s+skipped", text)];pc=p[-1] if p else 0;sc=s[-1] if s else 0;print(f"replay-pytest-counts passed={pc} skipped={sc}");sys.exit(0 if sc==0 else 1)'
+          status=${PIPESTATUS[0]}
+          set -e
+          python - "$status" <<'PY'
+          import pathlib, re, sys
+          text = pathlib.Path("replay-pytest.log").read_text(encoding="utf-8", errors="replace")
+          passed = [int(x) for x in re.findall(r"(\\d+)\\s+passed", text)]
+          skipped = [int(x) for x in re.findall(r"(\\d+)\\s+skipped", text)]
+          passed_count = passed[-1] if passed else 0
+          skipped_count = skipped[-1] if skipped else 0
+          print(f"replay-pytest-counts passed={passed_count} skipped={skipped_count}")
+          failures = [line for line in text.splitlines() if line.startswith(("FAILED ", "ERROR "))]
+          if failures:
+              print("::error::replay_pytest_failures=" + " || ".join(failures[:20]))
+          if int(sys.argv[1]) != 0:
+              raise SystemExit(int(sys.argv[1]))
+          raise SystemExit(0 if skipped_count == 0 else 1)
+          PY
 
   # ── extras: the OPTIONAL-INTEGRATION lane — install every runtime extra
   #    and run the FULL non-slow suite (incl. tests/code code-packer + MCP,
@@ -148,7 +177,20 @@ jobs:
       - name: Install package + ALL runtime extras + test runner
         run: pip install ".[all,test]"
       - name: Run full non-slow suite (code / MCP / analytics integrations)
-        run: python -m pytest tests/ -q -m "not slow"
+        shell: bash
+        run: |
+          set +e
+          python -m pytest tests/ -q -m "not slow" 2>&1 | tee pytest.log
+          status=${PIPESTATUS[0]}
+          set -e
+          python - "$status" <<'PY'
+          import pathlib, sys
+          text = pathlib.Path("pytest.log").read_text(encoding="utf-8", errors="replace")
+          lines = [line for line in text.splitlines() if line.startswith(("FAILED ", "ERROR "))]
+          if lines:
+              print("::error::pytest_failures=" + " || ".join(lines[:20]))
+          raise SystemExit(int(sys.argv[1]))
+          PY
 
   # ── gates: the non-suite guards the deterministic lane depends on, plus
   #    the tokenizer calibration re-verified against the live encoding
