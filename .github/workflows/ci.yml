@@ -100,11 +100,33 @@ jobs:
           python-version: "3.12"
       - name: Install package + test extra
         run: pip install ".[test]"
+      - name: Prewarm pinned replay tokenizer cache
+        shell: bash
+        run: |
+          export TIKTOKEN_CACHE_DIR="${RUNNER_TEMP}/tiktoken-cache"
+          export CTX_REPLAY_TOKENIZER_READY_FILE="${RUNNER_TEMP}/tiktoken-cache/cl100k_base.ready"
+          mkdir -p "${TIKTOKEN_CACHE_DIR}"
+          python - <<'PY'
+          import os
+          import pathlib
+          import tiktoken
+          tiktoken.get_encoding("cl100k_base")
+          pathlib.Path(os.environ["CTX_REPLAY_TOKENIZER_READY_FILE"]).write_text(
+              "cl100k_base ready\n",
+              encoding="utf-8",
+          )
+          PY
       - name: Build replay report
         shell: bash
+        env:
+          TIKTOKEN_CACHE_DIR: ${{ runner.temp }}/tiktoken-cache
+          CTX_REPLAY_TOKENIZER_READY_FILE: ${{ runner.temp }}/tiktoken-cache/cl100k_base.ready
         run: python -m ctxpack.benchmarks.replay --fixture tests/fixtures/replay/synthetic-l1 --output out.json
       - name: Assert exact pinned bytes (out.json == expected.json)
         shell: bash
+        env:
+          TIKTOKEN_CACHE_DIR: ${{ runner.temp }}/tiktoken-cache
+          CTX_REPLAY_TOKENIZER_READY_FILE: ${{ runner.temp }}/tiktoken-cache/cl100k_base.ready
         run: |
           python - <<'PY'
           import hashlib
@@ -121,6 +143,9 @@ jobs:
           print(f"out.json sha256={out_sha}")
           print(f"expected.json (git blob) sha256={expected_sha}")
           if out_bytes != expected_bytes:
+              print("BEGIN_REPLAY_OUT_JSON")
+              print(out_bytes.decode("utf-8"))
+              print("END_REPLAY_OUT_JSON")
               print("byte mismatch between out.json and expected.json", file=sys.stderr)
               sys.exit(1)
           PY

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 
@@ -15,17 +16,23 @@ def _fixture_path() -> str:
     return str(Path(__file__).parent / "fixtures" / "replay" / "synthetic-l1")
 
 
+_HAS_TIKTOKEN = importlib.util.find_spec("tiktoken") is not None
+_REQUIRES_TIKTOKEN = pytest.mark.skipif(
+    not _HAS_TIKTOKEN,
+    reason="replay baseline determinism path requires tiktoken/cl100k_base",
+)
+
+
+@_REQUIRES_TIKTOKEN
 def test_synthetic_fixture_shows_known_main_gaps():
     report = run_replay(_fixture_path())
     totals = report["totals"]
     expected = json.loads((Path(_fixture_path()) / "expected.json").read_text(encoding="utf-8"))
     assert report["determinism"]["identical_bytes"] is True
-    assert totals["capture"]["total"] == 6
-    assert totals["capture"]["found"] == 4
-    assert set(totals["capture"]["missing_label_ids"]) == {
-        "l1-commit-only",
-        "l1-rejected",
-    }
+    assert report["tokenizer"] == {"encoding": "cl100k_base", "library": "tiktoken"}
+    assert totals["capture"]["total"] == 8
+    assert totals["capture"]["found"] == 7
+    assert set(totals["capture"]["missing_label_ids"]) == {"l1-commit-only"}
     assert totals["capture"]["split_by_source"]["commit"]["found"] == 0
     assert totals["capture"]["split_by_source"]["commit"]["total"] == 1
     assert totals["supersession"]["total"] == 1
@@ -35,7 +42,9 @@ def test_synthetic_fixture_shows_known_main_gaps():
     assert totals["contamination_facts"]["by_kind"]["harness"]["ids"] == expected["totals"]["contamination_facts"]["by_kind"]["harness"]["ids"]
     assert totals["contamination_facts"]["by_kind"]["probe"]["ids"] == expected["totals"]["contamination_facts"]["by_kind"]["probe"]["ids"]
     assert totals["briefing"]["dropped_by_kind"]["DECISION"] > 0
+    assert totals["briefing"]["dropped_by_kind"]["FAILED-APPROACH"] > 0
     assert totals["briefing"]["coverage_by_kind"]["DECISION"] < 1.0
+    assert totals["briefing"]["coverage_by_kind"]["FAILED-APPROACH"] < 1.0
     assert totals["briefing"]["drops_disclosed"] is False
     assert set(totals["briefing"]["budgets"].keys()) == {
         "2000",
@@ -47,6 +56,7 @@ def test_synthetic_fixture_shows_known_main_gaps():
                for v in totals["briefing"]["budgets"].values())
 
 
+@_REQUIRES_TIKTOKEN
 def test_synthetic_fixture_matches_pinned_baseline():
     out_path = Path(_fixture_path()) / ".tmp-out.json"
     expected_path = Path(_fixture_path()) / "expected.json"
@@ -103,7 +113,9 @@ def test_fake_adapter_enables_budget_scoring_and_supersession_pass(monkeypatch: 
         text = (
             "Decision: raise retry backoff to 750ms for vendor calls.\n"
             "Dropped 1 decision.\n"
-            "Dropped 1 constraint."
+            "Dropped 1 constraint.\n"
+            "Dropped 1 failed approach.\n"
+            "Dropped 2 failed approaches."
         )
         return {"status": "ok", "text": text}
 
@@ -152,10 +164,24 @@ def test_zero_drop_without_explicit_disclosure_is_false():
     assert report["totals"]["briefing"]["drops_disclosed"] is False
 
 
+def test_cli_main_fails_loudly_without_required_tokenizer(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    def _boom() -> dict[str, str]:
+        raise RuntimeError("replay benchmark requires tiktoken")
+
+    monkeypatch.setattr(replay_mod, "_require_replay_tokenizer", _boom)
+    out = tmp_path / "report.json"
+    rc = main(["--fixture", _fixture_path(), "--output", str(out)])
+    assert rc == 1
+
+
+@_REQUIRES_TIKTOKEN
 def test_cli_main_writes_json_report(tmp_path: Path):
     out = tmp_path / "report.json"
     rc = main(["--fixture", _fixture_path(), "--output", str(out)])
     assert rc == 0
     data = json.loads(out.read_text(encoding="utf-8"))
     assert data["schema_version"] == "replay/v1"
+    assert data["tokenizer"] == {"encoding": "cl100k_base", "library": "tiktoken"}
     assert data["determinism"]["identical_bytes"] is True

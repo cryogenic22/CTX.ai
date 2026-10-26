@@ -25,6 +25,8 @@ from ..core.serializer import serialize_section
 DEFAULT_BUDGETS = (2000, 4000, 8000, 14000)
 BriefingAdapter = Callable[[str, int | None], dict[str, Any]]
 CommitCaptureAdapter = Callable[[str, list[dict[str, Any]]], dict[str, Any]]
+REPLAY_TOKENIZER_LIBRARY = "tiktoken"
+REPLAY_TOKENIZER_ENCODING = "cl100k_base"
 
 _DROPS_KIND_TERMS = {
     "DECISION": "decision",
@@ -150,10 +152,42 @@ def _drops_disclosed(briefing_text: str, dropped_by_kind: dict[str, int]) -> boo
     for kind, count in dropped_by_kind.items():
         term = _DROPS_KIND_TERMS.get(kind, kind.lower().replace("-", " "))
         term_pattern = re.escape(term).replace(r"\ ", r"[ -]+")
-        pattern = rf"\bdropped\s+{count}\s+{term_pattern}s?\b"
+        if term == "failed approach":
+            term_pattern = r"failed[ -]+approach(?:es)?"
+        else:
+            term_pattern = rf"{term_pattern}s?"
+        pattern = rf"\bdropped\s+{count}\s+{term_pattern}\b"
         if re.search(pattern, low) is None:
             return False
     return True
+
+
+def _require_replay_tokenizer() -> dict[str, Any]:
+    ready_file = os.environ.get("CTX_REPLAY_TOKENIZER_READY_FILE", "").strip()
+    if ready_file and not os.path.isfile(ready_file):
+        raise RuntimeError(
+            "replay tokenizer cache marker missing: "
+            f"{ready_file} (did the cache warm-up step run?)"
+        )
+    try:
+        import tiktoken
+    except Exception as exc:  # noqa: BLE001 - intentional loud failure path
+        raise RuntimeError(
+            "replay benchmark requires tiktoken with cl100k_base available; "
+            "install tiktoken and prewarm tokenizer cache before running replay"
+        ) from exc
+    try:
+        enc = tiktoken.get_encoding(REPLAY_TOKENIZER_ENCODING)
+        enc.encode("ctxpack replay tokenizer readiness probe")
+    except Exception as exc:  # noqa: BLE001 - intentional loud failure path
+        raise RuntimeError(
+            f"replay benchmark requires tokenizer encoding {REPLAY_TOKENIZER_ENCODING}; "
+            "ensure cache warm-up completed before the replay test step"
+        ) from exc
+    return {
+        "library": REPLAY_TOKENIZER_LIBRARY,
+        "encoding": REPLAY_TOKENIZER_ENCODING,
+    }
 
 
 def _live_blob(briefing_text: str, decisions_payload: dict[str, Any]) -> str:
@@ -247,6 +281,7 @@ def _one_process_report(
     *,
     briefing_adapter: BriefingAdapter,
     commit_capture_adapter: CommitCaptureAdapter,
+    tokenizer: dict[str, Any],
 ) -> dict[str, Any]:
     fixture, labels = _load_fixture(fixture_dir)
     label_by_id = {l.id: l for l in labels}
@@ -419,6 +454,7 @@ def _one_process_report(
         "schema_version": "replay/v1",
         "fixture": os.path.basename(os.path.abspath(fixture_dir)),
         "as_of": as_of,
+        "tokenizer": tokenizer,
         "sessions": sessions_out,
         "totals": {
             "capture": {
@@ -468,11 +504,13 @@ def _one_process_report(
 
 
 def _run_single_process_cli(fixture_dir: str, budgets: tuple[int, ...], output_path: str) -> dict[str, Any]:
+    tokenizer = _require_replay_tokenizer()
     report = _one_process_report(
         fixture_dir,
         budgets,
         briefing_adapter=_briefing_adapter,
         commit_capture_adapter=_commit_capture_adapter,
+        tokenizer=tokenizer,
     )
     if output_path:
         _write_report(output_path, report)
@@ -525,6 +563,10 @@ def run_replay(
             budgets,
             briefing_adapter=briefing_adapter,
             commit_capture_adapter=commit_capture_adapter,
+            tokenizer={
+                "library": "unchecked",
+                "encoding": REPLAY_TOKENIZER_ENCODING,
+            },
         )
         report["determinism"] = {
             "identical_bytes": True,

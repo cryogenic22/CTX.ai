@@ -20,11 +20,11 @@
   },
   "labels": [
     {
-      "id": "l1-decision-250",
+      "id": "l1-commit-only",
       "kind": "DECISION",
       "session": "rpl00001",
-      "source": "transcript",
-      "text": "Decision: keep retry backoff at 250ms for vendor calls."
+      "source": "commit",
+      "text": "Decision: commit-path fallback is disabled for replay baseline."
     },
     {
       "id": "l1-constraint-auth",
@@ -34,16 +34,9 @@
       "text": "Do not modify auth service during this replay test."
     },
     {
-      "id": "l1-commit-only",
+      "id": "l1-decision-250",
       "kind": "DECISION",
       "session": "rpl00001",
-      "source": "commit",
-      "text": "Decision: commit-path fallback is disabled for replay baseline."
-    },
-    {
-      "id": "l1-decision-old",
-      "kind": "DECISION",
-      "session": "rpl00002",
       "source": "transcript",
       "text": "Decision: keep retry backoff at 250ms for vendor calls."
     },
@@ -55,11 +48,32 @@
       "text": "Decision: raise retry backoff to 750ms for vendor calls."
     },
     {
-      "id": "l1-rejected",
-      "kind": "FAILED-APPROACH",
-      "session": "rpl00003",
+      "id": "l1-decision-old",
+      "kind": "DECISION",
+      "session": "rpl00002",
       "source": "transcript",
-      "text": "Rejected: use branchless cache writes because they corrupted counters under parallel load."
+      "text": "Decision: keep retry backoff at 250ms for vendor calls."
+    },
+    {
+      "id": "l1-rejected-global-rollback",
+      "kind": "FAILED-APPROACH",
+      "session": "rpl00002",
+      "source": "transcript",
+      "text": "Rejected: merge lane-specific rollback scripts into one global script failed because a single typo can disable all traffic classes."
+    },
+    {
+      "id": "l1-rejected-queue-lock",
+      "kind": "FAILED-APPROACH",
+      "session": "rpl00001",
+      "source": "transcript",
+      "text": "Rejected: batch all retry updates into one giant lock failed because it stalls queue telemetry flushes and starves unrelated workers."
+    },
+    {
+      "id": "l1-rejected-summary",
+      "kind": "FAILED-APPROACH",
+      "session": "rpl00001",
+      "source": "transcript",
+      "text": "Rejected: collapse every status note into one freeform paragraph failed because audit readers lose per-lane causal links."
     }
   ],
   "supersessions": [
