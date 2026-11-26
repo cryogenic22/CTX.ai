@@ -37,7 +37,11 @@ _EDGE_PUNCT = " \t\r\n.,:;!?\"'`*_-—"
 # unchanged by construction (identity is content-addressed on the full
 # admitted sentence, which these changes do not alter — golden-pinned in
 # tests/test_capture_fidelity.py).
-EXTRACTOR_VERSION = "tp/1.4"
+# tp/1.5: harness/probe exclusion, Rejected:/Dead end: marker capture,
+# and leading list-marker strip on banked sentences. Identities of
+# unbulleted sentences are unchanged (the golden pin). Bulleted inputs
+# hash the stripped sentence, which is the text now stored.
+EXTRACTOR_VERSION = "tp/1.5"
 
 # rank = fold(events, policy); v0 is today's behavior — static
 # extraction-time priors, no updates. Recorded in every checkpoint
@@ -61,7 +65,7 @@ class FactBasis(str, Enum):
     :class:`Authority`.
     """
 
-    MARKER_STATED = "marker_stated"        # Decision:/Constraint:/ctx-incident:
+    MARKER_STATED = "marker_stated"        # Decision:/Constraint:/Rejected:/ctx-incident:
     USER_IMPERATIVE = "user_imperative"    # user-turn constraint patterns
     LITERAL_EXTRACTOR = "literal_extractor"
     TOOL_OBSERVED = "tool_observed"        # reserved: no v1.1 producer

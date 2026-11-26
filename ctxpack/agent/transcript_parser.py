@@ -35,6 +35,12 @@ from typing import Any, Optional
 
 from ..core import factid
 from ..core.packer.ir import IRCorpus, IREntity, IRField, IRSource
+from .capture_config import (
+    CaptureConfig,
+    default_capture_config,
+    prepare_user_turn,
+    strip_blocks,
+)
 from .transcript_adapters import load_transcript
 
 # ── Extraction patterns ──
@@ -98,8 +104,13 @@ _SUPERSEDES_MARKER_RE = re.compile(
     r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
     r"supersedes(?:\*{1,2}|_{1,2})?\s*:\s*"
 )
+# A fact_id target is a legacy 16-hex id OR an exact 64-hex id. 64 is
+# tried first so a full exact id is captured whole; a 40-hex git sha or
+# any other length stays unmatched and the payload is ignored
+# (fail-closed: the conflict stays visible). Resolution against a mixed
+# ledger is exact-literal — see ctxpack.agent.live_set.
 _SUPERSEDES_PAYLOAD_RE = re.compile(
-    r"[`']?([0-9a-fA-F]{16})\b[`']?\s*(?:[—–\-:,]\s*)?(.*)")
+    r"\s*[`']?([0-9a-fA-F]{64}|[0-9a-fA-F]{16})\b[`']?\s*(?:[—–\-:,]\s*)?(.*)")
 
 # Memory-incident telemetry: the explicit "ctx-incident:" convention —
 # the ledger's own feedback loop (did ctx save/miss/mislead?). Same
@@ -170,11 +181,32 @@ _PASTED_CONTENT_THRESHOLD = 3000
 # Sentences riddled with video/log timestamps are quoted material
 _TIMESTAMP_NOISE_RE = re.compile(r"\b\d+:\d{2}\b")
 
+# Sentence-start dead-end markers. Same anchoring and use-versus-mention
+# guard as Decision: (match runs on backtick-stripped prose). These bank
+# FAILED-APPROACH with basis marker_stated. The verb pattern below stays
+# the inferred path for unmarked "didn't work" / "failed because" lines.
+_FAILED_MARKER_RE = re.compile(
+    r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
+    r"(?:rejected|dead end)(?:\*{1,2}|_{1,2})?\s*:"
+)
+_RETRACT_MARKER_RE = re.compile(
+    r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
+    r"retracted(?:\*{1,2}|_{1,2})?\s*:\s*"
+)
 _FAILED_RE = re.compile(
     r"(?i)\b(didn'?t work|doesn'?t work|dead end|failed because|"
     r"abandon(?:ed|ing)|gave up on|reverted|turned out to be wrong|"
     r"false (?:positive|start)|won'?t work because)\b"
 )
+# Leading markdown list markers on a banked sentence. The marker token
+# must be followed by whitespace, so a negation ("Don't", "Never") is
+# never consumed. Repeated bullets ("- - Do not") collapse together.
+_LEADING_LIST_RE = re.compile(r"^(?:(?:[-*•>]|\d{1,3}[.)])\s+)+")
+
+
+def strip_leading_list_marker(text: str) -> str:
+    """Drop leading markdown bullets or list numbers. Negations stay."""
+    return _LEADING_LIST_RE.sub("", text or "").strip()
 
 _SYS_REMINDER_RE = re.compile(r"<system-reminder>.*?</system-reminder>", re.DOTALL)
 _TAGGED_META_RE = re.compile(
@@ -224,7 +256,9 @@ def _is_marker_start(s: str) -> bool:
     p = _prose_of(s)
     return bool(_DECISION_MARKER_RE.match(p)
                 or _CONSTRAINT_MARKER_RE.match(p)
-                or _SUPERSEDES_MARKER_RE.match(p))
+                or _SUPERSEDES_MARKER_RE.match(p)
+                or _FAILED_MARKER_RE.match(p)
+                or _RETRACT_MARKER_RE.match(p))
 
 
 # A list item: the block-start set MINUS heading/quote/table. A wrapped list
@@ -480,7 +514,9 @@ def _sentences(text: str) -> list[str]:
         elif len(s) <= _MARKER_SENTENCE_CAP:
             prose = _prose_of(s)
             if (_DECISION_MARKER_RE.match(prose)
-                    or _CONSTRAINT_MARKER_RE.match(prose)):
+                    or _CONSTRAINT_MARKER_RE.match(prose)
+                    or _FAILED_MARKER_RE.match(prose)
+                    or _RETRACT_MARKER_RE.match(prose)):
                 out.append(s)
     return out
 
@@ -664,6 +700,7 @@ def parse_transcript(
     domain: Optional[str] = None,
     since_turn: int = 0,
     format_spec: Optional[str] = None,
+    capture: Optional[CaptureConfig] = None,
 ) -> ParsedTranscript:
     """Parse an agent session transcript into IR.
 
@@ -681,7 +718,13 @@ def parse_transcript(
             pass the previous checkpoint's ``last_turn``).
         format_spec: path to a generic-adapter JSON field map; forces
             the generic adapter instead of detection.
+        capture: exclusion rules. ``None`` uses the built-in defaults
+            (harness briefings and probe prefixes are not mined). A
+            repo file is applied by ``run_checkpoint``, not here, so a
+            direct parse does not depend on the process cwd.
     """
+    if capture is None:
+        capture = default_capture_config()
     normalized = load_transcript(path, format_spec=format_spec)
     session_id = normalized.session_id
     entries = normalized.entries
@@ -869,6 +912,7 @@ def parse_transcript(
                  basis=factid.FactBasis.LITERAL_EXTRACTOR.value,
                  source_role=role)
 
+    skip_assistant_text = False
     for turn, d in enumerate(entries):
         if turn < since_turn:
             continue
@@ -902,6 +946,10 @@ def parse_transcript(
             if not text:
                 continue
             stats.user_turns += 1
+            mined, skip_assistant_text = prepare_user_turn(text, capture)
+            if mined is None:
+                continue
+            text = mined
 
             # Incidents first (short turns only — the pasted-content guard
             # applies: quoted transcripts full of incident lines must not
@@ -933,14 +981,18 @@ def parse_transcript(
                     if len(_TIMESTAMP_NOISE_RE.findall(sentence)) >= 2:
                         continue
                     if _CONSTRAINT_RE.search(_prose_of(sentence)):
+                        banked = strip_leading_list_marker(sentence)
+                        if len(banked) < 15:
+                            continue
                         stats.constraints += 1
                         # store the full admitted sentence — truncating
                         # below the 300-char admission cap could sever a
-                        # trailing negation
-                        _add(f"CONSTRAINT-{_short_hash(sentence)}",
-                             {"rule": sentence, "stated_turn": str(turn)},
+                        # trailing negation. A leading list marker is not
+                        # part of the rule; negations inside it stay.
+                        _add(f"CONSTRAINT-{_short_hash(banked)}",
+                             {"rule": banked, "stated_turn": str(turn)},
                              turn=turn, ts=ts, salience=3.0,
-                             fact=("CONSTRAINT", "", sentence),
+                             fact=("CONSTRAINT", "", banked),
                              basis=factid.FactBasis.USER_IMPERATIVE.value,
                              source_role=factid.SourceRole.USER.value)
                 # Verbatim identifiers the user named (short turns only — a
@@ -949,6 +1001,8 @@ def parse_transcript(
                               role=factid.SourceRole.USER.value)
 
         else:  # assistant
+            mine_text = not skip_assistant_text
+            skip_assistant_text = False
             blocks = content if isinstance(content, list) else []
             for blk in blocks:
                 if not isinstance(blk, dict):
@@ -956,51 +1010,91 @@ def parse_transcript(
                 btype = blk.get("type")
 
                 if btype == "text":
+                    if not mine_text:
+                        continue
                     atext = _clean_multiline(blk.get("text", ""))
+                    atext, _blocked = strip_blocks(atext, capture.ignore_blocks)
+                    if not atext.strip():
+                        continue
                     atext = _extract_incidents(
                         atext, turn=turn, ts=ts,
                         role=factid.SourceRole.ASSISTANT.value)
                     atext = _drop_fenced(atext)  # TM-8: quoted ≠ stated
                     last_decision_name = ""
+
+                    def _marker_payload(sentence: str, marker_re):
+                        raw_m = marker_re.match(sentence)
+                        if not raw_m:
+                            return None
+                        pm = _SUPERSEDES_PAYLOAD_RE.match(sentence[raw_m.end():])
+                        if not pm:
+                            return None
+                        reason = pm.group(2).strip(" —–-:,.")[:200]
+                        return pm.group(1).lower(), reason
+
                     for sentence in _sentences(atext):
-                        if _SUPERSEDES_MARKER_RE.match(_prose_of(sentence)):
+                        prose = _prose_of(sentence)
+                        if _SUPERSEDES_MARKER_RE.match(prose):
                             # binds to the decision it follows in the SAME
                             # text block; malformed payload or no preceding
                             # decision → ignored (fail-closed: the conflict
-                            # stays visible)
-                            raw_m = _SUPERSEDES_MARKER_RE.match(sentence)
-                            if raw_m and last_decision_name:
-                                pm = _SUPERSEDES_PAYLOAD_RE.match(
-                                    sentence[raw_m.end():])
-                                if pm:
+                            # stays visible). 16-hex and 64-hex only.
+                            parsed_id = _marker_payload(
+                                sentence, _SUPERSEDES_MARKER_RE)
+                            if parsed_id and last_decision_name:
+                                token, reason = parsed_id
+                                _attach(last_decision_name,
+                                        "supersedes_fact_id", token,
+                                        turn=turn, ts=ts)
+                                if reason:
                                     _attach(last_decision_name,
-                                            "supersedes_fact_id",
-                                            pm.group(1).lower(),
+                                            "supersedes_reason", reason,
                                             turn=turn, ts=ts)
-                                    reason = pm.group(2).strip(
-                                        " —–-:,.")[:200]
-                                    if reason:
-                                        _attach(last_decision_name,
-                                                "supersedes_reason",
-                                                reason, turn=turn, ts=ts)
                             continue
-                        if _CONSTRAINT_MARKER_RE.match(_prose_of(sentence)):
+                        if _RETRACT_MARKER_RE.match(prose):
+                            parsed_id = _marker_payload(
+                                sentence, _RETRACT_MARKER_RE)
+                            if parsed_id:
+                                token, reason = parsed_id
+                                _add(f"RETRACT-{_short_hash(token)}",
+                                     {"retracts_fact_id": token,
+                                      "reason": reason,
+                                      "turn": str(turn)},
+                                     turn=turn, ts=ts, salience=2.0,
+                                     fact=("RETRACT", "", token),
+                                     basis=factid.FactBasis.MARKER_STATED.value,
+                                     source_role=(
+                                         factid.SourceRole.ASSISTANT.value))
+                            continue
+                        banked = strip_leading_list_marker(sentence)
+                        if len(banked) < 15:
+                            continue
+                        if _CONSTRAINT_MARKER_RE.match(prose):
                             stats.constraints += 1
                             # full sentence, same as user-path constraints:
                             # truncation could sever a trailing negation
-                            _add(f"CONSTRAINT-{_short_hash(sentence)}",
-                                 {"rule": sentence, "stated_turn": str(turn)},
+                            _add(f"CONSTRAINT-{_short_hash(banked)}",
+                                 {"rule": banked, "stated_turn": str(turn)},
                                  turn=turn, ts=ts, salience=3.0,
-                                 fact=("CONSTRAINT", "", sentence),
+                                 fact=("CONSTRAINT", "", banked),
                                  basis=factid.FactBasis.MARKER_STATED.value,
                                  source_role=(
                                      factid.SourceRole.ASSISTANT.value))
-                        elif _FAILED_RE.search(_prose_of(sentence)):
+                        elif _FAILED_MARKER_RE.match(prose):
                             stats.failed_approaches += 1
-                            _add(f"FAILED-APPROACH-{_short_hash(sentence)}",
-                                 {"note": sentence, "turn": str(turn)},
+                            _add(f"FAILED-APPROACH-{_short_hash(banked)}",
+                                 {"note": banked, "turn": str(turn)},
                                  turn=turn, ts=ts, salience=2.2,
-                                 fact=("FAILED-APPROACH", "", sentence),
+                                 fact=("FAILED-APPROACH", "", banked),
+                                 basis=factid.FactBasis.MARKER_STATED.value,
+                                 source_role=(
+                                     factid.SourceRole.ASSISTANT.value))
+                        elif _FAILED_RE.search(prose):
+                            stats.failed_approaches += 1
+                            _add(f"FAILED-APPROACH-{_short_hash(banked)}",
+                                 {"note": banked, "turn": str(turn)},
+                                 turn=turn, ts=ts, salience=2.2,
+                                 fact=("FAILED-APPROACH", "", banked),
                                  basis=factid.FactBasis.INFERRED.value,
                                  source_role=(
                                      factid.SourceRole.ASSISTANT.value))
@@ -1011,25 +1105,25 @@ def parse_transcript(
                             # about whether this is a fact at all
                             d_basis = (
                                 factid.FactBasis.MARKER_STATED.value
-                                if _DECISION_MARKER_RE.match(
-                                    _prose_of(sentence))
+                                if _DECISION_MARKER_RE.match(prose)
                                 else factid.FactBasis.INFERRED.value)
-                            dname = f"DECISION-{_short_hash(sentence)}"
+                            dname = f"DECISION-{_short_hash(banked)}"
                             _add(dname,
-                                 {"decision": sentence, "turn": str(turn)},
+                                 {"decision": banked, "turn": str(turn)},
                                  turn=turn, ts=ts, salience=2.5,
-                                 fact=("DECISION", "", sentence),
+                                 fact=("DECISION", "", banked),
                                  basis=d_basis,
                                  source_role=(
                                      factid.SourceRole.ASSISTANT.value))
                             last_decision_name = dname
                     # Verbatim identifiers stated in the assistant's reasoning
                     # (commit shas, PR #s, versions, paths, domain ids).
-                    # Supersedes: lines are excluded — a 16-hex fact_id must
-                    # not be banked as a git_sha.
+                    # Supersedes:/Retracted: lines are excluded — a fact_id
+                    # must not be banked as a git_sha.
                     lit_text = "\n".join(
                         line for line in atext.splitlines()
-                        if not _SUPERSEDES_MARKER_RE.match(_prose_of(line)))
+                        if not _SUPERSEDES_MARKER_RE.match(_prose_of(line))
+                        and not _RETRACT_MARKER_RE.match(_prose_of(line)))
                     _add_literals(lit_text, turn=turn, ts=ts,
                                   role=factid.SourceRole.ASSISTANT.value)
 
@@ -1086,7 +1180,7 @@ def parse_transcript(
                                 _add(f"TASK-{_short_hash(subject)}",
                                      {"task": subject, "turn": str(turn)},
                                      turn=turn, ts=ts, salience=1.6)
-                    elif name == "Bash":
+                    elif name == "Bash" and capture.capture_tool_bash:
                         desc = _clean(str(tool_input.get("description", "")), 160)
                         if desc:
                             stats.bash_commands += 1

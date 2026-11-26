@@ -1,9 +1,9 @@
 {
   "as_of": "2026-10-25",
   "determinism": {
-    "first_sha256": "ccb6ca8602cbc8a24ad17621b2a1a22d7f1bb7b5387e1e67d163b999c78816bd",
+    "first_sha256": "f9d371d900f30cb3a791004d633904abd135e8df660f0e735c7005265b09ad95",
     "identical_bytes": true,
-    "second_sha256": "ccb6ca8602cbc8a24ad17621b2a1a22d7f1bb7b5387e1e67d163b999c78816bd",
+    "second_sha256": "f9d371d900f30cb3a791004d633904abd135e8df660f0e735c7005265b09ad95",
     "seeds": [
       "11",
       "97"
@@ -67,20 +67,20 @@
             "status": "unsupported"
           }
         },
-        "chars": 11128,
+        "chars": 11388,
         "coverage_by_kind": {
-          "DECISION": 1.0,
+          "DECISION": 0.5,
           "FAILED-APPROACH": 1.0
         },
         "dropped_by_kind": {
-          "DECISION": 0,
+          "DECISION": 1,
           "FAILED-APPROACH": 0
         },
         "drops_disclosed": false,
-        "sha256": "0dd2286ab10a3e9ea961e5adb96e422291daed271439d1988ddea01023dad285"
+        "sha256": "8ece4b7816a247d4d8bb7c9dd78d048f603b7cfced0c245096e55254458f113f"
       },
       "capture": {
-        "found": 3,
+        "found": 4,
         "total": 4
       },
       "commit_capture": {
@@ -104,14 +104,18 @@
             "status": "unsupported"
           }
         },
-        "chars": 10199,
-        "coverage_by_kind": {},
-        "dropped_by_kind": {},
+        "chars": 10596,
+        "coverage_by_kind": {
+          "FAILED-APPROACH": 1.0
+        },
+        "dropped_by_kind": {
+          "FAILED-APPROACH": 0
+        },
         "drops_disclosed": false,
-        "sha256": "b132bc9bbfa84f4ea5ea2492011e287f4758e036cb89d8139b0a3d0b74b480fb"
+        "sha256": "b4149b60df7f13becd82769d62b23545e3e0c6974d0f5376dd0c55a871989a4e"
       },
       "capture": {
-        "found": 0,
+        "found": 1,
         "total": 1
       },
       "commit_capture": {
@@ -135,11 +139,11 @@
             "status": "unsupported"
           }
         },
-        "chars": 6451,
+        "chars": 5883,
         "coverage_by_kind": {},
         "dropped_by_kind": {},
         "drops_disclosed": false,
-        "sha256": "fda52c36d7dd058791a363d47b3114bfef8fbc54db60f185472e9e67d6708dce"
+        "sha256": "1cb795d74b645c102a3ad89367bc0fefb116c4a7b27369e52c94b0d438a9eb01"
       },
       "capture": {
         "found": 0,
@@ -173,24 +177,22 @@
       },
       "coverage_by_kind": {
         "CONSTRAINT": 1.0,
-        "DECISION": 0.6667,
-        "FAILED-APPROACH": 0.3333
+        "DECISION": 0.3333,
+        "FAILED-APPROACH": 0.6
       },
       "dropped_by_kind": {
         "CONSTRAINT": 0,
-        "DECISION": 1,
+        "DECISION": 2,
         "FAILED-APPROACH": 2
       },
       "drops_disclosed": false
     },
     "capture": {
-      "found": 7,
+      "found": 9,
       "missing_label_ids": [
-        "l1-commit-only",
-        "l1-rejected-plain-alert-matrix",
-        "l1-rejected-plain-ops-notes"
+        "l1-commit-only"
       ],
-      "recall": 0.7,
+      "recall": 0.9,
       "split_by_source": {
         "commit": {
           "found": 0,
@@ -198,8 +200,8 @@
           "total": 1
         },
         "transcript": {
-          "found": 7,
-          "recall": 0.7778,
+          "found": 9,
+          "recall": 1.0,
           "total": 9
         }
       },
@@ -208,13 +210,13 @@
     "contamination_facts": {
       "by_kind": {
         "harness": {
-          "count": 3
+          "count": 0
         },
         "probe": {
-          "count": 3
+          "count": 0
         }
       },
-      "count": 6
+      "count": 0
     },
     "supersession": {
       "checks": [
@@ -222,16 +224,14 @@
           "last_session_checked": "rpl00004",
           "new": "l1-decision-new",
           "old": "l1-decision-old",
-          "passed": false,
-          "stale_sessions": [
-            "rpl00002"
-          ],
+          "passed": true,
+          "stale_sessions": [],
           "start_session": "rpl00002"
         }
       ],
-      "correctness": 0.0,
-      "passed": 0,
-      "stale_items_present": 1,
+      "correctness": 1.0,
+      "passed": 1,
+      "stale_items_present": 0,
       "total": 1
     }
   }

@@ -306,6 +306,16 @@ def _run(argv: list[str]) -> int:
     p_ckpt.add_argument("--session", default=None,
                         help="Session id prefix to select among this "
                              "project's transcripts (default: newest)")
+    p_ckpt.add_argument("--ignore-turn-prefix", action="append", default=None,
+                        help="Also never mine turns whose first line starts "
+                             "with this prefix (repeatable). Defaults already "
+                             "include recall:, hooks:, harness:.")
+    p_ckpt.add_argument("--ignore-block", action="append", default=None,
+                        help="Also drop a text region start:::end before "
+                             "mining (empty end runs to the end of the turn; "
+                             "repeatable).")
+    p_ckpt.add_argument("--no-tool-bash", action="store_true",
+                        help="Do not bank one TOOL-BASH row per shell command")
 
     # hook — entry points wired into .claude/settings.json by install-hooks
     p_hook = sub.add_parser(
@@ -1124,9 +1134,17 @@ def _cmd_checkpoint(args: argparse.Namespace) -> int:
             return 1
         print(f"Transcript: {transcript}")
 
+    from ..agent.capture_config import load_capture_config, with_cli_overrides
+    capture = with_cli_overrides(
+        load_capture_config(os.getcwd()),
+        extra_turn_prefixes=getattr(args, "ignore_turn_prefix", None) or (),
+        extra_blocks=getattr(args, "ignore_block", None) or (),
+        capture_tool_bash=False if getattr(args, "no_tool_bash", False) else None,
+    )
     try:
         result = run_checkpoint(transcript, args.out, as_of=args.as_of,
-                                format_spec=getattr(args, "format_spec", None))
+                                format_spec=getattr(args, "format_spec", None),
+                                capture=capture)
     except (TranscriptFormatError, HollowTranscriptError) as e:
         # fail-LOUD in manual mode: no artifact was written
         print(f"Error: {e}", file=sys.stderr)
