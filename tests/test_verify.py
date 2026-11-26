@@ -155,6 +155,36 @@ def test_stale_identifier_requires_the_path_at_base(tmp_path: Path) -> None:
     assert [row.code for row in report.findings] == []
 
 
+def test_stale_identifier_ignores_path_added_only_on_diverged_base(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init(repo)
+    _write(repo, "src/app.py", "value = 1\n")
+    _commit(repo, "root")
+    _git(repo, "branch", "-M", "main")
+    _git(repo, "checkout", "-b", "feature")
+    _write(repo, "src/app.py", "value = 2\n")
+    _commit(repo, "feature touches app")
+    _git(repo, "checkout", "main")
+    _write(repo, "pkg/widget.py", "def widget_render():\n    return 1\n")
+    _commit(repo, "main adds widget")
+    ledger = tmp_path / "ledger"
+    _ledger(ledger, [_section("ENTITY-DECISION-D0D0D0D0", [
+        ("DECISION", "Decision: keep `pkg/widget.py` until the migration finishes cleanly"),
+        ("FACT-ID", "d0d0d0d0d0d0d0d0"),
+        ("BASIS", "marker_stated"),
+        ("STATUS", "current"),
+        ("TURN", "2"),
+        ("SRC", "session:aaaaaaaa#turn2"),
+    ])])
+    report = verify("main..feature", repo=repo, ledger_dir=ledger)
+    stale = [row for row in report.findings if row.code == "STALE_IDENTIFIER"]
+    assert stale == []
+    assert all(row.evidence != "pkg/widget.py" for row in report.findings)
+
+
 def test_superseded_identifier_ignores_substrings_and_successors(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -422,9 +452,17 @@ _NOT_RUN_ADMISSIONS = (
     "tests not run",
     "pytest could not be run",
     "tests were not run",
-    "skipped tests",
     "cannot run pytest",
     "couldn't run tests",
+    "Could not run required pytest suites",
+)
+
+
+_BENIGN_TEST_NOTES = (
+    "No tests skipped. 42 passed.",
+    "Integration tests were skipped on Windows by design; unit suite 88 passed.",
+    "The flaky e2e tests skipped in CI are tracked in #12. 50 passed.",
+    "CI could not run tests before #33 merged; now 50 passed.",
 )
 
 
@@ -464,6 +502,19 @@ def test_not_run_admission_without_required_evidence_stays_quiet(tmp_path: Path)
     assert report.exit_code == 0
 
 
+@pytest.mark.parametrize("body", _BENIGN_TEST_NOTES)
+def test_benign_skip_or_historical_note_with_a_pass_count_is_verified(
+    tmp_path: Path, body: str,
+) -> None:
+    repo, spec = _range_repo(tmp_path, "edit the readme title")
+    report = verify(
+        spec, repo=repo, contract=_evidence_contract(tmp_path),
+        ledger_dir=tmp_path / "no-ledger",
+        pr_body=body + "\n", pr_body_label="pr_body.md")
+    assert [row for row in report.findings if row.code == "UNVERIFIED_CLAIM"] == []
+    assert report.exit_code == 0
+
+
 def test_pytest_passed_with_count_is_verified(tmp_path: Path) -> None:
     repo, spec = _range_repo(tmp_path, "edit the readme title")
     report = verify(
@@ -488,8 +539,11 @@ def test_diverged_base_uses_merge_base_diff(tmp_path: Path) -> None:
     _write(repo, "docs/unrelated.md", "main moved\n")
     _commit(repo, "main touches docs")
 
-    changed = GitRepo(repo).changed("main", "feature")
-    assert changed == ["src/app.py"]
+    git = GitRepo(repo)
+    effective = git.merge_base("main", "feature")
+    assert effective is not None
+    assert "docs/unrelated.md" in git.changed("main", "feature")
+    assert git.changed(effective, "feature") == ["src/app.py"]
 
     contract = tmp_path / "contract.json"
     contract.write_text(json.dumps({

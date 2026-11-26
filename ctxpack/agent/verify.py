@@ -2,12 +2,13 @@
 
 ``ctxpack verify --range A..B`` compares commit messages, an optional PR
 body, the working ledger, and an optional task contract. ``A..B`` and
-``A...B`` name the same two refs. The changed-file set is the three-dot
-PR diff (merge base to head) when a merge base exists, and a direct
-two-dot tree diff only when the histories do not meet. The same inputs
-produce byte-identical JSON on Linux, macOS, and Windows. Nothing here
-calls the network. An optional Jev adapter is a separate advisory path
-and does not change this exit code.
+``A...B`` name the same two refs. The changed-file set and the
+stale-identifier baseline are the three-dot PR diff (merge base to head)
+when a merge base exists, and a direct two-dot tree diff only when the
+histories do not meet. Commit messages stay on ``git log A..B``. The
+same inputs produce byte-identical JSON on Linux, macOS, and Windows.
+Nothing here calls the network. An optional Jev adapter is a separate
+advisory path and does not change this exit code.
 
 Exit status is 0 unless a finding's code is in the blocking list. The
 list comes from ``--block``, then ``ctxpack.toml`` ``[verify] block``,
@@ -87,12 +88,15 @@ _GREEN_CLAIM = re.compile(
     r"(?i)\b(?:all tests passed|tests passed|0 errors)\b"
     r"|\b\d+(?:\.\d+)?%\s*coverage\b"
     r"|\bcoverage(?:\s+is|\s*[:=])?\s*\d+(?:\.\d+)?%")
+# Up to two words may sit between "run" and "pytest"/"tests"
+# ("could not run required pytest", "did not run the full tests").
+# Bare "tests skipped" / "skipped tests" is not an admission: a negated
+# or partial skip ("no tests skipped", "e2e tests skipped") is normal.
 _NOT_RUN = re.compile(
     r"(?i)\btests (?:were )?not run\b"
-    r"|\bdid not run (?:the )?(?:tests|pytest)\b"
-    r"|\btests (?:were )?skipped\b"
-    r"|\bskipped (?:the )?tests\b"
-    r"|\b(?:could not|couldn't|cannot|unable to) run (?:the )?(?:tests|pytest)\b"
+    r"|\bdid not run (?:\w+\s+){0,2}(?:pytest|tests?)\b"
+    r"|\b(?:could not|couldn't|cannot|unable to) run "
+    r"(?:\w+\s+){0,2}(?:pytest|tests?)\b"
     r"|\b(?:pytest|tests) could not be run\b")
 _EVIDENCE = (
     re.compile(r"(?i)evidence-sha256:\s*[0-9a-f]{64}\b"),
@@ -214,9 +218,9 @@ def verify(
     """Verify ``range_spec`` (``A..B`` or ``A...B``) against the ledger and contract.
 
     ``pr_body`` is the description text, not a path. ``contract`` is a
-    path or a loaded :class:`TaskContract`. The changed-file set is the
-    three-dot PR diff when the two refs share a merge base. Findings are
-    sorted by ``(code, location, fact_id, message)``.
+    path or a loaded :class:`TaskContract`. The changed-file set and the
+    stale-identifier baseline use the merge base when the two refs share
+    one. Findings are sorted by ``(code, location, fact_id, message)``.
     """
     if max_findings < 1:
         raise VerifyError("max_findings must be >= 1")
@@ -229,15 +233,18 @@ def verify(
     blocking = _resolve_block(root, block, loaded)
     ledger = Path(ledger_dir) if ledger_dir is not None else root / ".claude/ctx"
     facts = _load_facts(ledger)
+    # One merge-base for the diff and for stale identifiers. Commit
+    # messages stay on the named base (``git log base..head``).
+    effective_base = git.merge_base(base, head) or base
     commits = git.commits(base, head)
-    changed = git.changed(base, head)
-    trees = {base: git.tree(base), head: git.tree(head)}
+    changed = git.changed(effective_base, head)
+    trees = {effective_base: git.tree(effective_base), head: git.tree(head)}
     blobs = _BlobCache(git)
 
     findings: list[Finding] = []
     marked = _collect_markers(commits, pr_body, pr_body_label)
     findings.extend(_unrecorded(marked, facts, ledger))
-    findings.extend(_stale(facts, git, base, head, trees))
+    findings.extend(_stale(facts, git, effective_base, head, trees))
     findings.extend(_superseded_in_code(facts, changed, blobs, head))
     findings.extend(_conflicts(marked, facts, ledger, changed, root))
     if pr_body is None and loaded is not None:
@@ -401,15 +408,12 @@ class GitRepo:
         return sha
 
     def changed(self, base: str, head: str) -> list[str]:
-        """Paths the PR changes, using three-dot merge-base semantics.
+        """Paths that differ between ``base`` and ``head``.
 
-        ``git diff base...head`` compares the merge base to ``head``, so
-        files that landed only on ``base`` after the branch point are not
-        attributed to the PR. Unrelated histories have no merge base and
-        fall back to a direct two-dot tree diff (``git diff base head``).
+        ``verify`` passes the merge base (or the named base when the
+        histories do not meet), which is ``git diff base...head``.
         """
-        left = self.merge_base(base, head) or base
-        proc = self.run("diff", "--name-only", "-z", left, head)
+        proc = self.run("diff", "--name-only", "-z", base, head)
         names: list[str] = []
         for raw in proc.stdout.split(b"\0"):
             if not raw:
@@ -836,6 +840,11 @@ def _identifier_stale(
     head: str,
     trees: Mapping[str, set[str]],
 ) -> bool:
+    """True when ``ident`` exists at ``base`` and is gone at ``head``.
+
+    ``base`` is the merge base when the range has one, so a path added
+    only on the named base after the branch point is not stale.
+    """
     if _is_path(ident):
         return (_path_exists(ident, trees[base])
                 and not _path_exists(ident, trees[head]))
@@ -1043,15 +1052,19 @@ def _claims(
     needs = contract is not None and contract.require_test_evidence
     not_run = _NOT_RUN.search(visible)
     match = _GREEN_CLAIM.search(visible)
-    # An explicit admission that tests were not run is unverified whenever
-    # the contract requires test evidence, even with no "tests passed"
-    # claim. Without that requirement, only a green claim that contradicts
-    # the admission is a finding (the previous rule).
-    if not_run is not None and (needs or match is not None):
-        if match is not None:
-            claim = " ".join(match.group(0).split())
-        else:
-            claim = " ".join(not_run.group(0).split())
+    has_evidence = any(pattern.search(visible) for pattern in _EVIDENCE)
+    # A green claim contradicted by a not-run admission stays unverified.
+    # A standalone admission counts only when the contract requires
+    # evidence and the body has none: a later "N passed" count is that
+    # evidence (a historical "could not run" note followed by a pass count).
+    if not_run is not None and match is not None:
+        claim = " ".join(match.group(0).split())
+        return [_finding(
+            "UNVERIFIED_CLAIM", label,
+            "claim states tests were not run",
+            claim, None)]
+    if not_run is not None and needs and not has_evidence:
+        claim = " ".join(not_run.group(0).split())
         return [_finding(
             "UNVERIFIED_CLAIM", label,
             "claim states tests were not run",
@@ -1059,7 +1072,7 @@ def _claims(
     if match is None:
         return []
     claim = " ".join(match.group(0).split())
-    if needs and not any(pattern.search(visible) for pattern in _EVIDENCE):
+    if needs and not has_evidence:
         return [_finding(
             "UNVERIFIED_CLAIM", label,
             "claim lacks required test evidence",
