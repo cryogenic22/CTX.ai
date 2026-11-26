@@ -2073,3 +2073,11 @@ or untracked document state belongs in the release manifest by implication.
 - **What changed:** `effective_base = merge_base(base, head) or base` is computed once and passed to `changed()`, the tree map, and `_stale` / `_identifier_stale`. Commit messages stay `git log base..head`. A path added only on the named base after the branch point is not `STALE_IDENTIFIER`. Bare `tests skipped` / `skipped tests` is not a standalone admission. A not-run note plus a later `N passed` count is evidence, so the four benign skip/historical sentences stay quiet. Up to two words may sit between `run` and `pytest`/`tests` (`Could not run required pytest suites`).
 - **Tests:** ruff F 0; mypy current=56 baseline=56; `lint-imports` 2 kept, 0 broken; `python3 -m pytest tests/test_public_surface.py tests/test_verify.py tests/test_contract.py -q` 49 passed.
 - **Next:** review the PR. Do not merge it from this note.
+
+### 2026-11-26 — Cursor agent — release 1.0.0 version bump
+
+- **Branch:** `cursor/release-v1.0.0-3a84` off `origin/main` `3d954fa`. Not merged. Does not take the capture-fidelity owner role. No tag pushed.
+- **What changed:** `pyproject.toml` version `1.0.0` and classifier `Development Status :: 5 - Production/Stable`; `ctxpack.__version__ = "1.0.0"`; `test_runtime_version_matches_pyproject` pins `1.0.0` against pyproject and installed metadata. Historical `0.5.0rc1` release manifests and changelogs left as-is. `CHANGELOG.md` `[1.0.0] - 2026-11-26` holds the former Unreleased notes, with #29, #30, #31, #33, #34, and #35 named. Empty `[Unreleased]` kept above it.
+- **Files:** `pyproject.toml`, `ctxpack/__init__.py`, `tests/test_onboard.py`, `CHANGELOG.md`.
+- **Tests:** `python3 scripts/check_version.py --tag v1.0.0` OK; `ruff check --select F ctxpack --exclude ctxpack/benchmarks` 0; `python3 scripts/check_mypy_ratchet.py` current=56 baseline=56; `lint-imports` 2 kept, 0 broken; `python3 -m pytest tests/test_onboard.py tests/test_public_surface.py -q` 37 passed, 1 skipped.
+- **Next:** review the PR. Do not merge it and do not push `v1.0.0` from this note.

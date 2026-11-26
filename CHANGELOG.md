@@ -4,21 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-26
+
 ### Added
 - Offline deterministic replay benchmark (`python -m ctxpack.benchmarks.replay`) with synthetic fixture + pinned baseline report for CTX Legions L1 acceptance testing.
-- `ctxpack brief` / `ctxpack.brief()` / MCP `ctx/brief`: one budgeted briefing shared with the SessionStart hook. Default cap is 12000 characters. Priority is conflicts, open constraints, decisions, dead ends, plan progress, then file names (overridable in `ctxpack.toml` `[brief]`). Facts are kept whole; a budget drop is named per kind on the last line. `ctxpack brief --ack` and `ctxpack ack check --token T` record whether the delivery token was echoed.
-- `ctxpack verify` ledger-to-PR gate (issue #16): deterministic findings for unrecorded markers, stale identifiers, superseded identifiers still in the diff, and constraint conflicts, plus a per-task contract (`ctxpack/agent/contract.py`) and an optional advisory `ctxpack[jev]` extra that does not change verify's exit code. See `docs/verify-ci.md`.
+- `ctxpack brief` / `ctxpack.brief()` / MCP `ctx/brief`: one budgeted briefing shared with the SessionStart hook. Default cap is 12000 characters. Priority is conflicts, open constraints, decisions, dead ends, plan progress, then file names (overridable in `ctxpack.toml` `[brief]`). Facts are kept whole; a budget drop is named per kind on the last line. `ctxpack brief --ack` and `ctxpack ack check --token T` record whether the delivery token was echoed. (#30)
+- `ctxpack verify` ledger-to-PR gate (issue #16): deterministic findings for unrecorded markers, stale identifiers, superseded identifiers still in the diff, and constraint conflicts, plus a per-task contract (`ctxpack/agent/contract.py`) and an optional advisory `ctxpack[jev]` extra that does not change verify's exit code. See `docs/verify-ci.md`. (#33)
 
 ### Fixed
-- Gist and brief budgets use one offline counter (`chars`, or `max(1, (len + 3) // 4)` tokens after newline normalization). They no longer call tiktoken or switch counters when that extra is missing. `count_bpe_tokens` fails instead of silently estimating when a caller asks for the optional tokenizer.
-
-### Fixed
-- Ledger capture ignores harness briefings and probe exchanges, banks sentence-start `Rejected:` / `Dead end:` lines as `FAILED-APPROACH` (`marker_stated`), and strips leading markdown bullets from banked marker lines without changing unbulleted fact ids (extractor `tp/1.5`).
-- One live set feeds the project gist, the session gist, and the brief: superseded, retracted, and milestone-stale facts drop; replacements render under `Changed choices`; unresolved forks render as conflicts. `Supersedes:` accepts exact 16-hex and 64-hex ids and flags an ambiguous mixed-ledger match instead of guessing.
+- Gist and brief budgets use one offline counter (`chars`, or `max(1, (len + 3) // 4)` tokens after newline normalization). They no longer call tiktoken or switch counters when that extra is missing. `count_bpe_tokens` fails instead of silently estimating when a caller asks for the optional tokenizer. (#30)
+- Ledger capture ignores harness briefings and probe exchanges, banks sentence-start `Rejected:` / `Dead end:` lines as `FAILED-APPROACH` (`marker_stated`), and strips leading markdown bullets from banked marker lines without changing unbulleted fact ids (extractor `tp/1.5`). (#29)
+- One live set feeds the project gist, the session gist, and the brief: superseded, retracted, and milestone-stale facts drop; replacements render under `Changed choices`; unresolved forks render as conflicts. `Supersedes:` accepts exact 16-hex and 64-hex ids and flags an ambiguous mixed-ledger match instead of guessing. (#29)
+- Hook and MCP launches use `sys.executable` (`-P` only on Python 3.11+). Ledger, gist, and events rewrites are atomic. A sanitized or over-long session id gets a hash suffix so distinct ids cannot share a filename. A corrupt session ledger is reported and skipped. When the brief budget can hold them, up to two live dead ends are considered before decisions. SessionStart redacts, then shrinks the brief to the budget. Shared path and write helpers live in `ctxpack/agent/ledger.py`. (#34)
+- `ctxpack verify` emits `UNVERIFIED_CLAIM` when required test evidence is an explicit not-run admission, and diffs `--range` from the merge-base so files added only on the base after the branch point are not blamed on the PR. (#35)
 
 ### Changed
-- CI locks the current quality floor: ruff pyflakes on `ctxpack/` (benchmarks excluded) at zero, a mypy error-count ratchet, import-linter contracts (`ctxpack.core` does not import agent/cli/modules/mcp/benchmarks; layers descend cli → agent → core), `tests/code` on every OS/Python cell, and a product-code line-coverage floor. `pyproject.toml` version must match `ctxpack.__version__`, and a tag must name that version. The `mcp` extra is capped below 2 (mcp 2.x removes `Server.list_tools` and renames `Tool.inputSchema`). The telemetry JSON schema is included in the wheel. The supported v1.0 surface is declared in `SUPPORTED.md`.
-- `export_claude_md` keeps hand-written CLAUDE.md text and refreshes one generated codebase-map block. `build_hydration_tool_schema` is defined once. `_annotate_authority` is annotated with the journal dict it returns.
+- CI locks the current quality floor: ruff pyflakes on `ctxpack/` (benchmarks excluded) at zero, a mypy error-count ratchet, import-linter contracts (`ctxpack.core` does not import agent/cli/modules/mcp/benchmarks; layers descend cli → agent → core), `tests/code` on every OS/Python cell, and a product-code line-coverage floor. `pyproject.toml` version must match `ctxpack.__version__`, and a tag must name that version. The `mcp` extra is capped below 2 (mcp 2.x removes `Server.list_tools` and renames `Tool.inputSchema`). The telemetry JSON schema is included in the wheel. The supported v1.0 surface is declared in `SUPPORTED.md`. (#31)
+- `export_claude_md` keeps hand-written CLAUDE.md text and refreshes one generated codebase-map block. `build_hydration_tool_schema` is defined once. `_annotate_authority` is annotated with the journal dict it returns. (#31)
+- Package version is `1.0.0`. The project classifier is `Development Status :: 5 - Production/Stable`.
 
 ## [0.5.0] - 2026-03-16
 

@@ -4,7 +4,7 @@ zero-dependency domain-knowledge packer with progressive hydration.
 "Compaction is a commit, not a loss event."
 """
 
-__version__ = "0.5.0rc1"
+__version__ = "1.0.0"
 
 __all__ = ["__version__", "brief"]
 

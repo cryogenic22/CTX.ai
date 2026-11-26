@@ -387,17 +387,19 @@ def test_onboard_check_fails_on_split_mcp_resolver(tmp_path, monkeypatch):
 #    the configured runtime identity, not compare command strings. It runs each
 #    stored launch and verifies the imported version + package root; it fails
 #    on an unavailable runtime, a vendored shadow, a 3.10 plain `python -m`, or
-#    a version split, while staying read-only. Runtime __version__ == rc1.
+#    a version split, while staying read-only. Runtime __version__ matches
+#    pyproject.
 
 
-def test_runtime_version_is_rc1_and_matches_pyproject():
-    # Regression pin (source __version__ == rc1) + forward guard (installed
-    # distribution metadata bound to source + target — catches a source bump
-    # never rebuilt/reinstalled). The metadata binding was demonstrated RED
-    # before the candidate was installed (dist 0.5.0 != source 0.5.0rc1).
+def test_runtime_version_matches_pyproject():
+    # Regression pin (source __version__ == the release) + forward guard
+    # (installed distribution metadata bound to source + target — catches a
+    # source bump never rebuilt/reinstalled). The metadata binding was
+    # demonstrated RED before the rc1 candidate was installed
+    # (dist 0.5.0 != source 0.5.0rc1).
     # Finding 1(e) + Finding 2(b): runtime __version__, the INSTALLED
     # distribution metadata, and the pyproject release target must ALL be
-    # 0.5.0rc1. Runtime is pinned to the pyproject version, and the installed
+    # 1.0.0. Runtime is pinned to the pyproject version, and the installed
     # metadata is bound to both — so a source bump that was never rebuilt /
     # reinstalled (stale wheel metadata) or a release-target drift is caught,
     # not just a source/pyproject mismatch.
@@ -406,7 +408,7 @@ def test_runtime_version_is_rc1_and_matches_pyproject():
     from pathlib import Path
 
     import ctxpack
-    assert ctxpack.__version__ == "0.5.0rc1"
+    assert ctxpack.__version__ == "1.0.0"
     pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
     m = re.search(r'(?m)^version\s*=\s*"([^"]+)"',
                   pyproject.read_text(encoding="utf-8"))
