@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from ctxpack.agent.verify import render_json, render_markdown, verify
+from ctxpack.agent.verify import GitRepo, render_json, render_markdown, verify
 from ctxpack.cli.main import main
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -410,6 +410,135 @@ def test_unverified_claim(tmp_path: Path) -> None:
     assert row.code == "UNVERIFIED_CLAIM"
     assert row.message == "claim states tests were not run"
     assert row.evidence == "all tests passed"
+
+
+_NOT_RUN_ADMISSIONS = (
+    "could not run pytest in this environment",
+    "couldn't run pytest",
+    "unable to run pytest",
+    "unable to run tests",
+    "did not run tests",
+    "did not run pytest",
+    "tests not run",
+    "pytest could not be run",
+    "tests were not run",
+    "skipped tests",
+    "cannot run pytest",
+    "couldn't run tests",
+)
+
+
+def _evidence_contract(tmp_path: Path) -> Path:
+    path = tmp_path / "evidence.json"
+    path.write_text(json.dumps({
+        "name": "tests",
+        "require_test_evidence": True,
+        "blocking_codes": ["UNVERIFIED_CLAIM"],
+    }), encoding="utf-8")
+    return path
+
+
+@pytest.mark.parametrize("body", _NOT_RUN_ADMISSIONS)
+def test_not_run_admission_is_unverified_without_a_pass_claim(
+    tmp_path: Path, body: str,
+) -> None:
+    repo, spec = _range_repo(tmp_path, "edit the readme title")
+    report = verify(
+        spec, repo=repo, contract=_evidence_contract(tmp_path),
+        ledger_dir=tmp_path / "no-ledger",
+        pr_body=body + "\n", pr_body_label="pr_body.md")
+    row = _finding(report)
+    assert row.code == "UNVERIFIED_CLAIM"
+    assert row.message == "claim states tests were not run"
+    assert row.evidence in body
+    assert report.exit_code == 1
+
+
+def test_not_run_admission_without_required_evidence_stays_quiet(tmp_path: Path) -> None:
+    repo, spec = _range_repo(tmp_path, "edit the readme title")
+    report = verify(
+        spec, repo=repo, ledger_dir=tmp_path / "no-ledger",
+        pr_body="could not run pytest in this environment\n",
+        pr_body_label="pr_body.md")
+    assert report.findings == ()
+    assert report.exit_code == 0
+
+
+def test_pytest_passed_with_count_is_verified(tmp_path: Path) -> None:
+    repo, spec = _range_repo(tmp_path, "edit the readme title")
+    report = verify(
+        spec, repo=repo, contract=_evidence_contract(tmp_path),
+        ledger_dir=tmp_path / "no-ledger",
+        pr_body="pytest passed (42 passed)\n", pr_body_label="pr_body.md")
+    assert [row for row in report.findings if row.code == "UNVERIFIED_CLAIM"] == []
+    assert report.exit_code == 0
+
+
+def test_diverged_base_uses_merge_base_diff(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init(repo)
+    _write(repo, "src/app.py", "value = 1\n")
+    _commit(repo, "root")
+    _git(repo, "branch", "-M", "main")
+    _git(repo, "checkout", "-b", "feature")
+    _write(repo, "src/app.py", "value = 2\ntouched = True\n")
+    _commit(repo, "feature touches app")
+    _git(repo, "checkout", "main")
+    _write(repo, "docs/unrelated.md", "main moved\n")
+    _commit(repo, "main touches docs")
+
+    changed = GitRepo(repo).changed("main", "feature")
+    assert changed == ["src/app.py"]
+
+    contract = tmp_path / "contract.json"
+    contract.write_text(json.dumps({
+        "name": "bounds",
+        "forbidden_paths": ["docs/**"],
+        "forbidden_vocabulary": {"src/**/*.py": ["touched"]},
+        "blocking_codes": ["CONTRACT_RULE_VIOLATION"],
+    }), encoding="utf-8")
+    report = verify(
+        "main..feature", repo=repo, contract=contract,
+        ledger_dir=tmp_path / "no-ledger")
+    forbidden = [row for row in report.findings
+                 if row.evidence.startswith("forbidden_paths:")]
+    assert forbidden == []
+    vocab = [row for row in report.findings
+             if row.evidence.startswith("forbidden_vocabulary:")]
+    assert len(vocab) == 1
+    assert vocab[0].location == "src/app.py"
+    assert all("docs/unrelated.md" not in row.location for row in report.findings)
+    assert all("docs/unrelated.md" not in row.evidence for row in report.findings)
+
+    triple = verify(
+        "main...feature", repo=repo, contract=contract,
+        ledger_dir=tmp_path / "no-ledger")
+    assert [row.to_dict() for row in triple.findings] == [
+        row.to_dict() for row in report.findings]
+
+
+def test_unrelated_histories_fall_back_to_two_dot(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init(repo)
+    _write(repo, "src/app.py", "one\n")
+    first = _commit(repo, "first root")
+    _git(repo, "checkout", "--orphan", "other")
+    _git(repo, "rm", "-rf", ".")
+    _write(repo, "docs/other.md", "two\n")
+    second = _commit(repo, "second root")
+    assert GitRepo(repo).merge_base(first, second) is None
+    report = verify(
+        f"{first}..{second}", repo=repo, ledger_dir=tmp_path / "no-ledger")
+    assert report.base == first
+    assert report.head == second
+    assert report.exit_code == 0
+    triple = verify(
+        f"{first}...{second}", repo=repo, ledger_dir=tmp_path / "no-ledger")
+    assert triple.exit_code == 0
+    assert [row.to_dict() for row in triple.findings] == [
+        row.to_dict() for row in report.findings]
 
 
 def test_contract_forbidden_flag_and_vocabulary(tmp_path: Path) -> None:

@@ -1,7 +1,10 @@
 """Deterministic ledger-to-PR verifier (issue #16).
 
 ``ctxpack verify --range A..B`` compares commit messages, an optional PR
-body, the working ledger, and an optional task contract. The same inputs
+body, the working ledger, and an optional task contract. ``A..B`` and
+``A...B`` name the same two refs. The changed-file set is the three-dot
+PR diff (merge base to head) when a merge base exists, and a direct
+two-dot tree diff only when the histories do not meet. The same inputs
 produce byte-identical JSON on Linux, macOS, and Windows. Nothing here
 calls the network. An optional Jev adapter is a separate advisory path
 and does not change this exit code.
@@ -86,9 +89,11 @@ _GREEN_CLAIM = re.compile(
     r"|\bcoverage(?:\s+is|\s*[:=])?\s*\d+(?:\.\d+)?%")
 _NOT_RUN = re.compile(
     r"(?i)\btests (?:were )?not run\b"
-    r"|\bdid not run (?:the )?tests\b"
+    r"|\bdid not run (?:the )?(?:tests|pytest)\b"
     r"|\btests (?:were )?skipped\b"
-    r"|\bskipped (?:the )?tests\b")
+    r"|\bskipped (?:the )?tests\b"
+    r"|\b(?:could not|couldn't|cannot|unable to) run (?:the )?(?:tests|pytest)\b"
+    r"|\b(?:pytest|tests) could not be run\b")
 _EVIDENCE = (
     re.compile(r"(?i)evidence-sha256:\s*[0-9a-f]{64}\b"),
     re.compile(r"(?i)test-command:\s*\S+"),
@@ -206,11 +211,12 @@ def verify(
     block: Sequence[str] | None = None,
     max_findings: int = MAX_FINDINGS,
 ) -> VerifyReport:
-    """Verify ``range_spec`` (``A..B``) against the ledger and contract.
+    """Verify ``range_spec`` (``A..B`` or ``A...B``) against the ledger and contract.
 
     ``pr_body`` is the description text, not a path. ``contract`` is a
-    path or a loaded :class:`TaskContract`. Findings are sorted by
-    ``(code, location, fact_id, message)``.
+    path or a loaded :class:`TaskContract`. The changed-file set is the
+    three-dot PR diff when the two refs share a merge base. Findings are
+    sorted by ``(code, location, fact_id, message)``.
     """
     if max_findings < 1:
         raise VerifyError("max_findings must be >= 1")
@@ -384,8 +390,26 @@ class GitRepo:
                 rows.append((sha, message.replace("\r\n", "\n")))
         return rows
 
+    def merge_base(self, base: str, head: str) -> str | None:
+        """Best common ancestor, or None when the histories do not meet."""
+        proc = self.run("merge-base", base, head, check=False)
+        if proc.returncode != 0:
+            return None
+        sha = proc.stdout.decode("utf-8").strip().lower()
+        if not re.fullmatch(r"[0-9a-f]{40}", sha):
+            return None
+        return sha
+
     def changed(self, base: str, head: str) -> list[str]:
-        proc = self.run("diff", "--name-only", "-z", base, head)
+        """Paths the PR changes, using three-dot merge-base semantics.
+
+        ``git diff base...head`` compares the merge base to ``head``, so
+        files that landed only on ``base`` after the branch point are not
+        attributed to the PR. Unrelated histories have no merge base and
+        fall back to a direct two-dot tree diff (``git diff base head``).
+        """
+        left = self.merge_base(base, head) or base
+        proc = self.run("diff", "--name-only", "-z", left, head)
         names: list[str] = []
         for raw in proc.stdout.split(b"\0"):
             if not raw:
@@ -437,11 +461,21 @@ class _BlobCache:
 
 
 def _split_range(spec: str) -> tuple[str, str]:
-    if not isinstance(spec, str) or spec.count("..") != 1 or "..." in spec:
-        raise VerifyError("range must be A..B")
-    base, head = spec.split("..", 1)
-    if not base or not head or any(ch.isspace() for ch in spec):
-        raise VerifyError("range must be A..B")
+    """Split ``A..B`` or ``A...B`` into the two refs.
+
+    Both spellings name the same commits. The file diff is three-dot
+    either way; this only rejects a spec that is not two refs.
+    """
+    if not isinstance(spec, str) or any(ch.isspace() for ch in spec):
+        raise VerifyError("range must be A..B or A...B")
+    if spec.count("...") == 1 and spec.count("..") == 1:
+        base, head = spec.split("...", 1)
+    elif "..." not in spec and spec.count("..") == 1:
+        base, head = spec.split("..", 1)
+    else:
+        raise VerifyError("range must be A..B or A...B")
+    if not base or not head:
+        raise VerifyError("range must be A..B or A...B")
     return base, head
 
 
@@ -1006,16 +1040,25 @@ def _claims(
     label: str,
 ) -> list[Finding]:
     visible = _unfenced(pr_body)
+    needs = contract is not None and contract.require_test_evidence
+    not_run = _NOT_RUN.search(visible)
     match = _GREEN_CLAIM.search(visible)
-    if not match:
-        return []
-    claim = " ".join(match.group(0).split())
-    if _NOT_RUN.search(visible):
+    # An explicit admission that tests were not run is unverified whenever
+    # the contract requires test evidence, even with no "tests passed"
+    # claim. Without that requirement, only a green claim that contradicts
+    # the admission is a finding (the previous rule).
+    if not_run is not None and (needs or match is not None):
+        if match is not None:
+            claim = " ".join(match.group(0).split())
+        else:
+            claim = " ".join(not_run.group(0).split())
         return [_finding(
             "UNVERIFIED_CLAIM", label,
             "claim states tests were not run",
             claim, None)]
-    needs = contract is not None and contract.require_test_evidence
+    if match is None:
+        return []
+    claim = " ".join(match.group(0).split())
     if needs and not any(pattern.search(visible) for pattern in _EVIDENCE):
         return [_finding(
             "UNVERIFIED_CLAIM", label,

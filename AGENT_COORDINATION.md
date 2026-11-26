@@ -2058,3 +2058,11 @@ or untracked document state belongs in the release manifest by implication.
 - **Rebase:** `cursor/p0-hardening-ledger-cycle-cf4f` onto `origin/main` `dc5cb1f`. Both board entries kept.
 - **Follow-up:** mypy `__cause__` narrowed with `isinstance(..., Exception)` (ratchet stays 56); removed the `TODO(v1.0-pr-b)` ruff ignore and the two `cli/main.py` pyflakes findings; `_shell_join` quotes backslashes; sanitized session ids that differ from the raw id get a hash suffix; legacy 8-char reads require ownership.
 - **Checks:** ruff F 0, `scripts/check_mypy_ratchet.py` current=56 baseline=56, `lint-imports` 2 kept, `pytest tests/ -q -m "not slow" --ignore=tests/code` 1730 passed / 37 skipped / 57 deselected, replay 7 passed / 0 skipped, `tests/code` 313 passed. Not merged.
+
+### 2026-11-26 — Cursor agent — v1.0 release-readiness (verify)
+
+- **Branch:** `cursor/v1-release-readiness-a79c` off `origin/main` `64e7a77`. Not merged. Does not take the capture-fidelity owner role.
+- **What changed:** `EXPECTED_COMMANDS` includes `verify`. `require_test_evidence` emits `UNVERIFIED_CLAIM` for an explicit not-run admission (`could not run pytest`, `couldn't`/`unable to`/`cannot run`, `did not run`, `tests not run`, `could not be run`, `skipped tests`) even when the body never claims tests passed. `--range A..B` and `A...B` diff with merge-base (three-dot); two-dot only when `git merge-base` fails. Commit-message walk stays `git log A..B`.
+- **Files:** `ctxpack/agent/verify.py`, `ctxpack/cli/main.py` (range help), `tests/test_public_surface.py`, `tests/test_verify.py`.
+- **Tests:** ruff F 0; `scripts/check_mypy_ratchet.py` current=56 baseline=56; `lint-imports` 2 kept, 0 broken; `python3 -m pytest tests/test_public_surface.py tests/test_verify.py tests/test_contract.py -q` 44 passed; `python3 -m pytest tests/ -q -m "not slow" --ignore=tests/code` 1776 passed / 37 skipped / 57 deselected.
+- **Next:** review the PR. Do not merge it from this note.
