@@ -263,7 +263,9 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install package, extras, and the ratchet tools
-        run: pip install ".[all,test]" ruff mypy import-linter
+        # mypy is pinned: the error-count baseline is measured on 2.4.1.
+        # A floating mypy release would move the count without a code change.
+        run: pip install ".[all,test]" 'ruff==0.17.6' 'mypy==2.4.1' 'import-linter==2.17'
       - name: Ruff pyflakes (F) on ctxpack, benchmarks excluded
         run: ruff check --select F ctxpack --exclude ctxpack/benchmarks
       - name: Mypy error-count ratchet

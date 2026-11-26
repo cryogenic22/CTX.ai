@@ -2030,3 +2030,8 @@ or untracked document state belongs in the release manifest by implication.
 - **Tests:** `python3 -m pytest tests/ -q -m "not slow" --cov=ctxpack --cov-report=term --cov-fail-under=76` → 1998 passed / 37 skipped / 57 deselected, coverage 79.99% (`python` on PATH; without it, two `onboard --check` probes fail looking up the executable). `tests/code` 313 passed. Gates: claims OK (16 pre-existing warnings), capability OK, release-manifest OK, doc-privacy OK, token-accounting 8 passed. `ruff check --select F ctxpack --exclude ctxpack/benchmarks` clean. `lint-imports` 2 kept. `scripts/check_mypy_ratchet.py` current=78 baseline=78.
 - **Risk:** `ctxpack codebase export --format claude-md` now returns hand-written CLAUDE.md text plus the generated map when that file exists (experimental command). `ctxpack/integrations/mcp_server.py` and `ctxpack/agent/transcript_parser.py` lost unused imports only; those hunks do not overlap #30's tool-handler / ack-stripping hunks.
 - **Next:** review the PR. Do not merge it from this note.
+
+### 2026-11-26 — quality ratchet follow-up (CI mypy 79)
+
+- **Cause:** PR #30 merged to `main` (`9974fd6`) while this branch was open. The pull-request CI job typechecks the merge, and the brief composer's new MCP tool adds one `inputSchema` mypy error (78 → 79).
+- **Fix:** merge `origin/main` (clean auto-merge) and set the mypy baseline to **79**. Pin CI to `mypy==2.4.1`, `ruff==0.17.6`, `import-linter==2.17`. Ruff F still 0. import-linter still 2 kept.

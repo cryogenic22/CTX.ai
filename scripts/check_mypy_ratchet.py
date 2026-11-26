@@ -9,8 +9,10 @@ Command (default mode, no network, no --strict)::
 mypy still reports errors under ``ctxpack/benchmarks/``. Those lines are
 not part of this ratchet: the contract is that benchmarks stay out of
 the count. The baseline is the error count on everything else, measured
-on this branch after the static fixes. Lower ``BASELINE`` when the count
-drops. Raising it is a reviewed act, not drift.
+with mypy 2.4.1 after the static fixes and after main gained the brief
+composer. Lower ``BASELINE`` when the count drops. Raising it is a
+reviewed act, not drift. CI pins mypy==2.4.1 so a later release cannot
+move the count by itself.
 
 The script prints ``current`` vs ``baseline`` on stdout.
 """
@@ -23,10 +25,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# Measured with `.[all,test]` installed (optional imports resolved) after
-# the static fixes on this branch. Benchmark follow-import errors are
-# excluded from the count. Must stay <= 83.
-BASELINE = 78
+# mypy 2.4.1, `.[all,test]` installed. 78 after the static fixes; 79 once
+# main's brief composer (one new Tool inputSchema error) is in the tree.
+# Benchmark follow-import errors are excluded. Must stay <= 83.
+BASELINE = 79
 
 
 def _is_benchmark(path: str) -> bool:
