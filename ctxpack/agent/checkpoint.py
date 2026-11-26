@@ -34,6 +34,14 @@ from ..core.packer.compressor import compress
 from ..core.packer.conflict import detect_conflicts
 from ..core.packer.entity_resolver import resolve_entities
 from ..core.serializer import serialize
+from .capture_config import CaptureConfig, load_capture_config
+from .live_set import (
+    iter_fact_ids,
+    live_set_from_records,
+    records_from_entities,
+    render_live_preamble,
+    resolve_supersedes_target,
+)
 from .transcript_parser import ParsedTranscript, decision_marker, parse_transcript
 
 GIST_BPE_BUDGET = 2000
@@ -166,7 +174,9 @@ def _entity_rank(e, ranks: "dict[str, float]") -> float:
 def build_gist(parsed: ParsedTranscript,
                ranks: "Optional[dict[str, float]]" = None,
                conflicts: "Optional[list[dict]]" = None,
-               lint_meta: "Optional[dict]" = None) -> str:
+               lint_meta: "Optional[dict]" = None,
+               done_milestones=(),
+               prior_records=None) -> str:
     """Render the session ledger as a compact markdown gist.
 
     Prose-first on purpose: models read markdown natively (.ctx notation is
@@ -182,7 +192,11 @@ def build_gist(parsed: ParsedTranscript,
     while the render order inside a section stays chronological
     (facts still read in the order they happened).
     """
-    ents = parsed.corpus.entities
+    session = parsed.session_id[:8] if parsed.session_id else ""
+    live, live_ids = _live_for_entities(
+        parsed.corpus.entities, session=session,
+        done_milestones=done_milestones, prior_records=prior_records)
+    ents = _entities_for_gist(parsed.corpus.entities, live_ids)
     header: list[str] = [
         f"# Session memory (session {parsed.session_id[:8]}, "
         f"{parsed.last_turn} turns)",
@@ -270,6 +284,10 @@ def build_gist(parsed: ParsedTranscript,
                 f"{int(lint_meta.get('protected_comparisons') or 0)} "
                 f"protected-subject checks; "
                 f"{len(unresolved)} unresolved{note}._"]
+
+    preamble = render_live_preamble(live)
+    if preamble:
+        header.extend(preamble)
 
     if not ranks:
         lines = list(header)
@@ -414,6 +432,17 @@ def _emit_events(out_dir: str, parsed: ParsedTranscript, corpus,
         if not fid:
             continue
         turn = entity.sources[0].turn if entity.sources else None
+        if entity.name.startswith("RETRACT-"):
+            target = _field(entity, "RETRACTS-FACT-ID")
+            if target:
+                ev("fact_retracted", fact_id=target, turn=turn,
+                   reason=_field(entity, "REASON")[:200])
+            amb = _field(entity, "ID-AMBIGUOUS")
+            if amb:
+                token, _, rest = amb.partition("\t")
+                ev("fact_supersede_ambiguous", fact_id=token or None,
+                   turn=turn, matches=rest)
+            continue
         if entity.name.startswith("INCIDENT-"):
             linked = _field(entity, "LINKED-FACT-ID") or None
             ev("incident", fact_id=linked, turn=turn,
@@ -450,6 +479,11 @@ def _emit_events(out_dir: str, parsed: ParsedTranscript, corpus,
         if sup_target:
             ev("fact_superseded", fact_id=sup_target, turn=turn,
                by=fid, reason=_field(entity, "SUPERSEDES-REASON")[:200])
+        amb = _field(entity, "ID-AMBIGUOUS")
+        if amb:
+            token, _, rest = amb.partition("\t")
+            ev("fact_supersede_ambiguous", fact_id=token or None,
+               turn=turn, matches=rest)
 
     for row in (lint_rows or []):
         ev("conflict", fact_id=row["decision_fact_id"],
@@ -500,6 +534,171 @@ def _literal_fidelity(corpus, ledger_text: str) -> "tuple[float, int, int]":
     return round(hit / len(extracted), 4), len(extracted), len(recovered)
 
 
+def _prior_fact_ids(out_dir: str) -> list[str]:
+    """Fact ids already on disk, sorted by filename then appearance."""
+    found: list[str] = []
+    try:
+        names = sorted(os.listdir(out_dir))
+    except OSError:
+        return found
+    for name in names:
+        if not (name.startswith("session-") and name.endswith(".ctx")):
+            continue
+        try:
+            with open(os.path.join(out_dir, name), encoding="utf-8") as handle:
+                found.extend(iter_fact_ids(handle.read()))
+        except (OSError, UnicodeError):
+            continue
+    return found
+
+
+def _field_value(entity, key: str) -> str:
+    want = key.upper()
+    for field in entity.fields:
+        if str(field.key).upper() == want:
+            return str(field.value or "")
+    return ""
+
+
+def _set_field(entity, key: str, value: str) -> None:
+    from ..core.packer.ir import IRField
+    want = key.upper()
+    for field in entity.fields:
+        if str(field.key).upper() == want:
+            field.value = value
+            field.raw_value = value
+            return
+    source = entity.sources[0] if entity.sources else None
+    entity.fields.append(IRField(
+        key=want, value=value, raw_value=value, source=source, salience=2.0))
+
+
+def _drop_field(entity, key: str) -> None:
+    want = key.upper()
+    entity.fields = [f for f in entity.fields if str(f.key).upper() != want]
+
+
+def _apply_id_resolution(entities, extra_ids) -> None:
+    """Exact-literal Supersedes/Retracted resolution against known ids.
+
+    An ambiguous mixed-ledger match clears the edge and stamps
+    ``ID-AMBIGUOUS`` so the gist can flag it. A well-formed unmatched
+    id is kept: the target may live in a ledger this pass did not see.
+    """
+    known: set[str] = set()
+    for item in extra_ids:
+        text = str(item or "").strip().lower()
+        if text:
+            known.add(text)
+    for entity in entities:
+        fid = _field_value(entity, "FACT-ID").lower()
+        if fid:
+            known.add(fid)
+    for entity in entities:
+        for src_key, reason_key in (
+            ("SUPERSEDES-FACT-ID", "SUPERSEDES-REASON"),
+            ("RETRACTS-FACT-ID", "REASON"),
+        ):
+            raw = _field_value(entity, src_key)
+            if not raw:
+                continue
+            result = resolve_supersedes_target(raw, known)
+            status = result["status"]
+            if status == "ambiguous":
+                _drop_field(entity, src_key)
+                if reason_key == "SUPERSEDES-REASON":
+                    _drop_field(entity, reason_key)
+                matches = ",".join(result["matches"])
+                _set_field(entity, "ID-AMBIGUOUS",
+                           f"{result['token']}\t{matches}")
+            elif status == "invalid":
+                _drop_field(entity, src_key)
+                if reason_key == "SUPERSEDES-REASON":
+                    _drop_field(entity, reason_key)
+            else:
+                token = result["token"]
+                if _field_value(entity, src_key) != token:
+                    _set_field(entity, src_key, token)
+
+
+_LIVE_KINDS = frozenset({"DECISION", "CONSTRAINT", "FAILED-APPROACH"})
+
+
+def _live_for_entities(entities, *, session: str = "",
+                       done_milestones=(),
+                       prior_records=None) -> "tuple[object, frozenset]":
+    records = list(prior_records or [])
+    records.extend(records_from_entities(entities, session=session))
+    live = live_set_from_records(records, done_milestones=done_milestones)
+    return live, frozenset(fact.fact_id for fact in live.facts)
+
+
+def _ledger_records(out_dir: str, skip_sid: str = "") -> list:
+    """Section records from on-disk session ledgers, journal order.
+
+    ``skip_sid`` is the session whose in-memory entities are authoritative
+    (its .ctx was just rewritten and must not be counted twice).
+    """
+    from ..core.parser import parse as _parse_ctx
+    from .session_reader import _kind_of, _kv, _primary_value, _sections, _turn_of
+
+    skip = (skip_sid or "")[:8]
+    try:
+        names = sorted(
+            name for name in os.listdir(out_dir)
+            if name.startswith("session-") and name.endswith(".ctx"))
+    except OSError:
+        return []
+    # Journal order, then any file the journal does not mention.
+    ordered = [s for s in _journal_session_order(out_dir) if s != skip]
+    on_disk = []
+    for name in names:
+        sid = name[len("session-"):-len(".ctx")]
+        if sid != skip and sid not in on_disk:
+            on_disk.append(sid)
+    for sid in on_disk:
+        if sid not in ordered:
+            ordered.append(sid)
+    records: list[dict] = []
+    for sid in ordered:
+        path = os.path.join(out_dir, f"session-{sid}.ctx")
+        try:
+            with open(path, encoding="utf-8") as handle:
+                doc = _parse_ctx(handle.read(), level=2)
+        except Exception:  # noqa: BLE001 — one bad ledger must not blind the rest
+            continue
+        for section in _sections(doc):
+            kind = _kind_of(section)
+            records.append({
+                "fact_id": (_kv(section, "FACT-ID") or "").lower(),
+                "kind": kind,
+                "text": _primary_value(section),
+                "turn": _turn_of(section),
+                "session": sid,
+                "basis": _kv(section, "BASIS"),
+                "supersedes": (_kv(section, "SUPERSEDES-FACT-ID") or "").lower(),
+                "supersedes_reason": _kv(section, "SUPERSEDES-REASON"),
+                "retracts": (_kv(section, "RETRACTS-FACT-ID") or "").lower(),
+                "retract_reason": _kv(section, "REASON") if kind == "RETRACT" else "",
+                "ambiguous": _kv(section, "ID-AMBIGUOUS"),
+            })
+    return records
+
+
+def _entities_for_gist(entities, live_ids: frozenset) -> list:
+    """Drop superseded, retracted, and stale stakes facts. Other kinds stay."""
+    kept = []
+    for entity in entities:
+        kind = entity.name.rsplit("-", 1)[0]
+        if kind not in _LIVE_KINDS:
+            kept.append(entity)
+            continue
+        fid = _field_value(entity, "FACT-ID").lower()
+        if not fid or fid in live_ids:
+            kept.append(entity)
+    return kept
+
+
 def run_checkpoint(
     transcript_path: str,
     out_dir: str = ".claude/ctx",
@@ -507,6 +706,7 @@ def run_checkpoint(
     as_of: Optional[str] = None,
     format_spec: Optional[str] = None,
     archive: bool = False,
+    capture: Optional[CaptureConfig] = None,
 ) -> CheckpointResult:
     """Pack a session transcript into the ledger + gist artifacts.
 
@@ -530,7 +730,10 @@ def run_checkpoint(
     import time
     t0 = time.perf_counter()
 
-    parsed = parse_transcript(transcript_path, format_spec=format_spec)
+    if capture is None:
+        capture = load_capture_config(os.getcwd())
+    parsed = parse_transcript(transcript_path, format_spec=format_spec,
+                              capture=capture)
     hollow = _hollow_reason(parsed)
     if hollow:
         raise HollowTranscriptError(
@@ -542,6 +745,7 @@ def run_checkpoint(
     corpus = parsed.corpus
 
     resolve_entities(corpus, supersede_by_recency=True)
+    _apply_id_resolution(corpus.entities, _prior_fact_ids(out_dir))
     conflicts = detect_conflicts(corpus)
     corpus.warnings.extend(conflicts)
     doc = compress(corpus, as_of=as_of)
@@ -594,8 +798,9 @@ def run_checkpoint(
         project_root=parsed.stats.cwd or "")
 
     lint_meta["status"] = lint_status
-    gist_text = build_gist(parsed, ranks=ranks, conflicts=lint_rows,
-                           lint_meta=lint_meta)
+    gist_text = build_gist(
+        parsed, ranks=ranks, conflicts=lint_rows, lint_meta=lint_meta,
+        prior_records=_ledger_records(out_dir, skip_sid=sid))
     gist_path = os.path.join(out_dir, f"session-{sid}-gist.md")
     with open(gist_path, "w", encoding="utf-8", newline="\n") as f:
         f.write(gist_text)
@@ -819,7 +1024,8 @@ def _journal_session_order(out_dir: str) -> list[str]:
 
 def build_project_gist(out_dir: str = ".claude/ctx",
                        exclude_session: str = "",
-                       ranks: "Optional[dict[str, float]]" = None) -> str:
+                       ranks: "Optional[dict[str, float]]" = None,
+                       done_milestones=()) -> str:
     """Merge the stakes trio across all session ledgers, oldest first.
 
     ``exclude_session`` is the session whose own gist is injected
@@ -829,6 +1035,11 @@ def build_project_gist(out_dir: str = ".claude/ctx",
     With ``ranks`` (rank/v1 fold), budget pressure evicts the lowest-rank
     row of the lowest-stakes kind instead of whatever sits at the end of
     the file — render order stays chronological.
+
+    Supersession edges are read from every session, including the
+    excluded one, so a choice replaced in the current session leaves
+    the earlier copy out of the rollup. ``done_milestones`` drops items
+    scoped only to those milestones (see ``live_set_from_records``).
     """
     from ..core.parser import parse as _parse_ctx
     from .session_reader import (
@@ -849,10 +1060,11 @@ def build_project_gist(out_dir: str = ".claude/ctx",
     if not sids:
         return ""
 
-    # kind → list of (sid, turn, text, score); dedup across sessions
-    rows: dict[str, list] = {kind: [] for kind, _ in _PROJECT_KINDS}
-    seen_hashes: set[str] = set()
-    for sid in sids:
+    # kind → list of (sid, turn, text, score, fid); dedup across sessions.
+    # Edges are collected from every session, including the excluded one.
+    records: list[dict] = []
+    candidates: list[tuple] = []
+    for sid in ordered:
         path = os.path.join(out_dir, f"session-{sid}.ctx")
         try:
             with open(path, encoding="utf-8") as f:
@@ -861,17 +1073,27 @@ def build_project_gist(out_dir: str = ".claude/ctx",
             continue
         for section in _sections(doc):
             kind = _kind_of(section)
-            if kind not in rows:
-                continue
+            fid = (_kv(section, "FACT-ID") or "").lower()
             text = _primary_value(section)
+            turn = _turn_of(section)
+            records.append({
+                "fact_id": fid,
+                "kind": kind,
+                "text": text,
+                "turn": turn,
+                "session": sid,
+                "basis": _kv(section, "BASIS"),
+                "supersedes": (_kv(section, "SUPERSEDES-FACT-ID") or "").lower(),
+                "supersedes_reason": _kv(section, "SUPERSEDES-REASON"),
+                "retracts": (_kv(section, "RETRACTS-FACT-ID") or "").lower(),
+                "retract_reason": _kv(section, "REASON") if kind == "RETRACT" else "",
+                "ambiguous": _kv(section, "ID-AMBIGUOUS"),
+            })
+            if sid == exclude or kind not in {k for k, _ in _PROJECT_KINDS}:
+                continue
             if not text:
                 continue
-            fingerprint = " ".join(text.lower().split())
-            if fingerprint in seen_hashes:
-                continue
-            seen_hashes.add(fingerprint)
             score = 0.0
-            fid = _kv(section, "FACT-ID")   # R1: carried for exact recovery
             if ranks:
                 if fid and fid in ranks:
                     score = ranks[fid]
@@ -879,9 +1101,23 @@ def build_project_gist(out_dir: str = ".claude/ctx",
                     score = rank.prior_for(
                         kind, basis=_kv(section, "BASIS"),
                         marker=decision_marker(text))
-            rows[kind].append((sid, _turn_of(section), text, score, fid))
+            candidates.append((sid, turn, text, score, fid, kind))
 
-    if not any(rows.values()):
+    live = live_set_from_records(records, done_milestones=done_milestones)
+    live_ids = {fact.fact_id for fact in live.facts}
+    rows: dict[str, list] = {kind: [] for kind, _ in _PROJECT_KINDS}
+    seen_hashes: set[str] = set()
+    for sid, turn, text, score, fid, kind in candidates:
+        if fid and fid not in live_ids:
+            continue
+        fingerprint = " ".join(text.lower().split())
+        if fingerprint in seen_hashes:
+            continue
+        seen_hashes.add(fingerprint)
+        rows[kind].append((sid, turn, text, score, fid))
+
+    preamble = render_live_preamble(live)
+    if not any(rows.values()) and not preamble:
         return ""
 
     header = [
@@ -891,6 +1127,8 @@ def build_project_gist(out_dir: str = ".claude/ctx",
         "Cross-session ledger rollup. Detail per session: "
         "`ctxpack session decisions --session <id>`.",
     ]
+    if preamble:
+        header.extend(preamble)
 
     def _render() -> "tuple[str, list[str]]":
         lines = list(header)
@@ -932,9 +1170,30 @@ def build_project_gist(out_dir: str = ".claude/ctx",
     return text_out
 
 
-def read_startup_context(out_dir: str = ".claude/ctx") -> str:
+def build_brief(out_dir: str = ".claude/ctx", *, done_milestones=()) -> str:
+    """The brief handed to a new session. Same live set as both gists.
+
+    With no done milestones this is the stored project rollup plus the
+    latest session gist. With milestones, the rollup is rebuilt so items
+    scoped only to those milestones drop.
+    """
+    return read_startup_context(out_dir, done_milestones=done_milestones)
+
+
+def read_startup_context(out_dir: str = ".claude/ctx", *,
+                         done_milestones=()) -> str:
     """What SessionStart injects: project rollup (if any) + last session's
-    gist. Either part may be empty; both empty → ''. """
+    gist. Either part may be empty; both empty → ''.
+
+    ``done_milestones`` rebuilds the rollup from the ledger through the
+    live set (the stored gist was written before those milestones were
+    marked done). The latest session gist file is omitted in that mode
+    so a stale line in it cannot re-enter the brief.
+    """
+    if done_milestones:
+        return build_project_gist(
+            out_dir, exclude_session="",
+            done_milestones=done_milestones).strip()
     project = ""
     try:
         with open(os.path.join(out_dir, "project-gist.md"),

@@ -190,6 +190,9 @@ def ledger_facts(doc: CTXDocument) -> list[dict[str, Any]]:
     """Return normalized fact rows for benchmarking/reporting callers."""
     rows: list[dict[str, Any]] = []
     for section in _sections(doc):
+        kind = _kind_of(section).upper()
+        if kind == "RETRACT":
+            continue
         text = _primary_value(section)
         if not text:
             continue
@@ -310,27 +313,77 @@ def session_timeline(
     return {"session": sid, "events": total, "timeline": rows}
 
 
-def session_decisions(doc: CTXDocument, sid: str) -> dict[str, Any]:
-    """The stakes trio in one call: decisions, constraints, failed
-    approaches — each with turn provenance."""
+def session_decisions(doc: CTXDocument, sid: str, *,
+                      done_milestones=()) -> dict[str, Any]:
+    """The stakes trio that is still live: not superseded, retracted, or stale.
+
+    Same selector as the session gist and the project gist
+    (``live_set_from_records``). Turn order of the surviving rows is
+    preserved. History remains in the ledger.
+    """
+    from .live_set import choice_was, live_set_from_records
+
     out: dict[str, list[dict[str, Any]]] = {
         "decisions": [], "constraints": [], "failed_approaches": [],
     }
     kind_to_bucket = {"DECISION": "decisions", "CONSTRAINT": "constraints",
                       "FAILED-APPROACH": "failed_approaches"}
-    for s in _sections(doc):
-        bucket = kind_to_bucket.get(_kind_of(s))
-        if bucket is None:
-            continue
-        out[bucket].append({
-            "turn": _turn_of(s),
-            "text": _primary_value(s),
-            "section": s.name,
+    records: list[dict[str, Any]] = []
+    rows: list[tuple[int, str, dict[str, Any]]] = []
+    for index, s in enumerate(_sections(doc)):
+        kind = _kind_of(s)
+        fid = (_kv(s, "FACT-ID") or "").lower()
+        text = _primary_value(s)
+        turn = _turn_of(s)
+        records.append({
+            "fact_id": fid,
+            "kind": kind,
+            "text": text,
+            "turn": turn,
+            "session": sid,
+            "basis": _kv(s, "BASIS"),
+            "supersedes": (_kv(s, "SUPERSEDES-FACT-ID") or "").lower(),
+            "supersedes_reason": _kv(s, "SUPERSEDES-REASON"),
+            "retracts": (_kv(s, "RETRACTS-FACT-ID") or "").lower(),
+            "retract_reason": _kv(s, "REASON") if kind == "RETRACT" else "",
+            "ambiguous": _kv(s, "ID-AMBIGUOUS"),
         })
-    for bucket in out.values():
-        bucket.sort(key=lambda r: r["turn"])
+        bucket = kind_to_bucket.get(kind)
+        if bucket is None or not text:
+            continue
+        rows.append((index, bucket, {
+            "turn": turn,
+            "text": text,
+            "section": s.name,
+            "fact_id": fid,
+        }))
+    live = live_set_from_records(records, done_milestones=done_milestones)
+    live_ids = {fact.fact_id for fact in live.facts}
+    kept: list[tuple[int, str, dict[str, Any]]] = []
+    for index, bucket, row in rows:
+        fid = row.get("fact_id") or ""
+        if fid and fid not in live_ids:
+            continue
+        kept.append((index, bucket, row))
+    kept.sort(key=lambda item: (item[2]["turn"], item[0]))
+    for _index, bucket, row in kept:
+        out[bucket].append(row)
+    changed = [{
+        "old_id": repl.old_id,
+        "new_id": repl.new_id,
+        "was": choice_was(repl.old_text) if repl.old_text else "",
+        "now": repl.new_text,
+        "reason": repl.reason,
+    } for repl in live.replacements]
     return {"session": sid, **out,
-            "counts": {k: len(v) for k, v in out.items()}}
+            "counts": {k: len(v) for k, v in out.items()},
+            "changed_choices": changed,
+            "conflicts": [
+                {"roots": list(fork.roots),
+                 "heads": [{"fact_id": hid, "text": text}
+                           for hid, text in fork.heads]}
+                for fork in live.conflicts
+            ]}
 
 
 def _max_turn(doc: CTXDocument) -> int:

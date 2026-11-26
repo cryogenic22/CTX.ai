@@ -35,8 +35,15 @@ def test_synthetic_fixture_shows_known_main_gaps():
     assert totals["capture"] == expected["totals"]["capture"]
     assert totals["supersession"]["total"] == expected["totals"]["supersession"]["total"]
     assert totals["supersession"]["passed"] == expected["totals"]["supersession"]["passed"]
-    assert totals["supersession"]["stale_items_present"] > 0
+    assert totals["supersession"]["stale_items_present"] == 0
+    assert totals["supersession"]["passed"] == 1
     assert totals["contamination_facts"] == expected["totals"]["contamination_facts"]
+    assert totals["contamination_facts"]["by_kind"]["harness"]["count"] == 0
+    assert totals["contamination_facts"]["by_kind"]["probe"]["count"] == 0
+    missing = totals["capture"]["missing_label_ids"]
+    assert "l1-rejected-plain-alert-matrix" not in missing
+    assert "l1-rejected-plain-ops-notes" not in missing
+    assert "l1-commit-only" in missing
     assert totals["briefing"]["dropped_by_kind"]["DECISION"] > 0
     assert totals["briefing"]["dropped_by_kind"]["FAILED-APPROACH"] > 0
     assert totals["briefing"]["coverage_by_kind"]["DECISION"] < 1.0

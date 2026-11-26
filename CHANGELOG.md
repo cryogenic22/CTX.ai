@@ -7,6 +7,10 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Offline deterministic replay benchmark (`python -m ctxpack.benchmarks.replay`) with synthetic fixture + pinned baseline report for CTX Legions L1 acceptance testing.
 
+### Fixed
+- Ledger capture ignores harness briefings and probe exchanges, banks sentence-start `Rejected:` / `Dead end:` lines as `FAILED-APPROACH` (`marker_stated`), and strips leading markdown bullets from banked marker lines without changing unbulleted fact ids (extractor `tp/1.5`).
+- One live set feeds the project gist, the session gist, and the brief: superseded, retracted, and milestone-stale facts drop; replacements render under `Changed choices`; unresolved forks render as conflicts. `Supersedes:` accepts exact 16-hex and 64-hex ids and flags an ambiguous mixed-ledger match instead of guessing.
+
 ## [0.5.0] - 2026-03-16
 
 ### Added
