@@ -486,7 +486,7 @@ def test_runtime_version_matches_pyproject():
     # (dist 0.5.0 != source 0.5.0rc1).
     # Finding 1(e) + Finding 2(b): runtime __version__, the INSTALLED
     # distribution metadata, and the pyproject release target must ALL be
-    # 1.0.0. Runtime is pinned to the pyproject version, and the installed
+    # 1.1.0. Runtime is pinned to the pyproject version, and the installed
     # metadata is bound to both — so a source bump that was never rebuilt /
     # reinstalled (stale wheel metadata) or a release-target drift is caught,
     # not just a source/pyproject mismatch.
@@ -495,7 +495,7 @@ def test_runtime_version_matches_pyproject():
     from pathlib import Path
 
     import ctxpack
-    assert ctxpack.__version__ == "1.0.0"
+    assert ctxpack.__version__ == "1.1.0"
     pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
     m = re.search(r'(?m)^version\s*=\s*"([^"]+)"',
                   pyproject.read_text(encoding="utf-8"))

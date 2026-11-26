@@ -2118,3 +2118,11 @@ or untracked document state belongs in the release manifest by implication.
 - **What changed:** product mypy ratchet baseline is 0 (mypy 2.4.1; benchmark follow-imports still excluded). CI coverage floor is 85% (measured 88.60% on `python3 -m pytest tests/ -q -m "not slow" --cov=ctxpack --cov-report=term --cov-fail-under=85`). Backfill active-session match uses `matching_stems` (full id, unique legacy prefix). `brief` / `session` / `verify` warn on stderr when an explicit ledger directory does not exist. Blockquoted `> Decision:` / `> Constraint:` lines are not marker facts. `propose_contract` patches load through `TaskContract.from_mapping`; bare filenames are path globs; unknown alias codes become `CONTRACT_RULE_VIOLATION`.
 - **Tests:** 2135 passed / 37 skipped / 57 deselected; ruff F 0; `scripts/check_mypy_ratchet.py` current=0 baseline=0; `lint-imports` 2 kept, 0 broken.
 - **Next:** review the PR. Do not merge it from this note.
+
+### 2026-11-26 — Cursor agent — release 1.1.0 version bump
+
+- **Branch:** `cursor/release-v1.1.0-39f3` off `origin/main` `c8b20c7`. Not merged. Does not take the capture-fidelity owner role. No tag pushed.
+- **What changed:** `pyproject.toml` version `1.1.0`; `ctxpack.__version__ = "1.1.0"`; `test_runtime_version_matches_pyproject` pins `1.1.0`. Historical `1.0.0` changelog text left as-is. `CHANGELOG.md` `[1.1.0] - 2026-11-26` holds the former Unreleased notes, with #37, #38, and #39 named. Empty `[Unreleased]` kept above it.
+- **Files:** `pyproject.toml`, `ctxpack/__init__.py`, `tests/test_onboard.py`, `CHANGELOG.md`, `AGENT_COORDINATION.md`.
+- **Tests:** `python3 scripts/check_version.py --tag v1.1.0` OK; `ruff check --select F ctxpack --exclude ctxpack/benchmarks` 0; `python3 scripts/check_mypy_ratchet.py` current=0 baseline=0; `lint-imports` 2 kept, 0 broken; `python3 -m pytest tests/ -q -m "not slow" --ignore=tests/code` 1822 passed / 37 skipped / 57 deselected.
+- **Next:** review the PR. Do not merge it and do not push `v1.1.0` from this note.
