@@ -152,7 +152,7 @@ _ATTESTATION_END = "<!-- ctxpack:attestation:end -->"
 _ATTESTATION_BLOCK = (
     "<!-- ctxpack:attestation:start -->\n"
     "verified-sha: <7+ char head sha>\n"
-    "verifier: <command> | pass | <head sha>\n"
+    "verifier: <command> | pass | <head-sha>\n"
     "<!-- ctxpack:attestation:end -->\n"
 )
 

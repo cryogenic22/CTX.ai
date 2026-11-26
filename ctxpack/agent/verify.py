@@ -93,10 +93,15 @@ _DEFAULT_SHA = (
 # placeholder such as ``<7+ char head sha>`` does not match.
 _VERIFIED_SHA_LINE = re.compile(
     r"(?im)^[ \t>*-]*(?:\*{1,2}|_{1,2})?verified-sha"
-    r"(?:\*{1,2}|_{1,2})?\s*:\s*([0-9a-fA-F]{7,40})\b")
+    r"(?:\*{1,2}|_{1,2})?[ \t]*:[ \t]*([0-9a-fA-F]{7,40})\b")
+# ``[ \t]`` after the colon keeps the reason on the same line. ``\s``
+# would swallow the newline and treat the next line as the reason.
 _ONE_WAY_ACK = re.compile(
     r"(?im)^[ \t>*-]*(?:\*{1,2}|_{1,2})?one-way-ack"
-    r"(?:\*{1,2}|_{1,2})?\s*:\s*(\S.*?)\s*$")
+    r"(?:\*{1,2}|_{1,2})?[ \t]*:[ \t]*(\S.*?)[ \t]*$")
+_ACK_PLACEHOLDERS = frozenset({
+    "todo", "tbd", "n/a", "na", "none", "placeholder", "reason",
+})
 _PASS_STATUS = frozenset({"pass", "ok", "passed", "green"})
 _STATUS_WORD = (
     r"(?<![A-Za-z0-9_])(?P<status>passed|pass|green|ok|failed|fail|"
@@ -1307,11 +1312,12 @@ def _effective_blocking(
 ) -> tuple[str, ...]:
     """Blocking codes, with one-way paths always blocking unless waived.
 
-    A waiver is an unfenced ``one-way-ack: <reason>`` line plus a
-    ``verified-sha:`` that is a 7+ hex prefix of ``head``. The finding
-    stays in the report; only the block is removed. Advisory mode (an
-    empty blocking list, or a list that names other codes) does not
-    waive an unacknowledged one-way touch.
+    A waiver is an unfenced same-line ``one-way-ack:`` with a real
+    reason plus a same-line ``verified-sha:`` that is a 7+ hex prefix
+    of ``head``. Placeholder reasons do not waive. The finding stays
+    in the report; only the block is removed. Advisory mode (an empty
+    blocking list, or a list that names other codes) does not waive
+    an unacknowledged one-way touch.
     """
     codes = set(blocking)
     touched = any(row.code == "ONE_WAY_PATH_TOUCHED" for row in findings)
@@ -1326,7 +1332,8 @@ def _one_way_acknowledged(pr_body: str | None, head: str) -> bool:
     if not pr_body:
         return False
     visible = _unfenced(pr_body)
-    if _ONE_WAY_ACK.search(visible) is None:
+    reasons = [match.group(1) for match in _ONE_WAY_ACK.finditer(visible)]
+    if not any(_ack_reason_ok(reason) for reason in reasons):
         return False
     shas = [match.group(1).lower() for match in _VERIFIED_SHA_LINE.finditer(visible)]
     if not shas:
@@ -1335,6 +1342,25 @@ def _one_way_acknowledged(pr_body: str | None, head: str) -> bool:
     return all(
         re.fullmatch(r"[0-9a-f]{7,40}", token) and head_sha.startswith(token)
         for token in shas)
+
+
+def _ack_reason_ok(reason: str) -> bool:
+    """True when ``reason`` is a same-line acknowledgement, not a stub.
+
+    Rejects angle-bracket placeholders, whitespace, punctuation-only
+    text, and the case-insensitive stubs ``todo``, ``tbd``, ``n/a``,
+    ``na``, ``none``, ``placeholder``, and ``reason``.
+    """
+    text = " ".join(reason.split())
+    if not text:
+        return False
+    if "<" in text or ">" in text:
+        return False
+    if not re.search(r"[A-Za-z0-9]", text):
+        return False
+    if text.casefold() in _ACK_PLACEHOLDERS:
+        return False
+    return True
 
 
 def _one_way_paths(
@@ -1360,6 +1386,7 @@ class _Attestation:
     status: str
     shas: tuple[str, ...]
     sha_invalid: bool
+    command_segment: str
 
 
 def _verifier_evidence(
@@ -1376,13 +1403,15 @@ def _verifier_evidence(
     - ``verifier: <command> pass @ <sha>``
     - ``verifier: <command> pass (<sha>)``
     - ``verifier: pass <sha>``
-    - ``verifier-cmd: <command>`` plus ``verifier-result: pass``
+    - ``verifier-cmd: <command>`` plus ``verifier-result: pass <sha>``
 
-    Status must be ``pass``, ``ok``, ``passed``, or ``green``. A SHA is
-    optional; when present it must be at least 7 hex characters and a
-    prefix of ``head``. When ``verifier_command`` is set, that text must
-    appear on the attestation. Angle-bracket placeholders are ignored,
-    so an unfilled template is not a pass.
+    Status must be ``pass``, ``ok``, ``passed``, or ``green``. The line
+    must include a SHA of at least 7 hex characters that prefixes
+    ``head``. When ``verifier_command`` is set, it must match the
+    command segment as a whole shell token (or a contiguous token
+    sequence), not as a raw substring. Angle-bracket placeholders are
+    ignored, so an unfilled template is not a pass. Labels and values
+    stay on the same line.
     """
     visible = _unfenced(pr_body)
     command = contract.verifier_command.strip()
@@ -1412,11 +1441,13 @@ def _verifier_candidates(visible: str) -> list[_Attestation]:
 
 
 def _labeled_lines(text: str, label: str) -> list[str]:
+    """Values for ``label:`` on the same line. ``[ \t]`` does not cross newlines."""
     pattern = re.compile(
         rf"(?im)^[ \t>*-]*(?:\*{{1,2}}|_{{1,2}})?"
         rf"{re.escape(label)}"
-        rf"(?:\*{{1,2}}|_{{1,2}})?\s*:\s*(.*?)\s*$")
-    return [match.group(1).strip() for match in pattern.finditer(text)]
+        rf"(?:\*{{1,2}}|_{{1,2}})?[ \t]*:[ \t]*(.*?)[ \t]*$")
+    return [value for match in pattern.finditer(text)
+            if (value := match.group(1).strip())]
 
 
 def _real_payloads(lines: Iterable[str]) -> list[str]:
@@ -1429,11 +1460,17 @@ def _canon_status(token: str) -> str:
 
 
 def _payload_attestation(payload: str) -> _Attestation:
-    _name, status, sha, sha_invalid = _parse_verifier_payload(payload)
+    name, status, sha, sha_invalid = _parse_verifier_payload(payload)
     shas = (sha.lower(),) if sha else ()
     if sha_invalid and not shas:
         shas = ("invalid",)
-    return _Attestation(payload, status, shas, sha_invalid)
+    # The command is the first pipe field. Forms without a pipe use the
+    # text that sits before the status word.
+    if "|" in payload:
+        segment = payload.split("|", 1)[0].strip()
+    else:
+        segment = name.strip()
+    return _Attestation(payload, status, shas, sha_invalid, segment)
 
 
 def _parse_verifier_payload(payload: str) -> tuple[str, str, str, bool]:
@@ -1499,7 +1536,8 @@ def _pair_attestation(
         "")
     status = bad_status or (statuses[0] if statuses else "")
     payload = " ".join([*commands, *results])
-    return _Attestation(payload, status, tuple(shas), sha_invalid)
+    return _Attestation(
+        payload, status, tuple(shas), sha_invalid, "\n".join(commands))
 
 
 def _attestation_defect(
@@ -1513,8 +1551,10 @@ def _attestation_defect(
     canon = _canon_status(row.status) if row.status else ""
     if canon not in _PASS_STATUS:
         return f"status:{canon}" if canon else "no-status"
-    if command and command.lower() not in row.payload.lower():
+    if command and not _command_matches(command, row.command_segment):
         return "command"
+    if not row.shas:
+        return "sha:missing"
     head_sha = head.lower()
     for sha in row.shas:
         token = sha.lower()
@@ -1522,6 +1562,29 @@ def _attestation_defect(
                 or not head_sha.startswith(token)):
             return f"sha:{token}"
     return None
+
+
+def _command_matches(expected: str, segment: str) -> bool:
+    """True when ``expected`` is a contiguous shell-token sequence in ``segment``.
+
+    ``verify`` matches ``verify`` and ``verify -q``. It does not match
+    ``notverify`` or ``my-verify-fake``. ``pytest -q`` and
+    ``scripts/verify.sh`` match those invocations as whole tokens.
+    Each line of ``segment`` is tried on its own.
+    """
+    expected_tokens = [token.casefold() for token in expected.split() if token]
+    if not expected_tokens:
+        return True
+    lines = [line.strip() for line in segment.splitlines() if line.strip()]
+    if not lines:
+        return False
+    width = len(expected_tokens)
+    for line in lines:
+        got = [token.casefold() for token in line.split() if token]
+        if any(got[index:index + width] == expected_tokens
+               for index in range(0, len(got) - width + 1)):
+            return True
+    return False
 
 
 def _verifier_finding(label: str, defect: str, command: str) -> Finding:

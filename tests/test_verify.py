@@ -878,10 +878,9 @@ def test_verifier_evidence_accepts_documented_pass_lines(tmp_path: Path) -> None
         f"Verifier: scripts/verify.sh | PASS | {head}\n",
         f"verifier: scripts/verify.sh pass @ {short}\n",
         f"verifier: scripts/verify.sh pass ({short})\n",
-        f"verifier: scripts/verify.sh | ok\n",
         f"verifier: scripts/verify.sh | passed | {short}\n",
         f"verifier: scripts/verify.sh | green | {head}\n",
-        "verifier-cmd: scripts/verify.sh\nverifier-result: pass\n",
+        f"verifier: scripts/verify.sh | ok | {short}\n",
         f"verifier-cmd: scripts/verify.sh\nverifier-result: pass {short}\n",
     ]
     for body in bodies:
@@ -950,6 +949,21 @@ def test_verifier_evidence_fails_closed(tmp_path: Path) -> None:
             f"verifier: scripts/verify.sh | pass | {bad}\n",
             "verifier evidence SHA does not match head",
             bad,
+        ),
+        "sha omitted": (
+            "verifier: scripts/verify.sh | ok\n",
+            "verifier evidence SHA does not match head",
+            "missing",
+        ),
+        "sha short": (
+            f"verifier: scripts/verify.sh | pass | {head[:6]}\n",
+            "verifier evidence SHA does not match head",
+            head[:6],
+        ),
+        "next line": (
+            f"verifier:\nscripts/verify.sh | pass | {head}\n",
+            "verifier evidence is missing",
+            "missing",
         ),
     }
     for name, (body, message, evidence) in cases.items():
@@ -1076,6 +1090,111 @@ def test_one_way_path_blocks_until_acknowledged(tmp_path: Path) -> None:
         pr_body_label="pr_body.md")
     assert waived.exit_code == 0
     assert "ONE_WAY_PATH_TOUCHED" not in waived.blocking
+
+
+def test_one_way_ack_rejects_newline_capture_and_placeholders(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init(repo)
+    _write(repo, "migrations/001_init.sql", "create table t(id int);\n")
+    base = _commit(repo, "base")
+    _write(repo, "migrations/001_init.sql", "create table t(id int, name text);\n")
+    head = _commit(repo, "alter migration")
+    spec = f"{base}..{head}"
+    contract = _contract(tmp_path / "one-way.json", {
+        "name": "one-way",
+        "one_way_paths": ["migrations/**"],
+    })
+    swallowed = verify(
+        spec, repo=repo, contract=contract, ledger_dir=tmp_path / "no-ledger",
+        pr_body=f"one-way-ack:\nverified-sha: {head}\n",
+        pr_body_label="pr_body.md")
+    assert swallowed.exit_code == 1
+    assert "ONE_WAY_PATH_TOUCHED" in swallowed.blocking
+
+    split_sha = verify(
+        spec, repo=repo, contract=contract, ledger_dir=tmp_path / "no-ledger",
+        pr_body=f"one-way-ack: migration reviewed by the owner\nverified-sha:\n{head}\n",
+        pr_body_label="pr_body.md")
+    assert split_sha.exit_code == 1
+
+    placeholders = (
+        "<reason>",
+        "TODO",
+        "TBD",
+        "N/A",
+        "na",
+        "none",
+        "placeholder",
+        "reason",
+        "-",
+        ".",
+        "--",
+        "   ",
+    )
+    for reason in placeholders:
+        report = verify(
+            spec, repo=repo, contract=contract, ledger_dir=tmp_path / "no-ledger",
+            pr_body=f"one-way-ack: {reason}\nverified-sha: {head}\n",
+            pr_body_label="pr_body.md")
+        assert report.exit_code == 1, reason
+        assert "ONE_WAY_PATH_TOUCHED" in report.blocking, reason
+
+
+def test_verifier_command_matches_whole_tokens(tmp_path: Path) -> None:
+    repo, spec = _range_repo(tmp_path, "edit the readme title")
+    head = _head_of(spec)
+    short = head[:7]
+    verify_cmd = _contract(tmp_path / "verify-cmd.json", {
+        "name": "token",
+        "require_verifier_evidence": True,
+        "verifier_command": "verify",
+        "blocking_codes": ["VERIFIER_EVIDENCE_MISSING"],
+    })
+    for body in (
+        f"verifier: my-verify-fake | pass | {short}\n",
+        f"verifier: notverify | pass | {short}\n",
+    ):
+        report = verify(
+            spec, repo=repo, contract=verify_cmd,
+            ledger_dir=tmp_path / "no-ledger",
+            pr_body=body, pr_body_label="pr_body.md")
+        rows = [row for row in report.findings
+                if row.code == "VERIFIER_EVIDENCE_MISSING"]
+        assert len(rows) == 1, body
+        assert rows[0].message == "verifier evidence does not name the contract command"
+        assert rows[0].evidence == "verify"
+        assert report.exit_code == 1
+
+    accepted = verify(
+        spec, repo=repo, contract=verify_cmd, ledger_dir=tmp_path / "no-ledger",
+        pr_body=f"verifier: verify -q | pass | {short}\n",
+        pr_body_label="pr_body.md")
+    assert accepted.findings == ()
+    assert accepted.exit_code == 0
+
+    pytest_cmd = _contract(tmp_path / "pytest-cmd.json", {
+        "name": "pytest",
+        "require_verifier_evidence": True,
+        "verifier_command": "pytest -q",
+        "blocking_codes": ["VERIFIER_EVIDENCE_MISSING"],
+    })
+    matched = verify(
+        spec, repo=repo, contract=pytest_cmd, ledger_dir=tmp_path / "no-ledger",
+        pr_body=f"verifier: pytest -q | pass | {short}\n",
+        pr_body_label="pr_body.md")
+    assert matched.findings == ()
+    script = verify(
+        spec, repo=repo, contract=_contract(tmp_path / "script.json", {
+            "name": "script",
+            "require_verifier_evidence": True,
+            "verifier_command": "scripts/verify.sh",
+            "blocking_codes": ["VERIFIER_EVIDENCE_MISSING"],
+        }),
+        ledger_dir=tmp_path / "no-ledger",
+        pr_body=f"verifier: scripts/verify.sh | pass | {short}\n",
+        pr_body_label="pr_body.md")
+    assert script.findings == ()
 
 
 def test_one_way_path_uses_the_merge_base_diff(tmp_path: Path) -> None:
