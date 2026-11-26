@@ -542,6 +542,44 @@ _SESSION_TOOLS = [
         inputSchema={"type": "object", "properties": {**_SESSION_COMMON_PROPS}},
     ),
     Tool(
+        name="ctx/brief",
+        description=(
+            "Budgeted ledger briefing, the same text as `ctxpack brief` "
+            "and the SessionStart hook. Conflicts, constraints, decisions, "
+            "dead ends, plan, then file names. States what the budget dropped."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "ledger_dir": {
+                    "type": "string",
+                    "description": "Checkpoint ledger directory (default: .claude/ctx).",
+                    "default": ".claude/ctx",
+                },
+                "budget": {
+                    "type": "integer",
+                    "description": "Hard cap (default 12000 chars, or ctxpack.toml [brief]).",
+                },
+                "unit": {
+                    "type": "string",
+                    "enum": ["chars", "tokens"],
+                    "description": "Budget unit. chars is exact length; tokens is the offline estimate.",
+                },
+                "format": {
+                    "type": "string",
+                    "enum": ["md", "json"],
+                    "description": "md returns the briefing text; json wraps that same text.",
+                    "default": "md",
+                },
+                "ack": {
+                    "type": "boolean",
+                    "description": "Append a CTX-Ack token. Omit for deterministic text.",
+                    "default": False,
+                },
+            },
+        },
+    ),
+    Tool(
         name="ctx/resume",
         description=(
             "One-call resume: the startup gist (project rollup + last "
@@ -1037,6 +1075,25 @@ def handle_session_literals(arguments: dict[str, Any]) -> str:
     return _with_session_doc(arguments, session_literals)
 
 
+def handle_brief(arguments: dict[str, Any]) -> str:
+    """Same briefing text as ``ctxpack brief`` and ``ctxpack.brief``."""
+    from ..agent.brief import brief_result
+
+    budget = arguments.get("budget", None)
+    if budget is not None:
+        budget = int(budget)
+    unit = arguments.get("unit") or None
+    result = brief_result(
+        arguments.get("ledger_dir") or ".claude/ctx",
+        budget=budget,
+        unit=unit,
+        ack=bool(arguments.get("ack")),
+    )
+    if str(arguments.get("format") or "md") == "json":
+        return result.to_json()
+    return result.text
+
+
 def handle_resume(arguments: dict[str, Any]) -> str:
     from ..agent.session_reader import LedgerError, session_resume
 
@@ -1149,6 +1206,7 @@ _HANDLERS = {
     "ctx/why": handle_session_why,
     "ctx/graph_query": handle_graph_query,
     "ctx/session_literals": handle_session_literals,
+    "ctx/brief": handle_brief,
     "ctx/resume": handle_resume,
     "ctx/checkpoint": handle_checkpoint,
 }
@@ -1164,6 +1222,7 @@ _HANDLERS = {
 SESSION_READ_TOOLS = frozenset({
     "ctx/session_recall", "ctx/session_timeline", "ctx/session_decisions",
     "ctx/why", "ctx/graph_query", "ctx/session_literals", "ctx/resume",
+    "ctx/brief",
 })
 
 

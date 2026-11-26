@@ -499,6 +499,30 @@ def _hook_repo(tmp_path, monkeypatch):
     return repo, out
 
 
+def _plant_decisions(out, texts):
+    """Append decision rows to the session ledger the brief reads.
+
+    SessionStart emits the composer, not the stored gist files. A secret
+    or benign line that must be on the emission path is planted here,
+    past ingest, the way an old ledger row would be.
+    """
+    ctxs = sorted(out.glob("session-*.ctx"))
+    assert ctxs, "session ledger missing"
+    path = ctxs[-1]
+    chunks = []
+    for i, text in enumerate(texts):
+        one = " ".join(str(text).splitlines())
+        chunks.append(
+            f"±ENTITY-DECISION-PLANT{i:04d}\n"
+            f"DECISION:{one}\n"
+            f"TURN:{90 + i}\n"
+            f"FACT-ID:{i:016x}\n"
+        )
+    path.write_text(
+        path.read_text(encoding="utf-8") + "\n" + "\n".join(chunks) + "\n",
+        encoding="utf-8")
+
+
 def test_outgoing_scan_redacts_a_secret_that_reached_the_ledger(
         tmp_path, monkeypatch, capsys):
     """Defense in depth: old ledgers predate ingest redaction. A secret
@@ -510,11 +534,9 @@ def test_outgoing_scan_redacts_a_secret_that_reached_the_ledger(
     from ctxpack.cli.main import main
 
     repo, out = _hook_repo(tmp_path, monkeypatch)
-    gist_path = out / "latest-gist.md"
-    gist_path.write_text(
-        gist_path.read_text(encoding="utf-8")
-        + "\n- old row with AKIAIOSFODNN7EXAMPLE banked pre-E6\n",
-        encoding="utf-8")
+    _plant_decisions(out, [
+        "old row with AKIAIOSFODNN7EXAMPLE banked pre-E6",
+    ])
 
     monkeypatch.setattr("sys.stdin", io.StringIO(_json.dumps(
         {"cwd": str(repo), "session_id": "egress11-0000"})))

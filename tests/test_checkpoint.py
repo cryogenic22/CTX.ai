@@ -73,8 +73,8 @@ def test_gist_contains_constraints_and_decisions(transcript, tmp_path):
 def test_gist_respects_budget(transcript):
     parsed = parse_transcript(transcript)
     gist = build_gist(parsed)
-    from ctxpack.benchmarks.metrics.cost import count_bpe_tokens
-    assert count_bpe_tokens(gist, model="claude") <= GIST_BPE_BUDGET
+    from ctxpack.core.tokens import count_budget
+    assert count_budget(gist, "tokens") <= GIST_BPE_BUDGET
 
 
 def test_read_latest_gist_missing_dir(tmp_path):

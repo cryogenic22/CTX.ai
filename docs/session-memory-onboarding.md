@@ -98,10 +98,19 @@ project's accumulated decisions, not just yesterday's.
 - **Constraints live in user messages.** When you (the human) type "do
   not touch the auth service", that's extracted verbatim as a CONSTRAINT
   — negations are never compressed away (CI-gated).
-- **Resume with the ledger, not your memory.** New session? The gist is
-  already injected. Need more? `ctxpack session resume` (or MCP
-  `ctx/resume`) returns gist + decisions + constraints + failed
-  approaches + every exact identifier in one call;
+- **Resume with the ledger, not your memory.** New session? The SessionStart
+  hook injects `ctxpack brief` (default 12000 characters). The same text
+  is `ctxpack brief`, `ctxpack.brief()`, and MCP `ctx/brief`. Order is
+  conflicts and changed choices, open constraints, decisions, dead ends,
+  plan progress when `plan.md` or `plan.json` is in the ledger, then file
+  names. A fact that does not fit is omitted whole, and the last line
+  names how many of each kind were omitted. Set `[brief]` `budget`,
+  `unit` (`chars` or `tokens`), and `priority` in `ctxpack.toml`.
+  `ctxpack brief --ack` adds a `CTX-Ack:` line to echo back;
+  `ctxpack ack check --token T` reports whether a later transcript turn
+  or commit body contains it. Need the full ledger? `ctxpack session resume` (or MCP
+  `ctx/resume`) returns the brief plus decisions, constraints, failed
+  approaches, and every exact identifier in one call;
   `ctxpack session why "<value>"` traces where a value came from and its
   revision chain; `ctxpack session literals` lists every banked id so you
   write shas/versions/paths verbatim instead of reconstructing them;

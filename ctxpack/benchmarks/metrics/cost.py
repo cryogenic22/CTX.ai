@@ -64,21 +64,29 @@ _MODEL_ENCODING = {
 def count_bpe_tokens(text: str, model: str = "gpt-4o") -> int:
     """Count BPE tokens for a given text and model.
 
-    Uses the model's tiktoken encoding for OpenAI models. Claude/Gemini have
-    no public tokenizer, so we approximate with cl100k_base — a real BPE
-    tokenizer whose counts track Claude's within a few percent on English
-    prose, and far better than a chars//4 estimate on code, JSON, and
-    hyphenated text. Final fallback (no tiktoken installed): len(text)//4.
+    This is the explicit optional tokenizer. It uses tiktoken and does
+    not switch to a character estimate when that extra is missing or the
+    encoding cannot be loaded — that silent switch made gist budgets
+    depend on the install. Briefing budgets use
+    ``ctxpack.core.tokens.count_budget`` instead, which never imports
+    tiktoken.
     """
     encoding_name = _MODEL_ENCODING.get(model, "cl100k_base")
     try:
         import tiktoken
+    except ImportError as exc:
+        raise RuntimeError(
+            "count_bpe_tokens requires the optional tiktoken extra; "
+            "refusing to switch to a character estimate"
+        ) from exc
+    try:
         enc = tiktoken.get_encoding(encoding_name)
         return len(enc.encode(text))
-    except Exception:
-        pass
-    # Fallback: ~4 chars per BPE token (standard English+symbols estimate)
-    return max(1, len(text) // 4)
+    except Exception as exc:
+        raise RuntimeError(
+            "count_bpe_tokens could not load encoding "
+            f"{encoding_name}; refusing to switch counters"
+        ) from exc
 
 
 def estimate_cost_bpe(text: str, model: str = "claude-sonnet-4-6") -> CostMetrics:
