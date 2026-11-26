@@ -60,7 +60,12 @@ mcp = [
 analytics = [
     "PyYAML>=6.0",
 ]
-# All optional runtime features (code + mcp + analytics).
+# Advisory Jev adapter. OFF by default and intentionally absent from
+# [all]: the module is stdlib only (urllib.request) and never writes
+# the ledger. Install with `pip install ctxpack[jev]` to opt in.
+jev = []
+# All optional runtime features (code + mcp + analytics). jev is not
+# included.
 all = [
     "ctxpack[code,mcp,analytics]",
 ]

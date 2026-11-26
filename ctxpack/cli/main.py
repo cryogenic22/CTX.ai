@@ -512,6 +512,25 @@ def _run(argv: list[str]) -> int:
     p_ack_check.add_argument("--format", dest="ack_format",
                              choices=["text", "json"], default="text")
 
+    # verify — deterministic ledger/PR gate (issue #16). Handler lives in
+    # ctxpack.agent.verify so this file only registers the subcommand.
+    p_verify = sub.add_parser(
+        "verify",
+        help="Check a commit range against the ledger and an optional "
+             "task contract (report-only unless a finding code is blocking)")
+    p_verify.add_argument("--range", required=True, dest="range",
+                          help="Commit range A..B")
+    p_verify.add_argument("--pr-body", default=None,
+                          help="PR description file")
+    p_verify.add_argument("--contract", default=None,
+                          help="Task contract (.json or .toml)")
+    p_verify.add_argument("--ledger-dir", default=None,
+                          help="Ledger directory (default: .claude/ctx)")
+    p_verify.add_argument("--format", choices=["json", "md"], default="json",
+                          help="Output format (default: json)")
+    p_verify.add_argument("--block", default=None,
+                          help="Comma-separated finding codes that exit 1")
+
     args = ap.parse_args(argv)
 
     try:
@@ -565,6 +584,8 @@ def _run(argv: list[str]) -> int:
             return _cmd_brief(args)
         elif args.command == "ack":
             return _cmd_ack(args)
+        elif args.command == "verify":
+            return _cmd_verify(args)
     except ParseError as e:
         print(f"Parse error: {e}", file=sys.stderr)
         return 1
@@ -576,6 +597,11 @@ def _run(argv: list[str]) -> int:
         return 1
 
     return 0
+
+
+def _cmd_verify(args: argparse.Namespace) -> int:
+    from ..agent.verify import run_cli
+    return run_cli(args)
 
 
 def _cmd_parse(args: argparse.Namespace) -> int:

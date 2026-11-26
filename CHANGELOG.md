@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Offline deterministic replay benchmark (`python -m ctxpack.benchmarks.replay`) with synthetic fixture + pinned baseline report for CTX Legions L1 acceptance testing.
 - `ctxpack brief` / `ctxpack.brief()` / MCP `ctx/brief`: one budgeted briefing shared with the SessionStart hook. Default cap is 12000 characters. Priority is conflicts, open constraints, decisions, dead ends, plan progress, then file names (overridable in `ctxpack.toml` `[brief]`). Facts are kept whole; a budget drop is named per kind on the last line. `ctxpack brief --ack` and `ctxpack ack check --token T` record whether the delivery token was echoed.
+- `ctxpack verify` ledger-to-PR gate (issue #16): deterministic findings for unrecorded markers, stale identifiers, superseded identifiers still in the diff, and constraint conflicts, plus a per-task contract (`ctxpack/agent/contract.py`) and an optional advisory `ctxpack[jev]` extra that does not change verify's exit code. See `docs/verify-ci.md`.
 
 ### Fixed
 - Gist and brief budgets use one offline counter (`chars`, or `max(1, (len + 3) // 4)` tokens after newline normalization). They no longer call tiktoken or switch counters when that extra is missing. `count_bpe_tokens` fails instead of silently estimating when a caller asks for the optional tokenizer.
