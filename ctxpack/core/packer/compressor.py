@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import datetime
 import re
-from typing import Optional
 
 from ..errors import Span
 from ..model import (

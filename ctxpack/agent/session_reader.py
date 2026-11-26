@@ -665,7 +665,7 @@ def _ratification_journal_block(journal) -> "dict[str, Any]":
 
 
 def _annotate_authority(matches: "list[dict[str, Any]]",
-                        ledger_dir: str) -> None:
+                        ledger_dir: str) -> "dict[str, Any]":
     """Stamp each match with its authority AXES (PF-11 v2.1).
 
     Extraction basis is not authority (an assistant emits ``Decision:``

@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Optional
 
-from .ir import CONDITIONAL_RE, IRCorpus, IREntity, IRField, IRWarning, Severity
+from .ir import CONDITIONAL_RE, IRCorpus, IRField, IRWarning, Severity
 
 # Precompiled regex for type extraction from IDENTIFIER values
 _IDENTIFIER_TYPE_RE = re.compile(r"\(([^,)]+)")

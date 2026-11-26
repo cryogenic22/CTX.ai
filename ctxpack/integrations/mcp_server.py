@@ -20,7 +20,6 @@ from __future__ import annotations
 import json
 import os
 import sys
-import tempfile
 from typing import Any, Optional  # noqa: F401
 
 # ── MCP SDK import ──
@@ -37,14 +36,14 @@ except ImportError:
 from ..core.errors import DiagnosticLevel, ParseError
 from ..core.json_export import to_json
 from ..core.parser import parse
-from ..core.serializer import serialize, serialize_iter, serialize_section
+from ..core.serializer import serialize, serialize_section
 from ..core.telemetry import TelemetryLog
 from ..core.tokens import ESTIMATOR_CTX, estimate_tokens, estimator_label
 from ..core.validator import validate
 
 # Packer import (may fail if corpus tools not needed)
 try:
-    from ..core.packer import PackResult, pack
+    from ..core.packer import pack
     HAS_PACKER = True
 except ImportError:
     HAS_PACKER = False

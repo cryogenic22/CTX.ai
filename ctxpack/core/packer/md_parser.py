@@ -7,7 +7,7 @@ and config alias maps. Extracts rules, warnings, and annotations.
 from __future__ import annotations
 
 import re
-from typing import Any, Optional
+from typing import Optional
 
 from .ir import IREntity, IRField, IRSource, IRWarning, Severity
 

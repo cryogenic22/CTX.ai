@@ -14,11 +14,10 @@ Target: <500 BPE tokens regardless of corpus size.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from .hydrator import list_sections
 from .model import CTXDocument, Section, KeyValue
-from .serializer import serialize
 
 
 def build_system_prompt(
@@ -93,34 +92,6 @@ def _extract_identifier(doc: CTXDocument, section_name: str) -> str:
                 if isinstance(child, KeyValue) and child.key == "IDENTIFIER":
                     return child.value
     return ""
-
-
-def build_hydration_tool_schema() -> dict[str, Any]:
-    """Return the MCP tool schema for ctx/hydrate.
-
-    Suitable for injection into system prompts or tool definitions
-    when using non-MCP tool-calling interfaces (e.g., OpenAI function calling).
-    """
-    return {
-        "name": "ctx/hydrate",
-        "description": (
-            "Retrieve detailed sections from the domain knowledge base. "
-            "Provide the section name from the domain map to get full details."
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "section": {
-                    "type": "string",
-                    "description": (
-                        "Section name to hydrate (e.g. 'ENTITY-CUSTOMER'). "
-                        "Use comma-separated names for multiple sections."
-                    ),
-                },
-            },
-            "required": ["section"],
-        },
-    }
 
 
 def build_hydration_tool_schema() -> dict[str, Any]:

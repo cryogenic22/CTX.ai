@@ -61,30 +61,29 @@ class TestIncremental:
         assert "x.py" in pack.file_hashes
         assert len(pack.file_hashes["x.py"]) == 64  # sha256 hex
 
-    def test_incremental_faster_than_full_rebuild(self, tmp_path: Path):
-        """Smoke test for the speed win — generate a non-trivial tree
-        and confirm prior-based pack is at least 2× faster than
-        rebuilding from scratch.
+    def test_incremental_skips_parsing_unchanged_files(self, tmp_path: Path, monkeypatch):
+        """A no-change re-pack must not parse. Wall-clock comparisons of
+        a 30-file tree are noise on a fast runner (macOS py3.10 measured
+        full 9ms, incremental 13ms).
         """
-        from ctxpack.core.code.pack import pack_codebase
-        # 30 small files
+        import ctxpack.core.code.pack as pack_mod
+
+        calls = {"n": 0}
+        real = pack_mod.parse_python
+
+        def counting(path):
+            calls["n"] += 1
+            return real(path)
+
+        monkeypatch.setattr(pack_mod, "parse_python", counting)
         for i in range(30):
             (tmp_path / f"m_{i}.py").write_text(
                 f"def fn_{i}(x: int) -> int:\n    return x + {i}\n"
             )
-        t = time.time()
-        p1 = pack_codebase(tmp_path)
-        t_full = time.time() - t
+        p1 = pack_mod.pack_codebase(tmp_path)
+        assert calls["n"] == 30
 
-        t = time.time()
-        p2 = pack_codebase(tmp_path, prior=p1)
-        t_incr = time.time() - t
-
-        # Incremental should be visibly faster on a no-change pass.
-        # Bound is loose (system-load tolerant); the bug we want to
-        # catch is "reuse path doesn't actually skip parsing."
-        assert t_incr < t_full, (
-            f"incremental ({t_incr:.3f}s) should be faster than full "
-            f"({t_full:.3f}s)"
-        )
+        calls["n"] = 0
+        p2 = pack_mod.pack_codebase(tmp_path, prior=p1)
+        assert calls["n"] == 0
         assert p1.version == p2.version

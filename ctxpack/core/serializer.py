@@ -22,7 +22,6 @@ from .model import (
     CTXDocument,
     Header,
     KeyValue,
-    Layer,
     NumberedItem,
     PlainLine,
     Provenance,

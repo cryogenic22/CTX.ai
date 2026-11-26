@@ -24,7 +24,10 @@ import os
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Iterator, Optional, Union
+from typing import TYPE_CHECKING, Iterator, Optional, Union
+
+if TYPE_CHECKING:
+    from ctxpack.modules.dream import GapItem
 
 from ctxpack.core.layers import ContextLayer
 from ctxpack.core.packer.ir import IREntity, IRField, IRSource
@@ -175,7 +178,10 @@ class ElicitStore:
         re-published to consumers because that would make ELICITED
         entries stand in for ground truth they were never meant to bear.
         """
-        ts = time.time() if now is None else now
+        # ``now`` matches add/confirm's call shape. Challenge rows are not
+        # timestamped (there is no challenged_at field), so the value is
+        # not stored.
+        del now
         rec = self.facts.get(name)
         if rec is None:
             raise KeyError(name)
@@ -291,7 +297,7 @@ def build_elicitation_prompt(gap: "GapItem") -> str:
         f"{gap.last_seen}; the catalog returned no sections each time.",
         "Action: identify what the questions were about and capture an "
         "ELICITED note via:",
-        f"  ctxpack elicit add <ENTITY> \"<fact>\" --expert <you>",
+        "  ctxpack elicit add <ENTITY> \"<fact>\" --expert <you>",
         "If you saw a similar question recently, your message history is "
         "the fastest source — the raw text was never stored in telemetry.",
     ]

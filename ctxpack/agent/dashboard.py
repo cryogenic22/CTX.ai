@@ -134,7 +134,7 @@ def render_dashboard(scorecard: dict[str, Any]) -> str:
     for r in repos:
         name = escape(str(r.get("repo", "?")))
         status = r.get("status", "?")
-        chip = (f'<span class="chip active">active</span>'
+        chip = ('<span class="chip active">active</span>'
                 if status == "active" else
                 f'<span class="chip">{escape(status.replace("_", " "))}</span>')
         if status != "active":
