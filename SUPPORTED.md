@@ -60,7 +60,7 @@ version.
 | `ctxpack session timeline` | Ledger events, filterable by `--kinds`. |
 | `ctxpack session stats` | Adoption and capture metrics. |
 | `ctxpack session graph` | Entity-graph query over the ledger. |
-| `ctxpack lessons` | The curated cross-repo lessons registry. |
+| `ctxpack lessons` | The curated cross-repo lessons registry. `ctxpack lessons suggest` prints contract proposals from a findings log and does not edit the contract. |
 | `ctxpack backfill` | Pack transcripts the hooks missed. Archive mode: does not touch `latest-gist`. |
 | `ctxpack retention` | Plan (default) or apply deletion of old per-session artifacts. `--apply` requires the plan hash. |
 

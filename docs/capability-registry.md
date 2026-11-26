@@ -49,6 +49,7 @@ a function), so importing the product never executes non-product code.
 | `ctxpack/agent/` | core | — | session-memory substrate: transcript parser, checkpoint engine, read path, conflict lint, scorecard |
 | `ctxpack/agent/contract.py` | core | — | per-task contract schema loaded by `ctxpack verify` (JSON/TOML, stdlib only) |
 | `ctxpack/agent/verify.py` | core | — | deterministic ledger-to-PR verifier (`ctxpack verify`, issue #16); report-only unless a finding code is blocking, except `ONE_WAY_PATH_TOUCHED` which blocks unless the PR body acknowledges it |
+| `ctxpack/agent/findings_log.py` | core | — | append-only findings log and deterministic `ctxpack lessons suggest` proposals; never edits a task contract |
 | `ctxpack/agent/jev_adapter.py` | core | — | optional advisory Jev client (`ctxpack[jev]`, stdlib urllib only); never writes the ledger and never sets verify's exit code |
 | `ctxpack/agent/__init__.py` | core | — | package init; exports `compress_state` (eval-tier trace-compression API) via **lazy** import of `state_parser` — core imports must never execute eval code (reviewer finding Q2-5) |
 | `ctxpack/agent/session.py` | legacy-deprecation-candidate | — | rolling merge+evict prototype; superseded by checkpoint/read-path architecture |

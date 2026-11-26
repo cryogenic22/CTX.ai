@@ -8,7 +8,9 @@ when a merge base exists, and a direct two-dot tree diff only when the
 histories do not meet. Commit messages stay on ``git log A..B``. The
 same inputs produce byte-identical JSON on Linux, macOS, and Windows.
 Nothing here calls the network. An optional Jev adapter is a separate
-advisory path and does not change this exit code.
+advisory path and does not change this exit code. ``verify()`` itself
+writes nothing. The CLI appends a findings log only when
+``--record-findings`` or ``--findings-log`` is set.
 
 Exit status is 0 unless a finding's code is in the blocking list. The
 list comes from ``--block``, then ``ctxpack.toml`` ``[verify] block``,
@@ -377,10 +379,31 @@ def run_cli(args: argparse.Namespace) -> int:
         )
         text = render_markdown(report) if args.format == "md" else render_json(report)
         sys.stdout.buffer.write(text.encode("utf-8"))
+        _record_findings(args, report)
         return report.exit_code
     except (VerifyError, ContractError, OSError, UnicodeError) as exc:
         sys.stderr.write(f"ctxpack verify: {exc}\n")
         return 2
+
+
+def _record_findings(args: argparse.Namespace, report: VerifyReport) -> None:
+    """Append findings when the CLI asked for a log. Otherwise do nothing."""
+    record = bool(getattr(args, "record_findings", False))
+    explicit = getattr(args, "findings_log", None)
+    if explicit is not None and not str(explicit).strip():
+        explicit = None
+    if not record and explicit is None:
+        return
+    from .findings_log import append_findings
+
+    repo = Path(getattr(args, "repo", ".") or ".")
+    if explicit is None:
+        log_path = repo / ".ctx" / "findings.jsonl"
+    else:
+        log_path = Path(str(explicit))
+        if not log_path.is_absolute():
+            log_path = repo / log_path
+    append_findings(report, log_path)
 
 
 class GitRepo:
