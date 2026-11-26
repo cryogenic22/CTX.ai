@@ -86,7 +86,7 @@ def test_tool_error_is_tool_role(tmp_path):
 
 def test_extractor_version_bumped_for_the_provenance_change(tmp_path):
     facts = _facts_by_kind(parse_transcript(_transcript(tmp_path)))
-    assert facts["DECISION"][0]["EXTRACTOR"] == "tp/1.4"
+    assert facts["DECISION"][0]["EXTRACTOR"] == "tp/1.5"
 
 
 # ── authority axes (PF-11 v2.1: no ordering, no user_ratified) ──
@@ -141,13 +141,51 @@ def test_ratification_roundtrip_and_last_event_wins(tmp_path):
 
 def test_malformed_fact_id_is_refused_not_recorded(tmp_path):
     ledger = str(tmp_path / "ctx")
-    for bad in ("", "zz", "not-a-fact-id", "A" * 15, "g" * 16):
+    # AC3: only EXACTLY 16 or 64 hex is a fact_id — never a range. A 40-hex
+    # git sha, a 63/65-hex near-miss and a 17-hex typo all stay malformed.
+    for bad in ("", "zz", "not-a-fact-id", "A" * 15, "g" * 16,
+                "a" * 17, "a" * 40, "a" * 63, "a" * 65, "G" * 64):
         try:
             record_ratification(ledger, bad)
             raise AssertionError(f"accepted {bad!r}")
         except ValueError:
             pass
     assert ratification_state(ledger) == {}
+
+
+def test_di01_exact_64hex_fact_id_is_ratifiable_roundtrip(tmp_path):
+    """AC3: a DI-01 exact literal id (64-hex) is a real fact_id — writable,
+    readable, and last-event-wins, exactly like a legacy 16-hex id. Red on
+    the pre-AC3 gate (``len(fid) != 16`` refused every 64-hex id)."""
+    from ctxpack.core.factid import exact_fact_id
+    ledger = str(tmp_path / "ctx")
+    fid = exact_fact_id("LITERAL", "CACHE_TTL", key="literal")
+    assert len(fid) == 64
+    record_ratification(ledger, fid)
+    assert ratification_state(ledger) == {fid: RATIFY}
+    assert is_ratified(ledger, fid)
+    record_ratification(ledger, fid, action=REJECT, note="mis-cased")
+    assert ratification_state(ledger) == {fid: REJECT}
+    assert not is_ratified(ledger, fid)
+
+
+def test_di01_exact_64hex_journal_row_is_valid_not_degraded(tmp_path):
+    """AC3: a well-formed 64-hex ratify row read from disk confers ratify and
+    does NOT taint the journal. Red on the pre-AC3 read gate, which counted a
+    64-hex row malformed and returned an EMPTY degraded journal for the whole
+    ledger (the dangerous read-gate case)."""
+    from ctxpack.agent.ratification import SCHEMA, read_ratifications
+    ledger = tmp_path / "ctx"
+    ledger.mkdir()
+    fid = "a" * 64
+    (ledger / RATIFICATION_LOG).write_text(
+        json.dumps({"ts": "2026-09-14T00:00:00+00:00", "schema": SCHEMA,
+                    "fact_id": fid, "action": RATIFY, "by": "local-cli"})
+        + "\n", encoding="utf-8")
+    journal = read_ratifications(str(ledger))
+    assert journal["degraded"] is False
+    assert journal["malformed_rows"] == 0
+    assert journal["state"] == {fid: RATIFY}
 
 
 def test_malformed_journal_rows_confer_nothing_and_degrade(tmp_path):

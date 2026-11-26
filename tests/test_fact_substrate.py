@@ -93,7 +93,11 @@ def test_substrate_fields_stamped(parsed):
         ents = _by_prefix(parsed, prefix)
         assert ents, f"no {prefix} entities extracted"
         for e in ents:
-            assert len(_field(e, "FACT-ID")) == 16, e.name
+            # DI-01: LITERAL facts carry the exact/v1 identity (64-hex full
+            # SHA-256, case/punctuation-preserving); every other kind keeps the
+            # legacy normalized 16-hex identity.
+            expected_len = 64 if prefix == "LITERAL-" else 16
+            assert len(_field(e, "FACT-ID")) == expected_len, e.name
             assert _field(e, "STATUS") == "current", e.name
             assert _field(e, "EXTRACTOR") == factid.EXTRACTOR_VERSION
             assert _field(e, "BASIS") in {b.value for b in factid.FactBasis}

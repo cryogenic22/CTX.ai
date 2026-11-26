@@ -98,8 +98,12 @@ _SUPERSEDES_MARKER_RE = re.compile(
     r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
     r"supersedes(?:\*{1,2}|_{1,2})?\s*:\s*"
 )
+# A fact_id target is a legacy 16-hex id OR a DI-01 exact 64-hex id (a decision
+# may supersede a fact identified by an exact literal). 64 is tried first so a
+# full exact id is captured whole; a 40-hex git sha or any other length stays
+# unmatched → the payload is ignored (fail-closed: the conflict stays visible).
 _SUPERSEDES_PAYLOAD_RE = re.compile(
-    r"[`']?([0-9a-fA-F]{16})\b[`']?\s*(?:[—–\-:,]\s*)?(.*)")
+    r"[`']?([0-9a-fA-F]{64}|[0-9a-fA-F]{16})\b[`']?\s*(?:[—–\-:,]\s*)?(.*)")
 
 # Memory-incident telemetry: the explicit "ctx-incident:" convention —
 # the ledger's own feedback loop (did ctx save/miss/mislead?). Same
@@ -455,6 +459,17 @@ def _short_hash(text: str) -> str:
     return hashlib.sha1(normalized.encode("utf-8")).hexdigest()[:8].upper()
 
 
+def _exact_short_hash(text: str) -> str:
+    """Case/punctuation/whitespace-preserving entity-name key for EXACT
+    literals. Unlike :func:`_short_hash` (which lowercases + collapses, so
+    restated decisions/constraints merge — desired there), this hashes the raw
+    value, so case/punctuation-distinct identifiers (``getUserId`` vs
+    ``getuserid``) stay DISTINCT entities and are not first-wins-merged before
+    their exact identity is computed (DI-01). 12 hex (vs 8) also visibly marks
+    an exact-literal entity name."""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12].upper()
+
+
 def _file_entity_name(path: str) -> str:
     norm = re.sub(r"[^\w.-]+", "-", path).strip("-").upper()
     norm = norm.replace(".", "-")
@@ -739,8 +754,15 @@ def parse_transcript(
         nonlocal source_words
         if fact is not None:
             kind, key, value = fact
+            # DI-01: exact literals get the case/punctuation-preserving
+            # `exact/v1` identity (64-hex); every other kind keeps the legacy
+            # normalized 16-hex identity (a restated decision IS the same
+            # decision). The two id spaces never collide (16- vs 64-hex).
+            fid = (factid.exact_fact_id(kind, value, key=key)
+                   if kind == "LITERAL"
+                   else factid.fact_id(kind, value, key=key))
             fields = {**fields,
-                      "fact_id": factid.fact_id(kind, value, key=key),
+                      "fact_id": fid,
                       "basis": basis or factid.FactBasis.STRUCTURAL.value,
                       "status": "current",
                       "extractor": factid.EXTRACTOR_VERSION,
@@ -860,7 +882,7 @@ def parse_transcript(
         """Bank each verbatim identifier as a LITERAL entity (dedup first-wins;
         stats count distinct)."""
         for kind, value in _extract_literals(text):
-            name = f"LITERAL-{_short_hash(value)}"
+            name = f"LITERAL-{_exact_short_hash(value)}"
             if name not in seen_names:
                 stats.literals += 1
             _add(name, {"value": value, "kind": kind, "turn": str(turn)},
