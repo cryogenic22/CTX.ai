@@ -3,6 +3,7 @@
 import json
 
 from ctxpack.agent.checkpoint import run_checkpoint
+from ctxpack.agent.ledger import ledger_stem
 from ctxpack.benchmarks.compactbench.drk import (
     mcnemar_b_c,
     recall_at_k,
@@ -44,7 +45,7 @@ def test_planted_session_survives_the_real_pipeline(tmp_path):
     t.write_text("\n".join(json.dumps(e) for e in entries), encoding="utf-8")
     result = run_checkpoint(str(t), str(tmp_path / "ctx"),
                             as_of="2026-07-04")
-    ledger = (tmp_path / "ctx" / f"session-{result.session_id[:8]}.ctx")
+    ledger = (tmp_path / "ctx" / f"session-{ledger_stem(result.session_id)}.ctx")
     text = ledger.read_text(encoding="utf-8")
     captured_decisions = sum(
         1 for d in manifest["decisions"] if d["kind"] == "stable"

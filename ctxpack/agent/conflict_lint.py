@@ -132,7 +132,7 @@ def _contains(haystack: "list[str]", needle: "list[str]") -> bool:
 
 def _banked_constraints(
         out_dir: str,
-        current_sid8: str,
+        current_session_id: str,
         meta: "Optional[dict]" = None) -> "list[tuple[str, str, str, None]]":
     """(fact_id, src, text, turn=None) for constraints of sessions that
     first-checkpointed earlier than the current one (journal order).
@@ -140,21 +140,38 @@ def _banked_constraints(
     they apply to every turn of the current session. An unreadable
     ledger is skipped fail-open and counted in meta['ledgers_skipped']
     so a silent coverage gap is visible in the journal."""
-    from ..core.parser import parse as _parse_ctx
-    from .checkpoint import _journal_session_order
-    from .session_reader import _kind_of, _kv, _primary_value, _sections, \
-        _turn_of
+    from .ledger import (
+        _kind_of,
+        _kv,
+        _primary_value,
+        _sections,
+        _turn_of,
+        ctx_path,
+        journal_session_order,
+        ledger_stem,
+        legacy_stem,
+        read_session_document,
+    )
 
-    order = _journal_session_order(out_dir)
-    if current_sid8 in order:
-        order = order[:order.index(current_sid8)]
+    order = journal_session_order(out_dir)
+    try:
+        current_stem = ledger_stem(current_session_id) if current_session_id else ""
+    except Exception:  # noqa: BLE001 — an unsafe id simply is not in the journal
+        current_stem = ""
+    legacy = legacy_stem(current_session_id) if current_session_id else ""
+    cut = None
+    if current_stem and current_stem in order:
+        cut = order.index(current_stem)
+    elif legacy and legacy in order:
+        cut = order.index(legacy)
+    elif current_session_id and current_session_id in order:
+        cut = order.index(current_session_id)
+    if cut is not None:
+        order = order[:cut]
     rows: "list[tuple[str, str, str, None]]" = []
     for sid in order:
-        path = os.path.join(out_dir, f"session-{sid}.ctx")
-        try:
-            with open(path, encoding="utf-8") as f:
-                doc = _parse_ctx(f.read(), level=2)
-        except Exception:  # noqa: BLE001 — one bad ledger must not kill the lint
+        doc, diag = read_session_document(ctx_path(out_dir, sid))
+        if diag is not None or doc is None:
             if meta is not None:
                 meta["ledgers_skipped"] = meta.get("ledgers_skipped", 0) + 1
             continue
@@ -185,7 +202,11 @@ def lint_decisions(corpus_entities, out_dir: str,
     nothing to compare; without the comparison count those two are
     indistinguishable, and "0 conflicts" gets read as proof the lint
     works when it may only be proof that nothing was in scope."""
-    sid8 = (current_session_id or "")[:8]
+    from .ledger import ledger_stem
+    try:
+        sid_label = ledger_stem(current_session_id or "")
+    except Exception:  # noqa: BLE001
+        sid_label = (current_session_id or "")[:8]
     if protected is None:
         protected = load_protected_subjects(out_dir)
 
@@ -199,7 +220,7 @@ def lint_decisions(corpus_entities, out_dir: str,
             continue
         decisions.append(e)
 
-    constraints = _banked_constraints(out_dir, sid8, meta)
+    constraints = _banked_constraints(out_dir, current_session_id or "", meta)
     # ... plus the current session's own constraints (drift across an
     # in-session compaction is the CompactBench axis); their integer
     # turn gates comparison to STRICTLY EARLIER turns below. A
@@ -209,7 +230,7 @@ def lint_decisions(corpus_entities, out_dir: str,
         if e.name.startswith("CONSTRAINT-") and e.sources:
             turn = e.sources[0].turn
             constraints.append((_field(e, "FACT-ID"),
-                                f"s:{sid8}#turn{turn}",
+                                f"s:{sid_label}#turn{turn}",
                                 _field(e, "RULE"), turn))
 
     rows: "list[dict]" = []

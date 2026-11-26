@@ -54,6 +54,8 @@ import os
 import stat
 from dataclasses import dataclass, field
 
+from .ledger import UnsafeSessionId, ledger_stem, legacy_stem
+
 RETENTION_LOG = "retention.jsonl"
 # v2 (Finding 3, 2026-08-23): v1 hashed only the delete entries, so an
 # added orphan, a link swap among skipped rows, or a DIFFERENT ledger
@@ -303,7 +305,17 @@ def plan_retention(ledger_dir: str, keep: int) -> RetentionPlan:
     kept = ordered[-keep:]
     prefix_ids: "dict[str, set[str]]" = {}
     for sid in ordered:
-        prefix_ids.setdefault(sid[:8], set()).add(sid)
+        # The filename may be the full sanitized id or the legacy 8-char
+        # stem. Both keys point at the journal id so a new file is not an
+        # orphan and an old file stays attributable. Two full ids that
+        # share an 8-char prefix still collide on that short key.
+        try:
+            prefix_ids.setdefault(ledger_stem(sid), set()).add(sid)
+        except UnsafeSessionId:
+            pass
+        short = legacy_stem(sid) or sid[:8]
+        if short:
+            prefix_ids.setdefault(short, set()).add(sid)
 
     plan = RetentionPlan(keep=keep, sessions_total=len(ordered),
                          kept_sessions=list(kept),

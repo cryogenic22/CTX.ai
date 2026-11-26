@@ -14,6 +14,7 @@ import json
 import pytest
 
 from ctxpack.agent.checkpoint import run_checkpoint
+from ctxpack.agent.ledger import ledger_stem
 from ctxpack.cli.main import main
 
 SECRET = "AKIAIOSFODNN7EXAMPLE"
@@ -39,7 +40,8 @@ def _poisoned_ledger(tmp_path):
     out = tmp_path / "ctx"
     run_checkpoint(str(path), str(out), as_of="2026-08-23")
     # simulate the legacy ledger: swap a banked literal for a raw secret
-    for name in (f"session-{sid[:8]}.ctx", f"session-{sid[:8]}-gist.md",
+    stem = ledger_stem(sid)
+    for name in (f"session-{stem}.ctx", f"session-{stem}-gist.md",
                  "latest-gist.md"):
         f = out / name
         f.write_text(f.read_text(encoding="utf-8").replace(

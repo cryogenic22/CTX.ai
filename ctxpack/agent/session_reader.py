@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 from typing import Any, Optional
 
 from ..core.errors import ParseError
@@ -32,24 +31,21 @@ from ..core.model import CTXDocument, KeyValue, Section
 from ..core.parser import parse
 from ..core.serializer import serialize_section
 from ..core.tokens import estimate_tokens, estimator_label
-
-DEFAULT_LEDGER_DIR = ".claude/ctx"
-
-# Section-name prefixes (post "ENTITY-") → the field that carries the fact.
-# Longest-first so USER-REQUEST wins over a hypothetical USER.
-_KIND_PRIMARY_KEY = (
-    ("FAILED-APPROACH", "NOTE"),
-    ("USER-REQUEST", "REQUEST"),
-    ("CONSTRAINT", "RULE"),
-    ("TOOL-BASH", "RAN"),
-    ("DECISION", "DECISION"),
-    ("LITERAL", "VALUE"),
-    ("ERROR", "MESSAGE"),
-    ("TASK", "TASK"),
-    ("FILE", "PATH"),
+from .ledger import (
+    _kind_of,
+    _kv,
+    _primary_value,
+    _sections,
+    _turn_of,
+    ctx_path,
+    journal_session_order,
+    last_live_session_id,
+    list_session_stems,
+    resolve_explicit,
+    stem_on_disk,
 )
 
-_TURN_IN_SRC_RE = re.compile(r"#turn(\d+)\b")
+DEFAULT_LEDGER_DIR = ".claude/ctx"
 
 # why() returns full field lists for provenance, but one oversized value
 # (a pasted command, a pre-cap ledger row) must not dump kilobytes into
@@ -74,12 +70,7 @@ class LedgerError(Exception):
 
 
 def _known_sessions(ledger_dir: str) -> list[str]:
-    try:
-        names = sorted(os.listdir(ledger_dir))
-    except OSError:
-        return []
-    return [n[len("session-"):-len(".ctx")] for n in names
-            if n.startswith("session-") and n.endswith(".ctx")]
+    return list_session_stems(ledger_dir)
 
 
 def resolve_session(ledger_dir: str = DEFAULT_LEDGER_DIR,
@@ -88,45 +79,34 @@ def resolve_session(ledger_dir: str = DEFAULT_LEDGER_DIR,
 
     "Most recent" is the last entry of checkpoints.jsonl — the journal is
     the source of truth for checkpoint order (file mtimes are not
-    deterministic across machines/clones).
+    deterministic across machines/clones). The returned sid is the
+    on-disk stem: the full sanitized id for a new ledger, or the legacy
+    8-character stem when that is the file still on disk.
     """
     if session:
-        sid = session[:8]
+        sid, path = resolve_explicit(ledger_dir, session)
     else:
         # Last LIVE journal row wins; backfilled (archive) rows land at
         # the tail out of chronological order and must never hijack the
         # default session. All-archive journals fall back to the tail.
-        sid = ""
-        sid_any = ""
-        journal = os.path.join(ledger_dir, "checkpoints.jsonl")
-        try:
-            with open(journal, encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        row = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    sid_any = str(row.get("session", ""))[:8]
-                    if not row.get("archive"):
-                        sid = sid_any
-        except OSError:
-            pass
-        sid = sid or sid_any
-        if not sid:
+        full = last_live_session_id(ledger_dir)
+        if full:
+            sid = stem_on_disk(ledger_dir, full)
+            path = ctx_path(ledger_dir, sid)
+        else:
             known = _known_sessions(ledger_dir)
             if len(known) == 1:
                 sid = known[0]
-    ctx_path = os.path.join(ledger_dir, f"session-{sid}.ctx") if sid else ""
-    if not sid or not os.path.isfile(ctx_path):
+                path = ctx_path(ledger_dir, sid)
+            else:
+                sid, path = "", ""
+    if not sid or not os.path.isfile(path):
         raise LedgerError(
             f"No session ledger found in {ledger_dir!r} "
             f"(requested: {session or 'latest'}; "
             f"available: {_known_sessions(ledger_dir) or 'none'})"
         )
-    return sid, ctx_path
+    return sid, path
 
 
 def load_session(ledger_dir: str = DEFAULT_LEDGER_DIR,
@@ -135,55 +115,6 @@ def load_session(ledger_dir: str = DEFAULT_LEDGER_DIR,
     sid, ctx_path = resolve_session(ledger_dir, session)
     with open(ctx_path, encoding="utf-8") as f:
         return parse(f.read(), level=2), sid
-
-
-# ── Section accessors ──
-
-
-def _kind_of(section: Section) -> str:
-    name = section.name.upper()
-    if name.startswith("ENTITY-"):
-        name = name[len("ENTITY-"):]
-    for prefix, _ in _KIND_PRIMARY_KEY:
-        if name.startswith(prefix):
-            return prefix
-    return name.split("-")[0] if "-" in name else name
-
-
-def _kv(section: Section, key: str) -> str:
-    for child in section.children:
-        if isinstance(child, KeyValue) and child.key.upper() == key.upper():
-            return child.value
-    return ""
-
-
-def _primary_value(section: Section) -> str:
-    kind = _kind_of(section)
-    for prefix, primary in _KIND_PRIMARY_KEY:
-        if kind == prefix:
-            value = _kv(section, primary)
-            if value:
-                return value
-    for child in section.children:
-        if isinstance(child, KeyValue) and child.key.upper() not in (
-                "TURN", "SRC"):
-            return child.value
-    return ""
-
-
-def _turn_of(section: Section) -> int:
-    turn = _kv(section, "TURN")
-    if turn:
-        try:
-            return int(turn)
-        except ValueError:
-            pass
-    m = _TURN_IN_SRC_RE.search("\n".join(serialize_section(section)))
-    return int(m.group(1)) if m else -1
-
-
-def _sections(doc: CTXDocument) -> list[Section]:
-    return [e for e in doc.body if isinstance(e, Section)]
 
 
 def ledger_facts(doc: CTXDocument) -> list[dict[str, Any]]:
@@ -589,12 +520,11 @@ def session_why_across(ledger_dir: str = DEFAULT_LEDGER_DIR, key: str = "",
     Stdlib only, deterministic: same ledger → same answer."""
     if not key or not key.strip():
         return {"key": key, "matches": [], "error": "key is required"}
-    from .checkpoint import _journal_session_order
-
-    order = _journal_session_order(ledger_dir)
+    order = journal_session_order(ledger_dir)
     if session:
-        s8 = session.strip()[:8]
-        order = [s for s in order if s.startswith(s8) or s8.startswith(s)]
+        query = session.strip()
+        order = [s for s in order if s == query or s.startswith(query)
+                 or query.startswith(s)]
 
     # No sessions at all is a ledger/config problem, NOT asserted absence:
     # reporting "not in memory" for a wrong --ledger would hide the mistake.
@@ -753,7 +683,7 @@ def session_resume(ledger_dir: str = DEFAULT_LEDGER_DIR,
     Explicit ``session`` returns THAT session's gist; the default
     returns the startup context (project rollup + latest gist).
     """
-    from .checkpoint import read_startup_context
+    from .brief import brief as compose_brief
 
     doc, sid = load_session(ledger_dir, session)
     if session:
@@ -765,7 +695,7 @@ def session_resume(ledger_dir: str = DEFAULT_LEDGER_DIR,
         except OSError:
             pass
     else:
-        gist = read_startup_context(ledger_dir)
+        gist = compose_brief(ledger_dir)
     trio = session_decisions(doc, sid)
     lits = session_literals(doc, sid)
     return {

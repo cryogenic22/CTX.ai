@@ -292,6 +292,46 @@ def test_priority_is_configurable(tmp_path):
     assert custom.dropped["decisions"] == 1
 
 
+def test_dead_ends_keep_a_minimum_share_at_the_floor(tmp_path):
+    """Decisions must not spend the whole budget once it reaches 1500 chars."""
+    rows = []
+    for i in range(12):
+        rows.append(_entry(
+            "assistant",
+            f"Decision: keep policy {i:02d} because " + ("x" * 200),
+            ts=f"2026-10-04T10:{i // 60:02d}:{i % 60:02d}Z",
+        ))
+    rows.append(_entry(
+        "assistant",
+        "Rejected: the first layout collided because " + ("y" * 500),
+        ts="2026-10-04T12:00:00Z",
+    ))
+    rows.append(_entry(
+        "assistant",
+        "Rejected: the second layout collided because " + ("z" * 500),
+        ts="2026-10-04T12:01:00Z",
+    ))
+    ledger = _pack(tmp_path, rows)
+    below = brief_result(ledger, budget=1499, unit="chars")
+    above = brief_result(ledger, budget=1500, unit="chars")
+    wide = brief_result(ledger, budget=12000, unit="chars")
+    for result in (below, above, wide):
+        assert count_budget(result.text, result.unit) <= result.budget
+        for kind in result.live:
+            assert result.shown[kind] + result.dropped[kind] == result.live[kind]
+    assert below.live["dead_ends"] == 2
+    assert below.shown["dead_ends"] == 0
+    assert above.shown["dead_ends"] >= 2
+    assert wide.shown["dead_ends"] >= 2
+    token_floor = count_budget("x" * 1500, "tokens")
+    under_tokens = brief_result(ledger, budget=token_floor - 1, unit="tokens")
+    at_tokens = brief_result(ledger, budget=token_floor, unit="tokens")
+    assert count_budget(at_tokens.text, "tokens") <= token_floor
+    assert at_tokens.shown["dead_ends"] >= min(2, at_tokens.live["dead_ends"])
+    assert under_tokens.shown["dead_ends"] + under_tokens.dropped["dead_ends"] == (
+        under_tokens.live["dead_ends"])
+
+
 def test_default_budget_is_12000_chars(tmp_path):
     ledger = _pack(tmp_path, _decision_rows(8, dead_every=4))
     result = brief_result(ledger)
@@ -399,7 +439,9 @@ def test_ack_round_trip_and_not_banked(tmp_path, capsys):
     ])
     packed = tmp_path / "echo"
     run_checkpoint(str(transcript), str(packed), as_of="2026-10-04")
-    blob = (packed / "session-44444444.ctx").read_text(encoding="utf-8")
+    from ctxpack.agent.ledger import ledger_stem
+    blob = (packed / f"session-{ledger_stem('44444444-d')}.ctx").read_text(
+        encoding="utf-8")
     assert token not in blob
     assert "CTX-Ack:" not in blob
     assert "record the real follow-up" in blob
@@ -512,3 +554,42 @@ def test_startup_hook_uses_the_composer(tmp_path, capsys):
     emitted = json.loads(proc.stdout)["hookSpecificOutput"]["additionalContext"]
     assert "the hook and the brief share one composer" in emitted
     assert emitted.strip() == text.strip()
+
+
+def test_session_start_redaction_cannot_exceed_budget(tmp_path):
+    """`[REDACTED:type]` is measured before the hook budget is final.
+
+    The unredacted brief fits the budget exactly. Replacing a short token
+    with ``[REDACTED:gitlab-token]`` would push that text over the budget
+    if the hook measured first and redacted after. The emitted context
+    stays inside the budget and does not contain the raw token.
+    """
+    secret = "glpat-abcdefghij"
+    ledger = _pack(tmp_path, [
+        _entry("assistant",
+               "Decision: keep the long filler policy because " + ("x" * 240)),
+        _entry("assistant",
+               "Decision: pin the retry helper and keep the plain token slot.",
+               ts="2026-10-04T12:00:00Z"),
+    ])
+    for path in (tmp_path / "ctx").glob("session-*.ctx"):
+        body = path.read_text(encoding="utf-8")
+        assert "plain" in body
+        path.write_text(body.replace("plain", secret, 1), encoding="utf-8")
+    raw = brief(ledger, budget=12000, unit="chars")
+    assert secret in raw
+    budget = count_budget(raw, "chars")
+    (tmp_path / "ctx" / "ctxpack.toml").write_text(
+        f"[brief]\nbudget = {budget}\n", encoding="utf-8")
+    payload = json.dumps({"session_id": "new-session", "cwd": str(tmp_path)})
+    proc = subprocess.run(
+        [sys.executable, "-m", "ctxpack.cli.main", "hook", "session-start",
+         "--out", ledger],
+        input=payload, capture_output=True, text=True, check=False,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert secret not in proc.stdout
+    assert "glpat-" not in proc.stdout
+    emitted = json.loads(proc.stdout)["hookSpecificOutput"]["additionalContext"]
+    assert count_budget(emitted, "chars") <= budget
+    assert "[REDACTED:gitlab-token]" in emitted

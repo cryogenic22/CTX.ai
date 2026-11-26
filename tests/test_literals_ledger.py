@@ -328,7 +328,7 @@ def test_literal_fidelity_flags_lost_ids(tmp_path):
         "Shipped `b1dda66` and bumped v0.5.0."}])), encoding="utf-8")
     out = tmp_path / "ctx"
     run_checkpoint(str(tp), str(out), as_of="2026-07-04")
-    ledger_text = (out / "session-abcd1234.ctx").read_text(encoding="utf-8")
+    ledger_text = (out / "session-abcd1234-session.ctx").read_text(encoding="utf-8")
     corpus = parse_transcript(str(tp)).corpus
 
     full, ext, rec = _literal_fidelity(corpus, ledger_text)

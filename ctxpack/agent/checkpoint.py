@@ -35,6 +35,24 @@ from ..core.packer.conflict import detect_conflicts
 from ..core.packer.entity_resolver import resolve_entities
 from ..core.serializer import serialize
 from .capture_config import CaptureConfig, load_capture_config
+from .ledger import (
+    UnsafeSessionId,
+    atomic_write_text,
+    ctx_path as ledger_ctx_path,
+    gist_path as ledger_gist_path,
+    journal_session_order,
+    ledger_stem,
+    list_session_stems,
+    matching_stems,
+    read_session_document,
+    stem_on_disk,
+    write_stem,
+    _kind_of,
+    _kv,
+    _primary_value,
+    _sections,
+    _turn_of,
+)
 from .live_set import (
     iter_fact_ids,
     live_set_from_records,
@@ -195,13 +213,16 @@ def build_gist(parsed: ParsedTranscript,
     while the render order inside a section stays chronological
     (facts still read in the order they happened).
     """
-    session = parsed.session_id[:8] if parsed.session_id else ""
+    try:
+        session = ledger_stem(parsed.session_id or "")
+    except UnsafeSessionId:
+        session = ""
     live, live_ids = _live_for_entities(
         parsed.corpus.entities, session=session,
         done_milestones=done_milestones, prior_records=prior_records)
     ents = _entities_for_gist(parsed.corpus.entities, live_ids)
     header: list[str] = [
-        f"# Session memory (session {parsed.session_id[:8]}, "
+        f"# Session memory (session {session}, "
         f"{parsed.last_turn} turns)",
         "",
         "Deterministic ledger recovered from the session transcript. "
@@ -498,13 +519,14 @@ def _emit_events(out_dir: str, parsed: ParsedTranscript, corpus,
     ev("retrieval", ledger_reads=parsed.stats.ledger_reads,
        transcript_greps=parsed.stats.transcript_greps)
 
-    with open(events_path, "w", encoding="utf-8", newline="\n") as f:
-        for raw in before:
-            f.write(raw + "\n")
-        for row in rows:
-            f.write(json.dumps(row) + "\n")
-        for raw in after:
-            f.write(raw + "\n")
+    parts: list[str] = []
+    for raw in before:
+        parts.append(raw + "\n")
+    for row in rows:
+        parts.append(json.dumps(row) + "\n")
+    for raw in after:
+        parts.append(raw + "\n")
+    atomic_write_text(events_path, "".join(parts))
     return len(rows)
 
 
@@ -526,7 +548,6 @@ def _literal_fidelity(corpus, ledger_text: str) -> "tuple[float, int, int]":
         return 1.0, 0, 0
     try:
         from ..core.parser import parse
-        from .session_reader import _kind_of, _kv, _sections
         reparsed = parse(ledger_text, level=2)
         recovered = {_kv(s, "VALUE") for s in _sections(reparsed)
                      if _kind_of(s) == "LITERAL"}
@@ -640,35 +661,20 @@ def _ledger_records(out_dir: str, skip_sid: str = "") -> list:
     """Section records from on-disk session ledgers, journal order.
 
     ``skip_sid`` is the session whose in-memory entities are authoritative
-    (its .ctx was just rewritten and must not be counted twice).
+    (its .ctx was just rewritten and must not be counted twice). A ledger
+    that does not parse is reported and skipped; the rest stay readable.
     """
-    from ..core.parser import parse as _parse_ctx
-    from .session_reader import _kind_of, _kv, _primary_value, _sections, _turn_of
-
-    skip = (skip_sid or "")[:8]
-    try:
-        names = sorted(
-            name for name in os.listdir(out_dir)
-            if name.startswith("session-") and name.endswith(".ctx"))
-    except OSError:
-        return []
+    skip = skip_sid or ""
     # Journal order, then any file the journal does not mention.
-    ordered = [s for s in _journal_session_order(out_dir) if s != skip]
-    on_disk = []
-    for name in names:
-        sid = name[len("session-"):-len(".ctx")]
-        if sid != skip and sid not in on_disk:
-            on_disk.append(sid)
-    for sid in on_disk:
-        if sid not in ordered:
+    ordered = [s for s in journal_session_order(out_dir) if s != skip]
+    for sid in list_session_stems(out_dir):
+        if sid != skip and sid not in ordered:
             ordered.append(sid)
     records: list[dict] = []
     for sid in ordered:
-        path = os.path.join(out_dir, f"session-{sid}.ctx")
-        try:
-            with open(path, encoding="utf-8") as handle:
-                doc = _parse_ctx(handle.read(), level=2)
-        except Exception:  # noqa: BLE001 — one bad ledger must not blind the rest
+        path = ledger_ctx_path(out_dir, sid)
+        doc, diag = read_session_document(path)
+        if diag is not None or doc is None:
             continue
         for section in _sections(doc):
             kind = _kind_of(section)
@@ -754,15 +760,19 @@ def run_checkpoint(
     doc = compress(corpus, as_of=as_of)
     ledger_text = serialize(doc)
 
-    sid = parsed.session_id[:8] if parsed.session_id else "unknown"
+    try:
+        ledger_stem(parsed.session_id or "")
+    except UnsafeSessionId as exc:
+        raise UnsafeSessionId(
+            f"refusing to checkpoint {transcript_path}: {exc}") from exc
     os.makedirs(out_dir, exist_ok=True)
+    sid = write_stem(out_dir, parsed.session_id or "")
     # Read BEFORE this run's journal row is appended: turns already
     # covered by an earlier checkpoint of this same session.
     prev_turns = _last_checkpoint_turns(out_dir, parsed.session_id)
 
-    ctx_path = os.path.join(out_dir, f"session-{sid}.ctx")
-    with open(ctx_path, "w", encoding="utf-8", newline="\n") as f:
-        f.write(ledger_text)
+    ctx_path = ledger_ctx_path(out_dir, sid)
+    atomic_write_text(ctx_path, ledger_text)
 
     sha = hashlib.sha256(ledger_text.encode("utf-8")).hexdigest()
 
@@ -804,13 +814,10 @@ def run_checkpoint(
     gist_text = build_gist(
         parsed, ranks=ranks, conflicts=lint_rows, lint_meta=lint_meta,
         prior_records=_ledger_records(out_dir, skip_sid=sid))
-    gist_path = os.path.join(out_dir, f"session-{sid}-gist.md")
-    with open(gist_path, "w", encoding="utf-8", newline="\n") as f:
-        f.write(gist_text)
+    gist_path = ledger_gist_path(out_dir, sid)
+    atomic_write_text(gist_path, gist_text)
     if not archive:
-        with open(os.path.join(out_dir, "latest-gist.md"), "w",
-                  encoding="utf-8", newline="\n") as f:
-            f.write(gist_text)
+        atomic_write_text(os.path.join(out_dir, "latest-gist.md"), gist_text)
 
     gist_bpe = _count_bpe(gist_text)
     gist_sha = hashlib.sha256(gist_text.encode("utf-8")).hexdigest()
@@ -880,8 +887,7 @@ def run_checkpoint(
                                       ranks=ranks)
     project_path = os.path.join(out_dir, "project-gist.md")
     if project_text:
-        with open(project_path, "w", encoding="utf-8", newline="\n") as f:
-            f.write(project_text)
+        atomic_write_text(project_path, project_text)
     elif os.path.exists(project_path):
         os.remove(project_path)  # stale rollup is worse than none
 
@@ -922,10 +928,10 @@ def _claude_project_dir_name(project_dir: str) -> str:
 
 
 def _latest_live_sid(out_dir: str) -> str:
-    """sid[:8] of the last NON-archive journal row — the session whose
-    gist latest-gist.md actually holds. Backfill (archive) rows never
-    shift what counts as latest."""
-    sid = ""
+    """On-disk stem of the last NON-archive journal row — the session
+    whose gist latest-gist.md actually holds. Backfill (archive) rows
+    never shift what counts as latest."""
+    full = ""
     try:
         with open(os.path.join(out_dir, "checkpoints.jsonl"),
                   encoding="utf-8") as f:
@@ -938,10 +944,12 @@ def _latest_live_sid(out_dir: str) -> str:
                 except json.JSONDecodeError:
                     continue
                 if not row.get("archive"):
-                    sid = str(row.get("session", ""))[:8]
+                    full = str(row.get("session", "") or "")
     except OSError:
-        pass
-    return sid
+        return ""
+    if not full:
+        return ""
+    return stem_on_disk(out_dir, full)
 
 
 def find_live_transcript(project_dir: str = ".",
@@ -1002,27 +1010,9 @@ _PROJECT_KINDS = (
 
 
 def _journal_session_order(out_dir: str) -> list[str]:
-    """Session ids (8-char) in first-checkpoint order — the deterministic
+    """On-disk stems in first-checkpoint order — the deterministic
     chronology source (file mtimes are not portable)."""
-    order: list[str] = []
-    seen: set[str] = set()
-    try:
-        with open(os.path.join(out_dir, "checkpoints.jsonl"),
-                  encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    sid = str(json.loads(line).get("session", ""))[:8]
-                except json.JSONDecodeError:
-                    continue
-                if sid and sid not in seen:
-                    seen.add(sid)
-                    order.append(sid)
-    except OSError:
-        pass
-    return order
+    return journal_session_order(out_dir)
 
 
 def build_project_gist(out_dir: str = ".claude/ctx",
@@ -1044,19 +1034,13 @@ def build_project_gist(out_dir: str = ".claude/ctx",
     the earlier copy out of the rollup. ``done_milestones`` drops items
     scoped only to those milestones (see ``live_set_from_records``).
     """
-    from ..core.parser import parse as _parse_ctx
-    from .session_reader import (
-        _kind_of, _kv, _primary_value, _sections, _turn_of,
-    )
-
-    exclude = exclude_session[:8]
-    on_disk = set()
-    try:
-        for name in os.listdir(out_dir):
-            if name.startswith("session-") and name.endswith(".ctx"):
-                on_disk.add(name[len("session-"):-len(".ctx")])
-    except OSError:
+    on_disk_list = list_session_stems(out_dir)
+    on_disk = set(on_disk_list)
+    if not on_disk and not os.path.isdir(out_dir):
         return ""
+    matched = (matching_stems(on_disk_list, exclude_session)
+               if exclude_session else [])
+    exclude = matched[0] if matched else ""
     ordered = [s for s in _journal_session_order(out_dir) if s in on_disk]
     ordered += sorted(on_disk - set(ordered))  # journal-less stragglers
     sids = [s for s in ordered if s != exclude]
@@ -1068,11 +1052,8 @@ def build_project_gist(out_dir: str = ".claude/ctx",
     records: list[dict] = []
     candidates: list[tuple] = []
     for sid in ordered:
-        path = os.path.join(out_dir, f"session-{sid}.ctx")
-        try:
-            with open(path, encoding="utf-8") as f:
-                doc = _parse_ctx(f.read(), level=2)
-        except Exception:  # noqa: BLE001 — one bad ledger must not kill the rollup
+        doc, diag = read_session_document(ledger_ctx_path(out_dir, sid))
+        if diag is not None or doc is None:
             continue
         for section in _sections(doc):
             kind = _kind_of(section)

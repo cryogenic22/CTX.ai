@@ -2044,3 +2044,17 @@ or untracked document state belongs in the release manifest by implication.
 - **SUPPORTED.md:** brief composer is the live `ctxpack.agent.brief` surface.
 - **Tests:** `python3 -m pytest tests/ -q -m "not slow"` → 2028 passed / 37 skipped / 57 deselected.
 - **CI follow-up:** `code (macos-latest py3.10)` failed `test_incremental_faster_than_full_rebuild` (incremental 13ms, full 9ms). Replaced the wall-clock check with a parse-call count: a no-change re-pack must call `parse_python` zero times.
+
+### 2026-11-26 — Cursor agent — P0 hardening (PR B)
+
+- **Branch:** `cursor/p0-hardening-ledger-cycle-cf4f` off `9974fd61ce026f91f85d29e89615068a1ec5bea2`. Not merged.
+- **What changed:** `sys.executable` for hook/MCP launches (`-P` only on 3.11+); atomic ledger/gist/events writes; collision-free session stems with legacy 8-char reads; corrupt ledgers warn instead of vanishing; dead-end minimum share at a 1500-char floor; SessionStart redacts before the final budget check; new leaf `ctxpack/agent/ledger.py` so checkpoint, session_reader, conflict_lint, and brief no longer import each other for path/order/I/O.
+- **Not touched:** `ctxpack/agent/verify.py`, `ctxpack/agent/contract.py`, `ctxpack/agent/jev_adapter.py`, `.github/workflows/ci.yml`.
+- **Tests:** `python3 -m pytest tests/ -q -m "not slow" --ignore=tests/code` → 1716 passed / 38 skipped / 57 deselected. Replay `tests/test_replay_benchmark.py` → 7 passed / 0 skipped. Gates: claims OK (16 warn-only), capability registry OK, token accounting 8 passed, doc-privacy OK, release-manifest OK.
+- **L1 pin:** only `tests/fixtures/replay/synthetic-l1/expected.json`. `rpl00001` FAILED-APPROACH coverage at 4000 and 8000 moved 0.0 → 0.5 (dropped 2 → 1). Default 12k aggregate FAILED-APPROACH coverage stayed 0.6.
+
+### 2026-11-26 — Cursor agent — PR B rebase onto `dc5cb1f`
+
+- **Rebase:** `cursor/p0-hardening-ledger-cycle-cf4f` onto `origin/main` `dc5cb1f`. Both board entries kept.
+- **Follow-up:** mypy `__cause__` narrowed with `isinstance(..., Exception)` (ratchet stays 56); removed the `TODO(v1.0-pr-b)` ruff ignore and the two `cli/main.py` pyflakes findings; `_shell_join` quotes backslashes; sanitized session ids that differ from the raw id get a hash suffix; legacy 8-char reads require ownership.
+- **Checks:** ruff F 0, `scripts/check_mypy_ratchet.py` current=56 baseline=56, `lint-imports` 2 kept, `pytest tests/ -q -m "not slow" --ignore=tests/code` 1730 passed / 37 skipped / 57 deselected, replay 7 passed / 0 skipped, `tests/code` 313 passed. Not merged.

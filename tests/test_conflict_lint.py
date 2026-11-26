@@ -76,7 +76,7 @@ def test_cross_session_constraint_collision_flags(tmp_path):
     assert "$60 full pass" in row["detail"]["phrase"]
     assert row["detail"]["resolved"] is False
 
-    gist = (out / "session-bbbb2222-gist.md").read_text(encoding="utf-8")
+    gist = (out / "session-bbbb2222-session-gist.md").read_text(encoding="utf-8")
     assert "Decision conflicts (UNRESOLVED" in gist
     assert "Supersedes: <fact_id>" in gist
     assert CONSTRAINT_FID in gist
@@ -102,7 +102,7 @@ def test_supersedes_override_resolves(tmp_path):
     assert superseded["fact_id"] == CONSTRAINT_FID
     assert "cost reporting landed" in superseded["detail"]["reason"]
 
-    gist = (out / "session-bbbb2222-gist.md").read_text(encoding="utf-8")
+    gist = (out / "session-bbbb2222-session-gist.md").read_text(encoding="utf-8")
     assert "UNRESOLVED" not in gist
     journal = _journal_tail(out)
     assert journal["lint_conflicts"] == 0
@@ -182,7 +182,7 @@ def test_unrelated_decision_stays_silent(tmp_path):
         "client because the limit is 40 req/min."), str(out),
         as_of="2026-07-06")
     assert not [r for r in _events(out) if r["event"] == "conflict"]
-    gist = (out / "session-bbbb2222-gist.md").read_text(encoding="utf-8")
+    gist = (out / "session-bbbb2222-session-gist.md").read_text(encoding="utf-8")
     assert "UNRESOLVED" not in gist
 
 
@@ -291,7 +291,7 @@ def test_journal_counts_skipped_unreadable_ledgers(tmp_path):
     out = tmp_path / "ctx"
     run_checkpoint(_session_a(tmp_path), str(out), as_of="2026-07-06")
     # corrupt the banked ledger so the NEXT session's lint can't read it
-    (out / "session-aaaa1111.ctx").write_bytes(b"\xff\xfe not utf-8")
+    (out / "session-aaaa1111-session.ctx").write_bytes(b"\xff\xfe not utf-8")
     run_checkpoint(_session_b(tmp_path, DRIFT_DECISION), str(out),
                    as_of="2026-07-06")
     journal = _journal_tail(out)

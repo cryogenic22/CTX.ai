@@ -36,7 +36,23 @@ from typing import Iterable, Optional, Sequence
 
 from ..core.packer.toml_parser import toml_parse
 from ..core.tokens import count_budget, normalize_newlines
+from .ledger import (
+    _kind_of,
+    _kv,
+    _primary_value,
+    _sections,
+    _turn_of,
+    journal_session_order,
+    list_session_stems,
+    read_session_document,
+    ctx_path,
+)
 from .live_set import choice_was, live_set_from_records
+
+# When the budget is at least this many characters (or the token count of
+# that many characters), live dead ends keep a minimum share so decisions
+# cannot spend the whole budget.
+_DEAD_END_FLOOR_CHARS = 1500
 
 DEFAULT_BRIEF_BUDGET = 12000
 DEFAULT_UNIT = "chars"
@@ -119,6 +135,7 @@ class BriefResult:
     dropped: dict[str, int] = field(default_factory=dict)
     live: dict[str, int] = field(default_factory=dict)
     ack_token: str = ""
+    diagnostics: tuple = ()
 
     def to_json(self) -> str:
         """JSON whose ``text`` field is the markdown briefing."""
@@ -208,8 +225,9 @@ def brief_result(
         token = ack_token if ack_token else secrets.token_hex(8)
         if not _ACK_TOKEN_RE.fullmatch(token):
             raise ValueError("ack token must be a single token with no whitespace")
-    items = _collapse(_collect_items(
-        ledger_dir, done_milestones=done_milestones), order)
+    collected, diagnostics = _collect_items(
+        ledger_dir, done_milestones=done_milestones)
+    items = _collapse(collected, order)
     live = _counts(items, order)
     text, shown, dropped = _fit(
         items, live, resolved_budget, resolved_unit, order, ack_token=token)
@@ -221,6 +239,7 @@ def brief_result(
         dropped=dropped,
         live=live,
         ack_token=token,
+        diagnostics=tuple(diagnostics),
     )
 
 
@@ -276,13 +295,12 @@ def _resolve_priority(raw: object) -> tuple[str, ...]:
 
 
 def _session_order(ledger_dir: str) -> list[str]:
-    from .checkpoint import _journal_session_order
-    return _journal_session_order(ledger_dir)
+    return journal_session_order(ledger_dir)
 
 
 def _collect_items(ledger_dir: str, *,
-                   done_milestones: Iterable[str]) -> list[_Item]:
-    records, files = _load_ledger(ledger_dir)
+                   done_milestones: Iterable[str]) -> tuple[list[_Item], list[dict]]:
+    records, files, diagnostics = _load_ledger(ledger_dir)
     order = _session_order(ledger_dir)
     index = {sid: i for i, sid in enumerate(order)}
     for sid in sorted({str(row.get("session") or "") for row in records} - set(index)):
@@ -386,36 +404,20 @@ def _collect_items(ledger_dir: str, *,
             turn=int(row.get("turn") or 0),
             text=path,
         ))
-    return items
+    return items, diagnostics
 
 
-def _load_ledger(ledger_dir: str) -> tuple[list[dict], list[dict]]:
-    from ..core.parser import parse as parse_ctx
-    from .session_reader import (
-        _kind_of,
-        _kv,
-        _primary_value,
-        _sections,
-        _turn_of,
-    )
-
-    try:
-        names = os.listdir(ledger_dir)
-    except OSError:
-        return [], []
-    sids = sorted(
-        name[len("session-"):-len(".ctx")]
-        for name in names
-        if name.startswith("session-") and name.endswith(".ctx")
-    )
+def _load_ledger(ledger_dir: str) -> tuple[list[dict], list[dict], list[dict]]:
+    sids = list_session_stems(ledger_dir)
     records: list[dict] = []
     files: list[dict] = []
+    diagnostics: list[dict] = []
     for sid in sids:
-        path = os.path.join(ledger_dir, f"session-{sid}.ctx")
-        try:
-            with open(path, encoding="utf-8") as handle:
-                doc = parse_ctx(handle.read(), level=2)
-        except Exception:  # noqa: BLE001 — one bad ledger must not kill the brief
+        path = ctx_path(ledger_dir, sid)
+        doc, diag = read_session_document(path)
+        if diag is not None or doc is None:
+            if diag is not None:
+                diagnostics.append(diag)
             continue
         for section in _sections(doc):
             kind = _kind_of(section)
@@ -438,7 +440,7 @@ def _load_ledger(ledger_dir: str) -> tuple[list[dict], list[dict]]:
             records.append(row)
             if kind == "FILE" and text:
                 files.append(row)
-    return records, files
+    return records, files, diagnostics
 
 
 def _plan_items(ledger_dir: str) -> list[_Item]:
@@ -634,6 +636,52 @@ def _render(shown: Sequence[_Item], dropped: dict[str, int], *,
     return normalize_newlines(body)
 
 
+def _dead_end_floor(unit: str) -> int:
+    """Budget at which dead ends keep a minimum share.
+
+    ``chars`` uses 1500. ``tokens`` uses the offline token count of 1500
+    characters, so the two units describe the same floor.
+    """
+    if unit == "tokens":
+        return count_budget("x" * _DEAD_END_FLOOR_CHARS, "tokens")
+    return _DEAD_END_FLOOR_CHARS
+
+
+def _with_dead_end_reserve(items: list[_Item], budget: int, unit: str,
+                           priority: Sequence[str]) -> list[_Item]:
+    """Consider a minimum of live dead ends before decisions spend the rest.
+
+    Conflicts and constraints stay ahead of the reservation. When dead
+    ends already outrank decisions, the list is unchanged. Below the
+    floor, decisions may still use the whole budget.
+    """
+    n_dead = sum(1 for item in items if item.kind == "dead_ends")
+    if n_dead <= 0 or budget < _dead_end_floor(unit):
+        return list(items)
+    try:
+        decision_at = list(priority).index("decisions")
+        dead_at = list(priority).index("dead_ends")
+    except ValueError:
+        return list(items)
+    if dead_at <= decision_at:
+        return list(items)
+    protected = [item for item in items if item.kind == "dead_ends"]
+    protected = protected[:min(2, len(protected))]
+    protected_ids = {id(item) for item in protected}
+    sequence: list[_Item] = []
+    inserted = False
+    for item in items:
+        if item.kind == "decisions" and not inserted:
+            sequence.extend(protected)
+            inserted = True
+        if id(item) in protected_ids:
+            continue
+        sequence.append(item)
+    if not inserted:
+        sequence.extend(protected)
+    return sequence
+
+
 def _fit(items: list[_Item], live: dict[str, int], budget: int, unit: str,
          priority: Sequence[str], *, ack_token: str) -> tuple[str, dict[str, int], dict[str, int]]:
     """Keep whole facts in priority order. A fact that does not fit is dropped.
@@ -642,8 +690,13 @@ def _fit(items: list[_Item], live: dict[str, int], budget: int, unit: str,
     hide a smaller fact behind it. The drop notice is part of the
     measured text. When even the notice does not fit, the result is
     empty — never a cut sentence.
+
+    At or above the dead-end floor, up to two live dead ends (or every
+    live dead end when fewer than two exist) are considered before
+    decisions, so decisions cannot spend the entire remaining budget.
     """
     ack = _ack_block(ack_token) if ack_token else ""
+    items = _with_dead_end_reserve(items, budget, unit, priority)
 
     def assemble(shown: list[_Item]) -> tuple[str, dict[str, int], dict[str, int]]:
         shown_counts = _counts(shown, priority)

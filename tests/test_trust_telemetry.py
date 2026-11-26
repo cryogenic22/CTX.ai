@@ -491,7 +491,7 @@ def test_gist_states_lint_coverage_when_clean(tmp_path):
     out = tmp_path / "ctx"
     run_checkpoint(_transcript(tmp_path, "armed111-0000"), str(out),
                    as_of="2026-07-25")
-    gist = (out / "session-armed111-gist.md").read_text(encoding="utf-8")
+    gist = (out / "session-armed111-0000-gist.md").read_text(encoding="utf-8")
     assert "Decision lint armed:" in gist
     assert "0 unresolved" in gist
     # the retired render claimed "N comparisons (D x C banked
@@ -515,7 +515,7 @@ def test_gist_says_failed_when_lint_crashes(tmp_path, monkeypatch):
     out = tmp_path / "ctx"
     result = run_checkpoint(_transcript(tmp_path, "crash111-0000"), str(out),
                             as_of="2026-07-25")
-    gist = (out / "session-crash111-gist.md").read_text(encoding="utf-8")
+    gist = (out / "session-crash111-0000-gist.md").read_text(encoding="utf-8")
     assert "Decision lint: FAILED" in gist   # never silently reads as clean
     assert result.lint_status == "error"
 

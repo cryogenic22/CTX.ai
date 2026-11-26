@@ -72,18 +72,18 @@ def ledger(tmp_path):
 
 def test_resolve_explicit_and_latest(ledger, tmp_path):
     sid, path = resolve_session(ledger)
-    assert sid == "feedbeef"
-    assert path.endswith("session-feedbeef.ctx")
+    assert sid == "feedbeef-session"
+    assert path.endswith("session-feedbeef-session.ctx")
 
     # A later checkpoint for a different session becomes the new latest
     t2 = _write_transcript(tmp_path, "cafebabe-session", name="s2.jsonl")
     run_checkpoint(t2, ledger, as_of="2026-07-03")
     sid_latest, _ = resolve_session(ledger)
-    assert sid_latest == "cafebabe"
+    assert sid_latest == "cafebabe-session"
 
     # ...but the first session is still addressable explicitly
     sid_old, _ = resolve_session(ledger, "feedbeef-session")
-    assert sid_old == "feedbeef"
+    assert sid_old == "feedbeef-session"
 
 
 def test_resolve_missing_ledger_raises(tmp_path):
@@ -329,7 +329,7 @@ def test_session_literals_bulk_view(tmp_path):
 def test_session_resume_one_call(ledger):
     # P1-3: gist + stakes trio + literals in a single read.
     result = session_resume(ledger)
-    assert result["session"] == "feedbeef"
+    assert result["session"] == "feedbeef-session"
     assert "exponential backoff" in result["gist"]
     assert "didn't work" in result["gist"]
     assert result["counts"]["decisions"] == 1
@@ -342,8 +342,8 @@ def test_session_resume_explicit_session_gets_its_own_gist(ledger, tmp_path):
     t2 = _write_transcript(tmp_path, "cafebabe-session", name="s2.jsonl")
     run_checkpoint(t2, ledger, as_of="2026-07-03")
     result = session_resume(ledger, "feedbeef-session")
-    assert result["session"] == "feedbeef"
-    assert "session feedbeef" in result["gist"], (
+    assert result["session"] == "feedbeef-session"
+    assert "session feedbeef-session" in result["gist"], (
         "explicit session must return THAT session's gist, not the latest")
 
 
