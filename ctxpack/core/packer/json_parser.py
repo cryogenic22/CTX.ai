@@ -57,6 +57,9 @@ def _extract_from_dict(
 ) -> None:
     """Extract entities from a top-level JSON object."""
 
+    # Reassigned across cases; later extractors may return None.
+    entity: IREntity | None
+
     # Case 1: Explicit entity definition (has "entity" or "name" + entity-like fields)
     if "entity" in data:
         entity = _extract_single_entity(data, source)

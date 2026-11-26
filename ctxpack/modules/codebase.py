@@ -124,7 +124,9 @@ def _find_router_prefix(tree: ast.Module) -> str:
             if name == "APIRouter":
                 for kw in node.keywords:
                     if kw.arg == "prefix" and isinstance(kw.value, ast.Constant):
-                        return kw.value.value
+                        prefix = kw.value.value
+                        if isinstance(prefix, str):
+                            return prefix
     return ""
 
 
@@ -1387,7 +1389,7 @@ def _read_model_example(root: str, max_examples: int = 3) -> list[str]:
 
 def _get_top_imports(cmap: CodebaseMap, top_n: int = 10) -> list[tuple[str, int]]:
     """Get the most commonly imported modules across the codebase."""
-    counter: dict[str, int] = collections.Counter()
+    counter: collections.Counter[str] = collections.Counter()
     for m in cmap.modules:
         for imp in m.imports:
             # Normalize: take the top-level package
@@ -1521,7 +1523,7 @@ def _detect_commit_conventions(root: str) -> dict:
 
     # Detect conventional commits pattern: type(scope): message
     conventional_re = re.compile(r'^[0-9a-f]+\s+([\w]+)(?:\(([^)]*)\))?:\s+(.+)')
-    prefix_counter: dict[str, int] = collections.Counter()
+    prefix_counter: collections.Counter[str] = collections.Counter()
     conventional_count = 0
 
     for line in lines:

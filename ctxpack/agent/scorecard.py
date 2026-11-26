@@ -461,8 +461,10 @@ def verify_latest(out_dir: str = "scorecards") -> tuple[bool, list[str]]:
         findings.append("cohort config changed since generation "
                         f"({out_dir}/{COHORT_FILE})")
     cfg = cfg or {}
-    cfg_repos = [p for p in (cfg.get("repos") if isinstance(
-        cfg.get("repos"), list) else []) if isinstance(p, str)]
+    raw_repos = cfg.get("repos")
+    cfg_repos = (
+        [p for p in raw_repos if isinstance(p, str)]
+        if isinstance(raw_repos, list) else [])
     if schema == LEGACY_SCHEMA_V2:
         # Legacy rule for immutable pre-PF-16b artifacts: rows carry
         # machine paths and are verified as written — a frozen artifact
@@ -507,7 +509,8 @@ def verify_latest(out_dir: str = "scorecards") -> tuple[bool, list[str]]:
                 "per-repo inputs cannot be re-derived; unverifiable "
                 "is not fresh")
     known_names = {r.get("repo") for r in rows}
-    ext = cfg.get("external") if isinstance(cfg.get("external"), list) else []
+    raw_external = cfg.get("external")
+    ext = raw_external if isinstance(raw_external, list) else []
     for e in ext:
         name = e.get("name") if isinstance(e, dict) else None
         if str(name) not in known_names:

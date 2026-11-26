@@ -39,7 +39,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 
 class TranscriptFormatError(RuntimeError):
@@ -291,7 +291,8 @@ def load_format_spec(path: str) -> GenericJSONLAdapter:
 
 # ── Detection + entry point ─────────────────────────────────────────
 
-_BUILTIN_ADAPTERS = (ClaudeCodeAdapter(), CodexAdapter())
+_BUILTIN_ADAPTERS: tuple[Union[ClaudeCodeAdapter, CodexAdapter], ...] = (
+    ClaudeCodeAdapter(), CodexAdapter())
 _DETECT_SAMPLE = 100
 
 

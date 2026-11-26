@@ -33,6 +33,9 @@ from ctxpack.core.layers import ContextLayer
 from ctxpack.core.packer.ir import IREntity, IRField, IRSource
 
 PathLike = Union[str, Path]
+# ``ElicitStore.list`` shadows the builtin inside the class body, so
+# method annotations after that method cannot spell ``list[...]``.
+_EntityList = list
 
 
 _INITIAL_CONFIDENCE = 0.7
@@ -197,7 +200,7 @@ class ElicitStore:
 
     # ── To IR ────
 
-    def to_entities(self) -> list[IREntity]:
+    def to_entities(self) -> _EntityList[IREntity]:
         """Render the store as ELICITED IREntity objects.
 
         Each fact becomes one entity with a single ``fact`` field plus

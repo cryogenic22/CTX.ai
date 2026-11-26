@@ -80,7 +80,7 @@ def validate_event(event: dict) -> None:
     """Raise ``jsonschema.ValidationError`` if ``event`` doesn't match
     the schema. Uses ``jsonschema`` (already a dep via the eval
     pipeline)."""
-    import jsonschema  # local import keeps cold start fast
+    import jsonschema  # type: ignore[import-untyped]  # optional; stubs are not a runtime dep
     jsonschema.validate(event, load_schema())
 
 

@@ -378,8 +378,11 @@ def _nl_body(
             key = elem.key
             group: list[KeyValue] = [elem]
             j = i + 1
-            while j < len(elem_list) and isinstance(elem_list[j], KeyValue) and elem_list[j].key == key:
-                group.append(elem_list[j])
+            while j < len(elem_list):
+                nxt = elem_list[j]
+                if not isinstance(nxt, KeyValue) or nxt.key != key:
+                    break
+                group.append(nxt)
                 j += 1
             yield from _nl_kv_group(group)
             i = j

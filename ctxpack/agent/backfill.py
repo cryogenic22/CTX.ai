@@ -41,6 +41,7 @@ from .ledger import (
     legacy_owned_by,
     legacy_stem,
     ledger_stem,
+    matching_stems,
 )
 from .transcript_adapters import TranscriptFormatError
 
@@ -121,6 +122,13 @@ def capture_coverage(project_dir: str = ".",
     except OSError:
         return report  # no transcript dir: nothing to report on
     ref_now = time.time() if now is None else now
+    stems = [name[:-6] for name in names]
+    # Full id, or a unique legacy prefix. An 8-char prefix shared by two
+    # transcripts matches nothing, so one live session cannot mark the other
+    # active (and hide it from the gap report).
+    excluded = (
+        set(matching_stems(stems, exclude_session)) if exclude_session else set()
+    )
     for name in names:
         stem = name[:-6]
         tpath = os.path.join(tdir, name)
@@ -141,8 +149,7 @@ def capture_coverage(project_dir: str = ".",
                 ctx_path = candidate
             else:
                 ctx_path = os.path.join(out_dir, "session-unknown.ctx")
-        if (exclude_session and stem.startswith(exclude_session[:8])) or (
-                ref_now - mtime < active_slack_s):
+        if stem in excluded or (ref_now - mtime < active_slack_s):
             status = "active"
         elif not os.path.exists(ctx_path):
             status = "unpacked"

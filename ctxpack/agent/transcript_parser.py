@@ -58,10 +58,12 @@ _CONSTRAINT_RE = re.compile(
 # The marker is anchored to the sentence START (optionally behind a bullet
 # or bold prefix): dogfood showed the unanchored form fires on backticked
 # *mentions* of the convention and on list-introducer lines that merely
-# end in "verdict:". Matching runs against backtick-stripped prose (see
+# end in "verdict:". A leading ``>`` is a markdown blockquote, quoted
+# material, not a bullet — ``> Decision:`` / ``> Constraint:`` must not
+# mint a live fact. Matching runs against backtick-stripped prose (see
 # _prose_of) so quoted code spans can't trigger any extractor.
 _DECISION_MARKER_RE = re.compile(
-    r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
+    r"(?i)^(?:[-*•]\s*)*(?:\*{1,2}|_{1,2})?"
     r"(?:decision|conclusion|verdict|confirmed)(?:\*{1,2}|_{1,2})?\s*:"
 )
 _MARKER_WORD_RE = re.compile(r"(?i)(decision|conclusion|verdict|confirmed)")
@@ -87,7 +89,7 @@ def decision_marker(text: str) -> str:
 # purpose: no verb heuristics — over-extraction of "rules" from ordinary
 # prose is worse than asking sessions to mark them.
 _CONSTRAINT_MARKER_RE = re.compile(
-    r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
+    r"(?i)^(?:[-*•]\s*)*(?:\*{1,2}|_{1,2})?"
     r"(?:constraint|invariant)(?:\*{1,2}|_{1,2})?\s*:"
 )
 
@@ -100,7 +102,7 @@ _CONSTRAINT_MARKER_RE = re.compile(
 # other markers; a malformed payload is IGNORED (fail-closed: the
 # conflict stays visible rather than being silently waved through).
 _SUPERSEDES_MARKER_RE = re.compile(
-    r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
+    r"(?i)^(?:[-*•]\s*)*(?:\*{1,2}|_{1,2})?"
     r"supersedes(?:\*{1,2}|_{1,2})?\s*:\s*"
 )
 # A fact_id target is a legacy 16-hex id OR an exact 64-hex id. 64 is
@@ -120,7 +122,7 @@ _SUPERSEDES_PAYLOAD_RE = re.compile(
 # (parse_ok=false, verbatim RAW kept) — a lost incident is itself the
 # event this exists to record.
 _INCIDENT_MARKER_RE = re.compile(
-    r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
+    r"(?i)^(?:[-*•]\s*)*(?:\*{1,2}|_{1,2})?"
     r"ctx-incident(?:\*{1,2}|_{1,2})?\s*:\s*"
 )
 _INCIDENT_TYPES = frozenset((
@@ -185,11 +187,11 @@ _TIMESTAMP_NOISE_RE = re.compile(r"\b\d+:\d{2}\b")
 # FAILED-APPROACH with basis marker_stated. The verb pattern below stays
 # the inferred path for unmarked "didn't work" / "failed because" lines.
 _FAILED_MARKER_RE = re.compile(
-    r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
+    r"(?i)^(?:[-*•]\s*)*(?:\*{1,2}|_{1,2})?"
     r"(?:rejected|dead end)(?:\*{1,2}|_{1,2})?\s*:"
 )
 _RETRACT_MARKER_RE = re.compile(
-    r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
+    r"(?i)^(?:[-*•]\s*)*(?:\*{1,2}|_{1,2})?"
     r"retracted(?:\*{1,2}|_{1,2})?\s*:\s*"
 )
 _FAILED_RE = re.compile(
@@ -416,6 +418,8 @@ def _clean_multiline(text: str, limit: int = 100_000) -> str:
     prev_blank = False
     for raw in text.splitlines():
         m = re.match(r"^(\s*)(.*)$", raw)
+        if m is None:  # ^(\s*)(.*)$ matches every line; the guard is for mypy
+            continue
         lead, body = m.group(1), " ".join(m.group(2).split())
         if not body:
             if out and not prev_blank:   # keep one boundary; no leading blank

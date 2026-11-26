@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from ctxpack.agent.contract import TaskContract
 from ctxpack.agent.findings_log import (
     FindingsLogError,
     append_findings,
@@ -386,6 +387,54 @@ def test_contract_proposals_are_concrete_and_not_applied(tmp_path: Path) -> None
         "path": "migrations/001.sql",
     }] * 3)
     assert contract.read_bytes() == before
+
+
+def test_every_suggest_contract_patch_loads() -> None:
+    """Every snippet ``lessons suggest`` emits is a valid task contract.
+
+    Bare filenames are path globs. Alias codes that ``TaskContract``
+    rejects never land in ``blocking_codes``.
+    """
+    cases = [
+        ("FORBIDDEN_PATH_TOUCHED", "README.md",
+         {"forbidden_paths": ["README.md"]}),
+        ("FORBIDDEN_PATH_TOUCHED", "drop.sql",
+         {"forbidden_paths": ["drop.sql"]}),
+        ("OUT_OF_SCOPE_CHANGE", "README.md",
+         {"allowed_paths": ["README.md"]}),
+        ("OUT_OF_SCOPE_CHANGE", "drop.sql",
+         {"allowed_paths": ["drop.sql"]}),
+        ("FORBIDDEN_PATH_TOUCHED", "not a path",
+         {"blocking_codes": ["CONTRACT_RULE_VIOLATION"]}),
+        ("OUT_OF_SCOPE_CHANGE", "not a path",
+         {"blocking_codes": ["CONTRACT_RULE_VIOLATION"]}),
+        ("ONE_WAY_PATH_TOUCHED", "migrations/**",
+         {"one_way_paths": ["migrations/**"]}),
+        ("STALE_IDENTIFIER", "stale_identifier",
+         {"blocking_codes": ["STALE_IDENTIFIER"]}),
+        ("MADE_UP_CODE", "whatever",
+         {"blocking_codes": ["CONTRACT_RULE_VIOLATION"]}),
+    ]
+    records = []
+    for code, pattern, expected in cases:
+        _summary, patch = propose_contract(code, pattern)
+        assert patch == expected
+        TaskContract.from_mapping(patch)
+        codes = patch.get("blocking_codes", [])
+        assert "FORBIDDEN_PATH_TOUCHED" not in codes
+        assert "OUT_OF_SCOPE_CHANGE" not in codes
+        for index in range(3):
+            records.append({
+                "code": code,
+                "pattern": pattern,
+                "head_sha": f"h{index}",
+                "path": "src/a.py",
+            })
+    payload = suggestions_payload(
+        records, min_count=3, findings_log="findings.jsonl")
+    assert len(payload["suggestions"]) == len(cases)
+    for row in payload["suggestions"]:
+        TaskContract.from_mapping(row["contract_patch"])
 
 
 def test_render_formats_and_missing_status() -> None:

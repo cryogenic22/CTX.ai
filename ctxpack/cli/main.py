@@ -20,6 +20,7 @@ import io
 import json
 import os
 import sys
+from typing import Any
 
 from ..core.errors import DiagnosticLevel, ParseError
 from ..core.json_export import to_json
@@ -485,8 +486,10 @@ def _run(argv: list[str]) -> int:
                            help="ratify: quarantine a corrupted journal "
                                 "(preserved verbatim for audit) and start "
                                 "a fresh epoch before recording")
-    p_session.add_argument("--ledger", default=".claude/ctx",
-                           help="Ledger directory (default: .claude/ctx)")
+    p_session.add_argument("--ledger", default=None,
+                           help="Ledger directory (default: .claude/ctx). "
+                                "An explicit path that does not exist is "
+                                "named on stderr")
     p_session.add_argument("--session", dest="session_id", default=None,
                            help="Session id (default: most recent checkpoint; "
                                 "`why` defaults to ALL sessions)")
@@ -511,8 +514,10 @@ def _run(argv: list[str]) -> int:
     p_brief = sub.add_parser(
         "brief",
         help="Budgeted ledger briefing (same text as the SessionStart hook)")
-    p_brief.add_argument("--ledger", default=".claude/ctx",
-                         help="Ledger directory (default: .claude/ctx)")
+    p_brief.add_argument("--ledger", default=None,
+                         help="Ledger directory (default: .claude/ctx). "
+                              "An explicit path that does not exist is "
+                              "named on stderr")
     p_brief.add_argument("--budget", type=int, default=None,
                          help="Hard cap in --unit (default: 12000 chars, "
                               "or [brief] in ctxpack.toml)")
@@ -1021,8 +1026,8 @@ def _cmd_codebase(args: argparse.Namespace) -> int:
             existing = ""
             existing_path = os.path.join(repo_path, "CLAUDE.md")
             if os.path.isfile(existing_path):
-                with open(existing_path, encoding="utf-8") as f:
-                    existing = f.read()
+                with open(existing_path, encoding="utf-8") as handle:
+                    existing = handle.read()
                 print("NOTE: Existing CLAUDE.md found. This generates a SUPPLEMENTARY", file=sys.stderr)
                 print("codebase map, not a replacement. Add '@.claude/codebase-map.md'", file=sys.stderr)
                 print("to your CLAUDE.md to import it.", file=sys.stderr)
@@ -1042,8 +1047,8 @@ def _cmd_codebase(args: argparse.Namespace) -> int:
 
         if args.output:
             os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
-            with open(args.output, "w", encoding="utf-8") as f:
-                f.write(output)
+            with open(args.output, "w", encoding="utf-8") as handle:
+                handle.write(output)
             print(f"Written to {args.output}", file=sys.stderr)
         else:
             print(output)
@@ -1147,10 +1152,13 @@ def _cmd_elicit(args: argparse.Namespace) -> int:
     if args.elicit_command == "confirm":
         store.confirm(name=args.name, expert=args.expert)
         store.save(args.store)
-        f = store.get(args.name)
+        fact = store.get(args.name)
+        if fact is None:
+            print(f"Error: no elicited fact named {args.name}", file=sys.stderr)
+            return 1
         print(
             f"{args.expert} confirmed {args.name}. Confidence is now "
-            f"{f.confidence:.2f}."
+            f"{fact.confidence:.2f}."
         )
         return 0
 
@@ -1159,10 +1167,13 @@ def _cmd_elicit(args: argparse.Namespace) -> int:
             name=args.name, expert=args.expert, reason=args.reason
         )
         store.save(args.store)
-        f = store.get(args.name)
+        fact = store.get(args.name)
+        if fact is None:
+            print(f"Error: no elicited fact named {args.name}", file=sys.stderr)
+            return 1
         print(
             f"{args.expert} challenged {args.name}. Confidence dropped to "
-            f"{f.confidence:.2f}."
+            f"{fact.confidence:.2f}."
         )
         return 0
 
@@ -1365,13 +1376,33 @@ def _cmd_backfill(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def _read_ledger_dir(explicit: "str | None",
+                     *,
+                     default: str = ".claude/ctx") -> str:
+    """Resolve a ledger directory for a read/query command.
+
+    An omitted flag uses ``default`` and stays quiet: a fresh checkout
+    has no ledger yet. An explicit path that is not a directory is
+    named on stderr so the command does not pretend that ledger is empty.
+    Write commands (onboard, hook, checkpoint, backfill) are not callers.
+    """
+    if explicit is None:
+        return default
+    if not os.path.isdir(explicit):
+        print(
+            f"warning: ledger directory does not exist: {explicit}",
+            file=sys.stderr,
+        )
+    return explicit
+
+
 def _cmd_brief(args: argparse.Namespace) -> int:
     """Print the budgeted briefing. md bytes match ``ctxpack.brief``."""
     from ..agent.brief import brief_result
 
     try:
         result = brief_result(
-            args.ledger,
+            _read_ledger_dir(args.ledger),
             budget=args.budget,
             unit=args.unit,
             ack=bool(args.ack),
@@ -1784,6 +1815,8 @@ def _cmd_session_impl(args: argparse.Namespace) -> int:
 
     from ..core.errors import classify_exception
 
+    args.ledger = _read_ledger_dir(args.ledger)
+
     def _read_error(exc) -> int:
         # RF2: read failures carry no ledger bytes to stderr
         print(f"Error: session_read_failed ({classify_exception(exc)})",
@@ -1991,7 +2024,7 @@ def _split_command(command: str) -> "list[str]":
 _HOOK_CMD = _shell_join(_py_module_argv("ctxpack.cli.main", "hook"))
 _CTXPACK_HOOK_MARKERS = ("ctxpack hook", "ctxpack.cli.main hook")
 
-_HOOK_SETTINGS = {
+_HOOK_SETTINGS: dict[str, list[dict[str, Any]]] = {
     "PreCompact": [{"hooks": [{"type": "command",
                                "command": f"{_HOOK_CMD} pre-compact"}]}],
     "SessionStart": [{"matcher": "startup|resume|compact|clear",

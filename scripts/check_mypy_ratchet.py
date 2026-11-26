@@ -26,11 +26,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# Measured 56 product errors with mypy 2.4.1 and mcp 1.30.0
-# (`mcp>=1.0,<2`): 67 raw lines, 11 of them benchmark follow-imports.
-# mcp 2.x stubs add one inputSchema error per tool and are not this line.
-# Must stay <= 83.
-BASELINE = 56
+# Measured 0 product errors with mypy 2.4.1 and mcp 1.x
+# (`mcp>=1.0,<2`). Benchmark follow-imports stay out of the count
+# (11 lines on this tree). mcp 2.x stubs add one inputSchema error per
+# tool and are not this line. The count must stay 0.
+BASELINE = 0
 
 _FOUND = re.compile(r"Found (\d+) error")
 _SUCCESS = "Success: no issues found"

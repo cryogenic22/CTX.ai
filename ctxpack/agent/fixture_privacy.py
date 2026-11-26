@@ -157,22 +157,22 @@ def load_allowlist(path: str):
         raise GateError("allowlist 'entries' must be a list")
     allowed: "dict[tuple[str, str], tuple[int, str]]" = {}
     sha_by_path: "dict[str, str]" = {}
-    for e in entries:
-        if (not isinstance(e, dict)
-                or not isinstance(e.get("path"), str)
-                or not isinstance(e.get("detector"), str)
-                or not isinstance(e.get("count"), int)
+    for entry in entries:
+        if (not isinstance(entry, dict)
+                or not isinstance(entry.get("path"), str)
+                or not isinstance(entry.get("detector"), str)
+                or not isinstance(entry.get("count"), int)
                 or not re.fullmatch(r"[0-9a-f]{64}",
-                                    str(e.get("sha256") or ""))
-                or not str(e.get("why") or "").strip()):
-            raise GateError(f"malformed allowlist entry: {e!r}")
-        key = (e["path"], e["detector"])
+                                    str(entry.get("sha256") or ""))
+                or not str(entry.get("why") or "").strip()):
+            raise GateError(f"malformed allowlist entry: {entry!r}")
+        key = (entry["path"], entry["detector"])
         if key in allowed:
             raise GateError(f"duplicate allowlist entry: {key}")
-        prior = sha_by_path.setdefault(e["path"], e["sha256"])
-        if prior != e["sha256"]:
-            raise GateError(f"conflicting sha256 for {e['path']!r}")
-        allowed[key] = (e["count"], e["sha256"])
+        prior = sha_by_path.setdefault(entry["path"], entry["sha256"])
+        if prior != entry["sha256"]:
+            raise GateError(f"conflicting sha256 for {entry['path']!r}")
+        allowed[key] = (entry["count"], entry["sha256"])
     return allowed
 
 

@@ -154,9 +154,9 @@ jobs:
         run: pip install pytest-cov
       - name: Run full non-slow suite (code / MCP / analytics integrations)
         # Line coverage of ctxpack/ excluding ctxpack/benchmarks/.
-        # Measured 79.99% on the non-slow suite (2026-11-26). The floor
-        # is 76 so the percentage can only fall to that line.
-        run: python -m pytest tests/ -q -m "not slow" --cov=ctxpack --cov-report=term --cov-fail-under=76
+        # Measured 88.60% on the non-slow suite (2026-11-26, Python 3.12).
+        # The floor is 85 so the percentage can only fall to that line.
+        run: python -m pytest tests/ -q -m "not slow" --cov=ctxpack --cov-report=term --cov-fail-under=85
 
   # ── gates: the non-suite guards the deterministic lane depends on, plus
   #    the tokenizer calibration re-verified against the live encoding

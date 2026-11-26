@@ -21,6 +21,8 @@ import sys
 import threading
 from typing import Any, Iterable, Mapping, Sequence
 
+from .contract import FINDING_CODES
+
 SCHEMA_VERSION = 1
 EVIDENCE_CHARS = 240
 PATH_CHARS = 240
@@ -608,18 +610,40 @@ def _bare_glob(pattern: str) -> str:
 
 
 def _is_path_pattern(pattern: str) -> bool:
-    if not pattern or " " in pattern:
+    """True for a glob, a dotted relative path, or a bare filename.
+
+    ``README.md`` and ``drop.sql`` have no slash and no star, but they
+    are path globs: ``_glob_match`` compares a slash-free pattern to the
+    final path segment. A phrase with a space is not a path.
+    """
+    if not pattern or " " in pattern or "\x00" in pattern:
         return False
-    return "/" in pattern or "*" in pattern or pattern.startswith(".")
+    if "/" in pattern or "*" in pattern or pattern.startswith("."):
+        return True
+    return _FILENAME.fullmatch(pattern) is not None
+
+
+def _canonical_blocking_code(code: str) -> str:
+    """A code ``TaskContract.from_mapping`` accepts.
+
+    Alias codes such as ``FORBIDDEN_PATH_TOUCHED`` and
+    ``OUT_OF_SCOPE_CHANGE`` are findings-log labels, not contract
+    blocking codes. When they do not map to a path field they become
+    ``CONTRACT_RULE_VIOLATION``.
+    """
+    if code in FINDING_CODES:
+        return code
+    return "CONTRACT_RULE_VIOLATION"
 
 
 def _fallback(code: str, pattern: str) -> tuple[str, dict[str, Any]]:
     shown = pattern or code
+    canonical = _canonical_blocking_code(code)
     summary = (
-        f"Add {code} to blocking_codes in the task contract. "
+        f"Add {canonical} to blocking_codes in the task contract. "
         f"Recurring pattern: {shown}."
     )
-    return summary, {"blocking_codes": [code]}
+    return summary, {"blocking_codes": [canonical]}
 
 
 def _normalize_rel(value: str) -> str:

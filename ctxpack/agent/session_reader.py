@@ -595,7 +595,7 @@ def _ratification_journal_block(journal) -> "dict[str, Any]":
 
 
 def _annotate_authority(matches: "list[dict[str, Any]]",
-                        ledger_dir: str) -> "dict[str, Any]":
+                        ledger_dir: Optional[str]) -> "dict[str, Any]":
     """Stamp each match with its authority AXES (PF-11 v2.1).
 
     Extraction basis is not authority (an assistant emits ``Decision:``
@@ -618,10 +618,14 @@ def _annotate_authority(matches: "list[dict[str, Any]]",
     # No ledger_dir (doc-only callers): the authority axis still stamps
     # from the matches' own SOURCE-ROLE fields; the ratification axis
     # reads as an absent journal — a real zero, not degradation.
-    journal = (read_ratifications(ledger_dir) if ledger_dir else
-               {"state": {}, "malformed_rows": 0, "degraded": False,
-                "quarantined": 0})
-    state = journal["state"]
+    if ledger_dir:
+        journal = read_ratifications(ledger_dir)
+        raw_state = journal.get("state", {})
+    else:
+        journal = {"state": {}, "malformed_rows": 0, "degraded": False,
+                   "quarantined": 0}
+        raw_state = {}
+    state: dict[str, str] = raw_state if isinstance(raw_state, dict) else {}
     for m in matches:
         fields = {str(f.get("key", "")).upper(): str(f.get("value", ""))
                   for f in m.get("fields") or []}
