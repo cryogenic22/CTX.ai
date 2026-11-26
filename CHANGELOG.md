@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- `ctxpack verify` task contracts accept `require_verifier_evidence`, `verifier_command`, and `one_way_paths`. A missing or non-passing verifier attestation emits `VERIFIER_EVIDENCE_MISSING` (severity error). A merge-base diff that touches `one_way_paths` emits `ONE_WAY_PATH_TOUCHED` (severity error) and blocks even in report-only mode unless the PR body has `one-way-ack:` and a matching `verified-sha:`. `ctxpack onboard` appends an idempotent attestation block to `.github/pull_request_template.md`.
+
 ## [1.0.0] - 2026-11-26
 
 ### Added

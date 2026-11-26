@@ -343,13 +343,21 @@ def _run(argv: list[str]) -> int:
     p_onboard = sub.add_parser(
         "onboard",
         help="Wire session memory into a repo: hooks, MCP server, "
-             "CLAUDE.md conventions, ledger dir (idempotent)")
+             "CLAUDE.md conventions, PR attestation template, ledger dir "
+             "(idempotent)")
     p_onboard.add_argument("--project-dir", default=".",
                            help="Repo root (default: current directory)")
     p_onboard.add_argument("--check", action="store_true",
                            help="Read-only: verify hooks + MCP resolve to ONE "
                                 "shadow-proof ctxpack and the CLAUDE.md block "
                                 "is current; exit 1 (fail-loud) on any mismatch")
+    p_onboard.add_argument(
+        "--pr-template",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Create or append the CTX attestation block in "
+             ".github/pull_request_template.md (default: on). "
+             "Re-runs do not duplicate the block or replace other text.")
 
     # identity — print the running ctxpack's version + package root. This is
     # the probe target `onboard --check` launches through each stored hook/MCP
@@ -521,7 +529,8 @@ def _run(argv: list[str]) -> int:
     p_verify = sub.add_parser(
         "verify",
         help="Check a commit range against the ledger and an optional "
-             "task contract (report-only unless a finding code is blocking)")
+             "task contract (report-only unless a finding code is blocking; "
+             "ONE_WAY_PATH_TOUCHED blocks unless the PR acknowledges it)")
     p_verify.add_argument("--range", required=True, dest="range",
                           help="Commit range A..B or A...B "
                                "(file diff uses the merge base)")
@@ -2065,6 +2074,19 @@ _CLAUDE_MD_VERSION = f"v6.L{LESSONS_VERSION}"
 _CLAUDE_MD_MARKER = f"{_CLAUDE_MD_MARKER_PREFIX}{_CLAUDE_MD_VERSION} -->"
 _CLAUDE_MD_END = "<!-- /ctxpack:session-memory -->"
 
+# Compact attestation block for `.github/pull_request_template.md`.
+# Re-onboard finds the markers and leaves the file alone, including any
+# hand-edited text inside the block.
+_PR_TEMPLATE_REL = os.path.join(".github", "pull_request_template.md")
+_PR_ATTESTATION_START = "<!-- ctxpack:attestation:start -->"
+_PR_ATTESTATION_END = "<!-- ctxpack:attestation:end -->"
+_PR_ATTESTATION_BLOCK = (
+    "<!-- ctxpack:attestation:start -->\n"
+    "verified-sha: <7+ char head sha>\n"
+    "verifier: <command> | pass | <head sha>\n"
+    "<!-- ctxpack:attestation:end -->\n"
+)
+
 _CLAUDE_MD_BLOCK = f"""
 {_CLAUDE_MD_MARKER}
 ## Session memory (ctxpack ledger)
@@ -2424,9 +2446,48 @@ def _onboard_check(project: str, *, probe=None) -> int:
     return 0
 
 
+def _install_pr_template(project: str) -> "str | None":
+    """Create or append the attestation block. ``None`` if the file is unreadable.
+
+    Existing template text is kept. A second run sees the start and end
+    markers and does not write. The write itself is atomic.
+    """
+    from ..agent.ledger import atomic_write_text
+
+    path = os.path.join(project, _PR_TEMPLATE_REL)
+    existing = ""
+    if os.path.exists(path):
+        try:
+            with open(path, encoding="utf-8", newline="") as handle:
+                existing = handle.read()
+        except (OSError, UnicodeError):
+            return None
+    start = existing.find(_PR_ATTESTATION_START)
+    end = existing.find(_PR_ATTESTATION_END)
+    if start != -1 and end > start:
+        return (f"pr template -> {path} (attestation block already present)")
+    if start != -1:
+        return (f"pr template -> {path} (attestation block has no end "
+                "marker — update it manually)")
+    if existing:
+        prefix = existing
+        if not prefix.endswith("\n"):
+            prefix += "\n"
+        if not prefix.endswith("\n\n"):
+            prefix += "\n"
+        updated = prefix + _PR_ATTESTATION_BLOCK
+        action = "attestation block appended"
+    else:
+        updated = _PR_ATTESTATION_BLOCK
+        action = "created"
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    atomic_write_text(path, updated)
+    return f"pr template -> {path} ({action})"
+
+
 def _cmd_onboard(args: argparse.Namespace) -> int:
-    """Set up session memory in a repo: hooks + MCP + CLAUDE.md + ledger
-    dir. Idempotent — safe to re-run after upgrades."""
+    """Set up session memory in a repo: hooks + MCP + CLAUDE.md + PR
+    template + ledger dir. Idempotent — safe to re-run after upgrades."""
     import json as _json
 
     project = os.path.abspath(args.project_dir)
@@ -2502,7 +2563,16 @@ def _cmd_onboard(args: argparse.Namespace) -> int:
             f.write(_CLAUDE_MD_BLOCK)
         done.append(f"claude.md   -> {claude_md} (conventions appended)")
 
-    # 4. Ledger dir
+    # 4. PR template attestation block — marker-guarded, append-only
+    if getattr(args, "pr_template", True):
+        template_status = _install_pr_template(project)
+        if template_status is None:
+            print("Refusing to overwrite unreadable "
+                  ".github/pull_request_template.md", file=sys.stderr)
+            return 1
+        done.append(template_status)
+
+    # 5. Ledger dir
     ledger = os.path.join(project, ".claude", "ctx")
     os.makedirs(ledger, exist_ok=True)
     done.append(f"ledger dir  -> {ledger}")

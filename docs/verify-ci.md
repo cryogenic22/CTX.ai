@@ -35,6 +35,57 @@ block = ["UNRECORDED_MARKER", "CONTRACT_RULE_VIOLATION"]
 ```
 
 A task contract (`--contract path.json` or `.toml`) adds path, version
-pin, vocabulary, flag, attestation, and test-evidence checks. See
-`ctxpack.agent.contract.TaskContract`. The optional `ctxpack[jev]`
-adapter is advisory only and is not part of this exit code.
+pin, vocabulary, flag, attestation, test-evidence, verifier-evidence,
+and one-way-path checks. See `ctxpack.agent.contract.TaskContract`.
+The optional `ctxpack[jev]` adapter is advisory only and is not part
+of this exit code.
+
+## Verifier evidence
+
+`require_verifier_evidence = true` asks the PR body for an unfenced
+attestation. The label is case-insensitive. A passing status is
+`pass`, `ok`, `passed`, or `green`. Accepted forms:
+
+```text
+verifier: <command> | pass | <sha>
+verifier: <command> pass @ <sha>
+verifier: <command> pass (<sha>)
+verifier: pass <sha>
+verifier-cmd: <command>
+verifier-result: pass
+```
+
+A SHA is optional. When one is present it must be at least 7 hex
+characters and a prefix of the head commit. When `verifier_command`
+is set, that command or label must appear on the attestation. Lines
+that still contain `<` or `>` are template placeholders and are not
+attestations. A miss emits `VERIFIER_EVIDENCE_MISSING` with severity
+`error`. The code blocks only when it is in the blocking list.
+Omitting the PR body fails closed (the finding is `missing`).
+
+## One-way paths
+
+`one_way_paths` is a list of globs for irreversible surfaces
+(`migrations/**`, `schema/**`, `**/drop_*.sql`). `ctxpack verify`
+compares them to the merge-base diff. A match emits
+`ONE_WAY_PATH_TOUCHED` with severity `error`.
+
+That code blocks even in report-only mode (an empty blocking list, or
+a list that names other codes). It stops blocking only when the PR
+body has both an unfenced `one-way-ack: <reason>` line and a
+`verified-sha:` of at least 7 hex characters that prefixes head. The
+finding stays in the report; the acknowledgement removes the block.
+
+Globs strip one leading `./` and nothing else. `.github/**` matches
+`.github/workflows/ci.yml` and does not match `github/x.yml`.
+
+`ctxpack onboard` creates or appends this block to
+`.github/pull_request_template.md`. A re-run sees the markers and
+does not duplicate them or replace other template text:
+
+```markdown
+<!-- ctxpack:attestation:start -->
+verified-sha: <7+ char head sha>
+verifier: <command> | pass | <head sha>
+<!-- ctxpack:attestation:end -->
+```
