@@ -1,6 +1,7 @@
 # Calibration fixtures are byte-frozen: git must never rewrite line endings
 # (sha256 + cl100k counts are committed against exact bytes; Q2-4)
 tests/fixtures/token_calibration/* -text
+tests/fixtures/replay/** text eol=lf
 
 # Hash-bound gate surfaces (Codex Finding 3 — byte portability). The claims
 # gate (docs/claims-ledger.md sha256 refs) and the PF-16 privacy gate

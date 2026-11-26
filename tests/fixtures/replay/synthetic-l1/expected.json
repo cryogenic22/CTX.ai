@@ -1,0 +1,238 @@
+{
+  "as_of": "2026-10-25",
+  "determinism": {
+    "first_sha256": "ccb6ca8602cbc8a24ad17621b2a1a22d7f1bb7b5387e1e67d163b999c78816bd",
+    "identical_bytes": true,
+    "second_sha256": "ccb6ca8602cbc8a24ad17621b2a1a22d7f1bb7b5387e1e67d163b999c78816bd",
+    "seeds": [
+      "11",
+      "97"
+    ]
+  },
+  "fixture": "synthetic-l1",
+  "schema_version": "replay/v1",
+  "sessions": [
+    {
+      "briefing": {
+        "budgets": {
+          "14000": {
+            "status": "unsupported"
+          },
+          "2000": {
+            "status": "unsupported"
+          },
+          "4000": {
+            "status": "unsupported"
+          },
+          "8000": {
+            "status": "unsupported"
+          }
+        },
+        "chars": 8092,
+        "coverage_by_kind": {
+          "CONSTRAINT": 1.0,
+          "DECISION": 0.0,
+          "FAILED-APPROACH": 0.0
+        },
+        "dropped_by_kind": {
+          "CONSTRAINT": 0,
+          "DECISION": 1,
+          "FAILED-APPROACH": 2
+        },
+        "drops_disclosed": false,
+        "sha256": "fd7b710917bdb4346aadd042f40b64faaf19fbc4e6f40a7820cc8bcb01913b58"
+      },
+      "capture": {
+        "found": 4,
+        "total": 5
+      },
+      "commit_capture": {
+        "status": "unsupported"
+      },
+      "session": "rpl00001"
+    },
+    {
+      "briefing": {
+        "budgets": {
+          "14000": {
+            "status": "unsupported"
+          },
+          "2000": {
+            "status": "unsupported"
+          },
+          "4000": {
+            "status": "unsupported"
+          },
+          "8000": {
+            "status": "unsupported"
+          }
+        },
+        "chars": 11128,
+        "coverage_by_kind": {
+          "DECISION": 1.0,
+          "FAILED-APPROACH": 1.0
+        },
+        "dropped_by_kind": {
+          "DECISION": 0,
+          "FAILED-APPROACH": 0
+        },
+        "drops_disclosed": false,
+        "sha256": "0dd2286ab10a3e9ea961e5adb96e422291daed271439d1988ddea01023dad285"
+      },
+      "capture": {
+        "found": 3,
+        "total": 4
+      },
+      "commit_capture": {
+        "status": "unsupported"
+      },
+      "session": "rpl00002"
+    },
+    {
+      "briefing": {
+        "budgets": {
+          "14000": {
+            "status": "unsupported"
+          },
+          "2000": {
+            "status": "unsupported"
+          },
+          "4000": {
+            "status": "unsupported"
+          },
+          "8000": {
+            "status": "unsupported"
+          }
+        },
+        "chars": 10199,
+        "coverage_by_kind": {},
+        "dropped_by_kind": {},
+        "drops_disclosed": false,
+        "sha256": "b132bc9bbfa84f4ea5ea2492011e287f4758e036cb89d8139b0a3d0b74b480fb"
+      },
+      "capture": {
+        "found": 0,
+        "total": 1
+      },
+      "commit_capture": {
+        "status": "unsupported"
+      },
+      "session": "rpl00003"
+    },
+    {
+      "briefing": {
+        "budgets": {
+          "14000": {
+            "status": "unsupported"
+          },
+          "2000": {
+            "status": "unsupported"
+          },
+          "4000": {
+            "status": "unsupported"
+          },
+          "8000": {
+            "status": "unsupported"
+          }
+        },
+        "chars": 6451,
+        "coverage_by_kind": {},
+        "dropped_by_kind": {},
+        "drops_disclosed": false,
+        "sha256": "fda52c36d7dd058791a363d47b3114bfef8fbc54db60f185472e9e67d6708dce"
+      },
+      "capture": {
+        "found": 0,
+        "total": 0
+      },
+      "commit_capture": {
+        "status": "unsupported"
+      },
+      "session": "rpl00004"
+    }
+  ],
+  "tokenizer": {
+    "encoding": "cl100k_base",
+    "library": "tiktoken"
+  },
+  "totals": {
+    "briefing": {
+      "budgets": {
+        "14000": {
+          "status": "unsupported"
+        },
+        "2000": {
+          "status": "unsupported"
+        },
+        "4000": {
+          "status": "unsupported"
+        },
+        "8000": {
+          "status": "unsupported"
+        }
+      },
+      "coverage_by_kind": {
+        "CONSTRAINT": 1.0,
+        "DECISION": 0.6667,
+        "FAILED-APPROACH": 0.3333
+      },
+      "dropped_by_kind": {
+        "CONSTRAINT": 0,
+        "DECISION": 1,
+        "FAILED-APPROACH": 2
+      },
+      "drops_disclosed": false
+    },
+    "capture": {
+      "found": 7,
+      "missing_label_ids": [
+        "l1-commit-only",
+        "l1-rejected-plain-alert-matrix",
+        "l1-rejected-plain-ops-notes"
+      ],
+      "recall": 0.7,
+      "split_by_source": {
+        "commit": {
+          "found": 0,
+          "recall": 0.0,
+          "total": 1
+        },
+        "transcript": {
+          "found": 7,
+          "recall": 0.7778,
+          "total": 9
+        }
+      },
+      "total": 10
+    },
+    "contamination_facts": {
+      "by_kind": {
+        "harness": {
+          "count": 3
+        },
+        "probe": {
+          "count": 3
+        }
+      },
+      "count": 6
+    },
+    "supersession": {
+      "checks": [
+        {
+          "last_session_checked": "rpl00004",
+          "new": "l1-decision-new",
+          "old": "l1-decision-old",
+          "passed": false,
+          "stale_sessions": [
+            "rpl00002"
+          ],
+          "start_session": "rpl00002"
+        }
+      ],
+      "correctness": 0.0,
+      "passed": 0,
+      "stale_items_present": 1,
+      "total": 1
+    }
+  }
+}

@@ -53,6 +53,7 @@ a function), so importing the product never executes non-product code.
 | `ctxpack/cli/` | core | — | `ctxpack` CLI (note: `dream`/`elicit`/`codebase` subcommands drive *experimental* modules) |
 | `ctxpack/integrations/` | core | — | MCP server (20 tools) |
 | `ctxpack/benchmarks/` | eval | — | eval framework, agentic NIAH/graph generators, CompactBench, baselines, metrics |
+| `ctxpack/benchmarks/replay.py` | eval | — | CTX Legions L1 offline deterministic replay benchmark (capture/supersession/briefing acceptance harness) |
 | `ctxpack/modules/` | experimental | — | opt-in library modules (grounding, keywords, analytics, catalog queries); no production callers today |
 | `ctxpack/modules/guard.py` | legacy-deprecation-candidate | ContextGuard | phrase/regex heuristic; not a hallucination detector; never market as one (directive do-not-do list) |
 | `ctxpack/modules/dream.py` | experimental | — | consolidation prototype; the ratified path is the deterministic dream-fold (`docs/consolidation-dream-fold-v0.md`), gated on real telemetry — this module is design evidence only |

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Offline deterministic replay benchmark (`python -m ctxpack.benchmarks.replay`) with synthetic fixture + pinned baseline report for CTX Legions L1 acceptance testing.
+
 ## [0.5.0] - 2026-03-16
 
 ### Added
