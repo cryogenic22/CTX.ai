@@ -131,11 +131,14 @@ class CheckpointResult:
 
 
 def _count_bpe(text: str) -> int:
-    try:
-        from ..benchmarks.metrics.cost import count_bpe_tokens
-        return count_bpe_tokens(text, model="claude")
-    except Exception:
-        return max(1, len(text) // 4)
+    """Offline token estimate for stored-gist trimming.
+
+    One counter on every machine: ``count_budget(..., "tokens")``.
+    Optional tiktoken is never imported here, and a missing extra is
+    not a different budget.
+    """
+    from ..core.tokens import count_budget
+    return count_budget(text, "tokens")
 
 
 # R1 (remediation of C1 Finding 1): the injected gist renders WHOLE facts
@@ -1170,41 +1173,29 @@ def build_project_gist(out_dir: str = ".claude/ctx",
     return text_out
 
 
-def build_brief(out_dir: str = ".claude/ctx", *, done_milestones=()) -> str:
-    """The brief handed to a new session. Same live set as both gists.
-
-    With no done milestones this is the stored project rollup plus the
-    latest session gist. With milestones, the rollup is rebuilt so items
-    scoped only to those milestones drop.
-    """
-    return read_startup_context(out_dir, done_milestones=done_milestones)
+def build_brief(out_dir: str = ".claude/ctx", *, done_milestones=(),
+                budget: "Optional[int]" = None,
+                unit: "Optional[str]" = None) -> str:
+    """The brief handed to a new session. Same composer as the hook."""
+    return read_startup_context(
+        out_dir, done_milestones=done_milestones, budget=budget, unit=unit)
 
 
 def read_startup_context(out_dir: str = ".claude/ctx", *,
-                         done_milestones=()) -> str:
-    """What SessionStart injects: project rollup (if any) + last session's
-    gist. Either part may be empty; both empty → ''.
+                         done_milestones=(),
+                         budget: "Optional[int]" = None,
+                         unit: "Optional[str]" = None) -> str:
+    """What SessionStart injects: the budgeted brief for this ledger.
 
-    ``done_milestones`` rebuilds the rollup from the ledger through the
-    live set (the stored gist was written before those milestones were
-    marked done). The latest session gist file is omitted in that mode
-    so a stale line in it cannot re-enter the brief.
+    One composer (:func:`ctxpack.agent.brief.brief`) serves the hook,
+    ``ctxpack brief``, the Python API, and the MCP tool. Stored gist
+    files remain the checkpoint artifacts; they are not a second
+    briefing path. ``done_milestones`` drops facts scoped only to those
+    milestones. Empty ledger → ''.
     """
-    if done_milestones:
-        return build_project_gist(
-            out_dir, exclude_session="",
-            done_milestones=done_milestones).strip()
-    project = ""
-    try:
-        with open(os.path.join(out_dir, "project-gist.md"),
-                  encoding="utf-8") as f:
-            project = f.read().strip()
-    except OSError:
-        pass
-    latest = read_latest_gist(out_dir).strip()
-    if project and latest:
-        return f"{project}\n\n---\n\n{latest}"
-    return project or latest
+    from .brief import brief
+    return brief(
+        out_dir, budget=budget, unit=unit, done_milestones=done_milestones)
 
 
 # ── Stop-hook debounce ──

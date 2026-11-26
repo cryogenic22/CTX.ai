@@ -51,3 +51,27 @@ def estimate_tokens(text: str, kind: str = "prose") -> int:
     if not text:
         return 0
     return max(1, round(len(text) / divisor))
+
+
+def normalize_newlines(text: str) -> str:
+    """Fold CR/LF and bare CR to ``\\n``. Same bytes in, same bytes out."""
+    return (text or "").replace("\r\n", "\n").replace("\r", "\n")
+
+
+def count_budget(text: str, unit: str = "chars") -> int:
+    """Count ``text`` for a briefing budget. No tokenizer, no network.
+
+    ``chars`` is ``len`` after :func:`normalize_newlines`. ``tokens`` is
+    ``0`` for an empty string and ``max(1, (len + 3) // 4)`` otherwise,
+    on that same normalized string. The two units never consult
+    tiktoken or any other optional extra.
+    """
+    normalized = normalize_newlines(text)
+    if unit == "chars":
+        return len(normalized)
+    if unit == "tokens":
+        if not normalized:
+            return 0
+        return max(1, (len(normalized) + 3) // 4)
+    raise ValueError(
+        f"unknown budget unit {unit!r}; expected 'chars' or 'tokens'")

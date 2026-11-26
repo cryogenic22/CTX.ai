@@ -1,9 +1,9 @@
 {
   "as_of": "2026-10-25",
   "determinism": {
-    "first_sha256": "f9d371d900f30cb3a791004d633904abd135e8df660f0e735c7005265b09ad95",
+    "first_sha256": "1afe4cfbbc2b0cf13d2567f1960ea053cce6d6ea0003859a799b20ab56a9451a",
     "identical_bytes": true,
-    "second_sha256": "f9d371d900f30cb3a791004d633904abd135e8df660f0e735c7005265b09ad95",
+    "second_sha256": "1afe4cfbbc2b0cf13d2567f1960ea053cce6d6ea0003859a799b20ab56a9451a",
     "seeds": [
       "11",
       "97"
@@ -16,31 +16,83 @@
       "briefing": {
         "budgets": {
           "14000": {
-            "status": "unsupported"
+            "chars": 8837,
+            "coverage_by_kind": {
+              "CONSTRAINT": 1.0,
+              "DECISION": 1.0,
+              "FAILED-APPROACH": 1.0
+            },
+            "dropped_by_kind": {
+              "CONSTRAINT": 0,
+              "DECISION": 0,
+              "FAILED-APPROACH": 0
+            },
+            "drops_disclosed": false,
+            "sha256": "0261342a03adc3a7a51d9b8a2da1ee3eb064e8ed837a268e4e2216a7ed489a2e",
+            "status": "ok"
           },
           "2000": {
-            "status": "unsupported"
+            "chars": 1981,
+            "coverage_by_kind": {
+              "CONSTRAINT": 1.0,
+              "DECISION": 0.0,
+              "FAILED-APPROACH": 0.0
+            },
+            "dropped_by_kind": {
+              "CONSTRAINT": 0,
+              "DECISION": 1,
+              "FAILED-APPROACH": 2
+            },
+            "drops_disclosed": false,
+            "sha256": "24880a3b4ad93ef2ca61c2313b5bf37b0888c9910ee7808ee18200ffc97dfa94",
+            "status": "ok"
           },
           "4000": {
-            "status": "unsupported"
+            "chars": 3964,
+            "coverage_by_kind": {
+              "CONSTRAINT": 1.0,
+              "DECISION": 0.0,
+              "FAILED-APPROACH": 0.0
+            },
+            "dropped_by_kind": {
+              "CONSTRAINT": 0,
+              "DECISION": 1,
+              "FAILED-APPROACH": 2
+            },
+            "drops_disclosed": false,
+            "sha256": "2d13626d8f1ea7e626cf59435c9ce86ecccc96bb28394b5ec8b050cbeb548e9f",
+            "status": "ok"
           },
           "8000": {
-            "status": "unsupported"
+            "chars": 7913,
+            "coverage_by_kind": {
+              "CONSTRAINT": 1.0,
+              "DECISION": 1.0,
+              "FAILED-APPROACH": 0.0
+            },
+            "dropped_by_kind": {
+              "CONSTRAINT": 0,
+              "DECISION": 0,
+              "FAILED-APPROACH": 2
+            },
+            "drops_disclosed": false,
+            "sha256": "d75f17723151182b6778322ddf56dca3d2a88375e610d341a3984bd041dc61f2",
+            "status": "ok"
           }
         },
-        "chars": 8092,
+        "chars": 8837,
         "coverage_by_kind": {
           "CONSTRAINT": 1.0,
-          "DECISION": 0.0,
-          "FAILED-APPROACH": 0.0
+          "DECISION": 1.0,
+          "FAILED-APPROACH": 1.0
         },
         "dropped_by_kind": {
           "CONSTRAINT": 0,
-          "DECISION": 1,
-          "FAILED-APPROACH": 2
+          "DECISION": 0,
+          "FAILED-APPROACH": 0
         },
         "drops_disclosed": false,
-        "sha256": "fd7b710917bdb4346aadd042f40b64faaf19fbc4e6f40a7820cc8bcb01913b58"
+        "sha256": "0261342a03adc3a7a51d9b8a2da1ee3eb064e8ed837a268e4e2216a7ed489a2e"
       },
       "capture": {
         "found": 4,
@@ -55,29 +107,73 @@
       "briefing": {
         "budgets": {
           "14000": {
-            "status": "unsupported"
+            "chars": 12981,
+            "coverage_by_kind": {
+              "DECISION": 0.5,
+              "FAILED-APPROACH": 1.0
+            },
+            "dropped_by_kind": {
+              "DECISION": 1,
+              "FAILED-APPROACH": 0
+            },
+            "drops_disclosed": false,
+            "sha256": "b3ba987fc4104177595e6aeff6a6440e8796e39ce7b155eb9a75147e6821a7ab",
+            "status": "ok"
           },
           "2000": {
-            "status": "unsupported"
+            "chars": 1991,
+            "coverage_by_kind": {
+              "DECISION": 0.5,
+              "FAILED-APPROACH": 0.0
+            },
+            "dropped_by_kind": {
+              "DECISION": 1,
+              "FAILED-APPROACH": 2
+            },
+            "drops_disclosed": false,
+            "sha256": "a7d8ebdffa3c1c681b7935053820a36a333bdbd7aa20edf2807f726ef9936b94",
+            "status": "ok"
           },
           "4000": {
-            "status": "unsupported"
+            "chars": 3940,
+            "coverage_by_kind": {
+              "DECISION": 0.5,
+              "FAILED-APPROACH": 0.0
+            },
+            "dropped_by_kind": {
+              "DECISION": 1,
+              "FAILED-APPROACH": 2
+            },
+            "drops_disclosed": false,
+            "sha256": "cbb27feab9ef830addb37ae8fd0f260893a1ce68269cc535927f2802e8256d22",
+            "status": "ok"
           },
           "8000": {
-            "status": "unsupported"
+            "chars": 7946,
+            "coverage_by_kind": {
+              "DECISION": 0.5,
+              "FAILED-APPROACH": 0.0
+            },
+            "dropped_by_kind": {
+              "DECISION": 1,
+              "FAILED-APPROACH": 2
+            },
+            "drops_disclosed": false,
+            "sha256": "951f3575c52fa20d1ed51d91fdaac4695c527f067c3d89c16e12986712f41a28",
+            "status": "ok"
           }
         },
-        "chars": 11388,
+        "chars": 11938,
         "coverage_by_kind": {
           "DECISION": 0.5,
-          "FAILED-APPROACH": 1.0
+          "FAILED-APPROACH": 0.5
         },
         "dropped_by_kind": {
           "DECISION": 1,
-          "FAILED-APPROACH": 0
+          "FAILED-APPROACH": 1
         },
         "drops_disclosed": false,
-        "sha256": "8ece4b7816a247d4d8bb7c9dd78d048f603b7cfced0c245096e55254458f113f"
+        "sha256": "3124aca6c3fd0b6add0d1ef8183bb4a2d5669f8023ec030b3350f2e0cd20f459"
       },
       "capture": {
         "found": 4,
@@ -92,27 +188,63 @@
       "briefing": {
         "budgets": {
           "14000": {
-            "status": "unsupported"
+            "chars": 13930,
+            "coverage_by_kind": {
+              "FAILED-APPROACH": 0.0
+            },
+            "dropped_by_kind": {
+              "FAILED-APPROACH": 1
+            },
+            "drops_disclosed": false,
+            "sha256": "ec34e5824f0d945e9cff3c3f4a891b2ae6556a10f0b5c831d43f6f073496963b",
+            "status": "ok"
           },
           "2000": {
-            "status": "unsupported"
+            "chars": 1948,
+            "coverage_by_kind": {
+              "FAILED-APPROACH": 0.0
+            },
+            "dropped_by_kind": {
+              "FAILED-APPROACH": 1
+            },
+            "drops_disclosed": false,
+            "sha256": "b3a81ef8005cf943762e8c02b2cbffb8356a62b76f35c1e7ce072d56ff0228c2",
+            "status": "ok"
           },
           "4000": {
-            "status": "unsupported"
+            "chars": 3998,
+            "coverage_by_kind": {
+              "FAILED-APPROACH": 0.0
+            },
+            "dropped_by_kind": {
+              "FAILED-APPROACH": 1
+            },
+            "drops_disclosed": false,
+            "sha256": "74357a0dd81cd630c542476742b63a59b7349f8c249580e20d72d646674735ee",
+            "status": "ok"
           },
           "8000": {
-            "status": "unsupported"
+            "chars": 7920,
+            "coverage_by_kind": {
+              "FAILED-APPROACH": 0.0
+            },
+            "dropped_by_kind": {
+              "FAILED-APPROACH": 1
+            },
+            "drops_disclosed": false,
+            "sha256": "dbe5113beb2fb0d6f458f4a496e8665b7ffb6c8db0a4ae7d61dbedc7f139387b",
+            "status": "ok"
           }
         },
-        "chars": 10596,
+        "chars": 11995,
         "coverage_by_kind": {
-          "FAILED-APPROACH": 1.0
+          "FAILED-APPROACH": 0.0
         },
         "dropped_by_kind": {
-          "FAILED-APPROACH": 0
+          "FAILED-APPROACH": 1
         },
         "drops_disclosed": false,
-        "sha256": "b4149b60df7f13becd82769d62b23545e3e0c6974d0f5376dd0c55a871989a4e"
+        "sha256": "b8572afc2357f3afd91fa1c75ee2687b152e624c3c7e1fc5e611b8f425413ecf"
       },
       "capture": {
         "found": 1,
@@ -127,23 +259,43 @@
       "briefing": {
         "budgets": {
           "14000": {
-            "status": "unsupported"
+            "chars": 13930,
+            "coverage_by_kind": {},
+            "dropped_by_kind": {},
+            "drops_disclosed": false,
+            "sha256": "ec34e5824f0d945e9cff3c3f4a891b2ae6556a10f0b5c831d43f6f073496963b",
+            "status": "ok"
           },
           "2000": {
-            "status": "unsupported"
+            "chars": 1948,
+            "coverage_by_kind": {},
+            "dropped_by_kind": {},
+            "drops_disclosed": false,
+            "sha256": "b3a81ef8005cf943762e8c02b2cbffb8356a62b76f35c1e7ce072d56ff0228c2",
+            "status": "ok"
           },
           "4000": {
-            "status": "unsupported"
+            "chars": 3998,
+            "coverage_by_kind": {},
+            "dropped_by_kind": {},
+            "drops_disclosed": false,
+            "sha256": "74357a0dd81cd630c542476742b63a59b7349f8c249580e20d72d646674735ee",
+            "status": "ok"
           },
           "8000": {
-            "status": "unsupported"
+            "chars": 7920,
+            "coverage_by_kind": {},
+            "dropped_by_kind": {},
+            "drops_disclosed": false,
+            "sha256": "dbe5113beb2fb0d6f458f4a496e8665b7ffb6c8db0a4ae7d61dbedc7f139387b",
+            "status": "ok"
           }
         },
-        "chars": 5883,
+        "chars": 11995,
         "coverage_by_kind": {},
         "dropped_by_kind": {},
         "drops_disclosed": false,
-        "sha256": "1cb795d74b645c102a3ad89367bc0fefb116c4a7b27369e52c94b0d438a9eb01"
+        "sha256": "b8572afc2357f3afd91fa1c75ee2687b152e624c3c7e1fc5e611b8f425413ecf"
       },
       "capture": {
         "found": 0,
@@ -163,26 +315,26 @@
     "briefing": {
       "budgets": {
         "14000": {
-          "status": "unsupported"
+          "status": "ok"
         },
         "2000": {
-          "status": "unsupported"
+          "status": "ok"
         },
         "4000": {
-          "status": "unsupported"
+          "status": "ok"
         },
         "8000": {
-          "status": "unsupported"
+          "status": "ok"
         }
       },
       "coverage_by_kind": {
         "CONSTRAINT": 1.0,
-        "DECISION": 0.3333,
+        "DECISION": 0.6667,
         "FAILED-APPROACH": 0.6
       },
       "dropped_by_kind": {
         "CONSTRAINT": 0,
-        "DECISION": 2,
+        "DECISION": 1,
         "FAILED-APPROACH": 2
       },
       "drops_disclosed": false

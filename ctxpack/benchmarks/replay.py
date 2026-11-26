@@ -85,11 +85,13 @@ def _load_fixture(fixture_dir: str) -> tuple[dict[str, Any], list[Label]]:
 
 
 def _briefing_adapter(ledger_dir: str, budget_chars: int | None = None) -> dict[str, Any]:
-    """Current CTX adapter: fixed startup context only, no budget knob yet."""
-    text = read_startup_context(ledger_dir).strip()
+    """Startup briefing, and the same composer at an explicit char budget."""
+    from ..agent.brief import brief
     if budget_chars is None:
-        return {"status": "ok", "text": text}
-    return {"status": "unsupported", "text": text}
+        text = read_startup_context(ledger_dir)
+    else:
+        text = brief(ledger_dir, budget=int(budget_chars), unit="chars")
+    return {"status": "ok", "text": text.strip()}
 
 
 def _commit_capture_adapter(_session_id: str, _commits: list[dict[str, Any]]) -> dict[str, Any]:

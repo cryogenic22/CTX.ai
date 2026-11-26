@@ -44,19 +44,24 @@ def test_synthetic_fixture_shows_known_main_gaps():
     assert "l1-rejected-plain-alert-matrix" not in missing
     assert "l1-rejected-plain-ops-notes" not in missing
     assert "l1-commit-only" in missing
-    assert totals["briefing"]["dropped_by_kind"]["DECISION"] > 0
-    assert totals["briefing"]["dropped_by_kind"]["FAILED-APPROACH"] > 0
-    assert totals["briefing"]["coverage_by_kind"]["DECISION"] < 1.0
-    assert totals["briefing"]["coverage_by_kind"]["FAILED-APPROACH"] < 1.0
-    assert totals["briefing"]["drops_disclosed"] is False
+    assert totals["briefing"]["dropped_by_kind"] == expected["totals"]["briefing"]["dropped_by_kind"]
+    assert totals["briefing"]["coverage_by_kind"] == expected["totals"]["briefing"]["coverage_by_kind"]
+    assert totals["briefing"]["drops_disclosed"] == expected["totals"]["briefing"]["drops_disclosed"]
     assert set(totals["briefing"]["budgets"].keys()) == {
         "2000",
         "4000",
         "8000",
         "14000",
     }
-    assert all(v["status"] == "unsupported"
-               for v in totals["briefing"]["budgets"].values())
+    assert all(v["status"] == "ok" for v in totals["briefing"]["budgets"].values())
+    for session in report["sessions"]:
+        for key, row in session["briefing"]["budgets"].items():
+            assert row["status"] == "ok"
+            assert row["chars"] <= int(key)
+    assert any(
+        any(count > 0 for count in session["briefing"]["budgets"]["2000"]["dropped_by_kind"].values())
+        for session in report["sessions"]
+    )
 
 
 @_REQUIRES_TIKTOKEN

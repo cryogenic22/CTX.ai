@@ -117,7 +117,7 @@ def test_mcp_session_read_tools_are_all_enrolled():
     assert SESSION_READ_TOOLS == {
         "ctx/session_recall", "ctx/session_timeline",
         "ctx/session_decisions", "ctx/why", "ctx/graph_query",
-        "ctx/session_literals", "ctx/resume",
+        "ctx/session_literals", "ctx/resume", "ctx/brief",
     }
 
 
