@@ -49,7 +49,9 @@ code = [
 # MCP server (ctx/session_*, ctx/hydrate, code-packer tools). Optional so
 # the core stays zero-dep: hooks + `ctxpack session` CLI work without it.
 mcp = [
-    "mcp>=1.0",
+    # Upper bound: a future mcp 3.x must not install over this extra
+    # until the server is updated for that breaking line.
+    "mcp>=1.0,<3",
 ]
 # Analytics domain-pack compiler (ctxpack.modules.analytics): PyYAML for
 # full YAML domain packs (folded scalars/anchors). Optional so the prose
@@ -73,7 +75,7 @@ test = [
     "pytest>=7.0",
     "PyYAML>=6.0",
     "tiktoken>=0.7",
-    "mcp>=1.0",
+    "mcp>=1.0,<3",
     "pydantic>=2.0",
 ]
 
@@ -90,8 +92,71 @@ ctxpack = "ctxpack.cli.main:main"
 include = ["ctxpack*"]
 exclude = ["tests*"]
 
+# Non-Python package data. The code-packer telemetry loader opens
+# ctxpack/schemas/telemetry-events.schema.json relative to the installed
+# package; without this the wheel omits the schema and load_schema fails.
+[tool.setuptools.package-data]
+ctxpack = ["schemas/*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
     "slow: integration tests that require an external codebase (e.g. SCRIPTIVA_ROOT) or otherwise take longer than a few seconds. Excluded from the fast regression contract: pytest -m \"not slow\"",
+]
+
+[tool.ruff]
+# Benchmarks are research code. The F-gate locks the product tree.
+extend-exclude = ["ctxpack/benchmarks"]
+
+[tool.ruff.lint]
+select = ["F"]
+
+[tool.ruff.lint.per-file-ignores]
+# TODO(v1.0-pr-b): cli/main.py is edited by the parallel brief-composer
+# change. These two pyflakes findings (unused json import in _cmd_eval,
+# f-string with no placeholders in the telemetry summary) stay ignored
+# until that file can be edited. Remove this table entry in that PR.
+"ctxpack/cli/main.py" = ["F401", "F541"]
+
+[tool.importlinter]
+root_packages = ["ctxpack"]
+
+# Core never imports agent, CLI, experimental modules, the MCP server,
+# or the benchmark tree. The layered contract is cli -> agent -> core
+# (higher may import lower). Any edge that already violates a contract
+# is listed under ignore_imports with a TODO(v1.1) comment; a new edge
+# fails the gate. There are no such edges today.
+#
+# The MCP server module in this tree is ctxpack.integrations.mcp_server.
+# There is no ctxpack.mcp_server package; import-linter rejects a
+# forbidden target that does not exist, so the contract names the module
+# that is actually importable.
+[[tool.importlinter.contracts]]
+name = "Core does not import agent, cli, modules, mcp, or benchmarks"
+type = "forbidden"
+source_modules = ["ctxpack.core"]
+forbidden_modules = [
+    "ctxpack.agent",
+    "ctxpack.cli",
+    "ctxpack.modules",
+    "ctxpack.integrations.mcp_server",
+    "ctxpack.benchmarks",
+]
+
+[[tool.importlinter.contracts]]
+name = "Layers descend cli to agent to core"
+type = "layers"
+layers = [
+    "ctxpack.cli",
+    "ctxpack.agent",
+    "ctxpack.core",
+]
+
+[tool.coverage.run]
+source = ["ctxpack"]
+omit = [
+    "ctxpack/benchmarks/*",
+    "ctxpack/benchmarks/*/*",
+    "ctxpack/benchmarks/*/*/*",
+    "ctxpack/benchmarks/*/*/*/*",
 ]

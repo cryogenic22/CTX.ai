@@ -9,13 +9,10 @@ from __future__ import annotations
 from typing import Any
 
 from ..core.packer.ir import (
-    Certainty,
     IRCorpus,
     IREntity,
     IRField,
     IRSource,
-    IRWarning,
-    Severity,
 )
 
 

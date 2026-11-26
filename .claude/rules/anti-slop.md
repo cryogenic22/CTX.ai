@@ -12,7 +12,7 @@ Before writing new helpers, check these existing utilities:
 - `ctxpack/core/entity_graph.py`: EntityGraph
 - `ctxpack/core/errors.py`: Span, DiagnosticLevel, Diagnostic, ParseError
 - `ctxpack/core/factid.py`: FactBasis, SourceRole, Authority, derive_authority (+2 more)
-- `ctxpack/core/hydration_protocol.py`: build_system_prompt, build_hydration_tool_schema, build_hydration_tool_schema
+- `ctxpack/core/hydration_protocol.py`: build_system_prompt, build_hydration_tool_schema
 - `ctxpack/core/hydrator.py`: HydrationResult, hydrate_by_name, hydrate_by_query, list_sections (+1 more)
 - `ctxpack/core/json_export.py`: to_dict, to_json
 - `ctxpack/core/layers.py`: ContextLayer

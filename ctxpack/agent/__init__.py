@@ -8,13 +8,12 @@ Usage:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from ..core.model import CTXDocument
 from ..core.packer.compressor import compress, count_tokens
 from ..core.packer.conflict import detect_conflicts
 from ..core.packer.entity_resolver import resolve_entities
-from ..core.packer.ir import IRWarning
 from ..core.serializer import serialize
 
 # NOTE: .state_parser (eval-tier, benchmark-runner API) is imported

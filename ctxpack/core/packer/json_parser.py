@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 from typing import Any, Optional
 
-from .ir import Certainty, IREntity, IRField, IRSource, IRWarning, Severity
+from .ir import IREntity, IRField, IRSource, IRWarning
 
 
 def json_parse(text: str, *, filename: str = "") -> Any:

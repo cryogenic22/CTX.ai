@@ -8,7 +8,7 @@ Usage:
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 from ..model import CTXDocument
@@ -16,7 +16,7 @@ from .compressor import compress
 from .conflict import detect_conflicts
 from .discovery import PackConfig, discover
 from .entity_resolver import resolve_entities
-from .ir import IRCorpus, IRField, IRSource
+from .ir import IRCorpus
 from .csv_parser import csv_parse, extract_entities_from_csv
 from .json_parser import extract_entities_from_json, json_parse
 from .l3_generator import generate_l3

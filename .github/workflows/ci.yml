@@ -3,6 +3,9 @@ name: CI
 on:
   push:
     branches: [main]
+    # Tag pushes re-run the version gate so the tag must match
+    # pyproject / ctxpack.__version__ (optional leading "v").
+    tags: ["v*", "[0-9]*"]
   pull_request:
     branches: [main]
 
@@ -147,8 +150,13 @@ jobs:
           python-version: "3.12"
       - name: Install package + ALL runtime extras + test runner
         run: pip install ".[all,test]"
+      - name: Install coverage (product-code floor; not a runtime dep)
+        run: pip install pytest-cov
       - name: Run full non-slow suite (code / MCP / analytics integrations)
-        run: python -m pytest tests/ -q -m "not slow"
+        # Line coverage of ctxpack/ excluding ctxpack/benchmarks/.
+        # Measured 79.99% on the non-slow suite (2026-11-26). The floor
+        # is 76 so the percentage can only fall to that line.
+        run: python -m pytest tests/ -q -m "not slow" --cov=ctxpack --cov-report=term --cov-fail-under=76
 
   # ── gates: the non-suite guards the deterministic lane depends on, plus
   #    the tokenizer calibration re-verified against the live encoding
@@ -193,6 +201,8 @@ jobs:
           python -m build
       - name: Check both distributions
         run: twine check dist/*
+      - name: Version single-source, tag match, schema packaged in the wheel
+        run: python scripts/check_version.py --wheel dist/*.whl
       - name: Clean-venv install of the WHEEL + metadata + CLI smoke
         run: |
           python -m venv "${RUNNER_TEMP}/clean"
@@ -202,11 +212,66 @@ jobs:
           "${RUNNER_TEMP}/clean/bin/python" - <<'PY'
           import importlib.metadata as m
           v = m.version("ctxpack")
-          assert v == "0.5.0rc1", f"unexpected installed version {v!r}"
+          from ctxpack.core.code.telemetry import load_schema
+          schema = load_schema()
+          assert schema["title"] == "Code-packer telemetry events", schema.get("title")
           import ctxpack  # noqa: F401 — dep-free import from the clean env
           print("clean wheel install OK, version", v)
           PY
+          "${RUNNER_TEMP}/clean/bin/python" "${GITHUB_WORKSPACE}/scripts/check_version.py" --installed
           "${RUNNER_TEMP}/clean/bin/ctxpack" --help
+
+  # ── code: tests/code on every OS/Python cell, not only the ubuntu
+  #    3.12 extras job. Needs the code extra (tree-sitter) plus the test
+  #    extra. The ordinary lane stays free of tree-sitter.
+  code:
+    name: code (${{ matrix.os }} py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-latest,  python-version: "3.10"}
+          - {os: ubuntu-latest,  python-version: "3.11"}
+          - {os: ubuntu-latest,  python-version: "3.12"}
+          - {os: ubuntu-latest,  python-version: "3.13"}
+          - {os: windows-latest, python-version: "3.10"}
+          - {os: windows-latest, python-version: "3.13"}
+          - {os: macos-latest,   python-version: "3.10"}
+          - {os: macos-latest,   python-version: "3.13"}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6 (2026-07-16)
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6 (2026-06-23)
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package + code extra + test extra
+        run: pip install ".[code,test]"
+      - name: Run tests/code
+        run: python -m pytest tests/code -q -m "not slow"
+
+  # ── quality: ratchets. Product pyflakes at zero, mypy error count at
+  #    or under the recorded baseline, import-linter contracts, and the
+  #    pyproject/runtime version match. Optional imports are installed so
+  #    the mypy count matches the baseline (missing stubs would add
+  #    import-not-found errors and move the floor).
+  quality:
+    name: quality (ruff, mypy ratchet, import-linter, version)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6 (2026-07-16)
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6 (2026-06-23)
+        with:
+          python-version: "3.12"
+      - name: Install package, extras, and the ratchet tools
+        run: pip install ".[all,test]" ruff mypy import-linter
+      - name: Ruff pyflakes (F) on ctxpack, benchmarks excluded
+        run: ruff check --select F ctxpack --exclude ctxpack/benchmarks
+      - name: Mypy error-count ratchet
+        run: python scripts/check_mypy_ratchet.py
+      - name: Import-linter architecture contracts
+        run: lint-imports
+      - name: Version single-source (pyproject, runtime, installed, tag)
+        run: python scripts/check_version.py --installed
 
   # ── ci-required: the single stable check for branch protection. Fail-
   #    closed aggregator — passes only if EVERY upstream job succeeded.
@@ -214,7 +279,7 @@ jobs:
   #    fails, is cancelled, or is skipped.
   ci-required:
     name: ci-required
-    needs: [core, test, replay-byte-pin, extras, gates, artifact]
+    needs: [core, test, replay-byte-pin, extras, gates, artifact, code, quality]
     if: always()
     runs-on: ubuntu-latest
     steps:

@@ -11,6 +11,10 @@ All notable changes to this project will be documented in this file.
 - Ledger capture ignores harness briefings and probe exchanges, banks sentence-start `Rejected:` / `Dead end:` lines as `FAILED-APPROACH` (`marker_stated`), and strips leading markdown bullets from banked marker lines without changing unbulleted fact ids (extractor `tp/1.5`).
 - One live set feeds the project gist, the session gist, and the brief: superseded, retracted, and milestone-stale facts drop; replacements render under `Changed choices`; unresolved forks render as conflicts. `Supersedes:` accepts exact 16-hex and 64-hex ids and flags an ambiguous mixed-ledger match instead of guessing.
 
+### Changed
+- CI locks the current quality floor: ruff pyflakes on `ctxpack/` (benchmarks excluded) at zero, a mypy error-count ratchet, import-linter contracts (`ctxpack.core` does not import agent/cli/modules/mcp/benchmarks; layers descend cli → agent → core), `tests/code` on every OS/Python cell, and a product-code line-coverage floor. `pyproject.toml` version must match `ctxpack.__version__`, and a tag must name that version. The `mcp` extra is capped below 3. The telemetry JSON schema is included in the wheel. The supported v1.0 surface is declared in `SUPPORTED.md`.
+- `export_claude_md` keeps hand-written CLAUDE.md text and refreshes one generated codebase-map block. `build_hydration_tool_schema` is defined once. `_annotate_authority` is annotated with the journal dict it returns.
+
 ## [0.5.0] - 2026-03-16
 
 ### Added

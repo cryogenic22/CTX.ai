@@ -23,7 +23,6 @@ from typing import Optional, Union
 import tree_sitter
 
 from ctxpack.core.code.metadata import (
-    Dependency,
     extract_dependencies,
     extract_route,
     is_pydantic_model,
@@ -31,7 +30,7 @@ from ctxpack.core.code.metadata import (
 )
 from ctxpack.core.code.naming import qualified_names_for_module
 from ctxpack.core.code.parser import ParseResult
-from ctxpack.core.code.symbols import Decorator, Kind, Symbol, extract_symbols
+from ctxpack.core.code.symbols import Kind, Symbol, extract_symbols
 from ctxpack.core.code.tokens import count_bpe
 from ctxpack.core.layers import ContextLayer
 from ctxpack.core.packer.ir import IREntity, IRField, IRSource

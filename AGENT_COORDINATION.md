@@ -2021,3 +2021,12 @@ feature work in this unit. Gate 5 remains an explicit owner/reviewer action
 after the local release range is reviewed. The dirty live checkout is not the
 release worktree and none of its `.claude/ctx`, `.review_tmp_*`, `_to_delete`,
 or untracked document state belongs in the release manifest by implication.
+
+### 2026-11-26 — quality ratchets (parallel to brief composer #30)
+
+- **Branch:** `cursor/quality-ratchets-supported-52cb` off `origin/main` `a8de16b`. Does not take the capture-fidelity owner role. Do not merge from this board entry.
+- **Left untouched (zero overlap with the named #30 conflict set):** `ctxpack/agent/checkpoint.py`, `ctxpack/agent/brief.py`, `ctxpack/cli/main.py`, `ctxpack/mcp_server.py` (not in this tree), `tests/fixtures/replay/synthetic-l1/expected.json`.
+- **What landed:** CI ratchets (ruff F = 0 with a `cli/main.py` per-file ignore marked `TODO(v1.0-pr-b)`; mypy counted baseline 78, benchmark follow-imports excluded, must stay ≤ 83; import-linter core-forbidden + cli→agent→core, both kept, no `ignore_imports`); `tests/code` on all 8 OS/Python cells; product-code coverage floor 76 (measured 79.99%); version single-source check; `mcp>=1.0,<3`; telemetry schema packaged; `SUPPORTED.md`; duplicate `build_hydration_tool_schema` removed; `export_claude_md` preserves hand-written text; `_annotate_authority` returns `dict[str, Any]`.
+- **Tests:** `python3 -m pytest tests/ -q -m "not slow" --cov=ctxpack --cov-report=term --cov-fail-under=76` → 1998 passed / 37 skipped / 57 deselected, coverage 79.99% (`python` on PATH; without it, two `onboard --check` probes fail looking up the executable). `tests/code` 313 passed. Gates: claims OK (16 pre-existing warnings), capability OK, release-manifest OK, doc-privacy OK, token-accounting 8 passed. `ruff check --select F ctxpack --exclude ctxpack/benchmarks` clean. `lint-imports` 2 kept. `scripts/check_mypy_ratchet.py` current=78 baseline=78.
+- **Risk:** `ctxpack codebase export --format claude-md` now returns hand-written CLAUDE.md text plus the generated map when that file exists (experimental command). `ctxpack/integrations/mcp_server.py` and `ctxpack/agent/transcript_parser.py` lost unused imports only; those hunks do not overlap #30's tool-handler / ack-stripping hunks.
+- **Next:** review the PR. Do not merge it from this note.

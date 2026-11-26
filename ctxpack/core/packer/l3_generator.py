@@ -8,7 +8,6 @@ No LLM in the loop — preserves the zero-dependency property.
 
 from __future__ import annotations
 
-import datetime
 import re
 
 from ..errors import Span

@@ -17,9 +17,9 @@ import csv
 import io
 import os
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
-from .ir import Certainty, IREntity, IRField, IRSource, IRWarning, Severity
+from .ir import Certainty, IREntity, IRField, IRSource, IRWarning
 
 
 # ── CSV Parser ──
@@ -195,8 +195,6 @@ def _rows_to_fields(
         desc_val = row.get(desc_col, "").strip() if desc_col else ""
 
         # Compose the compressed field value
-        key = _hyphenate(field_name).upper()
-
         if parts:
             value = f"{field_name}({','.join(parts)})"
         else:

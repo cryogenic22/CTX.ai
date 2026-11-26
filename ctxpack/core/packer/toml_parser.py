@@ -13,9 +13,9 @@ Entity detection heuristics:
 from __future__ import annotations
 
 import sys
-from typing import Any, Optional
+from typing import Any
 
-from .ir import Certainty, IREntity, IRField, IRSource, IRWarning, Severity
+from .ir import Certainty, IREntity, IRField, IRSource, IRWarning
 
 # ── TOML Parser ──
 
@@ -45,7 +45,6 @@ def _fallback_toml_parse(text: str, *, filename: str = "") -> dict[str, Any]:
     """
     result: dict[str, Any] = {}
     current_table: dict[str, Any] = result
-    current_path: list[str] = []
 
     for lineno, line in enumerate(text.split("\n"), 1):
         stripped = line.strip()
@@ -56,7 +55,6 @@ def _fallback_toml_parse(text: str, *, filename: str = "") -> dict[str, Any]:
         if stripped.startswith("[") and not stripped.startswith("[["):
             table_name = stripped.strip("[]").strip()
             parts = [p.strip() for p in table_name.split(".")]
-            current_path = parts
             # Navigate/create nested path
             current_table = result
             for part in parts:
