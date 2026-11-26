@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ctxpack"
-version = "0.5.0rc1"
+version = "1.0.0"
 description = "Deterministic session memory for long-running agents — pack-on-compact ledger for Claude Code ('compaction is a commit, not a loss event') + zero-dependency domain-knowledge packer with progressive hydration"
 readme = "README.md"
 license = "Apache-2.0"
@@ -29,7 +29,7 @@ keywords = [
     "context-engineering",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python :: 3",
     "Topic :: Text Processing :: General",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
