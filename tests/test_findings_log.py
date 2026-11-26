@@ -422,20 +422,25 @@ def test_render_formats_and_missing_status() -> None:
 def test_concurrent_appends_keep_every_line(tmp_path: Path) -> None:
     path = tmp_path / "findings.jsonl"
     barrier = threading.Barrier(4)
+    errors: list[BaseException] = []
 
     def worker(index: int) -> None:
-        barrier.wait()
-        for nth in range(5):
-            report = _report([_finding(
-                "STALE_IDENTIFIER", "src/a.py", "name",
-            )], head=f"{index:02d}{nth:02d}abcd")
-            append_findings(report, path)
+        try:
+            barrier.wait()
+            for nth in range(5):
+                report = _report([_finding(
+                    "STALE_IDENTIFIER", "src/a.py", "name",
+                )], head=f"{index:02d}{nth:02d}abcd")
+                append_findings(report, path)
+        except BaseException as exc:
+            errors.append(exc)
 
     threads = [threading.Thread(target=worker, args=(index,)) for index in range(4)]
     for thread in threads:
         thread.start()
     for thread in threads:
         thread.join()
+    assert errors == []
     loaded = read_findings(path)
     assert len(loaded) == 20
     assert {row["code"] for row in loaded} == {"STALE_IDENTIFIER"}

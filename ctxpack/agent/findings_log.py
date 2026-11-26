@@ -18,6 +18,7 @@ import json
 import os
 import re
 import sys
+import threading
 from typing import Any, Iterable, Mapping, Sequence
 
 SCHEMA_VERSION = 1
@@ -43,6 +44,12 @@ _PATH_CODES = frozenset({
     "ONE_WAY_PATH_TOUCHED",
     "OUT_OF_SCOPE_CHANGE",
 })
+
+# In-process threads. The file lock below covers other processes.
+# On Windows a mandatory byte lock makes a second handle's write of
+# that byte fail with PermissionError, so threads must not reach the
+# file lock together.
+_APPEND_LOCK = threading.Lock()
 
 _RECORD_KEYS = (
     "base_sha",
@@ -731,35 +738,58 @@ def _render_markdown(payload: Mapping[str, Any]) -> str:
 def _append_bytes(path: str, payload: bytes) -> None:
     directory = os.path.dirname(os.path.abspath(path)) or "."
     os.makedirs(directory, exist_ok=True)
-    lock_fd: int | None = None
-    if sys.platform == "win32":
-        lock_fd = _open_lock(path)
-    fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o644)
-    locked_here = False
+    with _APPEND_LOCK:
+        lock_fd: int | None = None
+        if sys.platform == "win32":
+            lock_fd = _open_lock(path)
+        fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o644)
+        locked_here = False
+        try:
+            if lock_fd is None:
+                _lock_fd(fd)
+                locked_here = True
+            _ensure_trailing_newline(fd)
+            _write_all(fd, payload)
+            os.fsync(fd)
+        finally:
+            if locked_here:
+                _unlock_fd(fd)
+            os.close(fd)
+            if lock_fd is not None:
+                _unlock_fd(lock_fd)
+                os.close(lock_fd)
+        _fsync_dir(directory)
+
+
+def _ensure_lock_seed(lock_path: str) -> None:
+    """Create a one-byte lock file exactly once, before anyone locks it.
+
+    A later writer must not rewrite byte 0: on Windows that byte is the
+    mandatory lock region, and a write into it raises PermissionError.
+    """
     try:
-        if lock_fd is None:
-            _lock_fd(fd)
-            locked_here = True
-        _ensure_trailing_newline(fd)
-        _write_all(fd, payload)
+        fd = os.open(lock_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+    except FileExistsError:
+        return
+    try:
+        os.write(fd, b"\0")
         os.fsync(fd)
     finally:
-        if locked_here:
-            _unlock_fd(fd)
         os.close(fd)
-        if lock_fd is not None:
-            _unlock_fd(lock_fd)
-            os.close(lock_fd)
-    _fsync_dir(directory)
 
 
 def _open_lock(path: str) -> int:
     lock_path = path + ".lock"
-    fd = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o644)
+    _ensure_lock_seed(lock_path)
+    fd = os.open(lock_path, os.O_RDWR)
     try:
         if os.fstat(fd).st_size < 1:
-            os.write(fd, b"\0")
-            os.lseek(fd, 0, os.SEEK_SET)
+            # The creator crashed before the seed byte. Write it only
+            # when the region is not already locked.
+            try:
+                os.write(fd, b"\0")
+            except PermissionError:
+                pass
         _lock_fd(fd)
     except BaseException:
         os.close(fd)

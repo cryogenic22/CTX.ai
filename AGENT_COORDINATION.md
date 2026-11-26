@@ -2104,3 +2104,10 @@ or untracked document state belongs in the release manifest by implication.
 - **Files:** `ctxpack/agent/findings_log.py`, `ctxpack/agent/verify.py`, `ctxpack/cli/main.py`, `tests/test_findings_log.py`, `docs/verify-ci.md`, `docs/capability-registry.md`, `CHANGELOG.md`, `SUPPORTED.md`, `.gitignore`.
 - **Tests:** ruff F 0; `scripts/check_mypy_ratchet.py` current=56 baseline=56; `lint-imports` 2 kept, 0 broken; claims OK (16 pre-existing warnings); capability registry OK; doc-privacy OK; `python3 -m pytest tests/ -q -m "not slow" --ignore=tests/code` 1805 passed / 37 skipped / 57 deselected; `tests/test_findings_log.py` 10 passed (includes the PYTHONHASHSEED 1 vs 42 byte-identity check).
 - **Next:** review the PR. Do not merge it from this note.
+
+### 2026-11-26 — Cursor agent — PR #38 Windows append race
+
+- **Branch:** `cursor/findings-lessons-suggest-8ddf`. CI run `45841902770`: `test (windows-latest py3.13)` failed; `ci-required` failed because that job failed. Other cells were green.
+- **Cause:** `test_concurrent_appends_keep_every_line` got 15/20 rows. On Windows, `msvcrt.locking` is mandatory. Threads that still saw an empty `.lock` file wrote byte 0 while another thread held that byte, and `os.write` raised `PermissionError`. The worker then stopped, so its remaining appends never ran.
+- **Fix:** an in-process `threading.Lock` around the append, plus an `O_EXCL` seed of the lock file before anyone locks byte 0. The thread test now re-raises worker exceptions.
+- **Tests:** `tests/test_findings_log.py` 10 passed; ruff F 0; mypy current=56 baseline=56.
