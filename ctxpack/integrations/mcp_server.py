@@ -64,8 +64,6 @@ try:
     HAS_CODE_PACKER = True
 except ImportError:
     HAS_CODE_PACKER = False
-    CodePack = None  # type: ignore[assignment]
-    CodeTelemetry = None  # type: ignore[assignment]
 
 # Shared cache: the most recently built code pack. Re-set every time
 # ctx/code_pack runs so subsequent tool calls operate on a consistent
@@ -921,24 +919,24 @@ def _require_pack() -> "Optional[str]":
 def handle_code_version(_arguments: dict[str, Any]) -> str:
     if not HAS_CODE_PACKER:
         return _no_code_packer()
-    err = _require_pack()
-    if err is not None:
-        return err
-    return json.dumps(code_pack_version(_CODE_PACK))
+    pack = _CODE_PACK
+    if pack is None:
+        return _require_pack() or _no_code_packer()
+    return json.dumps(code_pack_version(pack))
 
 
 def handle_code_list_symbols(arguments: dict[str, Any]) -> str:
     if not HAS_CODE_PACKER:
         return _no_code_packer()
-    err = _require_pack()
-    if err is not None:
-        return err
+    pack = _CODE_PACK
+    if pack is None:
+        return _require_pack() or _no_code_packer()
     module = arguments.get("module", "")
     k = int(arguments.get("k", 50))
     context = arguments.get("context")
     alpha = float(arguments.get("alpha", 0.7))
     return json.dumps(code_list_symbols(
-        _CODE_PACK, module, k=k, context=context, alpha=alpha,
+        pack, module, k=k, context=context, alpha=alpha,
         telemetry=_get_code_telemetry(),
     ))
 
@@ -946,13 +944,13 @@ def handle_code_list_symbols(arguments: dict[str, Any]) -> str:
 def handle_code_hydrate_symbol(arguments: dict[str, Any]) -> str:
     if not HAS_CODE_PACKER:
         return _no_code_packer()
-    err = _require_pack()
-    if err is not None:
-        return err
+    pack = _CODE_PACK
+    if pack is None:
+        return _require_pack() or _no_code_packer()
     name = arguments.get("name", "")
     depth = int(arguments.get("depth", 0))
     return json.dumps(code_hydrate_symbol(
-        _CODE_PACK, name, depth=depth,
+        pack, name, depth=depth,
         telemetry=_get_code_telemetry(),
     ))
 
@@ -960,14 +958,14 @@ def handle_code_hydrate_symbol(arguments: dict[str, Any]) -> str:
 def handle_code_search_symbols(arguments: dict[str, Any]) -> str:
     if not HAS_CODE_PACKER:
         return _no_code_packer()
-    err = _require_pack()
-    if err is not None:
-        return err
+    pack = _CODE_PACK
+    if pack is None:
+        return _require_pack() or _no_code_packer()
     query = arguments.get("query", "")
     k = int(arguments.get("k", 10))
     alpha = float(arguments.get("alpha", 0.7))
     return json.dumps(code_search_symbols(
-        _CODE_PACK, query, k=k, alpha=alpha,
+        pack, query, k=k, alpha=alpha,
         telemetry=_get_code_telemetry(),
     ))
 
@@ -975,12 +973,12 @@ def handle_code_search_symbols(arguments: dict[str, Any]) -> str:
 def handle_code_raw_file(arguments: dict[str, Any]) -> str:
     if not HAS_CODE_PACKER:
         return _no_code_packer()
-    err = _require_pack()
-    if err is not None:
-        return err
+    pack = _CODE_PACK
+    if pack is None:
+        return _require_pack() or _no_code_packer()
     path = arguments.get("path", "")
     return json.dumps(code_raw_file(
-        _CODE_PACK, path, telemetry=_get_code_telemetry(),
+        pack, path, telemetry=_get_code_telemetry(),
     ))
 
 

@@ -73,6 +73,30 @@ def test_exclude_session_marks_own_transcript_active(tmp_path):
     assert cov.sessions[0].status == "active"
 
 
+def test_shared_8char_prefix_does_not_collide(tmp_path):
+    """Two transcripts that share an 8-char prefix stay distinct.
+
+    The full session id marks only that transcript active. The legacy
+    8-char form is a unique-prefix fallback: when two stems share it,
+    neither is treated as the live session.
+    """
+    repo, home, tdir, out = _setup(tmp_path)
+    left = "abcd1234-aaaa-0000-0000-000000000001"
+    right = "abcd1234-bbbb-0000-0000-000000000002"
+    _cc_transcript(tdir, left)
+    _cc_transcript(tdir, right)
+    cov = capture_coverage(
+        str(repo), str(out), claude_home=str(home), exclude_session=left)
+    by = {s.session: s.status for s in cov.sessions}
+    assert by[left] == "active"
+    assert by[right] == "unpacked"
+    ambiguous = capture_coverage(
+        str(repo), str(out), claude_home=str(home), exclude_session="abcd1234")
+    by_short = {s.session: s.status for s in ambiguous.sessions}
+    assert by_short[left] == "unpacked"
+    assert by_short[right] == "unpacked"
+
+
 def test_gap_warning_only_for_unpacked(tmp_path):
     repo, home, tdir, out = _setup(tmp_path)
     _cc_transcript(tdir, "gapsess1-0000-0000-0000-000000000000")

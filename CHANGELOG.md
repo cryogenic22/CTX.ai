@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- The mypy ratchet on product code (`ctxpack/`, benchmarks excluded) is now **0**. CI keeps that count at zero with mypy 2.4.1. The product-code coverage floor in CI is **85%** (measured 88.60% on the non-slow suite).
+
+### Fixed
+- Backfill no longer treats an 8-character session-id prefix as the live session when two transcripts share it. Matching uses the full id, with the unique legacy-prefix fallback.
+- Read commands `brief`, `session`, and `verify` name an explicit ledger directory that does not exist, instead of treating that path as an empty ledger. Write commands still create their directories.
+- A markdown blockquote (`> Decision:` / `> Constraint:`) is quoted text and is not banked as a live marker.
+- `ctxpack lessons suggest` contract patches validate under `TaskContract.from_mapping`. Bare filenames such as `README.md` and `drop.sql` are path globs. Alias codes that are not contract blocking codes map to `CONTRACT_RULE_VIOLATION`.
+
 ### Added
 - `ctxpack verify --record-findings` / `--findings-log` appends one JSONL row per finding to `.ctx/findings.jsonl` (or the path given). Omitting both flags writes nothing. `ctxpack lessons suggest` groups that log by a stable `(code, pattern)` key and prints copy-pasteable task-contract proposals for groups at or above `--min-count` (default 3). It reports `count` and `distinct_heads`, and it does not edit the contract.
 - `ctxpack verify` task contracts accept `require_verifier_evidence`, `verifier_command`, and `one_way_paths`. A verifier attestation must be a same-line `verifier: <command> | pass | <head-sha>` (or the documented equivalents) whose SHA is a 7+ hex prefix of head; a missing, short, or mismatched SHA emits `VERIFIER_EVIDENCE_MISSING` (severity error). `verifier_command` matches whole shell tokens, so `verify` does not match `notverify` or `my-verify-fake`. A merge-base diff that touches `one_way_paths` emits `ONE_WAY_PATH_TOUCHED` (severity error) and blocks even in report-only mode unless the PR body has a same-line non-placeholder `one-way-ack:` and a matching `verified-sha:`. `ctxpack onboard` appends an idempotent attestation block to `.github/pull_request_template.md`.

@@ -54,6 +54,7 @@ from .ledger import (
     _turn_of,
 )
 from .live_set import (
+    LiveSet,
     iter_fact_ids,
     live_set_from_records,
     records_from_entities,
@@ -457,9 +458,9 @@ def _emit_events(out_dir: str, parsed: ParsedTranscript, corpus,
             continue
         turn = entity.sources[0].turn if entity.sources else None
         if entity.name.startswith("RETRACT-"):
-            target = _field(entity, "RETRACTS-FACT-ID")
-            if target:
-                ev("fact_retracted", fact_id=target, turn=turn,
+            retracted_id = _field(entity, "RETRACTS-FACT-ID")
+            if retracted_id:
+                ev("fact_retracted", fact_id=retracted_id, turn=turn,
                    reason=_field(entity, "REASON")[:200])
             amb = _field(entity, "ID-AMBIGUOUS")
             if amb:
@@ -650,7 +651,7 @@ _LIVE_KINDS = frozenset({"DECISION", "CONSTRAINT", "FAILED-APPROACH"})
 
 def _live_for_entities(entities, *, session: str = "",
                        done_milestones=(),
-                       prior_records=None) -> "tuple[object, frozenset]":
+                       prior_records=None) -> "tuple[LiveSet, frozenset[str]]":
     records = list(prior_records or [])
     records.extend(records_from_entities(entities, session=session))
     live = live_set_from_records(records, done_milestones=done_milestones)

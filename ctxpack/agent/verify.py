@@ -368,13 +368,18 @@ def run_cli(args: argparse.Namespace) -> int:
         if getattr(args, "block", None) is not None:
             block = [part.strip() for part in str(args.block).split(",")
                      if part.strip()]
+        ledger_dir = getattr(args, "ledger_dir", None)
+        if ledger_dir is not None and not Path(ledger_dir).is_dir():
+            sys.stderr.write(
+                "warning: ledger directory does not exist: "
+                f"{ledger_dir}\n")
         report = verify(
             args.range,
             repo=getattr(args, "repo", ".") or ".",
             pr_body=pr_text,
             pr_body_label=pr_label,
             contract=getattr(args, "contract", None),
-            ledger_dir=getattr(args, "ledger_dir", None),
+            ledger_dir=ledger_dir,
             block=block,
         )
         text = render_markdown(report) if args.format == "md" else render_json(report)

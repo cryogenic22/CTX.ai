@@ -2111,3 +2111,10 @@ or untracked document state belongs in the release manifest by implication.
 - **Cause:** `test_concurrent_appends_keep_every_line` got 15/20 rows. On Windows, `msvcrt.locking` is mandatory. Threads that still saw an empty `.lock` file wrote byte 0 while another thread held that byte, and `os.write` raised `PermissionError`. The worker then stopped, so its remaining appends never ran.
 - **Fix:** an in-process `threading.Lock` around the append, plus an `O_EXCL` seed of the lock file before anyone locks byte 0. The thread test now re-raises worker exceptions.
 - **Tests:** `tests/test_findings_log.py` 10 passed; ruff F 0; mypy current=56 baseline=56.
+
+### 2026-11-26 — Cursor agent — v1.1.0 PR 3 mypy 0, coverage 85, edge polish
+
+- **Branch:** `cursor/v110-pr3-quality-debt-bcaa` off `origin/main` `052191a`. Not merged. Does not take the capture-fidelity owner role.
+- **What changed:** product mypy ratchet baseline is 0 (mypy 2.4.1; benchmark follow-imports still excluded). CI coverage floor is 85% (measured 88.60% on `python3 -m pytest tests/ -q -m "not slow" --cov=ctxpack --cov-report=term --cov-fail-under=85`). Backfill active-session match uses `matching_stems` (full id, unique legacy prefix). `brief` / `session` / `verify` warn on stderr when an explicit ledger directory does not exist. Blockquoted `> Decision:` / `> Constraint:` lines are not marker facts. `propose_contract` patches load through `TaskContract.from_mapping`; bare filenames are path globs; unknown alias codes become `CONTRACT_RULE_VIOLATION`.
+- **Tests:** 2135 passed / 37 skipped / 57 deselected; ruff F 0; `scripts/check_mypy_ratchet.py` current=0 baseline=0; `lint-imports` 2 kept, 0 broken.
+- **Next:** review the PR. Do not merge it from this note.

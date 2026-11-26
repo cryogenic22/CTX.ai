@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Union
+from typing import Optional, Union, overload
 
 from .errors import Span
 from .layers import ContextLayer
@@ -141,6 +141,12 @@ class Header:
     status_fields: tuple[KeyValue, ...] = ()  # KV pairs on status line
     metadata: tuple[KeyValue, ...] = ()  # KV pairs on subsequent lines
     span: Optional[Span] = None
+
+    @overload
+    def get(self, key: str, default: str) -> str: ...
+
+    @overload
+    def get(self, key: str, default: None = None) -> Optional[str]: ...
 
     def get(self, key: str, default: Optional[str] = None) -> Optional[str]:
         """Look up a header field by key (case-insensitive)."""

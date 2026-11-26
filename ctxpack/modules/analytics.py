@@ -40,7 +40,7 @@ def _load_yaml(text: str) -> Any:
     ctxpack YAML subset, so full PyYAML is required to read them.
     """
     try:
-        import yaml
+        import yaml  # type: ignore[import-untyped]  # optional extra; stubs are not a runtime dep
     except ModuleNotFoundError as exc:  # pragma: no cover - env-dependent
         raise ModuleNotFoundError(
             "PyYAML is required for the analytics domain-pack compiler; "

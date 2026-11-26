@@ -316,12 +316,12 @@ def select_live_set(
     # Dedup identical ambiguous refs.
     dedup_amb: list[AmbiguousRef] = []
     seen_amb: set[tuple[str, tuple[str, ...]]] = set()
-    for item in amb:
-        key = (item.token, item.matches)
-        if key in seen_amb:
+    for ref in amb:
+        ref_key = (ref.token, ref.matches)
+        if ref_key in seen_amb:
             continue
-        seen_amb.add(key)
-        dedup_amb.append(item)
+        seen_amb.add(ref_key)
+        dedup_amb.append(ref)
 
     return LiveSet(
         facts=tuple(live),

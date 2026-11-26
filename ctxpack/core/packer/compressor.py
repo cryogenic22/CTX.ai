@@ -6,6 +6,7 @@ import re
 
 from ..errors import Span
 from ..model import (
+    BodyElement,
     CTXDocument,
     Header,
     KeyValue,
@@ -89,9 +90,9 @@ def compress(
     # Build sections
     sections = []
     for entity in corpus.entities:
-        field_actions = budget_map.get(entity.name) if budget_map else None
+        actions = budget_map.get(entity.name) if budget_map else None
         sections.append(_entity_to_section(entity, strict=strict,
-                                            field_actions=field_actions))
+                                            field_actions=actions))
 
     # Standalone rules
     if corpus.standalone_rules:
@@ -231,7 +232,7 @@ def _entity_to_section(
         field_actions: Optional dict of field_key → action ("include", "abbreviate", "drop")
                        from the budget allocator. If None, all fields are included.
     """
-    children = []
+    children: list[KeyValue | Provenance] = []
 
     # Single-pass partition: extract golden source, then sort remainder
     golden = None
@@ -384,7 +385,7 @@ def _hydrate_sections(
         children = list(section.children)
 
         # Phase 1: Un-hyphenate all KV values (restore spaces)
-        new_children = []
+        new_children: list[Section | BodyElement] = []
         for child in children:
             if isinstance(child, KeyValue):
                 new_children.append(
