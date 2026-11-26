@@ -140,6 +140,60 @@ def test_stale_identifier(tmp_path: Path) -> None:
     }
 
 
+def test_stale_identifier_requires_the_path_at_base(tmp_path: Path) -> None:
+    repo, spec = _range_repo(tmp_path, "edit the readme title")
+    ledger = tmp_path / "ledger"
+    _ledger(ledger, [_section("ENTITY-DECISION-FUTURE01", [
+        ("DECISION", "Decision: add `docs/future_widget.py` after the migration window"),
+        ("FACT-ID", "f0f0f0f0f0f0f0f0"),
+        ("BASIS", "marker_stated"),
+        ("STATUS", "current"),
+        ("TURN", "2"),
+        ("SRC", "session:aaaaaaaa#turn2"),
+    ])])
+    report = verify(spec, repo=repo, ledger_dir=ledger)
+    assert [row.code for row in report.findings] == []
+
+
+def test_superseded_identifier_ignores_substrings_and_successors(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init(repo)
+    _write(repo, "src/app.py", "briefing uses checkpoint.py\n")
+    _write(repo, "src/hook.py", "value = 1\n")
+    base = _commit(repo, "base")
+    _write(repo, "src/app.py", "briefing still uses checkpoint.py\n")
+    _write(repo, "src/hook.py", "call brief()\n")
+    head = _commit(repo, "edit hook")
+    ledger = tmp_path / "ledger"
+    _ledger(
+        ledger,
+        [
+            _section("ENTITY-DECISION-OLD00001", [
+                ("DECISION", "Decision: retire `brief` and stop editing `checkpoint.py` in the hook"),
+                ("FACT-ID", "aaaaaaaaaaaaaaaa"),
+                ("BASIS", "marker_stated"),
+                ("STATUS", "current"),
+                ("TURN", "1"),
+                ("SRC", "session:aaaaaaaa#turn1"),
+            ]),
+            _section("ENTITY-DECISION-NEW00001", [
+                ("DECISION", "Decision: keep `checkpoint.py` as the only writer"),
+                ("FACT-ID", "bbbbbbbbbbbbbbbb"),
+                ("BASIS", "marker_stated"),
+                ("STATUS", "current"),
+                ("SUPERSEDES-FACT-ID", "aaaaaaaaaaaaaaaa"),
+                ("SUPERSEDES-REASON", "the hook no longer owns that file"),
+                ("TURN", "2"),
+                ("SRC", "session:aaaaaaaa#turn2"),
+            ]),
+        ],
+    )
+    report = verify(f"{base}..{head}", repo=repo, ledger_dir=ledger)
+    rows = [row for row in report.findings if row.code == "SUPERSEDED_STILL_IN_CODE"]
+    assert [(row.location, row.evidence) for row in rows] == [("src/hook.py", "brief")]
+
+
 def test_superseded_still_in_code(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -272,6 +326,61 @@ def test_version_pin_drift(tmp_path: Path) -> None:
         "message": "pinned version does not match a changed file",
         "severity": "error",
     }
+
+
+def test_version_pin_ignores_unrelated_latest_tokens(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init(repo)
+    _write(repo, ".github/workflows/ci.yml", "runs-on: ubuntu-latest\nmodel: jev-1.13.0\n")
+    base = _commit(repo, "base")
+    _write(repo, ".github/workflows/ci.yml", "runs-on: macos-latest\nmodel: jev-1.13.0\n")
+    head = _commit(repo, "runner")
+    contract = tmp_path / "contract.json"
+    contract.write_text(json.dumps({
+        "name": "pins",
+        "pinned_versions": {".github/workflows/ci.yml": "jev-1.13.0"},
+    }), encoding="utf-8")
+    report = verify(f"{base}..{head}", repo=repo, contract=contract,
+                    ledger_dir=tmp_path / "no-ledger")
+    assert report.findings == ()
+    _write(repo, ".github/workflows/ci.yml", "runs-on: macos-latest\nmodel: jev-latest\n")
+    drifted = _commit(repo, "float the model")
+    report = verify(f"{head}..{drifted}", repo=repo, contract=contract,
+                    ledger_dir=tmp_path / "no-ledger")
+    row = _finding(report)
+    assert row.code == "VERSION_PIN_DRIFT"
+    assert row.evidence == "pin=jev-1.13.0; floating-alias,missing-exact"
+
+
+def test_omitted_pr_body_fails_closed_for_required_evidence(tmp_path: Path) -> None:
+    repo, spec = _range_repo(tmp_path, "edit the readme title")
+    attestation = tmp_path / "attestation.json"
+    attestation.write_text(json.dumps({
+        "name": "sha",
+        "require_attestation_sha": True,
+        "blocking_codes": ["ATTESTATION_SHA_MISMATCH"],
+    }), encoding="utf-8")
+    report = verify(spec, repo=repo, contract=attestation,
+                    ledger_dir=tmp_path / "no-ledger")
+    row = _finding(report)
+    assert row.code == "ATTESTATION_SHA_MISMATCH"
+    assert row.evidence == "missing"
+    assert report.exit_code == 1
+
+    evidence = tmp_path / "evidence.json"
+    evidence.write_text(json.dumps({
+        "name": "tests",
+        "require_test_evidence": True,
+        "blocking_codes": ["UNVERIFIED_CLAIM"],
+    }), encoding="utf-8")
+    report = verify(spec, repo=repo, contract=evidence,
+                    ledger_dir=tmp_path / "no-ledger")
+    row = _finding(report)
+    assert row.code == "UNVERIFIED_CLAIM"
+    assert row.message == "claim lacks required test evidence"
+    assert row.evidence == "missing"
+    assert report.exit_code == 1
 
 
 def test_unverified_claim(tmp_path: Path) -> None:

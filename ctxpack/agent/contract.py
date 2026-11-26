@@ -149,7 +149,7 @@ def load_toml_mapping(text: str) -> dict[str, Any]:
             raise ContractError("TOML root must be a table")
         return data
     try:
-        import tomli
+        import tomli  # type: ignore[import-not-found]
     except ModuleNotFoundError:
         tomli = None  # type: ignore[assignment]
     if tomli is not None:

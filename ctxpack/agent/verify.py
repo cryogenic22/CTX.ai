@@ -166,6 +166,7 @@ class _Fact:
     source: str
     superseded: bool
     live: bool
+    successor_text: str
 
 
 @dataclass(frozen=True)
@@ -233,7 +234,18 @@ def verify(
     findings.extend(_stale(facts, git, base, head, trees))
     findings.extend(_superseded_in_code(facts, changed, blobs, head))
     findings.extend(_conflicts(marked, facts, ledger, changed, root))
-    if pr_body is not None:
+    if pr_body is None and loaded is not None:
+        if loaded.require_attestation_sha:
+            findings.append(_finding(
+                "ATTESTATION_SHA_MISMATCH", pr_body_label,
+                "attestation SHA does not match head",
+                "missing", None))
+        if loaded.require_test_evidence:
+            findings.append(_finding(
+                "UNVERIFIED_CLAIM", pr_body_label,
+                "claim lacks required test evidence",
+                "missing", None))
+    elif pr_body is not None:
         findings.extend(_attestation(pr_body, head, loaded, pr_body_label))
         findings.extend(_claims(pr_body, loaded, pr_body_label))
     if loaded is not None:
@@ -359,7 +371,7 @@ class GitRepo:
 
     def commits(self, base: str, head: str) -> list[tuple[str, str]]:
         proc = self.run(
-            "log", "--reverse", f"--format=%H%x1e%B%x1f", f"{base}..{head}")
+            "log", "--reverse", "--format=%H%x1e%B%x1f", f"{base}..{head}")
         text = proc.stdout.decode("utf-8", "replace").replace("\r\n", "\n")
         rows: list[tuple[str, str]] = []
         for part in text.split("\x1f"):
@@ -440,7 +452,7 @@ def _load_contract(
         return None
     if isinstance(contract, TaskContract):
         return contract
-    return load_contract(contract)
+    return load_contract(Path(os.fspath(contract)))
 
 
 def _resolve_block(
@@ -508,15 +520,15 @@ def _load_facts(ledger: Path) -> list[_Fact]:
         session = path.name[len("session-"):-len(".ctx")]
         for row in ledger_facts(doc):
             section = row["section"]
-            texts = [str(row["text"])]
+            text_list: list[str] = [str(row["text"])]
             for child in section.children:
-                if isinstance(child, KeyValue) and child.value not in texts:
-                    texts.append(child.value)
+                if isinstance(child, KeyValue) and child.value not in text_list:
+                    text_list.append(child.value)
             fact_id = str(row["fact_id"] or "")
             kind = str(row["kind"])
             status = _kv(section, "STATUS").strip().lower()
             turn = row["turn"] if isinstance(row["turn"], int) else 0
-            pending.append((fact_id, kind, tuple(texts), path.name, status))
+            pending.append((fact_id, kind, tuple(text_list), path.name, status))
             records.append({
                 "fact_id": fact_id.lower(),
                 "kind": kind,
@@ -540,8 +552,17 @@ def _load_facts(ledger: Path) -> list[_Fact]:
             superseded_ids.add(base.lower())
     retracted_ids = {fact_id for fact_id, _reason in live.retracted}
     stale_ids = {item.fact_id for item in live.stale}
+    text_by_id: dict[str, str] = {}
+    for fact_id, _kind, text_values, _source, _status in pending:
+        if fact_id:
+            text_by_id[fact_id.lower()] = "\n".join(text_values)
+    successor_by_old: dict[str, str] = {}
+    for repl in live.replacements:
+        parts = [successor_by_old.get(repl.old_id, ""), repl.new_text,
+                 text_by_id.get(repl.new_id, "")]
+        successor_by_old[repl.old_id] = "\n".join(part for part in parts if part)
     facts: list[_Fact] = []
-    for fact_id, kind, texts, source, status in pending:
+    for fact_id, kind, text_values, source, status in pending:
         fid = fact_id.lower()
         is_superseded = (
             status == "superseded" or (bool(fid) and fid in superseded_ids))
@@ -550,10 +571,11 @@ def _load_facts(ledger: Path) -> list[_Fact]:
         facts.append(_Fact(
             fact_id=fact_id,
             kind=kind,
-            texts=texts,
+            texts=text_values,
             source=source,
             superseded=is_superseded,
             live=not dropped,
+            successor_text=successor_by_old.get(fid, ""),
         ))
     facts.sort(key=lambda fact: (fact.source, fact.fact_id, fact.kind, fact.texts))
     return facts
@@ -577,7 +599,7 @@ def _event_records(ledger: Path) -> list[dict[str, Any]]:
             continue
         if not isinstance(row, dict):
             continue
-        detail = row.get("detail") if isinstance(row.get("detail"), dict) else {}
+        detail = _detail_map(row.get("detail"))
         event = row.get("event")
         if event == "fact_superseded":
             base = str(row.get("fact_id") or "").lower()
@@ -602,6 +624,13 @@ def _event_records(ledger: Path) -> list[dict[str, Any]]:
                     "retract_reason": str(detail.get("reason") or ""),
                 })
     return records
+
+
+def _detail_map(value: Any) -> dict[str, Any]:
+    """A JSON object, or an empty map when the field is absent or not an object."""
+    if isinstance(value, dict):
+        return {str(key): item for key, item in value.items()}
+    return {}
 
 
 def _collect_markers(
@@ -681,7 +710,7 @@ def _supersede_ids(ledger: Path) -> set[str]:
                 continue
             if not isinstance(row, dict) or row.get("event") != "fact_superseded":
                 continue
-            detail = row.get("detail") if isinstance(row.get("detail"), dict) else {}
+            detail = _detail_map(row.get("detail"))
             for token in (str(row.get("fact_id") or ""), str(detail.get("by") or "")):
                 if _ID_TOKEN.fullmatch(token):
                     ids.add(token.lower())
@@ -774,8 +803,8 @@ def _identifier_stale(
     trees: Mapping[str, set[str]],
 ) -> bool:
     if _is_path(ident):
-        existed = _path_exists(ident, trees[base]) or "/" in ident
-        return existed and not _path_exists(ident, trees[head])
+        return (_path_exists(ident, trees[base])
+                and not _path_exists(ident, trees[head]))
     if _SYMBOL.fullmatch(ident) is None:
         return False
     return git.contains(base, ident) and not git.contains(head, ident)
@@ -797,13 +826,25 @@ def _superseded_in_code(
         if not fact.superseded:
             continue
         for ident in _identifiers("\n".join(fact.texts)):
+            if _ident_in(ident, fact.successor_text):
+                continue
             for path, body in texts:
-                if ident in body:
+                if _ident_in(ident, body):
                     rows.append(_finding(
                         "SUPERSEDED_STILL_IN_CODE", path,
                         "superseded fact identifier still appears in a changed file",
                         ident, fact.fact_id or None))
     return rows
+
+
+def _ident_in(ident: str, text: str) -> bool:
+    """True when ``ident`` appears as its own token, not inside a longer name."""
+    if not ident or not text:
+        return False
+    return re.search(
+        rf"(?<![A-Za-z0-9_]){re.escape(ident)}(?![A-Za-z0-9_])",
+        text,
+    ) is not None
 
 
 def _conflicts(
@@ -836,14 +877,15 @@ def _conflicts(
     for row in rows:
         if row.get("resolved"):
             continue
-        fact_id = str(row.get("against_fact_id") or "") or None
+        against_raw = str(row.get("against_fact_id") or "")
         decision_id = str(row.get("decision_fact_id") or "")
+        against_id = against_raw if against_raw else None
         findings.append(_finding(
             "CONSTRAINT_CONFLICT",
             locations.get(decision_id, "ledger"),
             "decision conflicts with a live constraint",
             str(row.get("phrase") or ""),
-            fact_id))
+            against_id))
     return findings
 
 
@@ -931,14 +973,14 @@ def _attestation(
     contract: TaskContract | None,
     label: str,
 ) -> list[Finding]:
-    patterns = list(_DEFAULT_SHA)
+    compiled: list[re.Pattern[str]] = list(_DEFAULT_SHA)
     if contract is not None:
-        for pattern in contract.attestation_sha_patterns:
-            patterns.append(re.compile(pattern))
+        for raw_pattern in contract.attestation_sha_patterns:
+            compiled.append(re.compile(raw_pattern))
     found: list[str] = []
     seen: set[str] = set()
-    for pattern in patterns:
-        for match in pattern.finditer(pr_body):
+    for compiled_pattern in compiled:
+        for match in compiled_pattern.finditer(pr_body):
             token = match.group(1).strip().lower()
             if token not in seen:
                 seen.add(token)
@@ -1088,7 +1130,7 @@ def _version_pins(
                 body = blobs.text(head, path)
                 if body is None:
                     continue
-                reasons = _pin_reasons(body, pin)
+                reasons = _pin_reasons(body, pin, _pin_label(key, pin))
                 if reasons:
                     rows.append(_finding(
                         "VERSION_PIN_DRIFT", path,
@@ -1112,16 +1154,34 @@ def _pin_key_is_path(key: str) -> bool:
     return any(ch in key for ch in "*?[") or "/" in key or "." in key
 
 
-def _pin_reasons(text: str, pin: str) -> list[str]:
+def _pin_label(key: str, pin: str) -> str:
+    """Name a line must mention before a pin rule looks at it.
+
+    A field key is that name. A path or glob pin uses the package prefix
+    of ``jev-1.13.0`` (``jev``). A bare semver has no extra label, so
+    every line in the pinned file is in scope.
+    """
+    if not _pin_key_is_path(key):
+        return key
+    match = re.match(r"^([A-Za-z][\w]*?)-\d+\.\d+\.\d+$", pin)
+    return match.group(1) if match else ""
+
+
+def _pin_reasons(text: str, pin: str, label: str) -> list[str]:
     reasons: list[str] = []
     if pin not in text:
         reasons.append("missing-exact")
-    if _FLOATING.search(text):
+    scoped = _lines_mentioning(text, label) if label else text
+    if _FLOATING.search(scoped):
         reasons.append("floating-alias")
-    if _family_mismatch(text, pin):
+    if _family_mismatch(scoped, pin):
         reasons.append("mismatched-token")
     reasons.sort()
     return reasons
+
+
+def _lines_mentioning(text: str, label: str) -> str:
+    return "\n".join(line for line in text.splitlines() if label in line)
 
 
 def _family_mismatch(text: str, pin: str) -> bool:

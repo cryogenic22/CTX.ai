@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -72,6 +73,16 @@ class AdvisoryResult:
         }
 
 
+def _require_https(url: str) -> str:
+    """Refuse any URL that would send the API key off TLS."""
+    if not isinstance(url, str):
+        raise ValueError("Jev URL must use https://")
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https" or not parsed.netloc:
+        raise ValueError("Jev URL must use https://")
+    return url
+
+
 def _check_model(model: str, allow_unpinned: bool) -> str:
     if allow_unpinned:
         if not isinstance(model, str) or not model or any(c.isspace() for c in model):
@@ -102,7 +113,7 @@ class JevClient:
             raise ValueError("mode must be off, replay, or shadow")
         self.mode = mode
         self.model = _check_model(model, allow_unpinned)
-        self.url = url
+        self.url = _require_https(url)
         self.replay_path = Path(replay_path) if replay_path is not None else None
         self._api_key = api_key
         self.transport = transport

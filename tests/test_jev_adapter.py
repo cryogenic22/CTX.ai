@@ -69,6 +69,15 @@ def test_rejects_floating_model_unless_overridden(block_network: None) -> None:
     assert pinned.model == "jev-1.2.3"
 
 
+def test_url_must_be_https(block_network: None) -> None:
+    with pytest.raises(ValueError, match="https://"):
+        JevClient(mode="off", url="http://api.typesafe.ai/v1/systemone")
+    with pytest.raises(ValueError, match="https://"):
+        JevClient(mode="shadow", url="http://127.0.0.1/v1/systemone", api_key="secret-key")
+    client = JevClient(mode="off", url="https://api.typesafe.ai/v1/systemone")
+    assert client.url.startswith("https://")
+
+
 def test_replay_filter_and_assess(block_network: None, tmp_path: Path) -> None:
     cassette = tmp_path / "replay.jsonl"
     rows = [
