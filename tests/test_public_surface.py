@@ -33,6 +33,7 @@ EXPECTED_COMMANDS = {
     "session",
     "telemetry",
     "validate",
+    "verify",
 }
 
 EXPECTED_TOOLS = {

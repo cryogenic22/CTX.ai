@@ -523,7 +523,8 @@ def _run(argv: list[str]) -> int:
         help="Check a commit range against the ledger and an optional "
              "task contract (report-only unless a finding code is blocking)")
     p_verify.add_argument("--range", required=True, dest="range",
-                          help="Commit range A..B")
+                          help="Commit range A..B or A...B "
+                               "(file diff uses the merge base)")
     p_verify.add_argument("--pr-body", default=None,
                           help="PR description file")
     p_verify.add_argument("--contract", default=None,

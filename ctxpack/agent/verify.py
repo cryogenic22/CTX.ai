@@ -1,10 +1,14 @@
 """Deterministic ledger-to-PR verifier (issue #16).
 
 ``ctxpack verify --range A..B`` compares commit messages, an optional PR
-body, the working ledger, and an optional task contract. The same inputs
-produce byte-identical JSON on Linux, macOS, and Windows. Nothing here
-calls the network. An optional Jev adapter is a separate advisory path
-and does not change this exit code.
+body, the working ledger, and an optional task contract. ``A..B`` and
+``A...B`` name the same two refs. The changed-file set and the
+stale-identifier baseline are the three-dot PR diff (merge base to head)
+when a merge base exists, and a direct two-dot tree diff only when the
+histories do not meet. Commit messages stay on ``git log A..B``. The
+same inputs produce byte-identical JSON on Linux, macOS, and Windows.
+Nothing here calls the network. An optional Jev adapter is a separate
+advisory path and does not change this exit code.
 
 Exit status is 0 unless a finding's code is in the blocking list. The
 list comes from ``--block``, then ``ctxpack.toml`` ``[verify] block``,
@@ -84,11 +88,16 @@ _GREEN_CLAIM = re.compile(
     r"(?i)\b(?:all tests passed|tests passed|0 errors)\b"
     r"|\b\d+(?:\.\d+)?%\s*coverage\b"
     r"|\bcoverage(?:\s+is|\s*[:=])?\s*\d+(?:\.\d+)?%")
+# Up to two words may sit between "run" and "pytest"/"tests"
+# ("could not run required pytest", "did not run the full tests").
+# Bare "tests skipped" / "skipped tests" is not an admission: a negated
+# or partial skip ("no tests skipped", "e2e tests skipped") is normal.
 _NOT_RUN = re.compile(
     r"(?i)\btests (?:were )?not run\b"
-    r"|\bdid not run (?:the )?tests\b"
-    r"|\btests (?:were )?skipped\b"
-    r"|\bskipped (?:the )?tests\b")
+    r"|\bdid not run (?:\w+\s+){0,2}(?:pytest|tests?)\b"
+    r"|\b(?:could not|couldn't|cannot|unable to) run "
+    r"(?:\w+\s+){0,2}(?:pytest|tests?)\b"
+    r"|\b(?:pytest|tests) could not be run\b")
 _EVIDENCE = (
     re.compile(r"(?i)evidence-sha256:\s*[0-9a-f]{64}\b"),
     re.compile(r"(?i)test-command:\s*\S+"),
@@ -206,11 +215,12 @@ def verify(
     block: Sequence[str] | None = None,
     max_findings: int = MAX_FINDINGS,
 ) -> VerifyReport:
-    """Verify ``range_spec`` (``A..B``) against the ledger and contract.
+    """Verify ``range_spec`` (``A..B`` or ``A...B``) against the ledger and contract.
 
     ``pr_body`` is the description text, not a path. ``contract`` is a
-    path or a loaded :class:`TaskContract`. Findings are sorted by
-    ``(code, location, fact_id, message)``.
+    path or a loaded :class:`TaskContract`. The changed-file set and the
+    stale-identifier baseline use the merge base when the two refs share
+    one. Findings are sorted by ``(code, location, fact_id, message)``.
     """
     if max_findings < 1:
         raise VerifyError("max_findings must be >= 1")
@@ -223,15 +233,18 @@ def verify(
     blocking = _resolve_block(root, block, loaded)
     ledger = Path(ledger_dir) if ledger_dir is not None else root / ".claude/ctx"
     facts = _load_facts(ledger)
+    # One merge-base for the diff and for stale identifiers. Commit
+    # messages stay on the named base (``git log base..head``).
+    effective_base = git.merge_base(base, head) or base
     commits = git.commits(base, head)
-    changed = git.changed(base, head)
-    trees = {base: git.tree(base), head: git.tree(head)}
+    changed = git.changed(effective_base, head)
+    trees = {effective_base: git.tree(effective_base), head: git.tree(head)}
     blobs = _BlobCache(git)
 
     findings: list[Finding] = []
     marked = _collect_markers(commits, pr_body, pr_body_label)
     findings.extend(_unrecorded(marked, facts, ledger))
-    findings.extend(_stale(facts, git, base, head, trees))
+    findings.extend(_stale(facts, git, effective_base, head, trees))
     findings.extend(_superseded_in_code(facts, changed, blobs, head))
     findings.extend(_conflicts(marked, facts, ledger, changed, root))
     if pr_body is None and loaded is not None:
@@ -384,7 +397,22 @@ class GitRepo:
                 rows.append((sha, message.replace("\r\n", "\n")))
         return rows
 
+    def merge_base(self, base: str, head: str) -> str | None:
+        """Best common ancestor, or None when the histories do not meet."""
+        proc = self.run("merge-base", base, head, check=False)
+        if proc.returncode != 0:
+            return None
+        sha = proc.stdout.decode("utf-8").strip().lower()
+        if not re.fullmatch(r"[0-9a-f]{40}", sha):
+            return None
+        return sha
+
     def changed(self, base: str, head: str) -> list[str]:
+        """Paths that differ between ``base`` and ``head``.
+
+        ``verify`` passes the merge base (or the named base when the
+        histories do not meet), which is ``git diff base...head``.
+        """
         proc = self.run("diff", "--name-only", "-z", base, head)
         names: list[str] = []
         for raw in proc.stdout.split(b"\0"):
@@ -437,11 +465,21 @@ class _BlobCache:
 
 
 def _split_range(spec: str) -> tuple[str, str]:
-    if not isinstance(spec, str) or spec.count("..") != 1 or "..." in spec:
-        raise VerifyError("range must be A..B")
-    base, head = spec.split("..", 1)
-    if not base or not head or any(ch.isspace() for ch in spec):
-        raise VerifyError("range must be A..B")
+    """Split ``A..B`` or ``A...B`` into the two refs.
+
+    Both spellings name the same commits. The file diff is three-dot
+    either way; this only rejects a spec that is not two refs.
+    """
+    if not isinstance(spec, str) or any(ch.isspace() for ch in spec):
+        raise VerifyError("range must be A..B or A...B")
+    if spec.count("...") == 1 and spec.count("..") == 1:
+        base, head = spec.split("...", 1)
+    elif "..." not in spec and spec.count("..") == 1:
+        base, head = spec.split("..", 1)
+    else:
+        raise VerifyError("range must be A..B or A...B")
+    if not base or not head:
+        raise VerifyError("range must be A..B or A...B")
     return base, head
 
 
@@ -802,6 +840,11 @@ def _identifier_stale(
     head: str,
     trees: Mapping[str, set[str]],
 ) -> bool:
+    """True when ``ident`` exists at ``base`` and is gone at ``head``.
+
+    ``base`` is the merge base when the range has one, so a path added
+    only on the named base after the branch point is not stale.
+    """
     if _is_path(ident):
         return (_path_exists(ident, trees[base])
                 and not _path_exists(ident, trees[head]))
@@ -1006,17 +1049,30 @@ def _claims(
     label: str,
 ) -> list[Finding]:
     visible = _unfenced(pr_body)
+    needs = contract is not None and contract.require_test_evidence
+    not_run = _NOT_RUN.search(visible)
     match = _GREEN_CLAIM.search(visible)
-    if not match:
-        return []
-    claim = " ".join(match.group(0).split())
-    if _NOT_RUN.search(visible):
+    has_evidence = any(pattern.search(visible) for pattern in _EVIDENCE)
+    # A green claim contradicted by a not-run admission stays unverified.
+    # A standalone admission counts only when the contract requires
+    # evidence and the body has none: a later "N passed" count is that
+    # evidence (a historical "could not run" note followed by a pass count).
+    if not_run is not None and match is not None:
+        claim = " ".join(match.group(0).split())
         return [_finding(
             "UNVERIFIED_CLAIM", label,
             "claim states tests were not run",
             claim, None)]
-    needs = contract is not None and contract.require_test_evidence
-    if needs and not any(pattern.search(visible) for pattern in _EVIDENCE):
+    if not_run is not None and needs and not has_evidence:
+        claim = " ".join(not_run.group(0).split())
+        return [_finding(
+            "UNVERIFIED_CLAIM", label,
+            "claim states tests were not run",
+            claim, None)]
+    if match is None:
+        return []
+    claim = " ".join(match.group(0).split())
+    if needs and not has_evidence:
         return [_finding(
             "UNVERIFIED_CLAIM", label,
             "claim lacks required test evidence",
