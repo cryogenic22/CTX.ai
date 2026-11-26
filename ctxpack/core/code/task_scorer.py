@@ -21,7 +21,6 @@ catalog.
 from __future__ import annotations
 
 import re
-from typing import Iterable
 
 from ctxpack.core.bm25 import score_bm25
 from ctxpack.core.packer.ir import IREntity

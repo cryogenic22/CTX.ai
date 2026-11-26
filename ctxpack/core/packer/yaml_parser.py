@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from typing import Any, Optional
 
-from .ir import Certainty, IREntity, IRField, IRRelationship, IRSource, IRWarning, Severity
+from .ir import Certainty, IREntity, IRField, IRRelationship, IRSource, IRWarning
 
 # ── YAML Subset Parser ──
 
@@ -86,15 +86,15 @@ class _YAMLParser:
         # Only reject if | or > appears as the sole value after a colon
         if re.match(r"^[^#:]+:\s*[|>]\s*$", stripped):
             raise self._error(
-                f"Multi-line scalar indicators (| and >) are not supported"
+                "Multi-line scalar indicators (| and >) are not supported"
             )
         if _TAG_RE.search(stripped):
-            raise self._error(f"YAML tags are not supported")
+            raise self._error("YAML tags are not supported")
         if _ANCHOR_RE.search(stripped):
             # Check it's not inside a quoted string
             clean = re.sub(r"['\"].*?['\"]", "", stripped)
             if _ANCHOR_RE.search(clean):
-                raise self._error(f"YAML anchors/aliases are not supported")
+                raise self._error("YAML anchors/aliases are not supported")
 
     def _parse_value(self, indent: int) -> Any:
         self._skip_blanks_and_comments()

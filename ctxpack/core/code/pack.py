@@ -25,7 +25,6 @@ responses.
 from __future__ import annotations
 
 import hashlib
-import json
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -38,8 +37,8 @@ from ctxpack.core.code.callgraph import (
 )
 from ctxpack.core.code.catalog import render_catalog_row
 from ctxpack.core.code.emitter import emit_irentities
-from ctxpack.core.code.exclusion import iter_python_files, load_exclusion_rules, is_excluded
-from ctxpack.core.code.parser import ParseWarning, parse_python
+from ctxpack.core.code.exclusion import load_exclusion_rules, is_excluded
+from ctxpack.core.code.parser import parse_python
 from ctxpack.core.code.parser_tsx import parse_tsx
 from ctxpack.core.code.task_scorer import (
     combined_scores,

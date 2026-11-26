@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
     branches: [main]
 
@@ -202,11 +203,70 @@ jobs:
           "${RUNNER_TEMP}/clean/bin/python" - <<'PY'
           import importlib.metadata as m
           v = m.version("ctxpack")
-          assert v == "0.5.0rc1", f"unexpected installed version {v!r}"
-          import ctxpack  # noqa: F401 — dep-free import from the clean env
+          import ctxpack
+          assert v == ctxpack.__version__, (
+              f"installed metadata {v!r} != runtime {ctxpack.__version__!r}")
+          from ctxpack.core.code.telemetry import _SCHEMA_PATH
+          assert _SCHEMA_PATH.is_file(), (
+              f"telemetry schema missing from the wheel: {_SCHEMA_PATH}")
           print("clean wheel install OK, version", v)
           PY
           "${RUNNER_TEMP}/clean/bin/ctxpack" --help
+
+  # ── code: the code-packer suite on every OS/Python cell the ordinary
+  #    lane uses. tests/code needs the [code] extra (tree-sitter), which
+  #    the ordinary lane deliberately does not install, so this is its
+  #    own job rather than a step inside `test`.
+  code:
+    name: code (${{ matrix.os }} py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-latest,  python-version: "3.10"}
+          - {os: ubuntu-latest,  python-version: "3.11"}
+          - {os: ubuntu-latest,  python-version: "3.12"}
+          - {os: ubuntu-latest,  python-version: "3.13"}
+          - {os: windows-latest, python-version: "3.10"}
+          - {os: windows-latest, python-version: "3.13"}
+          - {os: macos-latest,   python-version: "3.10"}
+          - {os: macos-latest,   python-version: "3.13"}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6 (2026-07-16)
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6 (2026-06-23)
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package + code extra + test runner
+        run: pip install ".[code,test]"
+      - name: Run tests/code
+        run: python -m pytest tests/code -q -m "not slow"
+
+  # ── quality: ratchets. Counts were measured with mypy 2.4.1, ruff
+  #    0.17.6, import-linter 2.17, pytest-cov 7.1.0, and mcp 2.3.0.
+  #    Pins keep the mypy total and the coverage floor reproducible.
+  quality:
+    name: quality (ruff, mypy, import-linter, coverage, version)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6 (2026-07-16)
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6 (2026-06-23)
+        with:
+          python-version: "3.12"
+      - name: Install package, extras, and pinned quality tools
+        run: |
+          pip install ".[all,test]" "mcp==2.3.0" \
+            "mypy==2.4.1" "ruff==0.17.6" "import-linter==2.17" "pytest-cov==7.1.0"
+      - name: Ruff pyflakes gate (benchmarks excluded)
+        run: python -m ruff check --select F ctxpack --exclude ctxpack/benchmarks
+      - name: Mypy error-count ratchet
+        run: python scripts/check_mypy_ratchet.py
+      - name: Import-linter architecture contract
+        run: python -c "from importlinter.cli import lint_imports; raise SystemExit(lint_imports(no_cache=True))"
+      - name: Version single-source check
+        run: python scripts/check_version.py
+      - name: Product-code coverage floor
+        run: python -m pytest tests/ -q -m "not slow" --cov=ctxpack --cov-report=term --cov-fail-under=76
 
   # ── ci-required: the single stable check for branch protection. Fail-
   #    closed aggregator — passes only if EVERY upstream job succeeded.
@@ -214,7 +274,7 @@ jobs:
   #    fails, is cancelled, or is skipped.
   ci-required:
     name: ci-required
-    needs: [core, test, replay-byte-pin, extras, gates, artifact]
+    needs: [core, test, replay-byte-pin, extras, gates, artifact, code, quality]
     if: always()
     runs-on: ubuntu-latest
     steps:

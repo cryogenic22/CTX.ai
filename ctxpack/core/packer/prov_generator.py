@@ -12,8 +12,7 @@ Format (per spec section 9):
 
 from __future__ import annotations
 
-from ..model import CTXDocument, KeyValue, Provenance, Section
-from .ir import IRCorpus, IREntity
+from .ir import IRCorpus
 
 
 def generate_provenance(

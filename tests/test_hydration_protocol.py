@@ -148,6 +148,19 @@ class TestHydrationToolSchema:
         assert "parameters" in schema
         assert schema["parameters"]["type"] == "object"
 
+    def test_schema_is_defined_once(self):
+        """The second copy used to shadow the first. One definition is canonical."""
+        import inspect
+
+        import ctxpack.core.hydration_protocol as mod
+
+        source = inspect.getsource(mod)
+        assert source.count("def build_hydration_tool_schema") == 1
+        schema = mod.build_hydration_tool_schema()
+        assert schema["name"] == "ctx/hydrate"
+        assert schema["parameters"]["required"] == ["section"]
+        assert "section" in schema["parameters"]["properties"]
+
 
 # ── WS2: CLI ──
 

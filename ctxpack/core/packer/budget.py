@@ -10,7 +10,6 @@ This module implements WS1 of the v0.4.0 backlog.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 from .ir import IRCorpus, IREntity, IRField
 

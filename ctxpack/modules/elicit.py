@@ -19,15 +19,19 @@ at ``.ctx-cache/elicited.json``. No external dependencies.
 
 from __future__ import annotations
 
+import builtins
 import json
 import os
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Iterator, Optional, Union
+from typing import TYPE_CHECKING, Iterator, Optional, Union
 
 from ctxpack.core.layers import ContextLayer
 from ctxpack.core.packer.ir import IREntity, IRField, IRSource
+
+if TYPE_CHECKING:
+    from ctxpack.modules.dream import GapItem
 
 PathLike = Union[str, Path]
 
@@ -79,7 +83,7 @@ class ElicitStore:
     def __contains__(self, name: str) -> bool:
         return name in self.facts
 
-    def list(self) -> list[ElicitedFact]:
+    def list(self) -> builtins.list[ElicitedFact]:
         return list(self.facts.values())
 
     def get(self, name: str) -> Optional[ElicitedFact]:
@@ -175,7 +179,6 @@ class ElicitStore:
         re-published to consumers because that would make ELICITED
         entries stand in for ground truth they were never meant to bear.
         """
-        ts = time.time() if now is None else now
         rec = self.facts.get(name)
         if rec is None:
             raise KeyError(name)
@@ -191,13 +194,13 @@ class ElicitStore:
 
     # ── To IR ────
 
-    def to_entities(self) -> list[IREntity]:
+    def to_entities(self) -> builtins.list[IREntity]:
         """Render the store as ELICITED IREntity objects.
 
         Each fact becomes one entity with a single ``fact`` field plus
         bookkeeping fields (``original_expert``, ``confirming_expert``).
         """
-        out: list[IREntity] = []
+        out: builtins.list[IREntity] = []
         for rec in self.facts.values():
             fields = [
                 IRField(
@@ -273,7 +276,7 @@ class ElicitStore:
 # ── Gap-driven elicitation prompts ──────────────────────────────────────
 
 
-def build_elicitation_prompt(gap: "GapItem") -> str:
+def build_elicitation_prompt(gap: GapItem) -> str:
     """Format a gap into a prompt operators can route to a domain expert.
 
     Returns plain text suitable for posting to a #ask-the-experts Slack
@@ -291,7 +294,7 @@ def build_elicitation_prompt(gap: "GapItem") -> str:
         f"{gap.last_seen}; the catalog returned no sections each time.",
         "Action: identify what the questions were about and capture an "
         "ELICITED note via:",
-        f"  ctxpack elicit add <ENTITY> \"<fact>\" --expert <you>",
+        "  ctxpack elicit add <ENTITY> \"<fact>\" --expert <you>",
         "If you saw a similar question recently, your message history is "
         "the fastest source — the raw text was never stored in telemetry.",
     ]

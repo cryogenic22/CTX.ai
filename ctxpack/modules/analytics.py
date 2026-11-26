@@ -16,7 +16,6 @@ import re
 from typing import Any
 
 from ctxpack.core.packer.ir import (
-    Certainty,
     IRCorpus,
     IREntity,
     IRField,
@@ -317,7 +316,6 @@ def _build_metric_entity(
     metric: dict[str, Any], domain: str, source: IRSource
 ) -> IREntity:
     """Build an IREntity for a single ontology metric."""
-    metric_id = metric.get("id", "")
     name = metric.get("name", "")
 
     # Entity name: METRIC-DOMAIN-NAME (e.g. METRIC-RETAIL-GROSS-SALES)
@@ -384,7 +382,6 @@ def _build_dimension_entity(
     dim: dict[str, Any], domain: str, source: IRSource
 ) -> IREntity:
     """Build an IREntity for a single ontology dimension."""
-    dim_id = dim.get("id", "")
     name = dim.get("name", "")
 
     entity_name = f"DIM-{_canon(domain)}-{_canon(name)}"
@@ -714,7 +711,7 @@ def build_analytics_l3(corpus: IRCorpus) -> str:
 
     # Build output
     num_domains = len(domain_stats)
-    lines.append(f"ANALYTICS DOMAIN DIRECTORY")
+    lines.append("ANALYTICS DOMAIN DIRECTORY")
     lines.append(f"Domains: {num_domains} packs")
     lines.append("---")
 

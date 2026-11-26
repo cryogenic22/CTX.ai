@@ -190,7 +190,6 @@ def _glob_to_regex(pattern: str) -> str:
     - ``?`` → ``[^/]`` (single non-slash char)
     - other regex specials → escaped
     """
-    import re
     out = []
     i = 0
     while i < len(pattern):

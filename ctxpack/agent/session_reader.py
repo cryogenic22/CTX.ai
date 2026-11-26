@@ -327,8 +327,8 @@ def session_decisions(doc: CTXDocument, sid: str) -> dict[str, Any]:
             "text": _primary_value(s),
             "section": s.name,
         })
-    for bucket in out.values():
-        bucket.sort(key=lambda r: r["turn"])
+    for rows in out.values():
+        rows.sort(key=lambda r: r["turn"])
     return {"session": sid, **out,
             "counts": {k: len(v) for k, v in out.items()}}
 
@@ -612,7 +612,7 @@ def _ratification_journal_block(journal) -> "dict[str, Any]":
 
 
 def _annotate_authority(matches: "list[dict[str, Any]]",
-                        ledger_dir: str) -> None:
+                        ledger_dir: Optional[str]) -> dict[str, Any]:
     """Stamp each match with its authority AXES (PF-11 v2.1).
 
     Extraction basis is not authority (an assistant emits ``Decision:``
@@ -635,10 +635,11 @@ def _annotate_authority(matches: "list[dict[str, Any]]",
     # No ledger_dir (doc-only callers): the authority axis still stamps
     # from the matches' own SOURCE-ROLE fields; the ratification axis
     # reads as an absent journal — a real zero, not degradation.
-    journal = (read_ratifications(ledger_dir) if ledger_dir else
-               {"state": {}, "malformed_rows": 0, "degraded": False,
-                "quarantined": 0})
-    state = journal["state"]
+    journal: dict[str, Any] = (
+        read_ratifications(ledger_dir) if ledger_dir else
+        {"state": {}, "malformed_rows": 0, "degraded": False,
+         "quarantined": 0})
+    state: dict[str, Any] = journal["state"]
     for m in matches:
         fields = {str(f.get("key", "")).upper(): str(f.get("value", ""))
                   for f in m.get("fields") or []}

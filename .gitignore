@@ -8,6 +8,12 @@ dist/
 build/
 .pytest_cache/
 .hypothesis/
+.mypy_cache/
+.ruff_cache/
+.import_linter_cache/
+.coverage
+.coverage.*
+htmlcov/
 
 # Environment / secrets
 .env

@@ -49,7 +49,8 @@ code = [
 # MCP server (ctx/session_*, ctx/hydrate, code-packer tools). Optional so
 # the core stays zero-dep: hooks + `ctxpack session` CLI work without it.
 mcp = [
-    "mcp>=1.0",
+    # Upper bound: an mcp 3.0 release must not break installs.
+    "mcp>=1.0,<3",
 ]
 # Analytics domain-pack compiler (ctxpack.modules.analytics): PyYAML for
 # full YAML domain packs (folded scalars/anchors). Optional so the prose
@@ -73,7 +74,7 @@ test = [
     "pytest>=7.0",
     "PyYAML>=6.0",
     "tiktoken>=0.7",
-    "mcp>=1.0",
+    "mcp>=1.0,<3",
     "pydantic>=2.0",
 ]
 
@@ -90,8 +91,79 @@ ctxpack = "ctxpack.cli.main:main"
 include = ["ctxpack*"]
 exclude = ["tests*"]
 
+# Non-Python data the installed package loads by path. Without this the
+# wheel omits the code-packer telemetry schema and load_schema() fails
+# after a clean install.
+[tool.setuptools.package-data]
+ctxpack = ["schemas/*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
     "slow: integration tests that require an external codebase (e.g. SCRIPTIVA_ROOT) or otherwise take longer than a few seconds. Excluded from the fast regression contract: pytest -m \"not slow\"",
+]
+
+# Product-code line coverage. Benchmarks are research code and are not
+# part of the floor. The CI quality job passes --cov-fail-under.
+[tool.coverage.run]
+source = ["ctxpack"]
+omit = [
+    "ctxpack/benchmarks/*",
+    "ctxpack/benchmarks/**/*",
+]
+
+[tool.coverage.report]
+skip_empty = true
+show_missing = false
+
+# Pyflakes gate. Benchmarks are excluded (research scripts, not the
+# product floor). Per-file ignores below are temporary: those files are
+# owned by the parallel brief-composer PR and cannot be edited here.
+[tool.ruff]
+extend-exclude = ["ctxpack/benchmarks"]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["F"]
+
+[tool.ruff.lint.per-file-ignores]
+# TODO(v1.0-pr-b): remove once F-class errors in cli/main.py are fixed.
+"ctxpack/cli/main.py" = ["F401", "F541"]
+# TODO(v1.0-pr-b): remove once F-class errors in the MCP server are fixed.
+# The module path is ctxpack/integrations/mcp_server.py (there is no
+# top-level ctxpack/mcp_server.py). Parallel PR #30 edits this file.
+"ctxpack/integrations/mcp_server.py" = ["F401"]
+# TODO(v1.0-pr-b): remove once the unused json import is fixed.
+# Parallel PR #30 edits this file.
+"ctxpack/agent/transcript_parser.py" = ["F401"]
+
+# Architecture contract. core is the bottom of the product stack and must
+# not grow imports of agent, cli, modules, the MCP server, or benchmarks.
+# cli may import agent, and agent may import core. As of this ratchet the
+# checked graph has no forbidden edge, so there is no ignore_imports list
+# to grandfather. A new violation fails lint-imports; do not add an
+# ignore without a # TODO(v1.1) comment on that edge.
+[tool.importlinter]
+root_packages = ["ctxpack"]
+include_external_packages = false
+
+[[tool.importlinter.contracts]]
+name = "ctxpack.core does not import upward"
+type = "forbidden"
+source_modules = ["ctxpack.core"]
+forbidden_modules = [
+    "ctxpack.agent",
+    "ctxpack.cli",
+    "ctxpack.modules",
+    "ctxpack.integrations.mcp_server",
+    "ctxpack.benchmarks",
+]
+
+[[tool.importlinter.contracts]]
+name = "cli -> agent -> core"
+type = "layers"
+layers = [
+    "ctxpack.cli",
+    "ctxpack.agent",
+    "ctxpack.core",
 ]

@@ -14,7 +14,6 @@ from .model import (
     CTXDocument,
     KeyValue,
     PlainLine,
-    Provenance,
     Section,
 )
 

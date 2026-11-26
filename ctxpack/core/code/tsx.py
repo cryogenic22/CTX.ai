@@ -139,7 +139,7 @@ def _from_lexical_declaration(
         return None
     name = name_node.text.decode("utf-8")
     kind = _classify_const_kind(name, value_node)
-    hooks = ()
+    hooks: tuple[str, ...] = ()
     if value_node is not None and kind in (Kind.COMPONENT, Kind.HOOK):
         hooks = _extract_hooks_inside(value_node)
     return Symbol(
