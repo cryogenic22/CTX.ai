@@ -49,9 +49,10 @@ code = [
 # MCP server (ctx/session_*, ctx/hydrate, code-packer tools). Optional so
 # the core stays zero-dep: hooks + `ctxpack session` CLI work without it.
 mcp = [
-    # Upper bound: a future mcp 3.x must not install over this extra
-    # until the server is updated for that breaking line.
-    "mcp>=1.0,<3",
+    # mcp 2.0 removed Server.list_tools / call_tool and renamed
+    # Tool.inputSchema to input_schema. create_server() crashes on that
+    # line, and mypy reports the old keyword as an error. Stay on 1.x.
+    "mcp>=1.0,<2",
 ]
 # Analytics domain-pack compiler (ctxpack.modules.analytics): PyYAML for
 # full YAML domain packs (folded scalars/anchors). Optional so the prose
@@ -75,7 +76,7 @@ test = [
     "pytest>=7.0",
     "PyYAML>=6.0",
     "tiktoken>=0.7",
-    "mcp>=1.0,<3",
+    "mcp>=1.0,<2",
     "pydantic>=2.0",
 ]
 

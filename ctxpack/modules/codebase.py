@@ -648,11 +648,25 @@ def _preserved_claude_md(existing: str) -> str:
     auto-generated header) contributes no user text, so re-export stays a
     pure map. ``<!-- ctxpack:codebase-map:begin/end -->`` delimit a
     generated block that was merged into hand-written content.
+
+    Markers must be a single begin followed later by a single end. A
+    missing marker, a reversed pair, or a duplicate raises ``ValueError``
+    and does not rewrite the caller's text.
     """
     text = existing or ""
-    if _CODEBASE_MAP_BEGIN in text and _CODEBASE_MAP_END in text:
-        pre, rest = text.split(_CODEBASE_MAP_BEGIN, 1)
-        _generated, post = rest.split(_CODEBASE_MAP_END, 1)
+    begin = text.find(_CODEBASE_MAP_BEGIN)
+    end = text.find(_CODEBASE_MAP_END)
+    if begin != -1 or end != -1:
+        begin_count = text.count(_CODEBASE_MAP_BEGIN)
+        end_count = text.count(_CODEBASE_MAP_END)
+        if begin_count != 1 or end_count != 1 or begin == -1 or end < begin:
+            raise ValueError(
+                "malformed ctxpack codebase-map markers in existing_claude_md: "
+                "need exactly one begin marker followed by one end marker. "
+                "User content was not rewritten."
+            )
+        pre = text[:begin]
+        post = text[end + len(_CODEBASE_MAP_END):]
         text = pre + post
     elif text.lstrip().startswith(_CODEBASE_MAP_HEADER):
         return ""
@@ -666,8 +680,9 @@ def export_claude_md(
     *,
     existing_claude_md: str = "",
     max_lines: int = 200,
+    merge_existing: bool = False,
 ) -> str:
-    """Generate a codebase map, preserving hand-written CLAUDE.md text.
+    """Generate a codebase map.
 
     Structure of the generated block:
     1. Architecture overview (auto-detected)
@@ -677,12 +692,18 @@ def export_claude_md(
     5. Data models (SQLAlchemy/TypeScript types)
     6. Test coverage summary
 
-    ``existing_claude_md`` is the current file contents, not a hint to
-    ignore. Empty input returns only the generated map (the supplementary
-    ``.claude/codebase-map.md`` body). Non-empty hand-written text is kept
-    verbatim and the generated map is refreshed inside one delimited
-    block, so writing the result back cannot drop user content — including
-    negations. ``max_lines`` caps the generated block only.
+    The default return is only the generated map (the supplementary
+    ``.claude/codebase-map.md`` body). ``ctxpack codebase export`` always
+    passes the repo ``CLAUDE.md`` as ``existing_claude_md`` even when the
+    output file is that standalone map. Embedding it would copy
+    ``@.claude/codebase-map.md`` into the map itself.
+
+    Pass ``merge_existing=True`` for an in-place ``CLAUDE.md`` update.
+    Hand-written text is kept verbatim and the generated map is refreshed
+    inside one delimited block. ``max_lines`` caps the generated block
+    only, so a trailing negation in the user text is not cut. Malformed
+    markers raise ``ValueError`` and the function does not return a
+    rewritten document.
     """
     lines: list[str] = []
 
@@ -822,6 +843,8 @@ def export_claude_md(
         lines.append("*(truncated to fit context budget)*")
 
     generated = "\n".join(lines)
+    if not merge_existing:
+        return generated
     user = _preserved_claude_md(existing_claude_md)
     if not user:
         return generated

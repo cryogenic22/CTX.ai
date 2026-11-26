@@ -2035,3 +2035,11 @@ or untracked document state belongs in the release manifest by implication.
 
 - **Cause:** PR #30 merged to `main` (`9974fd6`) while this branch was open. The pull-request CI job typechecks the merge, and the brief composer's new MCP tool adds one `inputSchema` mypy error (78 → 79).
 - **Fix:** merge `origin/main` (clean auto-merge) and set the mypy baseline to **79**. Pin CI to `mypy==2.4.1`, `ruff==0.17.6`, `import-linter==2.17`. Ruff F still 0. import-linter still 2 kept.
+
+### 2026-11-26 — review blockers on #31
+
+- **mcp pin:** `mcp>=1.0,<2` in the `mcp` and `test` extras. mcp 2.3 crashes `create_server()` (`Server.list_tools` removed) and adds one mypy `inputSchema` error per tool. `create_server()` is tested on the 1.x line.
+- **mypy ratchet:** fails unless stdout/stderr contains `Found N error` or `Success: no issues found`, and the parsed error lines match N. Baseline on this tree with mcp 1.30.0 is **56**.
+- **export_claude_md:** merge is opt-in (`merge_existing=True`). The default, which is what `ctxpack codebase export` calls, stays a standalone map and does not copy a parent `CLAUDE.md` that imports `@.claude/codebase-map.md`. Malformed markers raise `ValueError` and are not rewritten.
+- **SUPPORTED.md:** brief composer is the live `ctxpack.agent.brief` surface.
+- **Tests:** `python3 -m pytest tests/ -q -m "not slow"` → 2028 passed / 37 skipped / 57 deselected.

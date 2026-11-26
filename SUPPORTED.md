@@ -79,18 +79,17 @@ not a verify command.
 
 ### Brief
 
-The supported v1.0 briefing API is one composer:
+The supported v1.0 briefing API is `ctxpack.agent.brief`, live on this
+tree:
 
-- CLI `ctxpack brief` (budget, unit, format, `--ack`)
-- Python `ctxpack.brief(...)`
+- CLI `ctxpack brief` (`--budget`, `--unit`, `--format`, `--ack`)
+- Python `ctxpack.brief(...)`, which calls `ctxpack.agent.brief.brief`
 - MCP `ctx/brief`
 - CLI `ctxpack ack check --token T` for the delivery acknowledgement
 
-That composer is a separate change from this document. A tree that does
-not yet contain `ctxpack/agent/brief.py` still resumes through
-`ctxpack session resume` and the SessionStart hook. A release that
-claims this v1.0 surface includes the composer. The composer is not
-experimental.
+The same ledger and the same arguments produce the same markdown from
+the CLI, the Python function, and the MCP tool when ack is off. The
+composer is supported product surface.
 
 ### Knowledge packer
 
@@ -133,7 +132,7 @@ Import these. Do not import private helpers, `ctxpack.benchmarks`, or
 | Entrypoint | Role |
 |---|---|
 | `ctxpack.__version__` | Package version. Single source, matched to `pyproject.toml`. |
-| `ctxpack.brief(...)` | Budgeted briefing, when the brief composer is present. Same bytes as the CLI and `ctx/brief` for the same ledger and arguments, with `--ack` off. |
+| `ctxpack.brief(...)` | Budgeted briefing (`ctxpack.agent.brief.brief`). Same bytes as the CLI and `ctx/brief` for the same ledger and arguments, with ack off. |
 | `ctxpack.core.parser.parse` | Parse `.ctx` text. |
 | `ctxpack.core.serializer.serialize` | Serialize a document. `serialize_section` for one section. |
 | `ctxpack.core.validator.validate` | Validate a document. |
@@ -159,9 +158,9 @@ Import these. Do not import private helpers, `ctxpack.benchmarks`, or
 not the session-memory product path.
 
 The core and agent trees stay zero-dependency. Optional extras are
-`mcp` (pinned `mcp>=1.0,<3`), `code` (tree-sitter and tiktoken), and
-`analytics` (PyYAML). A breaking major of `mcp` does not satisfy the
-`mcp` extra.
+`mcp` (pinned `mcp>=1.0,<2`), `code` (tree-sitter and tiktoken), and
+`analytics` (PyYAML). The server uses the mcp 1.x `list_tools` /
+`inputSchema` API. An mcp 2.x install does not satisfy the extra.
 
 ## Supported MCP tools
 
@@ -172,7 +171,7 @@ are supported but not the default advertisement.
 | Group | Tools |
 |---|---|
 | Default surface | `ctx/resume`, `ctx/session_recall`, `ctx/why`, `ctx/session_literals`, `ctx/checkpoint` |
-| Brief (supported; ships with the brief composer) | `ctx/brief` |
+| Brief | `ctx/brief` |
 | Advanced session | `ctx/session_timeline`, `ctx/session_decisions`, `ctx/graph_query` |
 | Documents | `ctx/pack`, `ctx/parse`, `ctx/validate`, `ctx/format`, `ctx/hydrate` |
 | Code packer (`[code]` extra) | `ctx/code_pack`, `ctx/code_version`, `ctx/code_list_symbols`, `ctx/code_hydrate_symbol`, `ctx/code_search_symbols`, `ctx/code_raw_file`, `ctx/code_telemetry` |
