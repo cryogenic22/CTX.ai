@@ -35,7 +35,13 @@ from .checkpoint import (
     _claude_project_dir_name,
     run_checkpoint,
 )
-from .ledger import existing_ctx_path, ledger_stem, UnsafeSessionId
+from .ledger import (
+    UnsafeSessionId,
+    existing_ctx_path,
+    legacy_owned_by,
+    legacy_stem,
+    ledger_stem,
+)
 from .transcript_adapters import TranscriptFormatError
 
 # A transcript written this recently is treated as a LIVE session and
@@ -126,7 +132,15 @@ def capture_coverage(project_dir: str = ".",
             ctx_path = existing_ctx_path(out_dir, stem) or os.path.join(
                 out_dir, f"session-{ledger_stem(stem)}.ctx")
         except UnsafeSessionId:
-            ctx_path = os.path.join(out_dir, f"session-{stem[:8]}.ctx")
+            # An unsafe id has no collision-free stem. The 8-char slice is
+            # usable only when the journal says this transcript owns it.
+            short = legacy_stem(stem)
+            candidate = os.path.join(out_dir, f"session-{short}.ctx") if short else ""
+            if (short and candidate and os.path.isfile(candidate)
+                    and legacy_owned_by(out_dir, stem, short)):
+                ctx_path = candidate
+            else:
+                ctx_path = os.path.join(out_dir, "session-unknown.ctx")
         if (exclude_session and stem.startswith(exclude_session[:8])) or (
                 ref_now - mtime < active_slack_s):
             status = "active"

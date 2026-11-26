@@ -2052,3 +2052,9 @@ or untracked document state belongs in the release manifest by implication.
 - **Not touched:** `ctxpack/agent/verify.py`, `ctxpack/agent/contract.py`, `ctxpack/agent/jev_adapter.py`, `.github/workflows/ci.yml`.
 - **Tests:** `python3 -m pytest tests/ -q -m "not slow" --ignore=tests/code` → 1716 passed / 38 skipped / 57 deselected. Replay `tests/test_replay_benchmark.py` → 7 passed / 0 skipped. Gates: claims OK (16 warn-only), capability registry OK, token accounting 8 passed, doc-privacy OK, release-manifest OK.
 - **L1 pin:** only `tests/fixtures/replay/synthetic-l1/expected.json`. `rpl00001` FAILED-APPROACH coverage at 4000 and 8000 moved 0.0 → 0.5 (dropped 2 → 1). Default 12k aggregate FAILED-APPROACH coverage stayed 0.6.
+
+### 2026-11-26 — Cursor agent — PR B rebase onto `dc5cb1f`
+
+- **Rebase:** `cursor/p0-hardening-ledger-cycle-cf4f` onto `origin/main` `dc5cb1f`. Both board entries kept.
+- **Follow-up:** mypy `__cause__` narrowed with `isinstance(..., Exception)` (ratchet stays 56); removed the `TODO(v1.0-pr-b)` ruff ignore and the two `cli/main.py` pyflakes findings; `_shell_join` quotes backslashes; sanitized session ids that differ from the raw id get a hash suffix; legacy 8-char reads require ownership.
+- **Checks:** ruff F 0, `scripts/check_mypy_ratchet.py` current=56 baseline=56, `lint-imports` 2 kept, `pytest tests/ -q -m "not slow" --ignore=tests/code` 1730 passed / 37 skipped / 57 deselected, replay 7 passed / 0 skipped, `tests/code` 313 passed. Not merged.

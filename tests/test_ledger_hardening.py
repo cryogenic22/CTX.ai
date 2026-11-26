@@ -12,8 +12,10 @@ from ctxpack.agent.checkpoint import run_checkpoint
 from ctxpack.agent.ledger import (
     UnsafeSessionId,
     atomic_write_text,
+    existing_ctx_path,
     ledger_stem,
     resolve_explicit,
+    stem_on_disk,
 )
 from ctxpack.agent.session_reader import resolve_session
 from ctxpack.core.tokens import count_budget
@@ -103,6 +105,38 @@ def test_path_traversal_session_id_is_rejected(tmp_path):
     with pytest.raises(UnsafeSessionId):
         run_checkpoint(rows, str(tmp_path / "ctx"), as_of="2026-11-01")
     assert not (tmp_path / "ctx").exists()
+
+
+def test_sanitized_ids_do_not_share_a_stem():
+    space = ledger_stem("a b")
+    colon = ledger_stem("a:b")
+    assert space != colon
+    assert space.startswith("a-b-")
+    assert colon.startswith("a-b-")
+    assert ledger_stem("a b") == space
+    assert ledger_stem("abc12345-run1") == "abc12345-run1"
+
+
+def test_legacy_read_does_not_claim_another_sessions_file(tmp_path):
+    out = tmp_path / "ctx"
+    old = "abc12345-old"
+    run_checkpoint(
+        _transcript(tmp_path / "old.jsonl", old,
+                    "Decision: the old ledger stays with its owner."),
+        str(out), as_of="2026-11-01")
+    full = out / f"session-{ledger_stem(old)}.ctx"
+    legacy = out / "session-abc12345.ctx"
+    legacy.write_bytes(full.read_bytes())
+    full.unlink()
+    assert stem_on_disk(str(out), old) == "abc12345"
+    assert stem_on_disk(str(out), "abc12345-new") == "abc12345-new"
+    assert existing_ctx_path(str(out), "abc12345-new") == ""
+    resolved, path = resolve_explicit(str(out), "abc12345-new")
+    assert resolved == "abc12345-new"
+    assert not os.path.isfile(path)
+    owned, owned_path = resolve_explicit(str(out), old)
+    assert owned == "abc12345"
+    assert owned_path.endswith("session-abc12345.ctx")
 
 
 def test_long_ids_get_distinct_hash_suffixes():

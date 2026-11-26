@@ -167,6 +167,15 @@ def test_non_hook_commands_still_fail_normally(tmp_path, capsys):
         main(["definitely-not-a-command"])
 
 
+def test_shell_join_quotes_windows_backslashes():
+    from ctxpack.cli.main import _shell_join, _split_command
+
+    exe = "C:\\Users\\k\\py.exe"
+    cmd = _shell_join([exe, "-P", "-m", "ctxpack.cli.main"])
+    assert cmd == '"C:\\Users\\k\\py.exe" -P -m ctxpack.cli.main'
+    assert _split_command(cmd)[0] == exe
+
+
 def test_hook_command_uses_safe_path_on_modern_python():
     import sys as _sys
 

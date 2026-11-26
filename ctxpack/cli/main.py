@@ -770,8 +770,6 @@ def _cmd_diff(args: argparse.Namespace) -> int:
 
 
 def _cmd_eval(args: argparse.Namespace) -> int:
-    import json
-
     from ..benchmarks.eval_config import EvalConfig
     from ..benchmarks.runner import run_eval, save_results
     from ..core.packer import pack
@@ -896,7 +894,7 @@ def _cmd_telemetry(args: argparse.Namespace) -> int:
         print(f"  Zero-match rate:        {summary['zero_match_rate']:.1%}")
 
         if summary['top_sections']:
-            print(f"\n  Top sections:")
+            print("\n  Top sections:")
             for name, count in summary['top_sections'][:10]:
                 print(f"    {name:40s} {count:>4d}")
 
@@ -1514,7 +1512,8 @@ def _cmd_hook(args: argparse.Namespace) -> int:
             # FAIL-CLOSED: a scan crash must never present as a healthy
             # empty result, and unscanned bytes are never emitted.
             outcome, error = FAILED, "egress_scan_failed"
-            exc = e.__cause__ or e
+            cause = e.__cause__
+            exc = cause if isinstance(cause, Exception) else e
             gist = ""
         except Exception as e:  # noqa: BLE001 — a broken ledger must not break
             # the session, but it must not look like a healthy empty one
@@ -1904,12 +1903,13 @@ def _py_module_argv(*module_args: str) -> "list[str]":
 def _shell_join(argv: "list[str]") -> str:
     """Join an argv for a hook command string.
 
-    Paths without spaces stay literal, including Windows backslashes.
-    A path that contains whitespace is double-quoted.
+    Double-quote any argument that contains whitespace or a backslash.
+    Git Bash strips unquoted ``\\U``-style sequences, so
+    ``C:\\Users\\k\\py.exe`` must be quoted or the hook never starts.
     """
     parts: list[str] = []
     for arg in argv:
-        if arg and all(ch not in arg for ch in ' \t"'):
+        if arg and all(ch not in arg for ch in ' \t"\\'):
             parts.append(arg)
         else:
             parts.append('"' + arg.replace('"', "") + '"')

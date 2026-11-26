@@ -112,13 +112,6 @@ extend-exclude = ["ctxpack/benchmarks"]
 [tool.ruff.lint]
 select = ["F"]
 
-[tool.ruff.lint.per-file-ignores]
-# TODO(v1.0-pr-b): cli/main.py is edited by the parallel brief-composer
-# change. These two pyflakes findings (unused json import in _cmd_eval,
-# f-string with no placeholders in the telemetry summary) stay ignored
-# until that file can be edited. Remove this table entry in that PR.
-"ctxpack/cli/main.py" = ["F401", "F541"]
-
 [tool.importlinter]
 root_packages = ["ctxpack"]
 

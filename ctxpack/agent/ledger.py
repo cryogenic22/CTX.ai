@@ -61,10 +61,11 @@ def ledger_stem(session_id: str) -> str:
     """Filesystem stem for ``session_id``.
 
     Empty becomes ``unknown``. ``/``, ``\\``, NUL, and ``..`` are rejected.
-    Other characters outside ``[A-Za-z0-9._-]`` become ``-``. The full
-    sanitized id is kept when it fits in :data:`MAX_STEM_LEN`; otherwise
-    the stem is a prefix plus the first 12 hex chars of SHA-256 of the
-    raw id, so two long ids never collide.
+    Other characters outside ``[A-Za-z0-9._-]`` become ``-``. When that
+    sanitized form is the raw id and it fits in :data:`MAX_STEM_LEN`, it
+    is the stem. When sanitizing changed the id (``a b`` and ``a:b`` both
+    become ``a-b``) or the id is longer than the cap, a short SHA-256
+    suffix is appended so the two ids cannot share a filename.
     """
     raw = (session_id or "").strip()
     if not raw:
@@ -76,7 +77,7 @@ def ledger_stem(session_id: str) -> str:
     if not sanitized or ".." in sanitized or sanitized in {".", ".."}:
         raise UnsafeSessionId(
             f"refusing session id {raw!r}: empty after sanitizing")
-    if len(sanitized) <= MAX_STEM_LEN:
+    if sanitized == raw and len(sanitized) <= MAX_STEM_LEN:
         return sanitized
     digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:_HASH_LEN]
     head = sanitized[: MAX_STEM_LEN - 1 - _HASH_LEN].rstrip(".-")
@@ -136,6 +137,23 @@ def _legacy_unambiguous(known: set[str], legacy: str) -> bool:
         stem != legacy and stem.startswith(legacy) for stem in known)
 
 
+def legacy_owned_by(ledger_dir: str, session_id: str, legacy: str) -> bool:
+    """True when the 8-character file may belong to ``session_id``.
+
+    No journal row with that prefix, or the only such row is this
+    session. A newer id that merely shares the prefix does not.
+    """
+    if not legacy or not session_id:
+        return False
+    owners = {
+        full for full in iter_journal_session_ids(ledger_dir)
+        if legacy_stem(full) == legacy
+    }
+    if not owners:
+        return True
+    return owners == {session_id}
+
+
 def iter_journal_session_ids(ledger_dir: str) -> list[str]:
     """Full session ids in first-checkpoint order. Bad lines are skipped."""
     order: list[str] = []
@@ -187,8 +205,8 @@ def stem_on_disk(ledger_dir: str, session_id: str) -> str:
     """Stem of the ctx file for ``session_id``.
 
     Prefer the collision-free file when it exists. Otherwise the legacy
-    8-character file. Otherwise the collision-free stem (the name a new
-    write would use).
+    8-character file, and only when this session owns that prefix.
+    Otherwise the collision-free stem (the name a new write would use).
     """
     try:
         stem = ledger_stem(session_id)
@@ -197,9 +215,12 @@ def stem_on_disk(ledger_dir: str, session_id: str) -> str:
     if stem and os.path.isfile(ctx_path(ledger_dir, stem)):
         return stem
     legacy = legacy_stem(session_id)
-    if legacy and os.path.isfile(ctx_path(ledger_dir, legacy)):
+    if (legacy and legacy != stem
+            and os.path.isfile(ctx_path(ledger_dir, legacy))
+            and _legacy_unambiguous(set(list_session_stems(ledger_dir)), legacy)
+            and legacy_owned_by(ledger_dir, session_id, legacy)):
         return legacy
-    return stem or legacy or "unknown"
+    return stem or "unknown"
 
 
 def write_stem(ledger_dir: str, session_id: str) -> str:
@@ -221,11 +242,7 @@ def write_stem(ledger_dir: str, session_id: str) -> str:
     known = set(list_session_stems(ledger_dir))
     if not _legacy_unambiguous(known, legacy):
         return stem
-    owners = {
-        full for full in iter_journal_session_ids(ledger_dir)
-        if legacy_stem(full) == legacy
-    }
-    if owners and owners != {session_id}:
+    if not legacy_owned_by(ledger_dir, session_id, legacy):
         return stem
     return legacy
 
@@ -251,7 +268,8 @@ def resolve_explicit(ledger_dir: str, session_id: str) -> tuple[str, str]:
         return stem, ctx_path(ledger_dir, stem)
     legacy = legacy_stem(session_id)
     if (legacy and legacy in known
-            and _legacy_unambiguous(known, legacy)):
+            and _legacy_unambiguous(known, legacy)
+            and legacy_owned_by(ledger_dir, session_id, legacy)):
         return legacy, ctx_path(ledger_dir, legacy)
     if session_id:
         matches = sorted(
