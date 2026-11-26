@@ -10,6 +10,7 @@ Priority (highest first, overridable from ``[brief]`` in ``ctxpack.toml``):
 6. files — names only, scratch/temp/generated paths left out
 
 Inside a kind, newest first. Ties break by record id ascending.
+Plan steps stay in file order.
 Near-duplicates (whitespace, case, punctuation) collapse before the
 budget runs; a collapsed duplicate is not a live fact and is not a
 budget drop. A fact that does not fit is omitted whole. When anything
@@ -76,10 +77,15 @@ _CONFIG_NAMES = ("ctxpack.toml", ".ctxpack.toml")
 _DUP_RE = re.compile(r"[^\w]+", re.UNICODE)
 _NOISE_SEGMENTS = frozenset({
     "tmp", "temp", "scratch", "filler", "node_modules", "__pycache__",
-    ".pytest_cache", ".mypy_cache", ".ruff_cache", ".git", "dist",
-    "build", ".tox", "htmlcov", ".venv", "venv",
+    ".pytest_cache", ".mypy_cache", ".ruff_cache", ".cache", ".git",
+    ".tox", "htmlcov", ".venv", "venv",
 })
+# Output directories are noise only at the repo root. ``tools/build`` and
+# ``docs/dist`` are real project paths.
+_ROOT_NOISE_SEGMENTS = frozenset({"build", "dist"})
 _NOISE_SUFFIXES = (".pyc", ".pyo", ".tmp", ".bak", ".swp", ".log", ".orig")
+_SCRATCH_STEMS = ("tmp", "temp")
+_SCRATCH_SEPARATORS = "_-."
 _ACK_TOKEN_RE = re.compile(r"^[^\s]+$")
 
 
@@ -476,10 +482,32 @@ def _plan_items(ledger_dir: str) -> list[_Item]:
             kind="plan",
             record_id=f"plan:{i:06d}",
             session_ord=0,
+            # Line index, kept ascending by :func:`_collapse` for this kind.
             turn=i,
             text=text,
         ))
     return items
+
+
+def _scratch_stem(name: str) -> bool:
+    """True for a scratch filename, not a real source name.
+
+    Exact stems ``tmp`` and ``temp`` (``tmp.py``, ``temp.c``) and
+    ``tmp`` plus ``_``, ``-``, or ``.`` (``tmp_widget.py``) are scratch.
+    ``template_engine.py``, ``temperature.py``, ``temp_sensor.c``, and
+    ``scratchpad.py`` are not: ``temp`` is not matched as a prefix, and
+    ``scratch`` / ``filler`` match directory segments only.
+    """
+    stem = name.lower()
+    if "." in stem:
+        stem = stem.rsplit(".", 1)[0]
+    if stem in _SCRATCH_STEMS:
+        return True
+    return (
+        len(stem) > len("tmp")
+        and stem.startswith("tmp")
+        and stem[len("tmp")] in _SCRATCH_SEPARATORS
+    )
 
 
 def _is_noise_path(path: str) -> bool:
@@ -488,12 +516,13 @@ def _is_noise_path(path: str) -> bool:
     if not parts:
         return True
     name = parts[-1].lower()
-    if name.endswith(_NOISE_SUFFIXES):
+    if name.endswith(_NOISE_SUFFIXES) or _scratch_stem(name):
         return True
-    if "filler" in name or "scratch" in name or name.startswith(("tmp", "temp")):
-        return True
-    for part in parts:
-        if part.lower() in _NOISE_SEGMENTS:
+    for index, part in enumerate(parts):
+        low = part.lower()
+        if low in _NOISE_SEGMENTS:
+            return True
+        if index == 0 and low in _ROOT_NOISE_SEGMENTS:
             return True
     return False
 
@@ -511,7 +540,7 @@ def _collapse(items: list[_Item], priority: Sequence[str]) -> list[_Item]:
             kind_rank.get(it.kind, 99),
             _SUB_RANK.get(it.subtype, 9),
             -it.session_ord,
-            -it.turn,
+            it.turn if it.kind == "plan" else -it.turn,
             it.record_id,
         ),
     )
@@ -550,9 +579,11 @@ def _notice(dropped: dict[str, int], budget: int, unit: str,
         word = singular if n == 1 else plural
         parts.append(f"dropped {n} {word}")
     joined = ", ".join(parts)
+    larger = budget * 2 if budget > 0 else DEFAULT_BRIEF_BUDGET
     return (
         f"Omitted by budget: {joined}. "
-        f"Run `ctxpack brief --budget {budget} --unit {unit}` "
+        f"Run `ctxpack brief --budget {larger} --unit {unit}` "
+        f"or `ctxpack brief --format json` "
         f"or inspect the ledger to fetch."
     )
 

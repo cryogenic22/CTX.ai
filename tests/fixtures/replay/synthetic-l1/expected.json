@@ -1,9 +1,9 @@
 {
   "as_of": "2026-10-25",
   "determinism": {
-    "first_sha256": "1afe4cfbbc2b0cf13d2567f1960ea053cce6d6ea0003859a799b20ab56a9451a",
+    "first_sha256": "473443734113032fb9ae602a4d7ca997d9e021b9266eee33906f3c785987965d",
     "identical_bytes": true,
-    "second_sha256": "1afe4cfbbc2b0cf13d2567f1960ea053cce6d6ea0003859a799b20ab56a9451a",
+    "second_sha256": "473443734113032fb9ae602a4d7ca997d9e021b9266eee33906f3c785987965d",
     "seeds": [
       "11",
       "97"
@@ -32,7 +32,7 @@
             "status": "ok"
           },
           "2000": {
-            "chars": 1981,
+            "chars": 1960,
             "coverage_by_kind": {
               "CONSTRAINT": 1.0,
               "DECISION": 0.0,
@@ -44,11 +44,11 @@
               "FAILED-APPROACH": 2
             },
             "drops_disclosed": false,
-            "sha256": "24880a3b4ad93ef2ca61c2313b5bf37b0888c9910ee7808ee18200ffc97dfa94",
+            "sha256": "3722beb888a64989d0c90dae12d54c7de189f682a7d6faa041bdc848800ea225",
             "status": "ok"
           },
           "4000": {
-            "chars": 3964,
+            "chars": 3997,
             "coverage_by_kind": {
               "CONSTRAINT": 1.0,
               "DECISION": 0.0,
@@ -60,11 +60,11 @@
               "FAILED-APPROACH": 2
             },
             "drops_disclosed": false,
-            "sha256": "2d13626d8f1ea7e626cf59435c9ce86ecccc96bb28394b5ec8b050cbeb548e9f",
+            "sha256": "0dba922a4712d4f516d4fc13c2f8e556e1c44c8a4c2f7c046d325b0d195b3817",
             "status": "ok"
           },
           "8000": {
-            "chars": 7913,
+            "chars": 7947,
             "coverage_by_kind": {
               "CONSTRAINT": 1.0,
               "DECISION": 1.0,
@@ -76,7 +76,7 @@
               "FAILED-APPROACH": 2
             },
             "drops_disclosed": false,
-            "sha256": "d75f17723151182b6778322ddf56dca3d2a88375e610d341a3984bd041dc61f2",
+            "sha256": "10b8a2871ca8a7542d0ce28714bdd0a5aba64488cd59ecef72fe74ae82bac6d1",
             "status": "ok"
           }
         },
@@ -121,7 +121,7 @@
             "status": "ok"
           },
           "2000": {
-            "chars": 1991,
+            "chars": 1975,
             "coverage_by_kind": {
               "DECISION": 0.5,
               "FAILED-APPROACH": 0.0
@@ -131,11 +131,11 @@
               "FAILED-APPROACH": 2
             },
             "drops_disclosed": false,
-            "sha256": "a7d8ebdffa3c1c681b7935053820a36a333bdbd7aa20edf2807f726ef9936b94",
+            "sha256": "3259063d4540e0d8112d21a7a42c4e11b9877a6968be27fec10275fd100239c1",
             "status": "ok"
           },
           "4000": {
-            "chars": 3940,
+            "chars": 3973,
             "coverage_by_kind": {
               "DECISION": 0.5,
               "FAILED-APPROACH": 0.0
@@ -145,11 +145,11 @@
               "FAILED-APPROACH": 2
             },
             "drops_disclosed": false,
-            "sha256": "cbb27feab9ef830addb37ae8fd0f260893a1ce68269cc535927f2802e8256d22",
+            "sha256": "6a0bcbc9739be4aae287c6d75cf1aacf4a0e22d92d0224727b60199b985f48fa",
             "status": "ok"
           },
           "8000": {
-            "chars": 7946,
+            "chars": 7980,
             "coverage_by_kind": {
               "DECISION": 0.5,
               "FAILED-APPROACH": 0.0
@@ -159,11 +159,11 @@
               "FAILED-APPROACH": 2
             },
             "drops_disclosed": false,
-            "sha256": "951f3575c52fa20d1ed51d91fdaac4695c527f067c3d89c16e12986712f41a28",
+            "sha256": "7fe60c6a499fcefb92fc75c9c1844666780778ab6013ebc1fef64bda97d0ea58",
             "status": "ok"
           }
         },
-        "chars": 11938,
+        "chars": 11971,
         "coverage_by_kind": {
           "DECISION": 0.5,
           "FAILED-APPROACH": 0.5
@@ -173,7 +173,7 @@
           "FAILED-APPROACH": 1
         },
         "drops_disclosed": false,
-        "sha256": "3124aca6c3fd0b6add0d1ef8183bb4a2d5669f8023ec030b3350f2e0cd20f459"
+        "sha256": "2f8aead01ac8b1e7fbfc9cf96951a9b02845383192968fbf2ef3cce4cd6a8902"
       },
       "capture": {
         "found": 4,
@@ -188,7 +188,7 @@
       "briefing": {
         "budgets": {
           "14000": {
-            "chars": 13930,
+            "chars": 13963,
             "coverage_by_kind": {
               "FAILED-APPROACH": 0.0
             },
@@ -196,11 +196,11 @@
               "FAILED-APPROACH": 1
             },
             "drops_disclosed": false,
-            "sha256": "ec34e5824f0d945e9cff3c3f4a891b2ae6556a10f0b5c831d43f6f073496963b",
+            "sha256": "6199b1b10733d095953ee65a3352cf7128fa89fb6ca5cccb3af4a9d845c3f1af",
             "status": "ok"
           },
           "2000": {
-            "chars": 1948,
+            "chars": 1981,
             "coverage_by_kind": {
               "FAILED-APPROACH": 0.0
             },
@@ -208,11 +208,11 @@
               "FAILED-APPROACH": 1
             },
             "drops_disclosed": false,
-            "sha256": "b3a81ef8005cf943762e8c02b2cbffb8356a62b76f35c1e7ce072d56ff0228c2",
+            "sha256": "ad05f608df5bd83efac312b09038d8d6c67c531fc4d9a0a5c4443baad0bff4d4",
             "status": "ok"
           },
           "4000": {
-            "chars": 3998,
+            "chars": 3978,
             "coverage_by_kind": {
               "FAILED-APPROACH": 0.0
             },
@@ -220,11 +220,11 @@
               "FAILED-APPROACH": 1
             },
             "drops_disclosed": false,
-            "sha256": "74357a0dd81cd630c542476742b63a59b7349f8c249580e20d72d646674735ee",
+            "sha256": "9197c8bb8fdcf281d1740b666fc5be77db8c8c06ad1cafc57910f64fa0dc7f13",
             "status": "ok"
           },
           "8000": {
-            "chars": 7920,
+            "chars": 7954,
             "coverage_by_kind": {
               "FAILED-APPROACH": 0.0
             },
@@ -232,11 +232,11 @@
               "FAILED-APPROACH": 1
             },
             "drops_disclosed": false,
-            "sha256": "dbe5113beb2fb0d6f458f4a496e8665b7ffb6c8db0a4ae7d61dbedc7f139387b",
+            "sha256": "51e850fbb2acd5195b7aebcdc16e5812355f15c96b3eadeb316bbf9d407b7fe8",
             "status": "ok"
           }
         },
-        "chars": 11995,
+        "chars": 11990,
         "coverage_by_kind": {
           "FAILED-APPROACH": 0.0
         },
@@ -244,7 +244,7 @@
           "FAILED-APPROACH": 1
         },
         "drops_disclosed": false,
-        "sha256": "b8572afc2357f3afd91fa1c75ee2687b152e624c3c7e1fc5e611b8f425413ecf"
+        "sha256": "714b7c53ef9a3c3bd8c98bd2b73bb40697803597d2129ac9844819d354f38bff"
       },
       "capture": {
         "found": 1,
@@ -259,43 +259,43 @@
       "briefing": {
         "budgets": {
           "14000": {
-            "chars": 13930,
+            "chars": 13963,
             "coverage_by_kind": {},
             "dropped_by_kind": {},
             "drops_disclosed": false,
-            "sha256": "ec34e5824f0d945e9cff3c3f4a891b2ae6556a10f0b5c831d43f6f073496963b",
+            "sha256": "6199b1b10733d095953ee65a3352cf7128fa89fb6ca5cccb3af4a9d845c3f1af",
             "status": "ok"
           },
           "2000": {
-            "chars": 1948,
+            "chars": 1981,
             "coverage_by_kind": {},
             "dropped_by_kind": {},
             "drops_disclosed": false,
-            "sha256": "b3a81ef8005cf943762e8c02b2cbffb8356a62b76f35c1e7ce072d56ff0228c2",
+            "sha256": "ad05f608df5bd83efac312b09038d8d6c67c531fc4d9a0a5c4443baad0bff4d4",
             "status": "ok"
           },
           "4000": {
-            "chars": 3998,
+            "chars": 3978,
             "coverage_by_kind": {},
             "dropped_by_kind": {},
             "drops_disclosed": false,
-            "sha256": "74357a0dd81cd630c542476742b63a59b7349f8c249580e20d72d646674735ee",
+            "sha256": "9197c8bb8fdcf281d1740b666fc5be77db8c8c06ad1cafc57910f64fa0dc7f13",
             "status": "ok"
           },
           "8000": {
-            "chars": 7920,
+            "chars": 7954,
             "coverage_by_kind": {},
             "dropped_by_kind": {},
             "drops_disclosed": false,
-            "sha256": "dbe5113beb2fb0d6f458f4a496e8665b7ffb6c8db0a4ae7d61dbedc7f139387b",
+            "sha256": "51e850fbb2acd5195b7aebcdc16e5812355f15c96b3eadeb316bbf9d407b7fe8",
             "status": "ok"
           }
         },
-        "chars": 11995,
+        "chars": 11990,
         "coverage_by_kind": {},
         "dropped_by_kind": {},
         "drops_disclosed": false,
-        "sha256": "b8572afc2357f3afd91fa1c75ee2687b152e624c3c7e1fc5e611b8f425413ecf"
+        "sha256": "714b7c53ef9a3c3bd8c98bd2b73bb40697803597d2129ac9844819d354f38bff"
       },
       "capture": {
         "found": 0,

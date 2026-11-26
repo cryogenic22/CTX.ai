@@ -10,6 +10,7 @@ import sys
 
 import pytest
 
+from ctxpack.agent.ack import check_ack
 from ctxpack.agent.brief import brief, brief_result
 from ctxpack.agent.checkpoint import run_checkpoint
 from ctxpack.cli.main import main
@@ -209,6 +210,62 @@ def test_noise_files_do_not_crowd_the_brief(tmp_path):
     assert result.dropped["files"] == 0
 
 
+def test_real_project_files_stay_scratch_paths_go(tmp_path):
+    keep = [
+        "src/template_engine.py",
+        "app/temperature.py",
+        "app/temp_sensor.c",
+        "src/tmpl.py",
+        "lib/scratchpad.py",
+        "tools/build/gen.py",
+        "docs/dist/README.md",
+    ]
+    drop = [
+        "tmp/notes.py",
+        "temp/cache.py",
+        "scratch/draft.md",
+        "filler/pad.txt",
+        "src/tmp_widget.py",
+        "build/out.js",
+        "dist/bundle.js",
+        ".cache/state.json",
+    ]
+    blocks = [{"type": "text", "text": "Decision: touch the real sources."}]
+    blocks.extend(
+        {"type": "tool_use", "name": "Edit", "input": {"file_path": path}}
+        for path in keep + drop
+    )
+    ledger = _pack(tmp_path, [_entry("assistant", blocks)])
+    result = brief_result(ledger, budget=8000)
+    for path in keep:
+        assert path in result.text
+    for path in drop:
+        assert path not in result.text
+    assert result.live["files"] == len(keep)
+    assert result.dropped["files"] == 0
+
+
+def test_plan_steps_stay_in_file_order(tmp_path):
+    ledger = _pack(tmp_path, [_entry("assistant", "Decision: follow the plan.")])
+    (tmp_path / "ctx" / "plan.md").write_text(
+        "- step 1 write the composer\n"
+        "- step 2 wire the hook\n"
+        "- step 3 check the ack\n",
+        encoding="utf-8",
+    )
+    text = brief(ledger, budget=8000)
+    assert text.index("step 1") < text.index("step 2") < text.index("step 3")
+
+
+def test_drop_notice_asks_for_a_larger_budget(tmp_path):
+    ledger = _pack(tmp_path, _decision_rows(40, dead_every=4))
+    result = brief_result(ledger, budget=2000, unit="chars")
+    assert "Omitted by budget:" in result.text
+    assert "--budget 2000" not in result.text
+    assert "--budget 4000" in result.text
+    assert "--format json" in result.text
+
+
 def test_plan_section_is_absent_without_a_plan_file(tmp_path):
     ledger = _pack(tmp_path, [_entry("assistant", "Decision: ship the brief.")])
     assert "Plan progress" not in brief(ledger, budget=8000)
@@ -229,7 +286,7 @@ def test_priority_is_configurable(tmp_path):
         "[brief]\npriority = [\"dead_ends\", \"decisions\"]\n",
         encoding="utf-8",
     )
-    custom = brief_result(ledger, budget=220, unit="chars")
+    custom = brief_result(ledger, budget=360, unit="chars")
     assert "collided on the first key" in custom.text
     assert "very long parser strategy" not in custom.text
     assert custom.dropped["decisions"] == 1
@@ -364,6 +421,39 @@ def test_ack_round_trip_and_not_banked(tmp_path, capsys):
                  "--format", "json"]) == 1
     missing = json.loads(capsys.readouterr().out)
     assert missing["status"] == "not_acked"
+
+
+def test_ack_ignores_user_and_tool_results(tmp_path):
+    token = "abc123deadbeef"
+    repo = str(tmp_path / "not-a-repo")
+    user_only = tmp_path / "user.jsonl"
+    _write(user_only, [_entry("user", f"please echo CTX-Ack: {token}")])
+    tool_only = tmp_path / "tool.jsonl"
+    _write(tool_only, [_entry("user", [{
+        "type": "tool_result",
+        "content": f"stdout of ctxpack brief --ack\nCTX-Ack: {token}\n",
+    }])])
+    assistant_tool = tmp_path / "assistant-tool.jsonl"
+    _write(assistant_tool, [_entry("assistant", [{
+        "type": "tool_result",
+        "content": f"CTX-Ack: {token}",
+    }])])
+    assistant = tmp_path / "assistant.jsonl"
+    _write(assistant, [_entry("assistant", f"CTX-Ack: {token}")])
+    assert check_ack(
+        token, transcript=str(user_only), repo=repo,
+        ledger_dir=str(tmp_path / "r1"))["status"] == "not_acked"
+    assert check_ack(
+        token, transcript=str(tool_only), repo=repo,
+        ledger_dir=str(tmp_path / "r2"))["status"] == "not_acked"
+    assert check_ack(
+        token, transcript=str(assistant_tool), repo=repo,
+        ledger_dir=str(tmp_path / "r3"))["status"] == "not_acked"
+    acked = check_ack(
+        token, transcript=str(assistant), repo=repo,
+        ledger_dir=str(tmp_path / "r4"))
+    assert acked["status"] == "acked"
+    assert acked["evidence"] == ["transcript"]
 
 
 def test_ack_found_in_commit_body(tmp_path, capsys):

@@ -23,9 +23,10 @@ def check_ack(
 ) -> dict[str, object]:
     """Return ``acked`` or ``not_acked`` and append a receipt line.
 
-    A match is the exact marker ``CTX-Ack: <token>`` in the transcript
-    text or in a commit message body. Exit status is the caller's
-    concern; this function always returns the receipt dict.
+    A match is the exact marker ``CTX-Ack: <token>`` in an assistant
+    text block of the transcript, or in a commit message body. User
+    messages, tool results, and meta turns do not count. Exit status
+    is the caller's concern; this function always returns the receipt.
     """
     cleaned = str(token or "").strip()
     if not cleaned or any(ch.isspace() for ch in cleaned):
@@ -66,13 +67,52 @@ def _has_token(text: str, token: str) -> bool:
     return pattern.search(text or "") is not None
 
 
+def _assistant_text(entry: object) -> str:
+    """Text blocks on an assistant turn. Tool results and other roles are empty."""
+    if not isinstance(entry, dict):
+        return ""
+    if entry.get("type") != "assistant" or entry.get("isMeta"):
+        return ""
+    message = entry.get("message") or {}
+    if not isinstance(message, dict):
+        return ""
+    role = message.get("role")
+    if role not in (None, "", "assistant"):
+        return ""
+    content = message.get("content")
+    if isinstance(content, str):
+        return content
+    if not isinstance(content, list):
+        return ""
+    parts: list[str] = []
+    for block in content:
+        if isinstance(block, dict) and block.get("type") == "text":
+            parts.append(str(block.get("text") or ""))
+    return "\n".join(parts)
+
+
 def _file_has_token(path: str, token: str) -> bool:
+    """True when an assistant text block echoes the token.
+
+    The raw file is not scanned. A token in a user message, a tool
+    result, or a meta turn does not count.
+    """
     try:
-        with open(path, encoding="utf-8") as handle:
-            text = handle.read()
+        handle = open(path, encoding="utf-8")
     except OSError:
         return False
-    return _has_token(text, token)
+    with handle:
+        for line in handle:
+            raw = line.strip()
+            if not raw:
+                continue
+            try:
+                entry = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            if _has_token(_assistant_text(entry), token):
+                return True
+    return False
 
 
 def _commit_with_token(repo: str, token: str) -> str:
