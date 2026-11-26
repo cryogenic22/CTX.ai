@@ -348,7 +348,7 @@ def test_exact_16_and_64_hex_and_ambiguous_mixed_ledger(tmp_path):
                f"Supersedes: {base_id} — mixed ledger must not guess.",
                sid="11111111-a"),
     ], name="a.jsonl"), str(out), as_of="2026-10-05")
-    gist = (out / "session-11111111-gist.md").read_text(encoding="utf-8")
+    gist = (out / "session-11111111-a-gist.md").read_text(encoding="utf-8")
     assert "Supersession unresolved" in gist
     assert "not applied" in gist
     assert base in gist
@@ -367,7 +367,7 @@ def test_exact_16_and_64_hex_and_ambiguous_mixed_ledger(tmp_path):
     ev64 = (out64 / "events.jsonl").read_text(encoding="utf-8")
     assert "fact_superseded" in ev64
     assert target in ev64
-    gist64 = (out64 / "session-44444444-gist.md").read_text(encoding="utf-8")
+    gist64 = (out64 / "session-44444444-d-gist.md").read_text(encoding="utf-8")
     assert "Supersession unresolved" not in gist64
 
     ignored = parse_transcript(_write(tmp_path, [

@@ -218,6 +218,7 @@ def test_redaction_boundary_is_byte_deterministic(tmp_path):
     identical .ctx bytes. Redaction must not perturb the deterministic
     spine."""
     from ctxpack.agent.checkpoint import run_checkpoint
+    from ctxpack.agent.ledger import ledger_stem
 
     sid = "pf17det1-0000"
     rows = _matrix_rows(sid, "assistant")
@@ -229,7 +230,7 @@ def test_redaction_boundary_is_byte_deterministic(tmp_path):
         out = tmp_path / name
         run_checkpoint(str(path), str(out), as_of="2026-08-22")
         ctx_bytes.append(
-            (out / f"session-{sid[:8]}.ctx").read_bytes())
+            (out / f"session-{ledger_stem(sid)}.ctx").read_bytes())
     assert ctx_bytes[0] == ctx_bytes[1]
 
 
@@ -243,6 +244,7 @@ def test_tc16_hand_edited_ctx_is_undetectable_documented_gap(tmp_path):
     visible; if integrity checking ever lands, it fails and gets
     updated DELIBERATELY."""
     from ctxpack.agent.checkpoint import run_checkpoint
+    from ctxpack.agent.ledger import ledger_stem
     from ctxpack.agent.session_reader import session_why_across
 
     sid = "pf17tam1-0000"
@@ -259,7 +261,7 @@ def test_tc16_hand_edited_ctx_is_undetectable_documented_gap(tmp_path):
                     encoding="utf-8")
     out = tmp_path / "ctx"
     run_checkpoint(str(path), str(out), as_of="2026-08-22")
-    ctx = out / f"session-{sid[:8]}.ctx"
+    ctx = out / f"session-{ledger_stem(sid)}.ctx"
     ctx.write_text(ctx.read_text(encoding="utf-8").replace(
         "deadbee1234", "deadbee9999"), encoding="utf-8")
 

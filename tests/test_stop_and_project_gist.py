@@ -112,7 +112,7 @@ def test_project_gist_rolls_up_earlier_sessions(tmp_path):
     # After the second checkpoint the rollup exists and covers session A only
     text = (out / "project-gist.md").read_text(encoding="utf-8")
     assert "use redis for cache" in text
-    assert "(s:aaaa1111#turn" in text
+    assert "(s:aaaa1111-s#turn" in text
     assert "shard by tenant id" not in text, (
         "current session must be excluded — its own gist is injected")
 

@@ -52,7 +52,7 @@ def _strip_safe_path(project_dir):
     for entries in s.get("hooks", {}).values():
         for e in entries:
             for h in e.get("hooks", []):
-                h["command"] = h["command"].replace("python -P -m", "python -m")
+                h["command"] = h["command"].replace(" -P -m", " -m")
     sp.write_text(json.dumps(s, indent=2), encoding="utf-8")
     mp = project_dir / ".mcp.json"
     m = json.loads(mp.read_text(encoding="utf-8"))
@@ -68,7 +68,9 @@ def _set_executable(project_dir, exe):
     for entries in s.get("hooks", {}).values():
         for e in entries:
             for h in e.get("hooks", []):
-                h["command"] = h["command"].replace("python ", exe + " ", 1)
+                parts = h["command"].split()
+                if parts:
+                    h["command"] = " ".join([exe, *parts[1:]])
     sp.write_text(json.dumps(s, indent=2), encoding="utf-8")
     mp = project_dir / ".mcp.json"
     m = json.loads(mp.read_text(encoding="utf-8"))
@@ -168,16 +170,23 @@ def test_non_hook_commands_still_fail_normally(tmp_path, capsys):
 def test_hook_command_uses_safe_path_on_modern_python():
     import sys as _sys
 
-    from ctxpack.cli.main import _HOOK_CMD
+    from ctxpack.cli.main import _py_module_argv
 
+    argv = _py_module_argv("ctxpack.cli.main", "hook")
+    assert argv[0] == _sys.executable
+    assert argv[0] != "python" or _sys.executable == "python"
     if _sys.version_info >= (3, 11):
-        assert _HOOK_CMD.startswith("python -P -m"), (
+        assert argv[1] == "-P", (
             "-P is the vendored-copy shadowing fix; without it a repo "
             "with its own ctxpack/ dir runs stale hook code")
+    else:
+        assert "-P" not in argv
 
 
 def test_onboard_writes_safe_path_hook_commands(tmp_path):
     import sys as _sys
+
+    from ctxpack.cli.main import _HOOK_CMD
 
     if _sys.version_info < (3, 11):
         return
@@ -187,8 +196,10 @@ def test_onboard_writes_safe_path_hook_commands(tmp_path):
     for event, entries in settings["hooks"].items():
         for entry in entries:
             for hook in entry.get("hooks", []):
-                assert hook["command"].startswith("python -P -m"), (
+                assert hook["command"].startswith(_HOOK_CMD + " "), (
                     f"{event} hook not shadow-proof: {hook['command']}")
+                assert _sys.executable in hook["command"]
+                assert " -P " in f" {hook['command']} "
 
 
 def test_onboard_refreshes_stale_conventions_block(tmp_path):

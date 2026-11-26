@@ -6,6 +6,8 @@ zero-dependency domain-knowledge packer with progressive hydration.
 
 __version__ = "0.5.0rc1"
 
+__all__ = ["__version__", "brief"]
+
 
 def brief(*args, **kwargs):
     """Budgeted ledger briefing. See :func:`ctxpack.agent.brief.brief`."""

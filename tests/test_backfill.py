@@ -12,6 +12,7 @@ from ctxpack.agent.backfill import (
     run_backfill,
 )
 from ctxpack.agent.checkpoint import _claude_project_dir_name, run_checkpoint
+from ctxpack.agent.ledger import ledger_stem
 from ctxpack.agent.session_reader import resolve_session
 from ctxpack.cli.main import main
 
@@ -54,7 +55,8 @@ def test_coverage_classification(tmp_path):
     run_checkpoint(str(stale), str(out), as_of="2026-07-21")
     # transcript kept growing long after its last checkpoint
     when = time.time() + OLD
-    os.utime(out / "session-stale111.ctx", (when - 7200, when - 7200))
+    stale_ctx = out / f"session-{ledger_stem('stale111-0000-0000-0000-000000000000')}.ctx"
+    os.utime(stale_ctx, (when - 7200, when - 7200))
 
     cov = capture_coverage(str(repo), str(out), claude_home=str(home))
     by = {s.session[:8]: s.status for s in cov.sessions}
@@ -92,8 +94,8 @@ def test_backfill_packs_and_is_idempotent(tmp_path):
     rows = run_backfill(str(repo), str(out), as_of="2026-07-21",
                         claude_home=str(home))
     assert [r.outcome for r in rows] == ["packed", "packed"]
-    assert (out / "session-backfil1.ctx").exists()
-    assert (out / "session-backfil2.ctx").exists()
+    assert (out / f"session-{ledger_stem('backfil1-0000-0000-0000-000000000000')}.ctx").exists()
+    assert (out / f"session-{ledger_stem('backfil2-0000-0000-0000-000000000000')}.ctx").exists()
     # journal rows carry the archive flag
     journal = (out / "checkpoints.jsonl").read_text(encoding="utf-8")
     assert all(json.loads(l).get("archive") is True
@@ -116,10 +118,11 @@ def test_backfill_never_touches_latest_gist_or_default_session(tmp_path):
     # a Jul-15-style backfill must never become "latest" on Jul-21
     assert (out / "latest-gist.md").read_bytes() == latest
     sid, _ = resolve_session(str(out))
-    assert sid == "livesess"
+    assert sid == ledger_stem("livesess-0000-0000-0000-000000000000")
     # ... but the backfilled session's own artifacts exist
-    assert (out / "session-oldsess1.ctx").exists()
-    assert (out / "session-oldsess1-gist.md").exists()
+    old_stem = ledger_stem("oldsess1-0000-0000-0000-000000000000")
+    assert (out / f"session-{old_stem}.ctx").exists()
+    assert (out / f"session-{old_stem}-gist.md").exists()
 
 
 def test_backfill_hollow_transcript_reported_not_fatal(tmp_path):
@@ -156,11 +159,12 @@ def test_cli_backfill_dry_run_then_real(tmp_path, monkeypatch, capsys):
                "--dry-run", "--as-of", "2026-07-21"])
     assert rc == 0
     assert "planned" in capsys.readouterr().out
-    assert not (out / "session-clisess1.ctx").exists()
+    cli_stem = ledger_stem("clisess1-0000-0000-0000-000000000000")
+    assert not (out / f"session-{cli_stem}.ctx").exists()
     rc = main(["backfill", "--project-dir", str(repo), "--out", str(out),
                "--as-of", "2026-07-21"])
     assert rc == 0
-    assert (out / "session-clisess1.ctx").exists()
+    assert (out / f"session-{cli_stem}.ctx").exists()
     assert "latest-gist untouched" in capsys.readouterr().out
 
 

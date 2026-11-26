@@ -35,6 +35,7 @@ from .checkpoint import (
     _claude_project_dir_name,
     run_checkpoint,
 )
+from .ledger import existing_ctx_path, ledger_stem, UnsafeSessionId
 from .transcript_adapters import TranscriptFormatError
 
 # A transcript written this recently is treated as a LIVE session and
@@ -121,7 +122,11 @@ def capture_coverage(project_dir: str = ".",
             mtime = os.path.getmtime(tpath)
         except OSError:
             continue
-        ctx_path = os.path.join(out_dir, f"session-{stem[:8]}.ctx")
+        try:
+            ctx_path = existing_ctx_path(out_dir, stem) or os.path.join(
+                out_dir, f"session-{ledger_stem(stem)}.ctx")
+        except UnsafeSessionId:
+            ctx_path = os.path.join(out_dir, f"session-{stem[:8]}.ctx")
         if (exclude_session and stem.startswith(exclude_session[:8])) or (
                 ref_now - mtime < active_slack_s):
             status = "active"

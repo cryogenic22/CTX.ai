@@ -52,7 +52,11 @@ def _run(argv: list[str]) -> int:
 
     ap = argparse.ArgumentParser(
         prog="ctxpack",
-        description="CtxPack — MP3 for LLM context: parse, pack, and evaluate .ctx files",
+        description=(
+            "CtxPack — deterministic session memory for long-running coding "
+            "agents: pack a transcript into a replayable ledger, brief the "
+            "next session, and pack domain knowledge into .ctx"
+        ),
     )
     sub = ap.add_subparsers(dest="command", required=True)
 
@@ -1343,6 +1347,64 @@ def _cmd_ack(args: argparse.Namespace) -> int:
     return 0 if receipt["status"] == "acked" else 1
 
 
+class _EgressScanFailed(Exception):
+    """The SessionStart egress scan raised. The hook emits nothing."""
+
+
+def _session_start_context(out_dir: str, settings, warning: str) -> "tuple[str, int]":
+    """Brief plus gap warning, redacted, then fitted to the budget.
+
+    Each candidate is redacted before it is measured. The loop shrinks
+    the composer budget until the redacted text fits, so a
+    ``[REDACTED:type]`` replacement cannot push the hook over budget.
+    A scanner exception becomes :class:`_EgressScanFailed`.
+    """
+    from ..agent.checkpoint import read_startup_context
+    from ..core.redaction import redact as _redact_outgoing
+    from ..core.tokens import count_budget
+
+    limit = int(settings.budget)
+    unit = settings.unit
+
+    def compose(room: int) -> str:
+        reserve = count_budget(warning + "\n\n", unit) if warning else 0
+        brief_room = room - reserve
+        body = ""
+        if brief_room > 0:
+            body = read_startup_context(out_dir, budget=brief_room, unit=unit)
+        if warning:
+            return f"{warning}\n\n{body}" if body else warning
+        return body
+
+    def redact_or_fail(text: str) -> "tuple[str, int]":
+        try:
+            redacted, counts = _redact_outgoing(text)
+        except Exception as exc:  # noqa: BLE001 — fail closed at the caller
+            raise _EgressScanFailed() from exc
+        return redacted, sum(counts.values())
+
+    room = limit
+    previous = None
+    for _ in range(24):
+        if room < 0:
+            break
+        raw = compose(room)
+        redacted, n = redact_or_fail(raw)
+        if count_budget(redacted, unit) <= limit:
+            return redacted, n
+        if redacted == previous:
+            room = room // 2
+        else:
+            overflow = count_budget(redacted, unit) - limit
+            room = room - max(overflow, 1)
+        previous = redacted
+    if warning:
+        redacted, n = redact_or_fail(warning)
+        if count_budget(redacted, unit) <= limit:
+            return redacted, n
+    return "", 0
+
+
 def _cmd_hook(args: argparse.Namespace) -> int:
     """Claude Code hook entry point. Reads the hook event JSON on stdin.
 
@@ -1419,8 +1481,6 @@ def _cmd_hook(args: argparse.Namespace) -> int:
     gist, outcome, error, exc = "", "", "", None
     try:
         from ..agent.brief import load_brief_settings
-        from ..agent.checkpoint import read_startup_context
-        from ..core.tokens import count_budget
         settings = load_brief_settings(out_dir)
     except Exception as e:  # noqa: BLE001 — a broken ledger must not break
         outcome, error = FAILED, "startup_read_failed"
@@ -1441,17 +1501,21 @@ def _cmd_hook(args: argparse.Namespace) -> int:
     except Exception:  # noqa: BLE001
         warning = ""
 
+    outgoing_redactions = 0
     if settings is not None and not outcome:
         try:
-            reserve = 0
-            if warning:
-                reserve = count_budget(warning + "\n\n", settings.unit)
-            room = settings.budget - reserve
-            if room > 0:
-                gist = read_startup_context(
-                    out_dir, budget=room, unit=settings.unit)
-            if warning:
-                gist = f"{warning}\n\n{gist}" if gist else warning
+            # Redaction runs on each candidate, then the budget is checked
+            # on the redacted text. `[REDACTED:type]` is longer than some
+            # secrets; measuring only the pre-redaction brief lets that
+            # expansion push the hook over its budget.
+            gist, outgoing_redactions = _session_start_context(
+                out_dir, settings, warning)
+        except _EgressScanFailed as e:
+            # FAIL-CLOSED: a scan crash must never present as a healthy
+            # empty result, and unscanned bytes are never emitted.
+            outcome, error = FAILED, "egress_scan_failed"
+            exc = e.__cause__ or e
+            gist = ""
         except Exception as e:  # noqa: BLE001 — a broken ledger must not break
             # the session, but it must not look like a healthy empty one
             # either. TM-7: stable code + bounded category, never the
@@ -1459,23 +1523,7 @@ def _cmd_hook(args: argparse.Namespace) -> int:
             # the write, never serialized).
             outcome, error = FAILED, "startup_read_failed"
             exc = e
-
-    # E-6 egress boundary (PF-14): a second scan of the FINAL serialized
-    # context — defense in depth behind the ingest boundary (old ledgers
-    # predate it; gap warnings and rollups are assembled here). Found
-    # secrets are replaced type-only and the count lands on the receipt.
-    # FAIL-CLOSED on scanner failure: emit NO memory and record `failed`
-    # — a scan crash must never present as a healthy empty result.
-    outgoing_redactions = 0
-    if gist and not outcome:
-        try:
-            from ..core.redaction import redact as _redact_outgoing
-            gist, _out_counts = _redact_outgoing(gist)
-            outgoing_redactions = sum(_out_counts.values())
-        except Exception as e:  # noqa: BLE001
-            outcome, error = FAILED, "egress_scan_failed"
-            exc = e
-            gist = ""  # unscanned bytes are never emitted
+            gist = ""
 
     # Emit FIRST, then record. Writing the receipt before the write it
     # attests to would let a failed stdout flush be banked as a
@@ -1818,11 +1866,11 @@ def _cmd_session_impl(args: argparse.Namespace) -> int:
     return _emit(json.dumps(result, indent=2))
 
 
-# Hook commands run `python -m ctxpack.cli.main` rather than the `ctxpack`
-# console script: hooks execute with cwd = the project dir, where the
-# package is importable directly — so the hooks work on any machine with
-# python on PATH, with no pip install required and no dependence on the
-# Scripts directory being on PATH.
+# Hook commands run `<this interpreter> -m ctxpack.cli.main` rather than the
+# `ctxpack` console script: hooks execute with cwd = the project dir, where
+# the package is importable directly — so the hooks work without the
+# Scripts directory on PATH. The interpreter is `sys.executable`, not a
+# bare `python`, because Linux and macOS often have only `python3`.
 # -P (safe path, Python 3.11+): without it, `python -m` prepends the
 # project cwd to sys.path, so a repo carrying a vendored/stale ctxpack
 # copy shadows the installed one — observed in the wild as an OLD ctxpack
@@ -1834,13 +1882,48 @@ def _cmd_session_impl(args: argparse.Namespace) -> int:
 _SAFE_PATH_ARGS = ["-P"] if sys.version_info >= (3, 11) else []
 
 
+def _python_executable() -> str:
+    """Interpreter that can relaunch this process.
+
+    ``sys.executable`` is the one that is actually running. A bare
+    ``python`` is not: many machines only ship ``python3``.
+    """
+    exe = sys.executable
+    if exe and os.path.isfile(exe):
+        return exe
+    return exe or "python3"
+
+
 def _py_module_argv(*module_args: str) -> "list[str]":
-    """`python [-P] -m <module> <args...>` — the one shadow-proof invocation
-    shared by the hook (write path) and the MCP server (read path)."""
-    return ["python", *_SAFE_PATH_ARGS, "-m", *module_args]
+    """`<interpreter> [-P] -m <module> <args...>` — the one shadow-proof
+    invocation shared by the hook (write path) and the MCP server (read path).
+    ``-P`` is included only where this interpreter supports it (3.11+)."""
+    return [_python_executable(), *_SAFE_PATH_ARGS, "-m", *module_args]
 
 
-_HOOK_CMD = " ".join(_py_module_argv("ctxpack.cli.main", "hook"))
+def _shell_join(argv: "list[str]") -> str:
+    """Join an argv for a hook command string.
+
+    Paths without spaces stay literal, including Windows backslashes.
+    A path that contains whitespace is double-quoted.
+    """
+    parts: list[str] = []
+    for arg in argv:
+        if arg and all(ch not in arg for ch in ' \t"'):
+            parts.append(arg)
+        else:
+            parts.append('"' + arg.replace('"', "") + '"')
+    return " ".join(parts)
+
+
+def _split_command(command: str) -> "list[str]":
+    """Inverse of :func:`_shell_join`. Backslashes stay literal."""
+    import re
+    found = re.findall(r'"([^"]*)"|(\S+)', command)
+    return [quoted or bare for quoted, bare in found]
+
+
+_HOOK_CMD = _shell_join(_py_module_argv("ctxpack.cli.main", "hook"))
 _CTXPACK_HOOK_MARKERS = ("ctxpack hook", "ctxpack.cli.main hook")
 
 _HOOK_SETTINGS = {
@@ -1932,7 +2015,7 @@ def _cmd_install_hooks(args: argparse.Namespace) -> int:
 # ── onboard: the whole session-memory setup in one command ──
 
 _MCP_SERVER_ENTRY = {
-    "command": "python",
+    "command": _python_executable(),
     # SAME shadow-proof resolver as the hooks (see _SAFE_PATH_ARGS): the read
     # path must not resolve to a different ctxpack than the write path.
     "args": [*_SAFE_PATH_ARGS, "-m", "ctxpack.integrations.mcp_server"],
@@ -2176,7 +2259,7 @@ def _onboard_check(project: str, *, probe=None) -> int:
     approved = _runtime_identity()  # (version, root) of THIS ctxpack
     print(f"  ctxpack runtime : version {approved[0]}, root {approved[1]}")
 
-    canonical_hook = " ".join(_py_module_argv("ctxpack.cli.main"))
+    canonical_hook = _shell_join(_py_module_argv("ctxpack.cli.main"))
 
     def _verify_path(label: str, prefix: "list[str]") -> None:
         # (1) shadow-hardening is absolute, independent of the interpreter
@@ -2229,7 +2312,7 @@ def _onboard_check(project: str, *, probe=None) -> int:
             # Probe each DISTINCT launch prefix once (all hooks share one).
             seen: set = set()
             for c in hook_cmds:
-                prefix = _launch_prefix(c.split())
+                prefix = _launch_prefix(_split_command(c))
                 if prefix is None:
                     problems.append(f"hook command has no `-m` launch: {c!r}")
                     continue
