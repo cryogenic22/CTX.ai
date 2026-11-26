@@ -56,6 +56,9 @@ def test_toml_matches_fallback_and_loads(tmp_path: Path) -> None:
     assert contract.flag_off_invariants[0].flag == "enable_beta"
     assert contract.blocking_codes == ("CONTRACT_RULE_VIOLATION", "UNRECORDED_MARKER")
     assert contract.attestation_sha_patterns[0].startswith("(?im)")
+    assert contract.require_verifier_evidence is False
+    assert contract.verifier_command == ""
+    assert contract.one_way_paths == ()
 
 
 def test_json_round_trip(tmp_path: Path) -> None:
@@ -70,6 +73,9 @@ def test_json_round_trip(tmp_path: Path) -> None:
     assert contract.pinned_versions == (("pkg/versions.py", "1.13.0"),)
     assert contract.require_test_evidence is True
     assert contract.blocking_codes == ()
+    assert contract.require_verifier_evidence is False
+    assert contract.verifier_command == ""
+    assert contract.one_way_paths == ()
 
 
 def test_malformed_contracts_fail_closed(tmp_path: Path) -> None:
@@ -96,6 +102,61 @@ def test_malformed_contracts_fail_closed(tmp_path: Path) -> None:
     with pytest.raises(ContractError, match="json or .toml"):
         load_contract(other)
     assert "UNRECORDED_MARKER" in FINDING_CODES
+    assert "VERIFIER_EVIDENCE_MISSING" in FINDING_CODES
+    assert "ONE_WAY_PATH_TOUCHED" in FINDING_CODES
+
+
+def test_verifier_and_one_way_fields_load_and_old_contracts_stay_valid(
+    tmp_path: Path,
+) -> None:
+    legacy = tmp_path / "legacy.json"
+    legacy.write_text(json.dumps({"name": "legacy"}), encoding="utf-8")
+    old = load_contract(legacy)
+    assert old.require_verifier_evidence is False
+    assert old.verifier_command == ""
+    assert old.one_way_paths == ()
+
+    path = tmp_path / "task.json"
+    path.write_text(json.dumps({
+        "name": "irreversible",
+        "require_verifier_evidence": True,
+        "verifier_command": " scripts/verify.sh ",
+        "one_way_paths": ["migrations/**", "schema/**", "**/drop_*.sql"],
+        "blocking_codes": [
+            "VERIFIER_EVIDENCE_MISSING",
+            "ONE_WAY_PATH_TOUCHED",
+        ],
+    }), encoding="utf-8")
+    contract = load_contract(path)
+    assert contract.require_verifier_evidence is True
+    assert contract.verifier_command == "scripts/verify.sh"
+    assert contract.one_way_paths == (
+        "migrations/**", "schema/**", "**/drop_*.sql")
+    assert contract.blocking_codes == (
+        "ONE_WAY_PATH_TOUCHED", "VERIFIER_EVIDENCE_MISSING")
+
+    toml_text = """\
+name = "toml-v11"
+require_verifier_evidence = true
+verifier_command = "verify"
+one_way_paths = ["migrations/**"]
+"""
+    toml_path = tmp_path / "task.toml"
+    toml_path.write_text(toml_text, encoding="utf-8", newline="\n")
+    assert load_toml_mapping(toml_text) == _fallback_toml(toml_text)
+    loaded = load_contract(toml_path)
+    assert loaded.require_verifier_evidence is True
+    assert loaded.verifier_command == "verify"
+    assert loaded.one_way_paths == ("migrations/**",)
+
+    bad_command = tmp_path / "bad-command.json"
+    bad_command.write_text(json.dumps({"verifier_command": 1}), encoding="utf-8")
+    with pytest.raises(ContractError, match="verifier_command"):
+        load_contract(bad_command)
+    bad_paths = tmp_path / "bad-paths.json"
+    bad_paths.write_text(json.dumps({"one_way_paths": [""]}), encoding="utf-8")
+    with pytest.raises(ContractError, match="one_way_paths"):
+        load_contract(bad_paths)
 
 
 def test_pyproject_jev_extra_is_empty_and_not_in_all() -> None:

@@ -10,7 +10,13 @@ from pathlib import Path
 
 import pytest
 
-from ctxpack.agent.verify import GitRepo, render_json, render_markdown, verify
+from ctxpack.agent.verify import (
+    GitRepo,
+    _glob_match,
+    render_json,
+    render_markdown,
+    verify,
+)
 from ctxpack.cli.main import main
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -833,3 +839,432 @@ def test_max_findings_discloses_drops(tmp_path: Path) -> None:
     assert report.dropped == 2
     assert report.exit_code == 1
     assert report.findings[0].evidence.startswith("Decision: alpha")
+
+
+def _contract(path: Path, payload: dict) -> Path:
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
+
+
+def _head_of(spec: str) -> str:
+    return spec.split("..", 1)[1]
+
+
+def test_glob_match_keeps_a_leading_dot_in_the_name() -> None:
+    assert _glob_match(".github/workflows/ci.yml", ".github/**")
+    assert _glob_match(".github/workflows/ci.yml", "./.github/**")
+    assert _glob_match("./.github/workflows/ci.yml", ".github/**")
+    assert not _glob_match("github/x.yml", ".github/**")
+    assert not _glob_match("./github/x.yml", ".github/**")
+    assert not _glob_match(".github/workflows/ci.yml", "github/**")
+    assert _glob_match("github/x.yml", "github/**")
+    assert _glob_match("migrations/001.sql", "migrations/**")
+    assert _glob_match("schema/nested/drop_users.sql", "**/drop_*.sql")
+    assert not _glob_match("docs/readme.md", "migrations/**")
+
+
+def test_verifier_evidence_accepts_documented_pass_lines(tmp_path: Path) -> None:
+    repo, spec = _range_repo(tmp_path, "edit the readme title")
+    head = _head_of(spec)
+    short = head[:7]
+    contract = _contract(tmp_path / "verifier.json", {
+        "name": "verifier",
+        "require_verifier_evidence": True,
+        "verifier_command": "scripts/verify.sh",
+        "blocking_codes": ["VERIFIER_EVIDENCE_MISSING"],
+    })
+    bodies = [
+        f"verifier: scripts/verify.sh | pass | {short}\n",
+        f"Verifier: scripts/verify.sh | PASS | {head}\n",
+        f"verifier: scripts/verify.sh pass @ {short}\n",
+        f"verifier: scripts/verify.sh pass ({short})\n",
+        f"verifier: scripts/verify.sh | passed | {short}\n",
+        f"verifier: scripts/verify.sh | green | {head}\n",
+        f"verifier: scripts/verify.sh | ok | {short}\n",
+        f"verifier-cmd: scripts/verify.sh\nverifier-result: pass {short}\n",
+    ]
+    for body in bodies:
+        report = verify(
+            spec, repo=repo, contract=contract,
+            ledger_dir=tmp_path / "no-ledger",
+            pr_body=body, pr_body_label="pr_body.md")
+        assert [row.code for row in report.findings] == [], body
+        assert report.exit_code == 0
+
+    loose = _contract(tmp_path / "loose.json", {
+        "name": "loose",
+        "require_verifier_evidence": True,
+        "blocking_codes": ["VERIFIER_EVIDENCE_MISSING"],
+    })
+    report = verify(
+        spec, repo=repo, contract=loose, ledger_dir=tmp_path / "no-ledger",
+        pr_body=f"verifier: pass {short}\n", pr_body_label="pr_body.md")
+    assert report.findings == ()
+    assert report.exit_code == 0
+
+
+def test_verifier_evidence_fails_closed(tmp_path: Path) -> None:
+    repo, spec = _range_repo(tmp_path, "edit the readme title")
+    head = _head_of(spec)
+    short = head[:7]
+    bad = "0000000" if not head.startswith("0000000") else "ffffff0"
+    contract = _contract(tmp_path / "verifier.json", {
+        "name": "verifier",
+        "require_verifier_evidence": True,
+        "verifier_command": "scripts/verify.sh",
+        "blocking_codes": ["VERIFIER_EVIDENCE_MISSING"],
+    })
+    cases = {
+        "missing": (
+            "no attestation here\n",
+            "verifier evidence is missing",
+            "missing",
+        ),
+        "placeholder": (
+            "verifier: <command> | pass | <head sha>\n",
+            "verifier evidence is missing",
+            "missing",
+        ),
+        "fail": (
+            f"verifier: scripts/verify.sh | fail | {short}\n",
+            "verifier evidence is not a pass",
+            "fail",
+        ),
+        "skipped": (
+            "verifier: scripts/verify.sh | skipped\n",
+            "verifier evidence is not a pass",
+            "skipped",
+        ),
+        "not run": (
+            "verifier: scripts/verify.sh | not run\n",
+            "verifier evidence is not a pass",
+            "not run",
+        ),
+        "command": (
+            f"verifier: other-tool | pass | {short}\n",
+            "verifier evidence does not name the contract command",
+            "scripts/verify.sh",
+        ),
+        "sha": (
+            f"verifier: scripts/verify.sh | pass | {bad}\n",
+            "verifier evidence SHA does not match head",
+            bad,
+        ),
+        "sha omitted": (
+            "verifier: scripts/verify.sh | ok\n",
+            "verifier evidence SHA does not match head",
+            "missing",
+        ),
+        "sha short": (
+            f"verifier: scripts/verify.sh | pass | {head[:6]}\n",
+            "verifier evidence SHA does not match head",
+            head[:6],
+        ),
+        "next line": (
+            f"verifier:\nscripts/verify.sh | pass | {head}\n",
+            "verifier evidence is missing",
+            "missing",
+        ),
+    }
+    for name, (body, message, evidence) in cases.items():
+        report = verify(
+            spec, repo=repo, contract=contract,
+            ledger_dir=tmp_path / "no-ledger",
+            pr_body=body, pr_body_label="pr_body.md")
+        rows = [row for row in report.findings
+                if row.code == "VERIFIER_EVIDENCE_MISSING"]
+        assert len(rows) == 1, name
+        assert rows[0].severity == "error"
+        assert rows[0].message == message
+        assert rows[0].evidence == evidence
+        assert report.exit_code == 1, name
+
+    omitted = verify(
+        spec, repo=repo, contract=contract, ledger_dir=tmp_path / "no-ledger")
+    row = _finding(omitted)
+    assert row.code == "VERIFIER_EVIDENCE_MISSING"
+    assert row.evidence == "missing"
+    assert row.severity == "error"
+    assert omitted.exit_code == 1
+
+    quiet = _contract(tmp_path / "quiet.json", {
+        "name": "quiet",
+        "require_verifier_evidence": False,
+    })
+    report = verify(
+        spec, repo=repo, contract=quiet, ledger_dir=tmp_path / "no-ledger",
+        pr_body="no attestation here\n", pr_body_label="pr_body.md")
+    assert [row.code for row in report.findings
+            if row.code == "VERIFIER_EVIDENCE_MISSING"] == []
+
+    advisory = _contract(tmp_path / "advisory.json", {
+        "name": "advisory",
+        "require_verifier_evidence": True,
+        "verifier_command": "scripts/verify.sh",
+    })
+    report = verify(
+        spec, repo=repo, contract=advisory, ledger_dir=tmp_path / "no-ledger",
+        pr_body="no attestation here\n", pr_body_label="pr_body.md")
+    assert report.findings[0].code == "VERIFIER_EVIDENCE_MISSING"
+    assert report.exit_code == 0
+    assert "VERIFIER_EVIDENCE_MISSING" not in report.blocking
+
+
+def test_one_way_path_blocks_until_acknowledged(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init(repo)
+    _write(repo, "README.md", "base\n")
+    _write(repo, "github/x.yml", "name: plain\n")
+    _write(repo, ".github/workflows/ci.yml", "name: ci\n")
+    base = _commit(repo, "base")
+    _write(repo, "migrations/001_init.sql", "create table t(id int);\n")
+    _write(repo, "github/x.yml", "name: plain-edited\n")
+    _write(repo, ".github/workflows/ci.yml", "name: ci-edited\n")
+    head = _commit(repo, "touch irreversible and workflows")
+    spec = f"{base}..{head}"
+    contract = _contract(tmp_path / "one-way.json", {
+        "name": "one-way",
+        "one_way_paths": [".github/**", "migrations/**", "**/drop_*.sql"],
+    })
+    blocked = verify(
+        spec, repo=repo, contract=contract, ledger_dir=tmp_path / "no-ledger",
+        pr_body="no acknowledgement\n", pr_body_label="pr_body.md")
+    locations = sorted(
+        row.location for row in blocked.findings
+        if row.code == "ONE_WAY_PATH_TOUCHED")
+    assert locations == [".github/workflows/ci.yml", "migrations/001_init.sql"]
+    assert "github/x.yml" not in locations
+    assert all(row.severity == "error" for row in blocked.findings
+               if row.code == "ONE_WAY_PATH_TOUCHED")
+    assert blocked.exit_code == 1
+    assert "ONE_WAY_PATH_TOUCHED" in blocked.blocking
+
+    sha_only = verify(
+        spec, repo=repo, contract=contract, ledger_dir=tmp_path / "no-ledger",
+        pr_body=f"verified-sha: {head[:7]}\n", pr_body_label="pr_body.md")
+    assert sha_only.exit_code == 1
+    ack_only = verify(
+        spec, repo=repo, contract=contract, ledger_dir=tmp_path / "no-ledger",
+        pr_body="one-way-ack: migration reviewed by the owner\n",
+        pr_body_label="pr_body.md")
+    assert ack_only.exit_code == 1
+    wrong_sha = "0000000" if not head.startswith("0000000") else "ffffff0"
+    mismatched = verify(
+        spec, repo=repo, contract=contract, ledger_dir=tmp_path / "no-ledger",
+        pr_body=(
+            "one-way-ack: migration reviewed by the owner\n"
+            f"verified-sha: {wrong_sha}\n"),
+        pr_body_label="pr_body.md")
+    assert mismatched.exit_code == 1
+    fenced = verify(
+        spec, repo=repo, contract=contract, ledger_dir=tmp_path / "no-ledger",
+        pr_body=(
+            "```\n"
+            "one-way-ack: migration reviewed by the owner\n"
+            f"verified-sha: {head}\n"
+            "```\n"),
+        pr_body_label="pr_body.md")
+    assert fenced.exit_code == 1
+
+    acked = verify(
+        spec, repo=repo, contract=contract, ledger_dir=tmp_path / "no-ledger",
+        pr_body=(
+            "one-way-ack: migration reviewed by the owner\n"
+            f"verified-sha: {head[:7]}\n"),
+        pr_body_label="pr_body.md")
+    assert any(row.code == "ONE_WAY_PATH_TOUCHED" for row in acked.findings)
+    assert acked.exit_code == 0
+    assert "ONE_WAY_PATH_TOUCHED" not in acked.blocking
+
+    listed = _contract(tmp_path / "listed.json", {
+        "name": "listed",
+        "one_way_paths": ["migrations/**"],
+        "blocking_codes": ["ONE_WAY_PATH_TOUCHED"],
+    })
+    waived = verify(
+        spec, repo=repo, contract=listed, ledger_dir=tmp_path / "no-ledger",
+        pr_body=(
+            "one-way-ack: owner signed the migration\n"
+            f"Verified-SHA: {head}\n"),
+        pr_body_label="pr_body.md")
+    assert waived.exit_code == 0
+    assert "ONE_WAY_PATH_TOUCHED" not in waived.blocking
+
+
+def test_one_way_ack_rejects_newline_capture_and_placeholders(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init(repo)
+    _write(repo, "migrations/001_init.sql", "create table t(id int);\n")
+    base = _commit(repo, "base")
+    _write(repo, "migrations/001_init.sql", "create table t(id int, name text);\n")
+    head = _commit(repo, "alter migration")
+    spec = f"{base}..{head}"
+    contract = _contract(tmp_path / "one-way.json", {
+        "name": "one-way",
+        "one_way_paths": ["migrations/**"],
+    })
+    swallowed = verify(
+        spec, repo=repo, contract=contract, ledger_dir=tmp_path / "no-ledger",
+        pr_body=f"one-way-ack:\nverified-sha: {head}\n",
+        pr_body_label="pr_body.md")
+    assert swallowed.exit_code == 1
+    assert "ONE_WAY_PATH_TOUCHED" in swallowed.blocking
+
+    split_sha = verify(
+        spec, repo=repo, contract=contract, ledger_dir=tmp_path / "no-ledger",
+        pr_body=f"one-way-ack: migration reviewed by the owner\nverified-sha:\n{head}\n",
+        pr_body_label="pr_body.md")
+    assert split_sha.exit_code == 1
+
+    placeholders = (
+        "<reason>",
+        "TODO",
+        "TBD",
+        "N/A",
+        "na",
+        "none",
+        "placeholder",
+        "reason",
+        "-",
+        ".",
+        "--",
+        "   ",
+    )
+    for reason in placeholders:
+        report = verify(
+            spec, repo=repo, contract=contract, ledger_dir=tmp_path / "no-ledger",
+            pr_body=f"one-way-ack: {reason}\nverified-sha: {head}\n",
+            pr_body_label="pr_body.md")
+        assert report.exit_code == 1, reason
+        assert "ONE_WAY_PATH_TOUCHED" in report.blocking, reason
+
+
+def test_verifier_command_matches_whole_tokens(tmp_path: Path) -> None:
+    repo, spec = _range_repo(tmp_path, "edit the readme title")
+    head = _head_of(spec)
+    short = head[:7]
+    verify_cmd = _contract(tmp_path / "verify-cmd.json", {
+        "name": "token",
+        "require_verifier_evidence": True,
+        "verifier_command": "verify",
+        "blocking_codes": ["VERIFIER_EVIDENCE_MISSING"],
+    })
+    for body in (
+        f"verifier: my-verify-fake | pass | {short}\n",
+        f"verifier: notverify | pass | {short}\n",
+    ):
+        report = verify(
+            spec, repo=repo, contract=verify_cmd,
+            ledger_dir=tmp_path / "no-ledger",
+            pr_body=body, pr_body_label="pr_body.md")
+        rows = [row for row in report.findings
+                if row.code == "VERIFIER_EVIDENCE_MISSING"]
+        assert len(rows) == 1, body
+        assert rows[0].message == "verifier evidence does not name the contract command"
+        assert rows[0].evidence == "verify"
+        assert report.exit_code == 1
+
+    accepted = verify(
+        spec, repo=repo, contract=verify_cmd, ledger_dir=tmp_path / "no-ledger",
+        pr_body=f"verifier: verify -q | pass | {short}\n",
+        pr_body_label="pr_body.md")
+    assert accepted.findings == ()
+    assert accepted.exit_code == 0
+
+    pytest_cmd = _contract(tmp_path / "pytest-cmd.json", {
+        "name": "pytest",
+        "require_verifier_evidence": True,
+        "verifier_command": "pytest -q",
+        "blocking_codes": ["VERIFIER_EVIDENCE_MISSING"],
+    })
+    matched = verify(
+        spec, repo=repo, contract=pytest_cmd, ledger_dir=tmp_path / "no-ledger",
+        pr_body=f"verifier: pytest -q | pass | {short}\n",
+        pr_body_label="pr_body.md")
+    assert matched.findings == ()
+    script = verify(
+        spec, repo=repo, contract=_contract(tmp_path / "script.json", {
+            "name": "script",
+            "require_verifier_evidence": True,
+            "verifier_command": "scripts/verify.sh",
+            "blocking_codes": ["VERIFIER_EVIDENCE_MISSING"],
+        }),
+        ledger_dir=tmp_path / "no-ledger",
+        pr_body=f"verifier: scripts/verify.sh | pass | {short}\n",
+        pr_body_label="pr_body.md")
+    assert script.findings == ()
+
+
+def test_one_way_path_uses_the_merge_base_diff(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init(repo)
+    _write(repo, "src/app.py", "value = 1\n")
+    _commit(repo, "root")
+    _git(repo, "branch", "-M", "main")
+    _git(repo, "checkout", "-b", "feature")
+    _write(repo, "src/app.py", "value = 2\n")
+    _commit(repo, "feature touches app")
+    _git(repo, "checkout", "main")
+    _write(repo, "migrations/001_init.sql", "create table t(id int);\n")
+    _commit(repo, "main adds a migration")
+    contract = _contract(tmp_path / "one-way.json", {
+        "name": "one-way",
+        "one_way_paths": ["migrations/**"],
+    })
+    report = verify(
+        "main..feature", repo=repo, contract=contract,
+        ledger_dir=tmp_path / "no-ledger")
+    assert [row for row in report.findings
+            if row.code == "ONE_WAY_PATH_TOUCHED"] == []
+    assert report.exit_code == 0
+
+    _git(repo, "checkout", "feature")
+    _write(repo, "schema/drop_users.sql", "drop table users;\n")
+    _commit(repo, "feature drops a table")
+    report = verify(
+        "main..feature", repo=repo, contract=_contract(tmp_path / "drop.json", {
+            "name": "drop",
+            "one_way_paths": ["schema/**", "**/drop_*.sql"],
+        }),
+        ledger_dir=tmp_path / "no-ledger")
+    rows = [row for row in report.findings if row.code == "ONE_WAY_PATH_TOUCHED"]
+    assert {row.location for row in rows} == {"schema/drop_users.sql"}
+    assert report.exit_code == 1
+    assert "migrations/001_init.sql" not in {row.location for row in rows}
+
+
+def test_verifier_and_one_way_json_is_repeatable(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init(repo)
+    _write(repo, "README.md", "base\n")
+    base = _commit(repo, "base")
+    _write(repo, "migrations/001_init.sql", "create table t(id int);\n")
+    head = _commit(repo, "migration")
+    contract = _contract(tmp_path / "both.json", {
+        "name": "both",
+        "require_verifier_evidence": True,
+        "verifier_command": "scripts/verify.sh",
+        "one_way_paths": ["migrations/**"],
+        "blocking_codes": ["VERIFIER_EVIDENCE_MISSING"],
+    })
+    kwargs = dict(
+        repo=repo,
+        contract=contract,
+        ledger_dir=tmp_path / "no-ledger",
+        pr_body="verifier: other | fail | 0000000\n",
+        pr_body_label="pr_body.md",
+    )
+    first = render_json(verify(f"{base}..{head}", **kwargs))
+    second = render_json(verify(f"{base}..{head}", **kwargs))
+    assert first == second
+    assert "\r" not in first
+    parsed = json.loads(first)
+    codes = [row["code"] for row in parsed["findings"]]
+    assert "ONE_WAY_PATH_TOUCHED" in codes
+    assert "VERIFIER_EVIDENCE_MISSING" in codes
+    assert parsed["exit_code"] == 1
+    assert "ONE_WAY_PATH_TOUCHED" in parsed["blocking"]

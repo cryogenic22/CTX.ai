@@ -25,10 +25,12 @@ FINDING_CODES = frozenset({
     "ATTESTATION_SHA_MISMATCH",
     "CONSTRAINT_CONFLICT",
     "CONTRACT_RULE_VIOLATION",
+    "ONE_WAY_PATH_TOUCHED",
     "STALE_IDENTIFIER",
     "SUPERSEDED_STILL_IN_CODE",
     "UNRECORDED_MARKER",
     "UNVERIFIED_CLAIM",
+    "VERIFIER_EVIDENCE_MISSING",
     "VERSION_PIN_DRIFT",
 })
 
@@ -40,10 +42,13 @@ _CONTRACT_KEYS = frozenset({
     "forbidden_paths",
     "forbidden_vocabulary",
     "name",
+    "one_way_paths",
     "pinned_versions",
     "require_attestation_sha",
     "require_test_evidence",
+    "require_verifier_evidence",
     "required_vocabulary",
+    "verifier_command",
 })
 
 _FLAG_KEYS = frozenset({"config_globs", "flag", "guarded_globs"})
@@ -60,7 +65,13 @@ class FlagOffInvariant:
 
 @dataclass(frozen=True)
 class TaskContract:
-    """Typed task contract. Every field is read by ``ctxpack verify``."""
+    """Typed task contract. Every field is read by ``ctxpack verify``.
+
+    ``require_verifier_evidence`` asks the PR body for a ``verifier:``
+    attestation. ``verifier_command`` is the command or label that
+    attestation must name (empty means any command). ``one_way_paths``
+    are globs for irreversible surfaces such as ``migrations/**``.
+    """
 
     name: str
     allowed_paths: tuple[str, ...]
@@ -73,6 +84,11 @@ class TaskContract:
     require_test_evidence: bool
     blocking_codes: tuple[str, ...]
     attestation_sha_patterns: tuple[str, ...]
+    # Omitted keys keep these defaults so contracts written before
+    # verifier evidence and one-way paths still load.
+    require_verifier_evidence: bool = False
+    verifier_command: str = ""
+    one_way_paths: tuple[str, ...] = ()
 
     @staticmethod
     def from_mapping(data: Mapping[str, Any]) -> "TaskContract":
@@ -105,6 +121,13 @@ class TaskContract:
             blocking_codes=_codes(data.get("blocking_codes", [])),
             attestation_sha_patterns=_sha_patterns(
                 data.get("attestation_sha_patterns", [])),
+            require_verifier_evidence=_bool(
+                data.get("require_verifier_evidence", False),
+                "require_verifier_evidence"),
+            verifier_command=_string(
+                data.get("verifier_command", ""), "verifier_command").strip(),
+            one_way_paths=_str_tuple(data.get("one_way_paths", []),
+                                     "one_way_paths"),
         )
 
 

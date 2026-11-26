@@ -2081,3 +2081,18 @@ or untracked document state belongs in the release manifest by implication.
 - **Files:** `pyproject.toml`, `ctxpack/__init__.py`, `tests/test_onboard.py`, `CHANGELOG.md`.
 - **Tests:** `python3 scripts/check_version.py --tag v1.0.0` OK; `ruff check --select F ctxpack --exclude ctxpack/benchmarks` 0; `python3 scripts/check_mypy_ratchet.py` current=56 baseline=56; `lint-imports` 2 kept, 0 broken; `python3 -m pytest tests/test_onboard.py tests/test_public_surface.py -q` 37 passed, 1 skipped.
 - **Next:** review the PR. Do not merge it and do not push `v1.0.0` from this note.
+
+### 2026-11-26 — Cursor agent — v1.1.0 PR 1 verifier evidence and one-way paths
+
+- **Branch:** `cursor/v1-1-verifier-evidence-07bd` off `origin/main` `3d954fa`. Not merged. Does not take the capture-fidelity owner role.
+- **What changed:** `TaskContract` gains `require_verifier_evidence` (default false), `verifier_command` (default empty), and `one_way_paths` (default empty tuple). Omitted keys still load. `VERIFIER_EVIDENCE_MISSING` (severity error) fails closed on a missing attestation, a non-pass status, a command mismatch, or a SHA that is not a 7+ hex prefix of head. `ONE_WAY_PATH_TOUCHED` (severity error) matches the merge-base diff and blocks even when the blocking list omits it, unless the body has `one-way-ack:` and a matching `verified-sha:`. `_glob_match` strips one leading `./` only, so `.github/**` does not match `github/x.yml`. `ctxpack onboard` appends an idempotent `<!-- ctxpack:attestation:start -->` block to `.github/pull_request_template.md` via `atomic_write_text` (`--no-pr-template` skips it).
+- **Files:** `ctxpack/agent/contract.py`, `ctxpack/agent/verify.py`, `ctxpack/cli/main.py`, `tests/test_contract.py`, `tests/test_verify.py`, `tests/test_onboard.py`, `docs/verify-ci.md`, `docs/capability-registry.md`, `CHANGELOG.md`.
+- **Tests:** ruff F 0; `scripts/check_mypy_ratchet.py` current=56 baseline=56; `lint-imports` 2 kept, 0 broken; claims OK (16 pre-existing warnings); capability registry OK; doc-privacy OK; `python3 -m pytest tests/ -q -m "not slow" --ignore=tests/code` 1793 passed / 37 skipped / 57 deselected.
+- **Next:** review the PR. Do not merge it from this note.
+
+### 2026-11-26 — Cursor agent — PR #37 review fixes
+
+- **Branch:** `cursor/v1-1-verifier-evidence-07bd`. Rebased onto `origin/main` `f4db0f5` (PR #36, version 1.0.0). Not merged. Does not take the capture-fidelity owner role.
+- **What changed:** `one-way-ack:` and `verifier:` capture same-line text only (`[ \t]*` after the colon). Stub ack reasons (`<...>`, punctuation-only, `todo`/`tbd`/`n/a`/`na`/`none`/`placeholder`/`reason`) do not waive `ONE_WAY_PATH_TOUCHED`. `verifier_command` matches a contiguous shell-token sequence, so `verify` does not match `notverify` or `my-verify-fake`. A 7+ hex SHA prefix of head is required on the verifier attestation. The v1.1 changelog bullet stays under `## [Unreleased]`.
+- **Tests:** ruff F 0; mypy current=56 baseline=56; `lint-imports` 2 kept, 0 broken; `python3 -m pytest tests/ -q -m "not slow" --ignore=tests/code` 1795 passed / 37 skipped / 57 deselected.
+- **Next:** review the PR. Do not merge it from this note.

@@ -147,6 +147,93 @@ def test_onboard_refuses_unparseable_mcp_json(tmp_path):
     assert (tmp_path / ".mcp.json").read_text(encoding="utf-8") == "{not json"
 
 
+_ATTESTATION_START = "<!-- ctxpack:attestation:start -->"
+_ATTESTATION_END = "<!-- ctxpack:attestation:end -->"
+_ATTESTATION_BLOCK = (
+    "<!-- ctxpack:attestation:start -->\n"
+    "verified-sha: <7+ char head sha>\n"
+    "verifier: <command> | pass | <head-sha>\n"
+    "<!-- ctxpack:attestation:end -->\n"
+)
+
+
+def _template(project):
+    return project / ".github" / "pull_request_template.md"
+
+
+def test_onboard_creates_pr_template_attestation_block(tmp_path):
+    assert _onboard(tmp_path) == 0
+    text = _template(tmp_path).read_text(encoding="utf-8")
+    assert text == _ATTESTATION_BLOCK
+    assert text.count(_ATTESTATION_START) == 1
+    assert text.endswith("\n")
+
+
+def test_onboard_appends_pr_template_without_clobbering(tmp_path):
+    path = _template(tmp_path)
+    path.parent.mkdir(parents=True)
+    path.write_text("# Existing template\n\nKeep this paragraph.\n",
+                    encoding="utf-8", newline="\n")
+    assert _onboard(tmp_path) == 0
+    text = path.read_text(encoding="utf-8")
+    assert text.startswith("# Existing template\n\nKeep this paragraph.\n")
+    assert _ATTESTATION_BLOCK in text
+    assert text.count(_ATTESTATION_START) == 1
+    assert "Keep this paragraph." in text
+
+
+def test_onboard_pr_template_is_idempotent(tmp_path):
+    assert _onboard(tmp_path) == 0
+    first = _template(tmp_path).read_bytes()
+    assert _onboard(tmp_path) == 0
+    assert _template(tmp_path).read_bytes() == first
+    assert first.count(_ATTESTATION_START.encode("utf-8")) == 1
+
+    edited = first.replace(
+        b"verified-sha: <7+ char head sha>",
+        b"verified-sha: filled-by-hand",
+    )
+    _template(tmp_path).write_bytes(edited)
+    assert _onboard(tmp_path) == 0
+    assert _template(tmp_path).read_bytes() == edited
+
+
+def test_onboard_pr_template_can_be_skipped_and_uses_atomic_write(tmp_path, monkeypatch):
+    assert main([
+        "onboard", "--project-dir", str(tmp_path), "--no-pr-template",
+    ]) == 0
+    assert not _template(tmp_path).exists()
+
+    calls = []
+    from ctxpack.agent import ledger as ledger_mod
+    real = ledger_mod.atomic_write_text
+
+    def wrapped(path, text):
+        calls.append((path, text))
+        real(path, text)
+
+    monkeypatch.setattr(ledger_mod, "atomic_write_text", wrapped)
+    fresh = tmp_path / "fresh"
+    fresh.mkdir()
+    assert main(["onboard", "--project-dir", str(fresh), "--pr-template"]) == 0
+    template_calls = [item for item in calls if item[0].endswith(
+        "pull_request_template.md")]
+    assert len(template_calls) == 1
+    assert template_calls[0][1] == _ATTESTATION_BLOCK
+    assert main(["onboard", "--project-dir", str(fresh), "--pr-template"]) == 0
+    template_calls = [item for item in calls if item[0].endswith(
+        "pull_request_template.md")]
+    assert len(template_calls) == 1
+
+
+def test_onboard_refuses_unreadable_pr_template(tmp_path):
+    path = _template(tmp_path)
+    path.parent.mkdir(parents=True)
+    path.mkdir()
+    assert _onboard(tmp_path) == 1
+    assert path.is_dir()
+
+
 # ── Fail-open guard: hook invocations may NEVER exit non-zero ──
 # (a non-zero PreCompact hook blocks compaction — observed in the wild
 # when a vendored stale ctxpack shadowed the installed one)
