@@ -330,7 +330,8 @@ def test_session_resume_one_call(ledger):
     # P1-3: gist + stakes trio + literals in a single read.
     result = session_resume(ledger)
     assert result["session"] == "feedbeef"
-    assert "Session memory" in result["gist"]
+    assert "exponential backoff" in result["gist"]
+    assert "didn't work" in result["gist"]
     assert result["counts"]["decisions"] == 1
     assert result["counts"]["constraints"] == 1
     assert "exponential backoff" in result["decisions"][0]["text"]

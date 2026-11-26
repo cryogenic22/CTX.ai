@@ -21,7 +21,9 @@ import json
 import pytest
 
 from ctxpack.cli.main import main
-from tests.test_redaction import _SIX_CORPUS, _hook_repo, _matrix_rows
+from tests.test_redaction import (
+    _SIX_CORPUS, _hook_repo, _matrix_rows, _plant_decisions,
+)
 
 # TC-3's benign corpus (doc examples): reference shapes that must
 # survive every boundary byte-identical — over-redaction is memory loss.
@@ -48,20 +50,16 @@ def test_full_raw_corpus_in_old_gist_never_reaches_emission(
         tmp_path, monkeypatch, capsys):
     """FORWARD GUARD (designed pass — suite-only unit): the accepted
     PF-17 constraint, discharged directly: every §6
-    corpus secret planted RAW in latest-gist.md AND project-gist.md
-    (an old, pre-ingest-redaction ledger) — the emitted context
+    corpus secret planted RAW in the session ledger the brief reads
+    (an old row past ingest redaction) — the emitted context
     contains zero of the raw bytes, the receipt is still `injected`,
     and the egress redaction count is visible in the receipt."""
     from ctxpack.agent.injection_log import read_injections
 
     repo, out = _hook_repo(tmp_path, monkeypatch)
-    planted_block = "\n".join(
-        f"- legacy row ({label}): {planted}"
-        for label, planted, _secret in _SIX_CORPUS)
-    for name in ("latest-gist.md", "project-gist.md"):
-        (out / name).write_text(
-            f"# old ledger predating E-6 ingest redaction\n"
-            f"{planted_block}\n", encoding="utf-8")
+    _plant_decisions(
+        out, [f"legacy row ({label}): {planted}"
+              for label, planted, _secret in _SIX_CORPUS])
 
     emitted = _emitted_context(repo, out, monkeypatch, capsys,
                                "pf17egr1-0000")
@@ -120,9 +118,7 @@ def test_tc3_benign_corpus_survives_emission_byte_identical(
     every boundary untouched — over-redaction is silent memory loss
     and fails this test."""
     repo, out = _hook_repo(tmp_path, monkeypatch)
-    benign_text = "\n".join(f"- {b}" for b in _BENIGN)
-    (out / "latest-gist.md").write_text(
-        f"# notes\n{benign_text}\n", encoding="utf-8")
+    _plant_decisions(out, list(_BENIGN))
     emitted = _emitted_context(repo, out, monkeypatch, capsys,
                                "pf17ben1-0000")
     for b in _BENIGN:

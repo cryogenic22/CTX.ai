@@ -208,6 +208,19 @@ def strip_leading_list_marker(text: str) -> str:
     """Drop leading markdown bullets or list numbers. Negations stay."""
     return _LEADING_LIST_RE.sub("", text or "").strip()
 
+
+def strip_ack_lines(text: str) -> str:
+    """Drop delivery-ack lines so they are never banked as facts.
+
+    ``CTX-Ack: <token>`` and the one-line echo instruction are harness
+    protocol, not a decision, constraint, dead end, or literal. A line
+    that contains the marker is removed whole; surrounding lines stay.
+    """
+    if not text or "CTX-Ack:" not in text:
+        return text or ""
+    kept = [line for line in text.splitlines() if "CTX-Ack:" not in line]
+    return "\n".join(kept)
+
 _SYS_REMINDER_RE = re.compile(r"<system-reminder>.*?</system-reminder>", re.DOTALL)
 _TAGGED_META_RE = re.compile(
     r"<(local-command-caveat|command-name|command-message|command-args|"
@@ -949,7 +962,9 @@ def parse_transcript(
             mined, skip_assistant_text = prepare_user_turn(text, capture)
             if mined is None:
                 continue
-            text = mined
+            text = strip_ack_lines(mined)
+            if not text.strip():
+                continue
 
             # Incidents first (short turns only — the pasted-content guard
             # applies: quoted transcripts full of incident lines must not
@@ -1014,6 +1029,7 @@ def parse_transcript(
                         continue
                     atext = _clean_multiline(blk.get("text", ""))
                     atext, _blocked = strip_blocks(atext, capture.ignore_blocks)
+                    atext = strip_ack_lines(atext)
                     if not atext.strip():
                         continue
                     atext = _extract_incidents(

@@ -478,6 +478,40 @@ def _run(argv: list[str]) -> int:
                            choices=["out", "in", "both"],
                            help="graph bfs/path: edge direction")
 
+    p_brief = sub.add_parser(
+        "brief",
+        help="Budgeted ledger briefing (same text as the SessionStart hook)")
+    p_brief.add_argument("--ledger", default=".claude/ctx",
+                         help="Ledger directory (default: .claude/ctx)")
+    p_brief.add_argument("--budget", type=int, default=None,
+                         help="Hard cap in --unit (default: 12000 chars, "
+                              "or [brief] in ctxpack.toml)")
+    p_brief.add_argument("--unit", choices=["chars", "tokens"], default=None,
+                         help="Budget unit (default: chars)")
+    p_brief.add_argument("--format", dest="brief_format",
+                         choices=["md", "json"], default="md",
+                         help="md text, or json with the same text field")
+    p_brief.add_argument("--ack", action="store_true",
+                         help="Append a CTX-Ack token and a one-line echo "
+                              "instruction (output is then not deterministic)")
+
+    p_ack = sub.add_parser(
+        "ack", help="Check whether a briefing delivery token was echoed")
+    ack_sub = p_ack.add_subparsers(dest="ack_command", required=True)
+    p_ack_check = ack_sub.add_parser(
+        "check", help="Look for CTX-Ack: TOKEN in a transcript or commit body")
+    p_ack_check.add_argument("--token", required=True,
+                             help="The token from a CTX-Ack line")
+    p_ack_check.add_argument("--transcript", default="",
+                             help="Transcript JSONL to scan")
+    p_ack_check.add_argument("--repo", default="",
+                             help="Git repo whose commit messages to scan "
+                                  "(default: the ledger's parent, then cwd)")
+    p_ack_check.add_argument("--ledger", default=".claude/ctx",
+                             help="Where the ack receipt is appended")
+    p_ack_check.add_argument("--format", dest="ack_format",
+                             choices=["text", "json"], default="text")
+
     args = ap.parse_args(argv)
 
     try:
@@ -527,6 +561,10 @@ def _run(argv: list[str]) -> int:
             return _cmd_scorecard(args)
         elif args.command == "session":
             return _cmd_session(args)
+        elif args.command == "brief":
+            return _cmd_brief(args)
+        elif args.command == "ack":
+            return _cmd_ack(args)
     except ParseError as e:
         print(f"Parse error: {e}", file=sys.stderr)
         return 1
@@ -1260,6 +1298,51 @@ def _cmd_backfill(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def _cmd_brief(args: argparse.Namespace) -> int:
+    """Print the budgeted briefing. md bytes match ``ctxpack.brief``."""
+    from ..agent.brief import brief_result
+
+    try:
+        result = brief_result(
+            args.ledger,
+            budget=args.budget,
+            unit=args.unit,
+            ack=bool(args.ack),
+        )
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
+    if args.brief_format == "json":
+        sys.stdout.write(result.to_json())
+    else:
+        sys.stdout.write(result.text)
+    return 0
+
+
+def _cmd_ack(args: argparse.Namespace) -> int:
+    """``ctxpack ack check --token T``."""
+    from ..agent.ack import check_ack
+
+    if args.ack_command != "check":
+        print("Error: ack requires 'check'", file=sys.stderr)
+        return 2
+    try:
+        receipt = check_ack(
+            args.token,
+            transcript=args.transcript,
+            repo=args.repo,
+            ledger_dir=args.ledger,
+        )
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
+    if args.ack_format == "json":
+        sys.stdout.write(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
+    else:
+        print(receipt["status"])
+    return 0 if receipt["status"] == "acked" else 1
+
+
 def _cmd_hook(args: argparse.Namespace) -> int:
     """Claude Code hook entry point. Reads the hook event JSON on stdin.
 
@@ -1335,20 +1418,21 @@ def _cmd_hook(args: argparse.Namespace) -> int:
 
     gist, outcome, error, exc = "", "", "", None
     try:
+        from ..agent.brief import load_brief_settings
         from ..agent.checkpoint import read_startup_context
-        gist = read_startup_context(out_dir)
+        from ..core.tokens import count_budget
+        settings = load_brief_settings(out_dir)
     except Exception as e:  # noqa: BLE001 — a broken ledger must not break
-        # the session, but it must not look like a healthy empty one
-        # either. TM-7: stable code + bounded category, never the
-        # message text or a class name (the object is classified at
-        # the write, never serialized).
         outcome, error = FAILED, "startup_read_failed"
         exc = e
+        settings = None
 
     # Capture-coverage self-report (setu field gap 2026-07-21): a session
     # the hooks never packed must announce itself at the next start, not
     # hide until someone inspects file mtimes. Fail-open — the check must
     # never break session start; the just-started session is excluded.
+    # Computed before the brief so the warning and the brief together stay
+    # inside the same budget.
     try:
         from ..agent.backfill import capture_coverage, format_gap_warning
         warning = format_gap_warning(capture_coverage(
@@ -1356,8 +1440,25 @@ def _cmd_hook(args: argparse.Namespace) -> int:
             exclude_session=str(payload.get("session_id", ""))))
     except Exception:  # noqa: BLE001
         warning = ""
-    if warning:
-        gist = f"{warning}\n\n{gist}" if gist else warning
+
+    if settings is not None and not outcome:
+        try:
+            reserve = 0
+            if warning:
+                reserve = count_budget(warning + "\n\n", settings.unit)
+            room = settings.budget - reserve
+            if room > 0:
+                gist = read_startup_context(
+                    out_dir, budget=room, unit=settings.unit)
+            if warning:
+                gist = f"{warning}\n\n{gist}" if gist else warning
+        except Exception as e:  # noqa: BLE001 — a broken ledger must not break
+            # the session, but it must not look like a healthy empty one
+            # either. TM-7: stable code + bounded category, never the
+            # message text or a class name (the object is classified at
+            # the write, never serialized).
+            outcome, error = FAILED, "startup_read_failed"
+            exc = e
 
     # E-6 egress boundary (PF-14): a second scan of the FINAL serialized
     # context — defense in depth behind the ingest boundary (old ledgers

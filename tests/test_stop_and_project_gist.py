@@ -141,17 +141,16 @@ def test_startup_context_combines_project_and_latest(tmp_path):
     out = tmp_path / "ctx"
     run_checkpoint(_write(tmp_path, "aaaa1111-s", ["use redis for cache"]),
                    str(out), as_of="2026-07-04")
-    # One session: startup context == the session gist alone
+    # One session: the unified brief carries that session and no second rollup header.
     ctx1 = read_startup_context(str(out))
-    assert "Session memory" in ctx1 and "Project memory" not in ctx1
+    assert "use redis for cache" in ctx1
+    assert "Project memory" not in ctx1
 
     run_checkpoint(_write(tmp_path, "bbbb2222-s", ["shard by tenant id"]),
                    str(out), as_of="2026-07-04")
     ctx2 = read_startup_context(str(out))
-    assert "Project memory" in ctx2 and "Session memory" in ctx2
-    assert ctx2.index("Project memory") < ctx2.index("Session memory")
-    assert "use redis for cache" in ctx2      # history via rollup
-    assert "shard by tenant id" in ctx2       # last session via its gist
+    assert "use redis for cache" in ctx2
+    assert "shard by tenant id" in ctx2
 
 
 def test_project_gist_is_deterministic(tmp_path):

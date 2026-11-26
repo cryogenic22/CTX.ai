@@ -51,7 +51,7 @@ a function), so importing the product never executes non-product code.
 | `ctxpack/agent/session.py` | legacy-deprecation-candidate | — | rolling merge+evict prototype; superseded by checkpoint/read-path architecture |
 | `ctxpack/agent/state_parser.py` | eval | — | agent-trace step parser behind `compress_state`; imported by the agentic benchmark runners (`run_agentic_niah.py`, `run_graphwalks_eval.py`) — reclassified from legacy 2026-07-11 (the "no production callers" note was contradicted by the public export; reviewer finding Q2-5). Still not on the session-memory product path |
 | `ctxpack/cli/` | core | — | `ctxpack` CLI (note: `dream`/`elicit`/`codebase` subcommands drive *experimental* modules) |
-| `ctxpack/integrations/` | core | — | MCP server (20 tools) |
+| `ctxpack/integrations/` | core | — | MCP server (21 tools; `ctx/brief` is the budgeted briefing) |
 | `ctxpack/benchmarks/` | eval | — | eval framework, agentic NIAH/graph generators, CompactBench, baselines, metrics |
 | `ctxpack/benchmarks/replay.py` | eval | — | CTX Legions L1 offline deterministic replay benchmark (capture/supersession/briefing acceptance harness) |
 | `ctxpack/modules/` | experimental | — | opt-in library modules (grounding, keywords, analytics, catalog queries); no production callers today |
