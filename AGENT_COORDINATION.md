@@ -2043,3 +2043,4 @@ or untracked document state belongs in the release manifest by implication.
 - **export_claude_md:** merge is opt-in (`merge_existing=True`). The default, which is what `ctxpack codebase export` calls, stays a standalone map and does not copy a parent `CLAUDE.md` that imports `@.claude/codebase-map.md`. Malformed markers raise `ValueError` and are not rewritten.
 - **SUPPORTED.md:** brief composer is the live `ctxpack.agent.brief` surface.
 - **Tests:** `python3 -m pytest tests/ -q -m "not slow"` → 2028 passed / 37 skipped / 57 deselected.
+- **CI follow-up:** `code (macos-latest py3.10)` failed `test_incremental_faster_than_full_rebuild` (incremental 13ms, full 9ms). Replaced the wall-clock check with a parse-call count: a no-change re-pack must call `parse_python` zero times.
