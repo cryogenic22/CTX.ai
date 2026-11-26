@@ -98,3 +98,21 @@ verified-sha: <7+ char head sha>
 verifier: <command> | pass | <head-sha>
 <!-- ctxpack:attestation:end -->
 ```
+
+## Findings log
+
+`ctxpack verify` writes nothing unless recording is requested.
+
+```bash
+ctxpack verify --range "$BASE..$HEAD" --record-findings
+ctxpack verify --range "$BASE..$HEAD" --findings-log .ctx/findings.jsonl
+```
+
+`--record-findings` appends to `.ctx/findings.jsonl` under `--repo` (default: the current directory). `--findings-log PATH` records to that path and creates parent directories. A relative path is under `--repo`. Each finding is one JSON object with sorted keys and a trailing newline. The Python helpers are `append_findings` and `read_findings` in `ctxpack.agent.findings_log`. A corrupt line fails the reader and names the line number. `verify()` the function stays side-effect free; only the CLI records.
+
+```bash
+ctxpack lessons suggest
+ctxpack lessons suggest --min-count 2 --format json
+```
+
+`ctxpack lessons suggest` groups the log by `(code, pattern)`. A group is listed when its `count` is at least `--min-count` (default 3, minimum 1). `distinct_heads` is the number of distinct non-empty `head_sha` values, so repeating one commit does not look like many commits. Output order is `(-count, code, pattern)`. The command prints a `contract_patch` for a person to review. It does not edit `.ctx/contract.json`. A missing log exits 0. A corrupt log exits 2 and names the bad lines.

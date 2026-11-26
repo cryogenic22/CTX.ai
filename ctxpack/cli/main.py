@@ -381,6 +381,24 @@ def _run(argv: list[str]) -> int:
                                 "problem)")
     p_lessons.add_argument("--json", action="store_true",
                            help="Emit the registry as JSON")
+    lessons_sub = p_lessons.add_subparsers(dest="lessons_command", required=False)
+    p_suggest = lessons_sub.add_parser(
+        "suggest",
+        help="Propose task-contract changes from recurring verify "
+             "findings (does not edit the contract)")
+    p_suggest.add_argument(
+        "--findings-log", default=".ctx/findings.jsonl",
+        help="JSONL findings log (default: .ctx/findings.jsonl)")
+    p_suggest.add_argument(
+        "--min-count", dest="min_count", type=_min_count, default=3,
+        help="Minimum occurrences of a (code, pattern) group (default: 3)")
+    p_suggest.add_argument(
+        "--format", dest="suggest_format",
+        choices=["text", "json", "markdown"], default="text",
+        help="Output format (default: text)")
+    p_suggest.add_argument(
+        "--json", dest="suggest_json", action="store_true",
+        help="Emit suggestions as JSON (same as --format json)")
 
     # backfill — capture-coverage reconciliation (setu field gap:
     # crash/kill//clear can skip the hooks; the raw transcript survives)
@@ -544,6 +562,17 @@ def _run(argv: list[str]) -> int:
                           help="Output format (default: json)")
     p_verify.add_argument("--block", default=None,
                           help="Comma-separated finding codes that exit 1")
+    p_verify.add_argument("--repo", default=".",
+                          help="Repository root (default: current directory). "
+                               "A relative findings log is written under it")
+    p_verify.add_argument(
+        "--record-findings", action="store_true",
+        help="Append each finding to .ctx/findings.jsonl under --repo. "
+             "Omit this and --findings-log to write nothing")
+    p_verify.add_argument(
+        "--findings-log", default=None,
+        help="Append each finding to this JSONL path (implies recording). "
+             "Relative paths are under --repo. Parent directories are created")
 
     args = ap.parse_args(argv)
 
@@ -2179,11 +2208,36 @@ saves — a missed/stale row is worth more than a flattering one.
 """
 
 
+def _min_count(value: str) -> int:
+    """argparse type: an integer >= 1."""
+    try:
+        number = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            "min-count must be an integer >= 1") from exc
+    if number < 1:
+        raise argparse.ArgumentTypeError("min-count must be an integer >= 1")
+    return number
+
+
+def _suggest_format(args: argparse.Namespace) -> str | None:
+    """``text``, ``json``, or ``markdown``. None when the flags disagree."""
+    fmt = getattr(args, "suggest_format", None) or "text"
+    want_json = bool(getattr(args, "suggest_json", False))
+    if want_json and fmt not in {"text", "json"}:
+        return None
+    if want_json:
+        return "json"
+    return str(fmt)
+
+
 def _cmd_lessons(args: argparse.Namespace) -> int:
     """Curated cross-repo lessons registry: list, validate, or dump.
     Distribution happens through `ctxpack onboard` (the CLAUDE.md block
     embeds the active lessons; a lessons bump changes the block marker,
     so re-onboarding refreshes cohort repos in place)."""
+    if getattr(args, "lessons_command", None) == "suggest":
+        return _cmd_lessons_suggest(args)
     from ..agent.lessons import (LESSONS, render_cli_listing,
                                  validate_lessons)
 
@@ -2206,6 +2260,49 @@ def _cmd_lessons(args: argparse.Namespace) -> int:
               f"(run `ctxpack lessons --check`)", file=sys.stderr)
     print(f"\nDistribute to a repo: run `ctxpack onboard` there "
           f"(refreshes the CLAUDE.md block to {_CLAUDE_MD_VERSION}).")
+    return 0
+
+
+def _cmd_lessons_suggest(args: argparse.Namespace) -> int:
+    """Print contract proposals for recurring findings. Never edits one."""
+    from pathlib import Path
+
+    from ..agent.findings_log import (
+        DEFAULT_FINDINGS_LOG,
+        FindingsLogError,
+        read_findings,
+        render_suggestions,
+        suggestions_payload,
+    )
+
+    fmt = _suggest_format(args)
+    if fmt is None:
+        print(
+            "ctxpack lessons suggest: --json conflicts with "
+            f"--format {getattr(args, 'suggest_format', '')}",
+            file=sys.stderr,
+        )
+        return 2
+    label = str(getattr(args, "findings_log", None) or DEFAULT_FINDINGS_LOG)
+    display = label.replace("\\", "/")
+    path = Path(label)
+    min_count = int(getattr(args, "min_count", 3) or 3)
+    if not path.exists():
+        payload = suggestions_payload(
+            [], min_count=min_count, findings_log=display, status="missing")
+        sys.stdout.buffer.write(render_suggestions(payload, fmt).encode("utf-8"))
+        return 0
+    try:
+        records = read_findings(path)
+    except FindingsLogError as exc:
+        print(f"ctxpack lessons suggest: {exc}", file=sys.stderr)
+        return 2
+    except OSError as exc:
+        print(f"ctxpack lessons suggest: {exc}", file=sys.stderr)
+        return 2
+    payload = suggestions_payload(
+        records, min_count=min_count, findings_log=display, status="ok")
+    sys.stdout.buffer.write(render_suggestions(payload, fmt).encode("utf-8"))
     return 0
 
 

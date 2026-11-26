@@ -2096,3 +2096,11 @@ or untracked document state belongs in the release manifest by implication.
 - **What changed:** `one-way-ack:` and `verifier:` capture same-line text only (`[ \t]*` after the colon). Stub ack reasons (`<...>`, punctuation-only, `todo`/`tbd`/`n/a`/`na`/`none`/`placeholder`/`reason`) do not waive `ONE_WAY_PATH_TOUCHED`. `verifier_command` matches a contiguous shell-token sequence, so `verify` does not match `notverify` or `my-verify-fake`. A 7+ hex SHA prefix of head is required on the verifier attestation. The v1.1 changelog bullet stays under `## [Unreleased]`.
 - **Tests:** ruff F 0; mypy current=56 baseline=56; `lint-imports` 2 kept, 0 broken; `python3 -m pytest tests/ -q -m "not slow" --ignore=tests/code` 1795 passed / 37 skipped / 57 deselected.
 - **Next:** review the PR. Do not merge it from this note.
+
+### 2026-11-26 — Cursor agent — v1.1.0 PR 2 findings log and lessons suggest
+
+- **Branch:** `cursor/findings-lessons-suggest-8ddf` off `origin/main` `735c45de` (PR #37). Not merged. Does not take the capture-fidelity owner role.
+- **What changed:** `ctxpack verify` stays side-effect free unless `--record-findings` or `--findings-log` is set. Those flags append one sorted-key JSONL row per finding (locked, fsync'd) under `--repo` / `.ctx/findings.jsonl`. `read_findings` fails on a corrupt line and names every bad line. `ctxpack lessons suggest` groups by `(code, pattern)`, keeps groups with `count >= --min-count` (default 3), and prints `distinct_heads` plus a `contract_patch`. It does not edit a contract. Pattern keys drop SHAs and line numbers. The log lives in `ctxpack/agent/findings_log.py` so it stays inside the cli → agent → core layer.
+- **Files:** `ctxpack/agent/findings_log.py`, `ctxpack/agent/verify.py`, `ctxpack/cli/main.py`, `tests/test_findings_log.py`, `docs/verify-ci.md`, `docs/capability-registry.md`, `CHANGELOG.md`, `SUPPORTED.md`, `.gitignore`.
+- **Tests:** ruff F 0; `scripts/check_mypy_ratchet.py` current=56 baseline=56; `lint-imports` 2 kept, 0 broken; claims OK (16 pre-existing warnings); capability registry OK; doc-privacy OK; `python3 -m pytest tests/ -q -m "not slow" --ignore=tests/code` 1805 passed / 37 skipped / 57 deselected; `tests/test_findings_log.py` 10 passed (includes the PYTHONHASHSEED 1 vs 42 byte-identity check).
+- **Next:** review the PR. Do not merge it from this note.
