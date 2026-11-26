@@ -11,3 +11,9 @@ def brief(*args, **kwargs):
     """Budgeted ledger briefing. See :func:`ctxpack.agent.brief.brief`."""
     from .agent.brief import brief as _brief
     return _brief(*args, **kwargs)
+
+
+def verify(*args, **kwargs):
+    """Deterministic PR/ledger check. See ``ctxpack.agent.verify.verify``."""
+    from .agent.verify import verify as _verify
+    return _verify(*args, **kwargs)

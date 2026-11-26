@@ -1,0 +1,1240 @@
+"""Deterministic ledger-to-PR verifier (issue #16).
+
+``ctxpack verify --range A..B`` compares commit messages, an optional PR
+body, the working ledger, and an optional task contract. The same inputs
+produce byte-identical JSON on Linux, macOS, and Windows. Nothing here
+calls the network. An optional Jev adapter is a separate advisory path
+and does not change this exit code.
+
+Exit status is 0 unless a finding's code is in the blocking list. The
+list comes from ``--block``, then ``ctxpack.toml`` ``[verify] block``,
+then the contract's ``blocking_codes``. The default list is empty
+(report-only). A contract or git error exits 2 from the CLI.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Iterable, Mapping, Sequence
+
+from ..core.model import KeyValue
+from ..core.parser import parse
+from .conflict_lint import lint_decisions
+from .contract import (
+    FINDING_CODES,
+    ContractError,
+    FlagOffInvariant,
+    TaskContract,
+    load_contract,
+    load_toml_mapping,
+)
+from .live_set import live_set_from_records
+from .session_reader import _kv, ledger_facts
+
+MAX_FINDINGS = 200
+_EVIDENCE_CHARS = 240
+
+SEVERITY = {
+    "ATTESTATION_SHA_MISMATCH": "error",
+    "CONSTRAINT_CONFLICT": "warning",
+    "CONTRACT_RULE_VIOLATION": "error",
+    "STALE_IDENTIFIER": "warning",
+    "SUPERSEDED_STILL_IN_CODE": "warning",
+    "UNRECORDED_MARKER": "warning",
+    "UNVERIFIED_CLAIM": "warning",
+    "VERSION_PIN_DRIFT": "error",
+}
+
+_MARKER_LABEL = {
+    "constraint": "Constraint",
+    "dead end": "Dead end",
+    "decision": "Decision",
+    "rejected": "Rejected",
+    "supersedes": "Supersedes",
+}
+
+_INLINE_CODE = re.compile(r"`[^`]*`")
+_MARKER_LINE = re.compile(
+    r"(?i)^(?:[-*•>]\s*)*(?:\*{1,2}|_{1,2})?"
+    r"(decision|constraint|rejected|dead end|supersedes)"
+    r"(?:\*{1,2}|_{1,2})?\s*:\s*(.*?)\s*$")
+_BACKTICK = re.compile(r"`([^`\n]+)`")
+_BARE_PATH = re.compile(
+    r"(?<![\w./])((?:[\w.-]+/)+[\w.-]+\.[\w]+|(?:[\w.-]+\.(?:py|md|toml|json|yml|yaml|txt|rs|go|ts|tsx|js)))")
+_SYMBOL = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{3,}$")
+_ID_TOKEN = re.compile(r"[0-9a-fA-F]{64}|[0-9a-fA-F]{16}")
+_SUPERSEDES_PAYLOAD = re.compile(
+    r"\s*[`']?([0-9a-fA-F]{64}|[0-9a-fA-F]{16})\b[`']?\s*(?:[—–\-:,]\s*)?(.*)")
+_SUPERSEDES_FIELD = re.compile(
+    r"(?im)^SUPERSEDES-FACT-ID:[ \t]*([0-9a-fA-F]{64}|[0-9a-fA-F]{16})[ \t]*$")
+_DEFAULT_SHA = (
+    re.compile(
+        r"(?im)^[ \t>*-]*(?:verified-sha|attested-sha|head-sha)"
+        r"\s*:\s*([0-9a-fA-F]{7,40})\b"),
+)
+_GREEN_CLAIM = re.compile(
+    r"(?i)\b(?:all tests passed|tests passed|0 errors)\b"
+    r"|\b\d+(?:\.\d+)?%\s*coverage\b"
+    r"|\bcoverage(?:\s+is|\s*[:=])?\s*\d+(?:\.\d+)?%")
+_NOT_RUN = re.compile(
+    r"(?i)\btests (?:were )?not run\b"
+    r"|\bdid not run (?:the )?tests\b"
+    r"|\btests (?:were )?skipped\b"
+    r"|\bskipped (?:the )?tests\b")
+_EVIDENCE = (
+    re.compile(r"(?i)evidence-sha256:\s*[0-9a-f]{64}\b"),
+    re.compile(r"(?i)test-command:\s*\S+"),
+    re.compile(r"(?i)\b\d+\s+passed\b"),
+)
+_FLOATING = re.compile(
+    r"(?i)(?<![A-Za-z0-9_])(?:latest|floating)(?![A-Za-z0-9_])"
+    r"|\"\*\"|'\*'"
+    r"|(?<![\w.])[\^~]\d"
+    r"|(?<![\w.])>=\s*\d")
+_ON = frozenset({"true", "1", "on", "enabled", "yes"})
+_TEXT_EXTS = (
+    ".py", ".md", ".toml", ".json", ".yml", ".yaml", ".txt", ".rs",
+    ".go", ".ts", ".tsx", ".js", ".css", ".html", ".cfg", ".ini",
+)
+
+
+class VerifyError(ValueError):
+    """The range, git repo, or verifier config cannot be checked."""
+
+
+@dataclass(frozen=True)
+class Finding:
+    """One deterministic verifier finding."""
+
+    code: str
+    severity: str
+    fact_id: str | None
+    location: str
+    message: str
+    evidence: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "code": self.code,
+            "evidence": self.evidence,
+            "fact_id": self.fact_id,
+            "location": self.location,
+            "message": self.message,
+            "severity": self.severity,
+        }
+
+
+@dataclass(frozen=True)
+class VerifyReport:
+    """Sorted findings plus the exit code a caller should return."""
+
+    range_spec: str
+    base: str
+    head: str
+    findings: tuple[Finding, ...]
+    blocking: tuple[str, ...]
+    exit_code: int
+    contract: str | None
+    dropped: int
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "base": self.base,
+            "blocking": list(self.blocking),
+            "contract": self.contract,
+            "dropped": self.dropped,
+            "exit_code": self.exit_code,
+            "findings": [row.to_dict() for row in self.findings],
+            "head": self.head,
+            "range": self.range_spec,
+        }
+
+
+@dataclass(frozen=True)
+class _Fact:
+    fact_id: str
+    kind: str
+    texts: tuple[str, ...]
+    source: str
+    superseded: bool
+    live: bool
+
+
+@dataclass(frozen=True)
+class _Marked:
+    kind: str
+    line: str
+    payload: str
+    location: str
+
+
+@dataclass
+class _Field:
+    key: str
+    value: str
+
+
+@dataclass
+class _Source:
+    turn: int
+
+
+@dataclass
+class _Entity:
+    name: str
+    fields: list[_Field]
+    sources: list[_Source]
+
+
+def verify(
+    range_spec: str,
+    *,
+    repo: str | os.PathLike[str] = ".",
+    pr_body: str | None = None,
+    pr_body_label: str = "pr-body",
+    contract: str | os.PathLike[str] | TaskContract | None = None,
+    ledger_dir: str | os.PathLike[str] | None = None,
+    block: Sequence[str] | None = None,
+    max_findings: int = MAX_FINDINGS,
+) -> VerifyReport:
+    """Verify ``range_spec`` (``A..B``) against the ledger and contract.
+
+    ``pr_body`` is the description text, not a path. ``contract`` is a
+    path or a loaded :class:`TaskContract`. Findings are sorted by
+    ``(code, location, fact_id, message)``.
+    """
+    if max_findings < 1:
+        raise VerifyError("max_findings must be >= 1")
+    root = Path(repo)
+    git = GitRepo(root)
+    base_rev, head_rev = _split_range(range_spec)
+    base = git.rev_parse(base_rev)
+    head = git.rev_parse(head_rev)
+    loaded = _load_contract(contract)
+    blocking = _resolve_block(root, block, loaded)
+    ledger = Path(ledger_dir) if ledger_dir is not None else root / ".claude/ctx"
+    facts = _load_facts(ledger)
+    commits = git.commits(base, head)
+    changed = git.changed(base, head)
+    trees = {base: git.tree(base), head: git.tree(head)}
+    blobs = _BlobCache(git)
+
+    findings: list[Finding] = []
+    marked = _collect_markers(commits, pr_body, pr_body_label)
+    findings.extend(_unrecorded(marked, facts, ledger))
+    findings.extend(_stale(facts, git, base, head, trees))
+    findings.extend(_superseded_in_code(facts, changed, blobs, head))
+    findings.extend(_conflicts(marked, facts, ledger, changed, root))
+    if pr_body is not None:
+        findings.extend(_attestation(pr_body, head, loaded, pr_body_label))
+        findings.extend(_claims(pr_body, loaded, pr_body_label))
+    if loaded is not None:
+        findings.extend(_contract_rules(loaded, changed, blobs, base, head))
+        findings.extend(_version_pins(loaded, changed, blobs, head))
+
+    ordered = _dedupe_sort(findings)
+    exit_code = 1 if any(row.code in blocking for row in ordered) else 0
+    dropped = max(0, len(ordered) - max_findings)
+    kept = tuple(ordered[:max_findings])
+    return VerifyReport(
+        range_spec=range_spec,
+        base=base,
+        head=head,
+        findings=kept,
+        blocking=blocking,
+        exit_code=exit_code,
+        contract=loaded.name if loaded is not None else None,
+        dropped=dropped,
+    )
+
+
+def render_json(report: VerifyReport) -> str:
+    """JSON with sorted keys and ``\\n`` newlines, including a trailing newline."""
+    return json.dumps(
+        report.to_dict(), sort_keys=True, indent=2, ensure_ascii=True) + "\n"
+
+
+def render_markdown(report: VerifyReport) -> str:
+    """Stable markdown rendering of ``report``."""
+    lines = [
+        f"# ctxpack verify {report.range_spec}",
+        "",
+        f"base: {report.base}",
+        f"head: {report.head}",
+        f"contract: {report.contract or '-'}",
+        f"exit_code: {report.exit_code}",
+        f"dropped: {report.dropped}",
+        "blocking: " + (", ".join(report.blocking) if report.blocking else "-"),
+        f"findings: {len(report.findings)}",
+        "",
+    ]
+    for row in report.findings:
+        lines.append(
+            f"- {row.code} [{row.severity}] {row.location} "
+            f"fact {row.fact_id or '-'}")
+        lines.append(f"  message: {row.message}")
+        lines.append(f"  evidence: {row.evidence}")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def run_cli(args: argparse.Namespace) -> int:
+    """CLI entry. Returns 0, 1 (blocking finding), or 2 (cannot verify)."""
+    try:
+        pr_text = None
+        pr_label = "pr-body"
+        if getattr(args, "pr_body", None):
+            pr_label = str(args.pr_body).replace("\\", "/")
+            pr_text = Path(args.pr_body).read_text(encoding="utf-8")
+        block = None
+        if getattr(args, "block", None) is not None:
+            block = [part.strip() for part in str(args.block).split(",")
+                     if part.strip()]
+        report = verify(
+            args.range,
+            repo=getattr(args, "repo", ".") or ".",
+            pr_body=pr_text,
+            pr_body_label=pr_label,
+            contract=getattr(args, "contract", None),
+            ledger_dir=getattr(args, "ledger_dir", None),
+            block=block,
+        )
+        text = render_markdown(report) if args.format == "md" else render_json(report)
+        sys.stdout.buffer.write(text.encode("utf-8"))
+        return report.exit_code
+    except (VerifyError, ContractError, OSError, UnicodeError) as exc:
+        sys.stderr.write(f"ctxpack verify: {exc}\n")
+        return 2
+
+
+class GitRepo:
+    """Git reads with locale and config pinned so output bytes stay stable."""
+
+    def __init__(self, root: Path) -> None:
+        self.root = root
+
+    def run(self, *args: str, check: bool = True) -> subprocess.CompletedProcess[bytes]:
+        env = os.environ.copy()
+        env["LC_ALL"] = "C"
+        env["LANG"] = "C"
+        env["GIT_CONFIG_NOSYSTEM"] = "1"
+        env["GIT_CONFIG_GLOBAL"] = os.devnull
+        env["GIT_CONFIG_SYSTEM"] = os.devnull
+        env["GIT_PAGER"] = "cat"
+        env["GIT_OPTIONAL_LOCKS"] = "0"
+        env["GIT_TERMINAL_PROMPT"] = "0"
+        command = [
+            "git", "-C", os.fspath(self.root),
+            "-c", "core.quotepath=false",
+            "-c", "core.autocrlf=false",
+            "-c", "core.safecrlf=false",
+            "-c", "i18n.logOutputEncoding=utf-8",
+            *args,
+        ]
+        try:
+            proc = subprocess.run(
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                env=env, check=False)
+        except FileNotFoundError as exc:
+            raise VerifyError("git is not available") from exc
+        if check and proc.returncode != 0:
+            detail = proc.stderr.decode("utf-8", "replace").strip()
+            raise VerifyError(detail or f"git {args[0]} failed")
+        return proc
+
+    def rev_parse(self, rev: str) -> str:
+        proc = self.run("rev-parse", "--verify", f"{rev}^{{commit}}")
+        sha = proc.stdout.decode("utf-8").strip().lower()
+        if not re.fullmatch(r"[0-9a-f]{40}", sha):
+            raise VerifyError(f"could not resolve {rev}")
+        return sha
+
+    def commits(self, base: str, head: str) -> list[tuple[str, str]]:
+        proc = self.run(
+            "log", "--reverse", f"--format=%H%x1e%B%x1f", f"{base}..{head}")
+        text = proc.stdout.decode("utf-8", "replace").replace("\r\n", "\n")
+        rows: list[tuple[str, str]] = []
+        for part in text.split("\x1f"):
+            part = part.strip("\n")
+            if not part:
+                continue
+            sha, sep, message = part.partition("\x1e")
+            sha = sha.strip().lower()
+            if sep and re.fullmatch(r"[0-9a-f]{40}", sha):
+                rows.append((sha, message.replace("\r\n", "\n")))
+        return rows
+
+    def changed(self, base: str, head: str) -> list[str]:
+        proc = self.run("diff", "--name-only", "-z", base, head)
+        names: list[str] = []
+        for raw in proc.stdout.split(b"\0"):
+            if not raw:
+                continue
+            names.append(raw.decode("utf-8").replace("\\", "/"))
+        return sorted(set(names))
+
+    def tree(self, rev: str) -> set[str]:
+        proc = self.run("ls-tree", "-r", "--name-only", "-z", rev)
+        paths: set[str] = set()
+        for raw in proc.stdout.split(b"\0"):
+            if raw:
+                paths.add(raw.decode("utf-8").replace("\\", "/"))
+        return paths
+
+    def blob(self, rev: str, path: str) -> bytes | None:
+        proc = self.run("cat-file", "blob", f"{rev}:{path}", check=False)
+        if proc.returncode != 0:
+            return None
+        return proc.stdout
+
+    def contains(self, rev: str, literal: str) -> bool:
+        proc = self.run(
+            "grep", "-F", "-I", "--quiet", "-e", literal, rev, "--",
+            check=False)
+        if proc.returncode in (0, 1):
+            return proc.returncode == 0
+        detail = proc.stderr.decode("utf-8", "replace").strip()
+        raise VerifyError(detail or "git grep failed")
+
+
+class _BlobCache:
+    def __init__(self, git: GitRepo) -> None:
+        self.git = git
+        self._cache: dict[tuple[str, str], str | None] = {}
+
+    def text(self, rev: str, path: str) -> str | None:
+        key = (rev, path)
+        if key not in self._cache:
+            raw = self.git.blob(rev, path)
+            if raw is None or b"\0" in raw:
+                self._cache[key] = None
+            else:
+                self._cache[key] = (
+                    raw.decode("utf-8", "replace")
+                    .replace("\r\n", "\n")
+                    .replace("\r", "\n"))
+        return self._cache[key]
+
+
+def _split_range(spec: str) -> tuple[str, str]:
+    if not isinstance(spec, str) or spec.count("..") != 1 or "..." in spec:
+        raise VerifyError("range must be A..B")
+    base, head = spec.split("..", 1)
+    if not base or not head or any(ch.isspace() for ch in spec):
+        raise VerifyError("range must be A..B")
+    return base, head
+
+
+def _load_contract(
+    contract: str | os.PathLike[str] | TaskContract | None,
+) -> TaskContract | None:
+    if contract is None or contract == "":
+        return None
+    if isinstance(contract, TaskContract):
+        return contract
+    return load_contract(contract)
+
+
+def _resolve_block(
+    repo: Path,
+    block: Sequence[str] | None,
+    contract: TaskContract | None,
+) -> tuple[str, ...]:
+    if block is not None:
+        codes = list(block)
+    else:
+        configured = _toml_block(repo)
+        if configured is not None:
+            codes = configured
+        elif contract is not None:
+            codes = list(contract.blocking_codes)
+        else:
+            codes = []
+    unknown = sorted({code for code in codes if code not in FINDING_CODES})
+    if unknown:
+        raise VerifyError("unknown blocking code: " + ", ".join(unknown))
+    return tuple(sorted(set(codes)))
+
+
+def _toml_block(repo: Path) -> list[str] | None:
+    path = repo / "ctxpack.toml"
+    if not path.is_file():
+        return None
+    try:
+        data = load_toml_mapping(path.read_text(encoding="utf-8"))
+    except ContractError as exc:
+        raise VerifyError(str(exc)) from exc
+    section = data.get("verify")
+    if not isinstance(section, dict) or "block" not in section:
+        return None
+    block = section["block"]
+    if (not isinstance(block, list)
+            or not all(isinstance(item, str) and item for item in block)):
+        raise VerifyError(
+            "ctxpack.toml [verify] block must be a list of strings")
+    return list(block)
+
+
+def _load_facts(ledger: Path) -> list[_Fact]:
+    """Ledger facts, classified with the same live set the brief uses.
+
+    ``events.jsonl`` supersession and retraction rows are folded in as
+    well, so a declared override counts whether it was written on the
+    section or only in the event journal.
+    """
+    if not ledger.is_dir():
+        return []
+    paths = sorted(
+        (path for path in ledger.iterdir()
+         if path.is_file() and path.name.startswith("session-")
+         and path.name.endswith(".ctx")),
+        key=lambda path: path.name)
+    pending: list[tuple[str, str, tuple[str, ...], str, str]] = []
+    records: list[dict[str, Any]] = []
+    for path in paths:
+        try:
+            doc = parse(path.read_text(encoding="utf-8"), level=2,
+                        filename=path.name)
+        except Exception as exc:
+            raise VerifyError(f"cannot parse ledger file {path.name}") from exc
+        session = path.name[len("session-"):-len(".ctx")]
+        for row in ledger_facts(doc):
+            section = row["section"]
+            texts = [str(row["text"])]
+            for child in section.children:
+                if isinstance(child, KeyValue) and child.value not in texts:
+                    texts.append(child.value)
+            fact_id = str(row["fact_id"] or "")
+            kind = str(row["kind"])
+            status = _kv(section, "STATUS").strip().lower()
+            turn = row["turn"] if isinstance(row["turn"], int) else 0
+            pending.append((fact_id, kind, tuple(texts), path.name, status))
+            records.append({
+                "fact_id": fact_id.lower(),
+                "kind": kind,
+                "text": str(row["text"]),
+                "turn": turn,
+                "session": session,
+                "basis": _kv(section, "BASIS"),
+                "supersedes": (_kv(section, "SUPERSEDES-FACT-ID") or "").lower(),
+                "supersedes_reason": _kv(section, "SUPERSEDES-REASON"),
+                "retracts": (_kv(section, "RETRACTS-FACT-ID") or "").lower(),
+                "retract_reason": _kv(section, "REASON") if kind == "RETRACT" else "",
+                "ambiguous": _kv(section, "ID-AMBIGUOUS"),
+            })
+    records.extend(_event_records(ledger))
+    live = live_set_from_records(records)
+    superseded_ids = {item.old_id for item in live.replacements}
+    for row in records:
+        base = str(row.get("supersedes") or "")
+        head = str(row.get("fact_id") or "")
+        if base and head and base != head:
+            superseded_ids.add(base.lower())
+    retracted_ids = {fact_id for fact_id, _reason in live.retracted}
+    stale_ids = {item.fact_id for item in live.stale}
+    facts: list[_Fact] = []
+    for fact_id, kind, texts, source, status in pending:
+        fid = fact_id.lower()
+        is_superseded = (
+            status == "superseded" or (bool(fid) and fid in superseded_ids))
+        dropped = is_superseded or (
+            bool(fid) and fid in (retracted_ids | stale_ids))
+        facts.append(_Fact(
+            fact_id=fact_id,
+            kind=kind,
+            texts=texts,
+            source=source,
+            superseded=is_superseded,
+            live=not dropped,
+        ))
+    facts.sort(key=lambda fact: (fact.source, fact.fact_id, fact.kind, fact.texts))
+    return facts
+
+
+def _event_records(ledger: Path) -> list[dict[str, Any]]:
+    path = ledger / "events.jsonl"
+    if not path.is_file():
+        return []
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise VerifyError("cannot read ledger events") from exc
+    records: list[dict[str, Any]] = []
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(row, dict):
+            continue
+        detail = row.get("detail") if isinstance(row.get("detail"), dict) else {}
+        event = row.get("event")
+        if event == "fact_superseded":
+            base = str(row.get("fact_id") or "").lower()
+            head = str(detail.get("by") or "").lower()
+            if base and head and base != head:
+                records.append({
+                    "fact_id": head,
+                    "kind": "DECISION",
+                    "text": "",
+                    "turn": row.get("turn") or 0,
+                    "session": str(row.get("session") or ""),
+                    "supersedes": base,
+                    "supersedes_reason": str(detail.get("reason") or ""),
+                })
+        elif event == "fact_retracted":
+            target = str(row.get("fact_id") or "").lower()
+            if target:
+                records.append({
+                    "fact_id": "",
+                    "kind": "",
+                    "retracts": target,
+                    "retract_reason": str(detail.get("reason") or ""),
+                })
+    return records
+
+
+def _collect_markers(
+    commits: Sequence[tuple[str, str]],
+    pr_body: str | None,
+    pr_label: str,
+) -> list[_Marked]:
+    marked: list[_Marked] = []
+    for sha, message in commits:
+        for kind, line, payload in _marker_lines(message):
+            marked.append(_Marked(kind, line, payload, sha))
+    if pr_body is not None:
+        for kind, line, payload in _marker_lines(pr_body):
+            marked.append(_Marked(kind, line, payload, pr_label))
+    return marked
+
+
+def _marker_lines(text: str) -> list[tuple[str, str, str]]:
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    found: list[tuple[str, str, str]] = []
+    fenced = False
+    for raw in text.split("\n"):
+        stripped = raw.strip()
+        if stripped.startswith("```"):
+            fenced = not fenced
+            continue
+        if fenced:
+            continue
+        prose = _INLINE_CODE.sub(" ", stripped)
+        match = _MARKER_LINE.match(prose)
+        if not match:
+            continue
+        kind = match.group(1).lower()
+        payload = " ".join(match.group(2).split())
+        if len(payload) < 8:
+            continue
+        found.append((kind, " ".join(stripped.split()), payload))
+    return found
+
+
+def _unrecorded(
+    marked: Sequence[_Marked],
+    facts: Sequence[_Fact],
+    ledger: Path,
+) -> list[Finding]:
+    known = _supersede_ids(ledger)
+    corpus = "\n".join(text for fact in facts for text in fact.texts)
+    norm_corpus = " ".join(corpus.split())
+    rows: list[Finding] = []
+    for mark in marked:
+        payload = " ".join(mark.payload.split())
+        if payload in norm_corpus:
+            continue
+        if mark.kind == "supersedes" and _supersede_recorded(payload, known):
+            continue
+        rows.append(_finding(
+            "UNRECORDED_MARKER", mark.location,
+            f"{_MARKER_LABEL[mark.kind]} marker is not recorded in the ledger",
+            mark.line, None))
+    return rows
+
+
+def _supersede_ids(ledger: Path) -> set[str]:
+    ids: set[str] = set()
+    events = ledger / "events.jsonl"
+    if events.is_file():
+        try:
+            text = events.read_text(encoding="utf-8")
+        except OSError as exc:
+            raise VerifyError("cannot read ledger events") from exc
+        for line in text.splitlines():
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(row, dict) or row.get("event") != "fact_superseded":
+                continue
+            detail = row.get("detail") if isinstance(row.get("detail"), dict) else {}
+            for token in (str(row.get("fact_id") or ""), str(detail.get("by") or "")):
+                if _ID_TOKEN.fullmatch(token):
+                    ids.add(token.lower())
+    if not ledger.is_dir():
+        return ids
+    for path in sorted(ledger.glob("session-*.ctx"), key=lambda item: item.name):
+        try:
+            body = path.read_text(encoding="utf-8")
+        except OSError as exc:
+            raise VerifyError(f"cannot read ledger file {path.name}") from exc
+        for match in _SUPERSEDES_FIELD.finditer(body):
+            ids.add(match.group(1).lower())
+    return ids
+
+
+def _supersede_recorded(payload: str, known: set[str]) -> bool:
+    return any(token.lower() in known for token in _ID_TOKEN.findall(payload))
+
+
+def _stale(
+    facts: Sequence[_Fact],
+    git: GitRepo,
+    base: str,
+    head: str,
+    trees: Mapping[str, set[str]],
+) -> list[Finding]:
+    rows: list[Finding] = []
+    for fact in facts:
+        if not fact.live:
+            continue
+        for ident in _identifiers("\n".join(fact.texts)):
+            if _identifier_stale(ident, git, base, head, trees):
+                rows.append(_finding(
+                    "STALE_IDENTIFIER", fact.source,
+                    "live fact names an identifier missing at head",
+                    ident, fact.fact_id or None))
+    return rows
+
+
+def _identifiers(text: str) -> list[str]:
+    found: list[str] = []
+    seen: set[str] = set()
+
+    def add(token: str) -> None:
+        token = token.strip().strip("`").replace("\\", "/")
+        if token in seen or not _concrete(token):
+            return
+        seen.add(token)
+        found.append(token)
+
+    for match in _BACKTICK.finditer(text):
+        add(match.group(1))
+    blanked = _BACKTICK.sub(" ", text)
+    for match in _BARE_PATH.finditer(blanked):
+        add(match.group(1))
+    found.sort()
+    return found
+
+
+def _concrete(token: str) -> bool:
+    if len(token) < 4 or len(token) > 200 or any(ch.isspace() for ch in token):
+        return False
+    if "://" in token:
+        return False
+    return _is_path(token) or _SYMBOL.fullmatch(token) is not None
+
+
+def _is_path(token: str) -> bool:
+    if "://" in token or any(ch.isspace() for ch in token):
+        return False
+    if "/" in token:
+        return True
+    return token.endswith(_TEXT_EXTS)
+
+
+def _path_exists(token: str, tree: set[str]) -> bool:
+    if token in tree:
+        return True
+    if "/" not in token:
+        suffix = "/" + token
+        return any(path.endswith(suffix) for path in tree)
+    return False
+
+
+def _identifier_stale(
+    ident: str,
+    git: GitRepo,
+    base: str,
+    head: str,
+    trees: Mapping[str, set[str]],
+) -> bool:
+    if _is_path(ident):
+        existed = _path_exists(ident, trees[base]) or "/" in ident
+        return existed and not _path_exists(ident, trees[head])
+    if _SYMBOL.fullmatch(ident) is None:
+        return False
+    return git.contains(base, ident) and not git.contains(head, ident)
+
+
+def _superseded_in_code(
+    facts: Sequence[_Fact],
+    changed: Sequence[str],
+    blobs: _BlobCache,
+    head: str,
+) -> list[Finding]:
+    texts: list[tuple[str, str]] = []
+    for path in changed:
+        body = blobs.text(head, path)
+        if body is not None:
+            texts.append((path, body))
+    rows: list[Finding] = []
+    for fact in facts:
+        if not fact.superseded:
+            continue
+        for ident in _identifiers("\n".join(fact.texts)):
+            for path, body in texts:
+                if ident in body:
+                    rows.append(_finding(
+                        "SUPERSEDED_STILL_IN_CODE", path,
+                        "superseded fact identifier still appears in a changed file",
+                        ident, fact.fact_id or None))
+    return rows
+
+
+def _conflicts(
+    marked: Sequence[_Marked],
+    facts: Sequence[_Fact],
+    ledger: Path,
+    changed: Sequence[str],
+    repo: Path,
+) -> list[Finding]:
+    decisions = _decision_rows(marked, facts, changed, repo, ledger)
+    if not decisions:
+        return []
+    entities = []
+    locations: dict[str, str] = {}
+    for index, (text, location, fact_id, sup_id, sup_reason) in enumerate(decisions):
+        entities.append(_Entity(
+            name=f"DECISION-{index:04d}",
+            fields=[
+                _Field("DECISION", text),
+                _Field("BASIS", "marker_stated"),
+                _Field("FACT-ID", fact_id),
+                _Field("SUPERSEDES-FACT-ID", sup_id),
+                _Field("SUPERSEDES-REASON", sup_reason),
+            ],
+            sources=[_Source(10**6 + index)],
+        ))
+        locations[fact_id] = location
+    rows = lint_decisions(entities, os.fspath(ledger), "verify01")
+    findings: list[Finding] = []
+    for row in rows:
+        if row.get("resolved"):
+            continue
+        fact_id = str(row.get("against_fact_id") or "") or None
+        decision_id = str(row.get("decision_fact_id") or "")
+        findings.append(_finding(
+            "CONSTRAINT_CONFLICT",
+            locations.get(decision_id, "ledger"),
+            "decision conflicts with a live constraint",
+            str(row.get("phrase") or ""),
+            fact_id))
+    return findings
+
+
+def _decision_rows(
+    marked: Sequence[_Marked],
+    facts: Sequence[_Fact],
+    changed: Sequence[str],
+    repo: Path,
+    ledger: Path,
+) -> list[tuple[str, str, str, str, str]]:
+    """(marker line, location, fact id, supersedes id, supersedes reason)."""
+    grouped: dict[str, list[_Marked]] = {}
+    order: list[str] = []
+    for mark in marked:
+        if mark.location not in grouped:
+            grouped[mark.location] = []
+            order.append(mark.location)
+        grouped[mark.location].append(mark)
+    raw: list[tuple[str, str, str, str]] = []
+    for location in order:
+        lines = grouped[location]
+        for index, mark in enumerate(lines):
+            if mark.kind != "decision":
+                continue
+            sup_id, sup_reason = "", ""
+            if index + 1 < len(lines) and lines[index + 1].kind == "supersedes":
+                sup_id, sup_reason = _split_supersedes(lines[index + 1].payload)
+            line = mark.line if mark.line.lower().startswith("decision:") else (
+                "Decision: " + mark.payload)
+            raw.append((line, location, sup_id, sup_reason))
+    for fact in facts:
+        if fact.kind != "DECISION" or fact.superseded:
+            continue
+        if not _ledger_file_changed(fact.source, ledger, repo, changed):
+            continue
+        text = next((item for item in fact.texts
+                     if item.lower().lstrip().startswith("decision:")), "")
+        if not text:
+            continue
+        raw.append((" ".join(text.split()), fact.source, "", ""))
+    dedup: dict[str, tuple[str, str, str, str]] = {}
+    for line, location, sup_id, sup_reason in raw:
+        payload = line.split(":", 1)[1].strip() if ":" in line else line
+        key = " ".join(payload.split())
+        dedup.setdefault(key, (line, location, sup_id, sup_reason))
+    rows: list[tuple[str, str, str, str, str]] = []
+    for key in sorted(dedup):
+        line, location, sup_id, sup_reason = dedup[key]
+        fact_id = _decision_fact_id(key, facts)
+        rows.append((line, location, fact_id, sup_id, sup_reason))
+    return rows
+
+
+def _split_supersedes(payload: str) -> tuple[str, str]:
+    match = _SUPERSEDES_PAYLOAD.match(payload.strip())
+    if not match or not match.group(2).strip():
+        return "", ""
+    return match.group(1).lower(), match.group(2).strip()
+
+
+def _decision_fact_id(payload: str, facts: Sequence[_Fact]) -> str:
+    needle = " ".join(payload.split())
+    for fact in facts:
+        if fact.fact_id and any(needle in " ".join(text.split()) for text in fact.texts):
+            return fact.fact_id.lower()
+    return hashlib.sha256(needle.encode("utf-8")).hexdigest()[:16]
+
+
+def _ledger_file_changed(
+    source: str,
+    ledger: Path,
+    repo: Path,
+    changed: Sequence[str],
+) -> bool:
+    try:
+        rel = (ledger / source).resolve().relative_to(repo.resolve()).as_posix()
+    except (OSError, ValueError):
+        return False
+    return rel in set(changed)
+
+
+def _attestation(
+    pr_body: str,
+    head: str,
+    contract: TaskContract | None,
+    label: str,
+) -> list[Finding]:
+    patterns = list(_DEFAULT_SHA)
+    if contract is not None:
+        for pattern in contract.attestation_sha_patterns:
+            patterns.append(re.compile(pattern))
+    found: list[str] = []
+    seen: set[str] = set()
+    for pattern in patterns:
+        for match in pattern.finditer(pr_body):
+            token = match.group(1).strip().lower()
+            if token not in seen:
+                seen.add(token)
+                found.append(token)
+    rows: list[Finding] = []
+    if contract is not None and contract.require_attestation_sha and not found:
+        rows.append(_finding(
+            "ATTESTATION_SHA_MISMATCH", label,
+            "attestation SHA does not match head",
+            "missing", None))
+    for token in found:
+        if not re.fullmatch(r"[0-9a-f]{7,40}", token) or not head.startswith(token):
+            rows.append(_finding(
+                "ATTESTATION_SHA_MISMATCH", label,
+                "attestation SHA does not match head",
+                token, None))
+    return rows
+
+
+def _claims(
+    pr_body: str,
+    contract: TaskContract | None,
+    label: str,
+) -> list[Finding]:
+    visible = _unfenced(pr_body)
+    match = _GREEN_CLAIM.search(visible)
+    if not match:
+        return []
+    claim = " ".join(match.group(0).split())
+    if _NOT_RUN.search(visible):
+        return [_finding(
+            "UNVERIFIED_CLAIM", label,
+            "claim states tests were not run",
+            claim, None)]
+    needs = contract is not None and contract.require_test_evidence
+    if needs and not any(pattern.search(visible) for pattern in _EVIDENCE):
+        return [_finding(
+            "UNVERIFIED_CLAIM", label,
+            "claim lacks required test evidence",
+            claim, None)]
+    return []
+
+
+def _contract_rules(
+    contract: TaskContract,
+    changed: Sequence[str],
+    blobs: _BlobCache,
+    base: str,
+    head: str,
+) -> list[Finding]:
+    rows: list[Finding] = []
+    for path in changed:
+        for pattern in contract.forbidden_paths:
+            if _glob_match(path, pattern):
+                rows.append(_finding(
+                    "CONTRACT_RULE_VIOLATION", path,
+                    "changed file matches a forbidden path",
+                    f"forbidden_paths:{pattern}", None))
+        if contract.allowed_paths and not any(
+                _glob_match(path, pattern) for pattern in contract.allowed_paths):
+            rows.append(_finding(
+                "CONTRACT_RULE_VIOLATION", path,
+                "changed file is outside allowed paths",
+                "allowed_paths", None))
+    for rule in contract.flag_off_invariants:
+        rows.extend(_flag_rule(rule, changed, blobs, base, head))
+    for pattern, terms in contract.forbidden_vocabulary:
+        for path in changed:
+            if not _glob_match(path, pattern):
+                continue
+            body = blobs.text(head, path)
+            if body is None:
+                continue
+            for term in terms:
+                if term in body:
+                    rows.append(_finding(
+                        "CONTRACT_RULE_VIOLATION", path,
+                        "changed file contains forbidden vocabulary",
+                        f"forbidden_vocabulary:{term}", None))
+    for pattern, terms in contract.required_vocabulary:
+        for path in changed:
+            if not _glob_match(path, pattern):
+                continue
+            body = blobs.text(head, path)
+            if body is None:
+                continue
+            for term in terms:
+                if term not in body:
+                    rows.append(_finding(
+                        "CONTRACT_RULE_VIOLATION", path,
+                        "changed file misses required vocabulary",
+                        f"required_vocabulary:{term}", None))
+    return rows
+
+
+def _flag_rule(
+    rule: FlagOffInvariant,
+    changed: Sequence[str],
+    blobs: _BlobCache,
+    base: str,
+    head: str,
+) -> list[Finding]:
+    rows: list[Finding] = []
+    for path in changed:
+        if any(_glob_match(path, pattern) for pattern in rule.config_globs):
+            before = _flag_value(blobs.text(base, path), rule.flag)
+            after = _flag_value(blobs.text(head, path), rule.flag)
+            if (after is not None and after.lower() in _ON
+                    and (before is None or before.lower() not in _ON)):
+                rows.append(_finding(
+                    "CONTRACT_RULE_VIOLATION", path,
+                    "changed file flips a default-off flag on",
+                    f"flag_off:{rule.flag}", None))
+        if any(_glob_match(path, pattern) for pattern in rule.guarded_globs):
+            body = blobs.text(head, path)
+            if body is not None and re.search(
+                    rf"\b{re.escape(rule.flag)}\b", body) is None:
+                rows.append(_finding(
+                    "CONTRACT_RULE_VIOLATION", path,
+                    "changed file bypasses a flag guard",
+                    f"flag_guard:{rule.flag}", None))
+    return rows
+
+
+def _flag_value(text: str | None, flag: str) -> str | None:
+    if not text:
+        return None
+    pattern = re.compile(
+        rf"(?m)^[ \t]*[\"']?{re.escape(flag)}[\"']?[ \t]*[:=][ \t]*"
+        rf"[\"']?([A-Za-z0-9_.-]+)[\"']?")
+    found = pattern.findall(text)
+    return found[-1] if found else None
+
+
+def _version_pins(
+    contract: TaskContract,
+    changed: Sequence[str],
+    blobs: _BlobCache,
+    head: str,
+) -> list[Finding]:
+    rows: list[Finding] = []
+    for key, pin in contract.pinned_versions:
+        if _pin_key_is_path(key):
+            for path in changed:
+                if not _glob_match(path, key) and path != key:
+                    continue
+                body = blobs.text(head, path)
+                if body is None:
+                    continue
+                reasons = _pin_reasons(body, pin)
+                if reasons:
+                    rows.append(_finding(
+                        "VERSION_PIN_DRIFT", path,
+                        "pinned version does not match a changed file",
+                        f"pin={pin}; {','.join(reasons)}", None))
+        else:
+            for path in changed:
+                body = blobs.text(head, path)
+                if body is None:
+                    continue
+                values = _field_values(body, key)
+                if any(value != pin for value in values):
+                    rows.append(_finding(
+                        "VERSION_PIN_DRIFT", path,
+                        "pinned version does not match a changed file",
+                        f"pin={pin}; field-mismatch", None))
+    return rows
+
+
+def _pin_key_is_path(key: str) -> bool:
+    return any(ch in key for ch in "*?[") or "/" in key or "." in key
+
+
+def _pin_reasons(text: str, pin: str) -> list[str]:
+    reasons: list[str] = []
+    if pin not in text:
+        reasons.append("missing-exact")
+    if _FLOATING.search(text):
+        reasons.append("floating-alias")
+    if _family_mismatch(text, pin):
+        reasons.append("mismatched-token")
+    reasons.sort()
+    return reasons
+
+
+def _family_mismatch(text: str, pin: str) -> bool:
+    match = re.search(r"(\d+)\.(\d+)\.(\d+)$", pin)
+    if not match:
+        return False
+    major, minor, patch = match.group(1), match.group(2), match.group(3)
+    exact = f"{major}.{minor}.{patch}"
+    pattern = re.compile(
+        rf"(?<![\w.]){re.escape(major)}\.{re.escape(minor)}(?:\.\d+)?(?![\w.])")
+    return any(token != exact for token in pattern.findall(text))
+
+
+def _field_values(text: str, field: str) -> list[str]:
+    pattern = re.compile(
+        rf"(?m)(?:^|[^A-Za-z0-9_])[\"']?{re.escape(field)}[\"']?\s*[:=]\s*"
+        rf"(?:[\"']([^\"'\n]+)[\"']|([A-Za-z0-9._*^~+-]+))")
+    values: list[str] = []
+    for quoted, bare in pattern.findall(text):
+        values.append(quoted or bare)
+    return values
+
+
+def _unfenced(text: str) -> str:
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    kept: list[str] = []
+    fenced = False
+    for raw in text.split("\n"):
+        if raw.strip().startswith("```"):
+            fenced = not fenced
+            continue
+        if not fenced:
+            kept.append(raw)
+    return "\n".join(kept)
+
+
+def _glob_match(path: str, pattern: str) -> bool:
+    path = path.replace("\\", "/").lstrip("./")
+    pattern = pattern.replace("\\", "/").lstrip("./")
+    if _glob_parts(path.split("/"), pattern.split("/")):
+        return True
+    if "/" not in pattern:
+        return _glob_parts([path.rsplit("/", 1)[-1]], pattern.split("/"))
+    return False
+
+
+def _glob_parts(path: list[str], pattern: list[str]) -> bool:
+    if not pattern:
+        return not path
+    head, rest = pattern[0], pattern[1:]
+    if head == "**":
+        if _glob_parts(path, rest):
+            return True
+        return bool(path) and _glob_parts(path[1:], pattern)
+    if not path:
+        return False
+    if _segment_match(path[0], head):
+        return _glob_parts(path[1:], rest)
+    return False
+
+
+def _segment_match(segment: str, pattern: str) -> bool:
+    return re.fullmatch(_segment_regex(pattern), segment) is not None
+
+
+def _segment_regex(pattern: str) -> str:
+    out: list[str] = []
+    for char in pattern:
+        if char == "*":
+            out.append("[^/]*")
+        elif char == "?":
+            out.append("[^/]")
+        else:
+            out.append(re.escape(char))
+    return "".join(out)
+
+
+def _finding(
+    code: str,
+    location: str,
+    message: str,
+    evidence: str,
+    fact_id: str | None,
+) -> Finding:
+    cleaned = " ".join(str(evidence).split())[:_EVIDENCE_CHARS]
+    fid = fact_id or None
+    return Finding(
+        code=code,
+        severity=SEVERITY[code],
+        fact_id=fid,
+        location=location.replace("\\", "/"),
+        message=message,
+        evidence=cleaned,
+    )
+
+
+def _dedupe_sort(findings: Iterable[Finding]) -> list[Finding]:
+    uniq: dict[tuple[str, str, str, str, str], Finding] = {}
+    for row in findings:
+        key = (row.code, row.location, row.fact_id or "", row.message, row.evidence)
+        uniq.setdefault(key, row)
+    return sorted(uniq.values(), key=lambda row: (
+        row.code, row.location, row.fact_id or "", row.message, row.evidence))
+
+
+__all__ = [
+    "FINDING_CODES",
+    "Finding",
+    "MAX_FINDINGS",
+    "VerifyError",
+    "VerifyReport",
+    "render_json",
+    "render_markdown",
+    "run_cli",
+    "verify",
+]
