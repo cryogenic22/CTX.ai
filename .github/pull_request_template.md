@@ -15,3 +15,9 @@ Brief description of what this PR does and why.
 ## Related Issues
 
 Closes #
+
+<!-- ctxpack:attestation:start -->
+verified-sha: <7+ char head sha>
+verifier: <command> | pass | <head-sha>
+one-way-ack: <why this irreversible diff is intentional>
+<!-- ctxpack:attestation:end -->

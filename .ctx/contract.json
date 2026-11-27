@@ -1,0 +1,11 @@
+{
+  "require_test_evidence": true,
+  "one_way_paths": [
+    ".github/workflows/**",
+    "pyproject.toml",
+    "scripts/check_mypy_ratchet.py",
+    "scripts/check_version.py",
+    "tests/test_public_surface.py"
+  ],
+  "blocking_codes": []
+}
