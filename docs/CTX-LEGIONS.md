@@ -3,10 +3,9 @@
 ## Vision
 
 Long-running agents fail in predictable ways: context rots, decisions get lost, the spec drifts without
-anyone saying so, work is redone, and a fresh session resumes badly. CTX is the state core that removes
-those failures. The harness owns state, the model only reasons, and compaction is a commit, not a loss.
-CTX records state deterministically from what agents say and commit, and hands each new session a bounded
-briefing it can trust.
+anyone saying so, work is redone, and a fresh session resumes badly. CTX keeps a deterministic record of
+what agents state and commit, and hands each new session a bounded briefing. The record does not by
+itself stop context loss. Capture of decisions and constraints still requires explicit markers.
 
 CTX Legions is a team of agents that improves the CTX engine in this repo through pull requests.
 The CTX Harness Lead (GitHub: @cryogenic22) writes the backlog, reviews every PR and merges.
@@ -18,10 +17,10 @@ The backlog serves one product: a harness for long-running coding work.
 
 - The harness owns state. CTX is its state engine: decisions, constraints, dead ends, plan, progress.
 - Grok is the reasoner. It never writes memory directly.
-- Cursor cloud agents are the environment. Claude Code and Codex must work too.
+- Cursor cloud agents are the working environment for this backlog. That is not transcript support. Product adapters today are Claude Code and Codex (`ctxpack/agent/transcript_adapters.py`), plus an explicit-only generic JSONL spec. Cursor transcripts are not supported yet.
 - The agent loop is thin: launch a fresh session, hand it a briefing, let it work, capture what it decided.
-- Runs last up to 8 hours as a chain of fresh sessions. Compaction is a commit, not a loss: a new session
-  must resume from git plus the ledger alone.
+- Runs last up to 8 hours as a chain of fresh sessions. A new session resumes from git plus the ledger.
+  That is the operating rule for this backlog. It is not a measured recall result.
 
 What we learned from the harness study that motivates the backlog: capture of explicit markers works;
 the briefing was the weak part (silent truncation, no dead ends, no progress, superseded choices kept,

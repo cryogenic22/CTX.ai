@@ -1,38 +1,37 @@
-# CtxPack Session Memory — Team Onboarding
+# CtxPack Session Memory: Team Onboarding
 
 *Share this doc with any repo team (Scriptiva, analytics, pharma, …) that
 wants durable, auditable session memory for Claude Code.*
 
 ## What you get
 
-**"Compaction is a commit, not a loss event."** Every compaction and
-session end, a hook deterministically packs your Claude Code session
-transcript into a ledger at `.claude/ctx/` — decisions, constraints,
-failed approaches, errors, files changed, tasks, and **exact identifiers**
-(commit SHAs, PR numbers, UUIDs, versions, file paths, domain ids —
-verbatim), each with turn-level provenance. Every session start re-injects
-a compact gist (~2K tokens) of the previous session. Mid-session, the agent
-can query the ledger instead of re-deriving or grepping megabytes of
-transcript.
+On compaction and on session end, a hook packs the Claude Code session
+transcript into a ledger at `.claude/ctx/`. The packer stores decisions,
+constraints, failed approaches, errors, files changed, tasks, and exact
+identifiers (commit SHAs, PR numbers, UUIDs, versions, file paths, domain
+ids), each with turn-level provenance. A decision or constraint from the
+assistant is stored when the line starts with `Decision:` or `Constraint:`.
+Unmarked prose is not the capture contract. Session start re-injects the
+budgeted brief from `ctxpack.agent.brief` (the same text as `ctxpack brief`
+and MCP `ctx/brief`). It does not inject the gist files themselves. The
+agent can also query the ledger during the session. This page does not
+claim that the ledger uses fewer tokens than the transcript, or that it
+recalls more than grep.
 
-**Identifier fidelity across folds.** The literals ledger is why an exact
-id survives a compaction: `508e5733-…`, `b1dda66`, `#305`, `v0.5.0`,
-`services/llm.py:42` are extracted verbatim (never truncated or
-paraphrased) so a resumed session writes the *correct* id from the gist
-rather than reconstructing a plausible-but-wrong one. `ctxpack session why
-"<id>"` resolves any of them to its origin turn.
+**Identifier fidelity across folds.** The literals ledger keeps an exact
+id through packing. Values such as `508e5733-…`, `b1dda66`, `#305`,
+`v0.5.0`, and `services/llm.py:42` are stored verbatim. They are not
+truncated or paraphrased. `ctxpack session why "<id>"` resolves one of
+them to its origin turn. This page does not claim that the model will
+copy the id correctly.
 
-Why this beats the alternatives you already have:
+The ledger is written without a model call. You can commit `.claude/ctx/`
+with the repo and read each fact back to a turn. That is a difference in
+mechanism from native compaction and from Claude auto-memory. It is not a
+recall result, and it is not a claim that the ledger replaces grep.
 
-| | Native compaction | Claude auto-memory | CtxPack ledger |
-|---|---|---|---|
-| Deterministic (no LLM rewrites your memory) | ✗ | ✗ | ✓ |
-| Versioned with the repo (PR-reviewable, branch-scoped) | ✗ | ✗ (machine-local) | ✓ |
-| Provenance to the exact turn | ✗ | ✗ | ✓ |
-| Survives `/clear` and machine switches | ✗ | partially | ✓ |
-
-The raw transcript is never deleted — the ledger is a lossless-by-
-construction index over it, not a replacement.
+The checkpoint does not delete the transcript. The ledger stores extracted
+facts, not a copy of every line.
 
 ## Setup (one command + one restart)
 
@@ -77,24 +76,23 @@ hook) and **refreshes an older CLAUDE.md conventions block in place**
 `resume`/`literals`/`checkpoint`). Improvements *inside* existing hooks
 and MCP tools arrive with the package upgrade automatically.
 
-### Multi-day memory: the project gist
+### Multi-day memory
 
-`latest-gist.md` covers the last session; **`project-gist.md`** rolls up
-decisions, constraints, and failed approaches across *all* earlier
-sessions (deduplicated, oldest first, each tagged `s:<session>#turn<n>`).
-Both are injected automatically at session start once the repo has more
-than one checkpointed session — so a brand-new agent (a frontend
-specialist, a teammate, a fresh machine after a crash) starts with the
-project's accumulated decisions, not just yesterday's.
+Checkpoint still writes `latest-gist.md` and `project-gist.md` as ledger
+artifacts. Session start does not inject those files. It injects the
+budgeted brief composed by `ctxpack.agent.brief` from the live set
+(`ctxpack.agent.live_set`). Superseded and retracted facts leave that
+set and stay in the ledger. A fact is stale only when every milestone
+scope in its text is in `done_milestones`. An empty list drops nothing
+for staleness. The brief can still name a replacement
+or a withdrawal. It does not restate the old fact as the current decision.
 
-## How to get max power
+## Habits the parser reads
 
-- **State decisions explicitly.** The parser extracts *structured*
-  signals deterministically. `Decision: use X because Y` at the start of
-  a sentence is extracted with turn provenance; the same content buried
-  in prose is often missed (measured: ~0 recall on free prose, 100% on
-  the convention). Same for dead ends: "The X approach didn't work
-  because ...".
+- **State decisions explicitly.** A sentence-leading `Decision: use X because Y`
+  is extracted with turn provenance. The same content with no marker is
+  not part of the capture contract. Dead ends use the same kind of
+  explicit line (`Rejected:` or `Dead end:`).
 - **Constraints live in user messages.** When you (the human) type "do
   not touch the auth service", that's extracted verbatim as a CONSTRAINT
   — negations are never compressed away (CI-gated).
@@ -131,20 +129,19 @@ project's accumulated decisions, not just yesterday's.
   decision**, so parallel-session **forks** are real but **diamonds** (one
   decision reconciling two) are synthetic-test-only; gist surfacing and
   top-of-gist conflict warnings stay gated until real ledgers produce edges.
-- **Commit `.claude/ctx/`.** That's what makes memory branch-scoped,
-  cross-machine, and reviewable — the properties nothing native has.
-- **Checkpoint before you `/clear` — every team, every session.** The
-  Stop hook keeps the ledger within ~10 turns of live automatically, but
-  banking explicitly before you wrap costs nothing and guarantees zero gap:
-  the agent calls the `ctx/checkpoint` MCP tool, or anyone runs bare
-  `ctxpack checkpoint` — both auto-resolve the live transcript under
-  `~/.claude/projects/<project>/` (pass `--transcript` only to override).
-  Pair it with whatever curated
-  notes your repo keeps (e.g. a `CLAUDE.md` / memory file): the curated notes
-  are the *narrative*, the ctx ledger is the deterministic *receipts* layer
-  (decisions, constraints, failed approaches, verbatim identifiers — every one
-  with turn provenance). This is a shared convention, not one person's habit —
-  any teammate resuming your branch reads the same gist.
+- **Commit `.claude/ctx/`.** A committed ledger is what other clones of
+  the branch can read.
+- **Checkpoint before you `/clear`.** The Stop hook packs again after the
+  transcript grows by the debounce interval (default 10 turns,
+  `STOP_DEBOUNCE_TURNS_DEFAULT` in `ctxpack/agent/checkpoint.py`). It does
+  not close that gap to zero. To pack the current transcript now, call MCP
+  `ctx/checkpoint`, or run `ctxpack checkpoint`. Both resolve the live
+  transcript under `~/.claude/projects/<project>/` unless you pass
+  `--transcript`. Pair that with whatever curated notes the repo already
+  keeps, such as `CLAUDE.md`. The notes are narrative. The ledger is the
+  extracted facts, each with turn provenance. A teammate who resumes the
+  branch reads the brief built from that ledger, not a promise that the
+  gist file itself was injected.
 
 ## How we measure whether it's working (built-in)
 
@@ -169,12 +166,10 @@ Key metrics and how to read them:
   isn't using the `Decision:` convention — fix the habit, not the tool.
   **`captured.literals`** counts the exact identifiers banked (auto-extracted,
   no convention needed) — the raw material for identifier fidelity across folds.
-- **`gist_bpe` vs `turns_packed`** — what a session costs to resume
-  (~2K tokens) vs what it contains (hundreds of turns). The compression
-  is the point: resuming from a gist is ~100x cheaper than re-reading
-  the transcript.
-- **`checkpoint_latency_ms`** — should stay well under 5s; it's the tax
-  on every compaction.
+- **`gist_bpe`** and **`turns_packed`** are fields on the checkpoint
+  journal. This page does not turn them into a token-savings figure.
+- **`checkpoint_latency_ms`** is recorded on the same journal. This page
+  does not state a latency bound.
 
 ### The two-week protocol (per repo)
 
@@ -188,11 +183,11 @@ Key metrics and how to read them:
 
 ### The full measurement stack (central — your repo does nothing extra)
 
-| Layer | Instrument | Claim it supports |
+| Layer | Instrument | What it records |
 |---|---|---|
-| 1 · observational | `ctxpack scorecard` — cross-repo rollup of every ledger's telemetry + static HTML dashboard | adoption, token economics |
-| 2 · quasi-experimental | `run_resume_probe.py` — fresh-session recall of your repo's own history under budget-parity arms (CTX vs grep-over-transcript vs closed-book), rule-based grading | recall accuracy per repo |
-| 3 · controlled | CompactBench — decision recall across K forced compaction cycles, 6 arms, pre-registered (`ctxpack/benchmarks/compactbench/PREREGISTRATION.md`) | causal, benchmark-grade |
+| 1 · observational | `ctxpack scorecard` rolls up ledger telemetry and writes a static HTML page | adoption counters already on the ledger |
+| 2 · quasi-experimental | `run_resume_probe.py` recalls a repo's own history under budget-parity arms (CTX, grep over the transcript, closed book), with rule-based grading | a per-repo recall run, when someone runs it |
+| 3 · controlled | CompactBench: decision recall across K forced compaction cycles, 6 arms, pre-registered (`ctxpack/benchmarks/compactbench/PREREGISTRATION.md`) | a pre-registered experiment, not a result quoted here |
 
 Repo teams only work normally and commit `.claude/ctx/`; the CTX team
 runs the instruments centrally.
