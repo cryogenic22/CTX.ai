@@ -1,36 +1,36 @@
-# CtxPack Pilot Brief — Auditable Session Memory for Coding Agents
+# CtxPack Pilot Brief: Auditable Session Memory for Coding Agents
 
-*One page. Recruiting now; onboarding starts after our security review
-completes (see "Timing" — we won't put your transcripts through a tool
-whose threat model isn't finished).*
+*One page. Recruiting now. Onboarding starts after the security review
+in "Timing" is finished. Transcripts do not go through a tool whose
+threat model is not finished.*
 
 ## The problem
 
-When a Claude Code session compacts (or you `/clear`), the decisions,
-constraints, and dead ends it contained dissolve into a lossy LLM
-summary. In our sentinel benchmark, decision recall through native
-compaction was **zero after the first compaction** — the agent re-asks,
-re-decides, and re-makes mistakes you already paid for.
+When a Claude Code session compacts, or you clear the session, that
+context is no longer in the model window. This brief does not claim a
+recall number for native compaction, and it does not claim higher
+recall than grep over the transcript.
 
 ## What CtxPack does
 
-Packs every session transcript into a **deterministic, git-committable
-ledger** — no LLM in the write path, every fact carrying provenance to
-the exact turn — and re-injects a ~2K-token gist at the next session
-start. Mid-session, the agent queries the ledger (`resume`, `recall`,
-`why`, `literals`) instead of grepping megabytes of transcript. Memory
-you can read, diff, and PR-review, not an opaque vendor database.
+Packs a session transcript into a ledger you can commit. No model runs
+on the write path. A stored fact can point at the turn it came from.
+The next session start re-injects the budgeted brief from
+`ctxpack.agent.brief`, not a fixed-size gist. Decisions and constraints
+are captured from sentence-leading `Decision:` and `Constraint:` lines.
+Unmarked prose is not the capture contract. The ledger is files in the
+repo. You can read them and diff them.
 
 ## What a pilot gets
 
-- Install + onboarding support (target: under ten minutes to first
-  checkpoint; one command, one Claude Code restart).
-- Session continuity across compactions, `/clear`, and machine switches.
-- Built-in adoption telemetry so *you* can see whether it's earning its
-  keep — the headline metric is how often the agent still falls back to
-  raw-transcript grepping.
-- Direct line to the maintainer; fixes on real friction land fast (the
-  current backlog was built entirely from real agent-consumer feedback).
+- Help with install: `ctxpack onboard`, then a Claude Code restart.
+  This brief does not state a setup time.
+- A ledger that remains in the repo across compaction, `/clear`, and a
+  clone on another machine, when `.claude/ctx/` is committed.
+- Adoption counters from `ctxpack session stats`, including how often a
+  recall attempt used the raw transcript. That counter is not a recall
+  result.
+- A direct line to the maintainer.
 
 ## What we ask (two weeks)
 
@@ -42,7 +42,7 @@ you can read, diff, and PR-review, not an opaque vendor database.
 - A 30-minute exit conversation: what helped, what didn't, would you
   keep it.
 
-## What we measure (and publish, win or lose)
+## What a pilot would measure
 
 Ledger-read vs raw-fallback rate · time-to-resume after compaction ·
 stale-decision incidents · repeated-mistake incidents · identifier
@@ -51,19 +51,18 @@ program with preregistered analyses; negative results are reported.
 
 ## Honest status
 
-Deterministic write path, provenance, and resume/recall surfaces are
-solid and dogfooded daily on our own repos. What's *not* proven yet:
-superiority over grep-over-transcript at statistical power (benchmark in
-progress, preregistered), and third-party ergonomics — that's what the
-pilot exists to test. Current evidence and caveats:
-`paper/status-and-value-v0.5.md`.
+The deterministic write path, turn provenance, and the resume and recall
+commands are in the tree. This brief does not claim higher recall than
+grep over the transcript, or higher recall than native compaction.
+Third-party ergonomics are what a pilot would observe. Notes under
+`paper/status-and-value-v0.5.md` are research records, not product claims.
 
 ## Timing
 
 Recruiting now. Onboarding begins once our security/threat-model review
 (secret redaction in transcripts, project isolation) and the
-installation-hardening pass are complete — we'll share both documents
-with pilots. Expected: weeks, not months.
+installation-hardening pass are complete. Both documents go to pilots
+before onboarding starts. This brief does not give a calendar date.
 
-**Contact:** Kapil Pant — kapilpant@gmail.com ·
+**Contact:** Kapil Pant, kapilpant@gmail.com,
 https://github.com/cryogenic22/CTX.ai
